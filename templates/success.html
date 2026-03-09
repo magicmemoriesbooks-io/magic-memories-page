@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'es' %}Pedido Confirmado{% else %}Order Confirmed{% endif %} - {{ translations.site_title }}{% endblock %}
+
+{% block content %}
+<section class="py-16 px-4 max-w-2xl mx-auto text-center">
+    <div class="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg p-8 md:p-12">
+        <div class="text-6xl mb-6">🎉</div>
+        <h1 class="font-display text-3xl font-bold text-purple-800 mb-4">
+            {% if lang == 'es' %}¡Gracias por tu pedido!{% else %}Thank you for your order!{% endif %}
+        </h1>
+        <p class="text-gray-600 mb-8">
+            {% if lang == 'es' %}
+            Tu cuento mágico está siendo creado. Recibirás un email con tu libro personalizado en las próximas 24-48 horas.
+            {% else %}
+            Your magical story is being created. You will receive an email with your personalized book within the next 24-48 hours.
+            {% endif %}
+        </p>
+        
+        <div class="bg-purple-50 rounded-xl p-6 mb-8">
+            <h3 class="font-semibold text-purple-800 mb-2">{% if lang == 'es' %}¿Qué sigue?{% else %}What's next?{% endif %}</h3>
+            <ul class="text-left text-gray-600 space-y-2">
+                <li class="flex items-start">
+                    <span class="text-green-500 mr-2">✓</span>
+                    {% if lang == 'es' %}Nuestro sistema de IA generará tu cuento personalizado{% else %}Our AI system will generate your personalized story{% endif %}
+                </li>
+                <li class="flex items-start">
+                    <span class="text-green-500 mr-2">✓</span>
+                    {% if lang == 'es' %}Recibirás el PDF digital por email{% else %}You'll receive the digital PDF by email{% endif %}
+                </li>
+                <li class="flex items-start">
+                    <span class="text-green-500 mr-2">✓</span>
+                    {% if lang == 'es' %}También incluimos la versión para imprimir{% else %}We also include the print-ready version{% endif %}
+                </li>
+            </ul>
+        </div>
+
+        <a href="{{ url_for('index') }}" class="inline-block gradient-magic text-white font-semibold px-8 py-3 rounded-full hover:opacity-90 transition">
+            {% if lang == 'es' %}Volver al inicio{% else %}Back to home{% endif %}
+        </a>
+    </div>
+</section>
+{% endblock %}

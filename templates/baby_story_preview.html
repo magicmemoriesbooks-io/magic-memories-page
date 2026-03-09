@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'es' %}¡Tu Cuento Está Listo!{% else %}Your Story is Ready!{% endif %} - {{ translations.site_title }}{% endblock %}
+
+{% block content %}
+<section class="py-8 px-4 max-w-5xl mx-auto">
+    <a href="{{ url_for('index') }}" class="inline-flex items-center text-amber-600 hover:text-amber-800 mb-6">
+        ← {% if lang == 'es' %}Volver a Inicio{% else %}Back to Home{% endif %}
+    </a>
+
+    <div class="text-center mb-8">
+        <h1 class="font-display text-3xl md:text-4xl font-bold bg-gradient-to-r from-amber-600 to-orange-500 bg-clip-text text-transparent mb-2">
+            ✨ {% if lang == 'es' %}¡Tu Cuento Está Listo!{% else %}Your Story is Ready!{% endif %}
+        </h1>
+        <p class="text-gray-600">{{ story_data.story_name }} {% if lang == 'es' %}para{% else %}for{% endif %} {{ story_data.child_name }}</p>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        <h3 class="font-display text-lg font-bold text-amber-800 mb-6 text-center">{% if lang == 'es' %}Galería de Ilustraciones{% else %}Illustrations Gallery{% endif %}</h3>
+        {% set num_gallery = story_data.images|length if story_data.images else 5 %}
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {% for i in range(num_gallery) %}
+            <div class="relative group">
+                <div class="aspect-square rounded-xl overflow-hidden shadow-md border-4 border-amber-100 hover:border-amber-300 transition-all cursor-pointer" onclick="openImageModal({{ i }})">
+                    {% if story_data.images and i < story_data.images|length %}
+                    <img src="{{ story_data.images[i] }}" alt="{% if lang == 'es' %}Ilustración {{ i + 1 }}{% else %}Illustration {{ i + 1 }}{% endif %}" class="w-full h-full object-cover group-hover:scale-105 transition-transform">
+                    {% else %}
+                    <div class="w-full h-full bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center">
+                        <span class="text-4xl">🎨</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <p class="text-center text-xs text-gray-500 mt-2 font-medium">{% if lang == 'es' %}Ilustración {{ i + 1 }}{% else %}Illustration {{ i + 1 }}{% endif %}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        <h3 class="font-display text-lg font-bold text-amber-800 mb-4">{% if lang == 'es' %}Texto del Cuento{% else %}Story Text{% endif %}</h3>
+        <div class="bg-gradient-to-br from-amber-50/50 to-orange-50/50 rounded-xl p-6 text-gray-700 leading-relaxed">
+            {% for page in story_data.pages %}
+            <div class="mb-6 pb-4 {% if not loop.last %}border-b border-amber-200{% endif %}">
+                <p class="text-sm text-amber-600 font-semibold mb-2">{% if lang == 'es' %}Página {{ loop.index }}{% else %}Page {{ loop.index }}{% endif %}</p>
+                <p class="text-lg whitespace-pre-line">{{ page.text }}</p>
+            </div>
+            {% endfor %}
+            
+            {% if story_data.dedication %}
+            <div class="mt-4 pt-4 border-t border-amber-300">
+                <p class="text-sm text-amber-600 font-semibold mb-2">{% if lang == 'es' %}Dedicatoria{% else %}Dedication{% endif %}</p>
+                <p class="text-lg italic whitespace-pre-line">{{ story_data.dedication }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        <h3 class="font-display text-lg font-bold text-amber-800 mb-6 text-center">{% if lang == 'es' %}Elige tu Formato{% else %}Choose Your Format{% endif %}</h3>
+        
+        <div class="grid md:grid-cols-3 gap-4">
+            <div class="border-2 border-blue-200 rounded-2xl p-5 bg-gradient-to-br from-blue-50 to-indigo-50 relative overflow-hidden">
+                <div class="absolute top-0 right-0 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-bl-lg">{% if lang == 'es' %}INCLUIDO{% else %}INCLUDED{% endif %}</div>
+                <div class="text-center mb-3">
+                    <div class="text-3xl mb-2">📄</div>
+                    <h4 class="font-display text-lg font-bold text-blue-800">PDF</h4>
+                    <p class="text-blue-600 text-xs">{% if lang == 'es' %}8 páginas{% else %}8 pages{% endif %}</p>
+                </div>
+                <ul class="space-y-1 text-xs text-gray-700 mb-3">
+                    <li class="flex items-center"><span class="text-green-500 mr-1">✓</span> {% if lang == 'es' %}Descarga instantánea{% else %}Instant download{% endif %}</li>
+                    <li class="flex items-center"><span class="text-green-500 mr-1">✓</span> {% if lang == 'es' %}Imprime en casa{% else %}Print at home{% endif %}</li>
+                </ul>
+                <button id="viewPdfBtn" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-1 text-sm mb-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                    </svg>
+                    {% if lang == 'es' %}Ver mi Cuento{% else %}View My Story{% endif %}
+                </button>
+                <a href="/api/generate-baby-pdf/{{ preview_id }}?format=digital&download=1" download class="w-full py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-1 text-sm no-underline">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    {% if lang == 'es' %}Descargar{% else %}Download{% endif %}
+                </a>
+            </div>
+            
+            <div class="border-2 border-purple-200 rounded-2xl p-5 bg-gradient-to-br from-purple-50 to-pink-50 relative overflow-hidden">
+                <div class="absolute top-0 right-0 bg-purple-500 text-white text-xs font-bold px-2 py-1 rounded-bl-lg">{% if lang == 'es' %}INCLUIDO{% else %}INCLUDED{% endif %}</div>
+                <div class="text-center mb-3">
+                    <div class="text-3xl mb-2">📖</div>
+                    <h4 class="font-display text-lg font-bold text-purple-800">EPUB</h4>
+                    <p class="text-purple-600 text-xs">{% if lang == 'es' %}Flipbook interactivo{% else %}Interactive flipbook{% endif %}</p>
+                </div>
+                <ul class="space-y-1 text-xs text-gray-700 mb-3">
+                    <li class="flex items-center"><span class="text-green-500 mr-1">✓</span> {% if lang == 'es' %}Lee en cualquier dispositivo{% else %}Read on any device{% endif %}</li>
+                    <li class="flex items-center"><span class="text-green-500 mr-1">✓</span> {% if lang == 'es' %}Pasa páginas animado{% else %}Animated page flip{% endif %}</li>
+                </ul>
+                <a href="{{ url_for('baby_ebook', preview_id=preview_id) }}" class="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-1 text-sm no-underline">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
+                    {% if lang == 'es' %}Abrir EPUB{% else %}Open EPUB{% endif %}
+                </a>
+                <div class="bg-amber-100 border border-amber-300 rounded-lg p-2 mt-2">
+                    <p class="text-amber-700 text-xs text-center font-medium">⏰ {% if lang == 'es' %}Disponible solo por 24 horas{% else %}Available for 24 hours only{% endif %}</p>
+                </div>
+            </div>
+            
+            <div class="border-2 border-amber-200 rounded-2xl p-5 bg-gradient-to-br from-amber-50 to-orange-50 relative overflow-hidden">
+                <div class="absolute top-0 right-0 bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded-bl-lg">{% if lang == 'es' %}INCLUIDO{% else %}INCLUDED{% endif %}</div>
+                <div class="text-center mb-3">
+                    <div class="text-3xl mb-2">🖨️</div>
+                    <h4 class="font-display text-lg font-bold text-amber-800">{% if lang == 'es' %}PDF Imprimible{% else %}Printable PDF{% endif %}</h4>
+                    <p class="text-amber-600 text-xs">{% if lang == 'es' %}8.5"×8.5" - 12 págs{% else %}8.5"×8.5" - 12 pages{% endif %}</p>
+                </div>
+                <ul class="space-y-1 text-xs text-gray-700 mb-3">
+                    <li class="flex items-center"><span class="text-green-500 mr-1">✓</span> {% if lang == 'es' %}Listo para imprenta local{% else %}Ready for local print shop{% endif %}</li>
+                    <li class="flex items-center"><span class="text-green-500 mr-1">✓</span> {% if lang == 'es' %}Alta calidad 300 DPI{% else %}High quality 300 DPI{% endif %}</li>
+                </ul>
+                <div class="space-y-2">
+                    <a href="/api/generate-baby-printable/{{ preview_id }}" download class="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-1 text-sm no-underline">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        {% if lang == 'es' %}Descargar PDF{% else %}Download PDF{% endif %}
+                    </a>
+                    <a href="/api/print-instructions/{{ preview_id }}" download class="w-full py-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-1 text-sm no-underline">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        {% if lang == 'es' %}Instrucciones{% else %}Instructions{% endif %}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex justify-center gap-4 mt-8">
+        <a href="{{ url_for('stories_0_1') }}" class="px-6 py-3 border-2 border-amber-300 text-amber-700 rounded-full font-semibold hover:bg-amber-50 transition-colors">
+            {% if lang == 'es' %}Crear Otro Cuento{% else %}Create Another Story{% endif %}
+        </a>
+    </div>
+</section>
+
+<div id="imageModal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4" onclick="closeImageModal()">
+    <div class="relative max-w-4xl w-full">
+        <button class="absolute -top-10 right-0 text-white text-3xl font-bold hover:text-gray-300">&times;</button>
+        <img id="modalImage" src="" alt="" class="w-full h-auto rounded-xl shadow-2xl max-h-[80vh] object-contain">
+        <div class="flex justify-center gap-4 mt-4">
+            <button onclick="event.stopPropagation(); prevImage();" class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg">← {% if lang == 'es' %}Anterior{% else %}Previous{% endif %}</button>
+            <button onclick="event.stopPropagation(); nextImage();" class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg">{% if lang == 'es' %}Siguiente{% else %}Next{% endif %} →</button>
+        </div>
+    </div>
+</div>
+
+<div id="downloadingModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center">
+    <div class="bg-white rounded-2xl p-8 max-w-sm w-full mx-4 text-center">
+        <div class="animate-spin text-5xl mb-4">📄</div>
+        <h3 class="font-display text-xl font-bold text-amber-800 mb-2">{% if lang == 'es' %}Generando PDF...{% else %}Generating PDF...{% endif %}</h3>
+        <p class="text-gray-600 text-sm">{% if lang == 'es' %}Esto puede tardar 5-6 minutos{% else %}This may take 5-6 minutes{% endif %}</p>
+    </div>
+</div>
+
+<script>
+const images = {{ story_data.images | tojson if story_data.images else '[]' | safe }};
+let currentImageIndex = 0;
+
+function openImageModal(index) {
+    if (images[index]) {
+        currentImageIndex = index;
+        document.getElementById('modalImage').src = images[index];
+        document.getElementById('imageModal').classList.remove('hidden');
+    }
+}
+
+function closeImageModal() {
+    document.getElementById('imageModal').classList.add('hidden');
+}
+
+function prevImage() {
+    currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
+    document.getElementById('modalImage').src = images[currentImageIndex];
+}
+
+function nextImage() {
+    currentImageIndex = (currentImageIndex + 1) % images.length;
+    document.getElementById('modalImage').src = images[currentImageIndex];
+}
+
+document.addEventListener('keydown', function(e) {
+    if (!document.getElementById('imageModal').classList.contains('hidden')) {
+        if (e.key === 'Escape') closeImageModal();
+        if (e.key === 'ArrowLeft') prevImage();
+        if (e.key === 'ArrowRight') nextImage();
+    }
+});
+
+const viewPdfBtn = document.getElementById('viewPdfBtn');
+if (viewPdfBtn) {
+    viewPdfBtn.addEventListener('click', function() {
+        document.getElementById('downloadingModal').classList.remove('hidden');
+        window.open('/api/generate-baby-pdf/{{ preview_id }}?format=digital', '_blank');
+        setTimeout(() => {
+            document.getElementById('downloadingModal').classList.add('hidden');
+        }, 2000);
+    });
+}
+
+const orderPrintBtn = document.getElementById('orderPrintBtn');
+if (orderPrintBtn) {
+    orderPrintBtn.addEventListener('click', function() {
+        document.getElementById('downloadingModal').classList.remove('hidden');
+        window.open('/api/generate-baby-pdf/{{ preview_id }}?format=print', '_blank');
+        setTimeout(() => {
+            document.getElementById('downloadingModal').classList.add('hidden');
+        }, 3000);
+    });
+}
+</script>
+{% endblock %}

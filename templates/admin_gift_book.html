@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}Generar Libro Regalo - Admin{% endblock %}
+
+{% block content %}
+<div style="background: white; min-height: 80vh; padding: 24px; max-width: 1200px; margin: 0 auto;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+        <h2 style="font-family: 'Quicksand', sans-serif; font-weight: 700; color: #1a1a1a; margin: 0; font-size: 22px;">🎁 Generar Libro Regalo</h2>
+        <a href="{{ url_for('admin_dashboard') }}" style="padding: 6px 14px; border: 1px solid #6366F1; color: #6366F1; background: white; border-radius: 6px; text-decoration: none; font-size: 12px;">Volver al Panel</a>
+    </div>
+    
+    <p style="color: #64748B; font-size: 13px; margin-bottom: 20px;">Genera un libro personalizado sin pasar por la plataforma de pago. Los PDFs se generarán para descarga directa.</p>
+
+    {% if gift_previews %}
+    <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; overflow: hidden; margin-bottom: 24px;">
+        <div style="padding: 12px 16px; background: linear-gradient(135deg, #10B981, #34D399); color: white;">
+            <span style="font-weight: 600; font-size: 14px;">📚 Libros Regalo Generados</span>
+        </div>
+        <div style="max-height: 300px; overflow-y: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                <thead>
+                    <tr style="background: #F1F5F9;">
+                        <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Nombre</th>
+                        <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Cuento</th>
+                        <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Estado</th>
+                        <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Fecha</th>
+                        <th style="padding: 8px 12px; text-align: right; font-weight: 600;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for gp in gift_previews %}
+                    <tr style="border-top: 1px solid #E2E8F0;">
+                        <td style="padding: 8px 12px;"><strong>{{ gp.child_name }}</strong></td>
+                        <td style="padding: 8px 12px;"><span style="font-size: 11px; color: #64748B;">{{ gp.story_id }}</span></td>
+                        <td style="padding: 8px 12px;">
+                            {% if gp.pages_composed %}
+                            <span style="background: #D1FAE5; color: #065F46; padding: 2px 8px; border-radius: 10px; font-size: 11px;">PDF Listo</span>
+                            {% elif gp.book_scenes_ready %}
+                            <span style="background: #DBEAFE; color: #1E40AF; padding: 2px 8px; border-radius: 10px; font-size: 11px;">Esperando aprobación</span>
+                            {% elif gp.scenes_generating %}
+                            <span style="background: #FEF3C7; color: #92400E; padding: 2px 8px; border-radius: 10px; font-size: 11px;">Generando...</span>
+                            {% else %}
+                            <span style="background: #E2E8F0; color: #475569; padding: 2px 8px; border-radius: 10px; font-size: 11px;">Preview</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 8px 12px;"><span style="font-size: 11px; color: #94A3B8;">{{ gp.created }}</span></td>
+                        <td style="padding: 8px 12px; text-align: right; white-space: nowrap;">
+                            {% if gp.scenes_generating or gp.book_scenes_ready or gp.pages_composed %}
+                            <a href="/order-complete/{{ gp.preview_id }}" style="padding: 3px 8px; background: #6366F1; color: white; border-radius: 5px; text-decoration: none; font-size: 11px;">Ver</a>
+                            {% endif %}
+                            {% if gp.has_lulu_folder %}
+                            <a href="/admin/gift-download/{{ gp.preview_id }}" style="padding: 3px 8px; background: #10B981; color: white; border-radius: 5px; text-decoration: none; font-size: 11px; margin-left: 4px;">Descargar PDFs</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+        
+        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; overflow: hidden;">
+            <div style="padding: 10px 16px; background: linear-gradient(135deg, #F59E0B, #FBBF24); color: white;">
+                <span style="font-weight: 600; font-size: 14px;">🍼 Cuentos Mágicos Bebé (0-2 años) — 4 cuentos</span>
+            </div>
+            <div style="padding: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+                <a href="/personalize-story?story=baby_soft_world&admin_gift=1&name=Regalo" style="display: block; padding: 16px; border: 1px solid #E2E8F0; border-radius: 10px; text-align: center; text-decoration: none; color: #1a1a1a; background: white; transition: all 0.2s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 15px rgba(245,158,11,0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow=''; this.style.transform=''">
+                    <div style="font-size: 28px; margin-bottom: 6px;">🧸</div>
+                    <div style="font-weight: 600; font-size: 13px;">Mundo Suave</div>
+                    <div style="font-size: 11px; color: #94A3B8;">0-1 años</div>
+                </a>
+                <a href="/personalize-story?story=baby_puppy_love&admin_gift=1&name=Regalo" style="display: block; padding: 16px; border: 1px solid #E2E8F0; border-radius: 10px; text-align: center; text-decoration: none; color: #1a1a1a; background: white; transition: all 0.2s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 15px rgba(245,158,11,0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow=''; this.style.transform=''">
+                    <div style="font-size: 28px; margin-bottom: 6px;">🐶💕</div>
+                    <div style="font-weight: 600; font-size: 13px;">Cuánto te Quiero</div>
+                    <div style="font-size: 11px; color: #94A3B8;">0-1 años</div>
+                </a>
+                <a href="/personalize-story?story=baby_first_pet&admin_gift=1&name=Regalo" style="display: block; padding: 16px; border: 1px solid #E2E8F0; border-radius: 10px; text-align: center; text-decoration: none; color: #1a1a1a; background: white; transition: all 0.2s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 15px rgba(245,158,11,0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow=''; this.style.transform=''">
+                    <div style="font-size: 28px; margin-bottom: 6px;">🐱🐾</div>
+                    <div style="font-weight: 600; font-size: 13px;">Primera Mascota</div>
+                    <div style="font-size: 11px; color: #94A3B8;">0-1 años</div>
+                </a>
+                <a href="/personalize-story?story=baby_guardian_light&admin_gift=1&name=Regalo" style="display: block; padding: 16px; border: 1px solid #E2E8F0; border-radius: 10px; text-align: center; text-decoration: none; color: #1a1a1a; background: white; transition: all 0.2s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 15px rgba(245,158,11,0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow=''; this.style.transform=''">
+                    <div style="font-size: 28px; margin-bottom: 6px;">✨🌙</div>
+                    <div style="font-weight: 600; font-size: 13px;">Luz Guardiana</div>
+                    <div style="font-size: 11px; color: #94A3B8;">0-1 años</div>
+                </a>
+            </div>
+        </div>
+        
+        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; overflow: hidden;">
+            <div style="padding: 10px 16px; background: linear-gradient(135deg, #10B981, #6EE7B7); color: white;">
+                <span style="font-weight: 600; font-size: 14px;">🧒 Cuentos Mágicos Kids (3-8 años) — 4 cuentos</span>
+            </div>
+            <div style="padding: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+                <a href="/personalize-story?story=superhero_light&admin_gift=1&name=Regalo" style="display: block; padding: 16px; border: 1px solid #E2E8F0; border-radius: 10px; text-align: center; text-decoration: none; color: #1a1a1a; background: white; transition: all 0.2s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 15px rgba(16,185,129,0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow=''; this.style.transform=''">
+                    <div style="font-size: 28px; margin-bottom: 6px;">🦸</div>
+                    <div style="font-weight: 600; font-size: 13px;">Superhéroe de la Luz</div>
+                    <div style="font-size: 11px; color: #94A3B8;">3-5 años</div>
+                </a>
+                <a href="/personalize-story?story=dragon_friend&admin_gift=1&name=Regalo" style="display: block; padding: 16px; border: 1px solid #E2E8F0; border-radius: 10px; text-align: center; text-decoration: none; color: #1a1a1a; background: white; transition: all 0.2s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 15px rgba(16,185,129,0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow=''; this.style.transform=''">
+                    <div style="font-size: 28px; margin-bottom: 6px;">🐲</div>
+                    <div style="font-weight: 600; font-size: 13px;">Amigo Dragón</div>
+                    <div style="font-size: 11px; color: #94A3B8;">3-8 años</div>
+                </a>
+                <a href="/personalize-story?story=space_astronaut&admin_gift=1&name=Regalo" style="display: block; padding: 16px; border: 1px solid #E2E8F0; border-radius: 10px; text-align: center; text-decoration: none; color: #1a1a1a; background: white; transition: all 0.2s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 15px rgba(16,185,129,0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow=''; this.style.transform=''">
+                    <div style="font-size: 28px; margin-bottom: 6px;">🚀</div>
+                    <div style="font-weight: 600; font-size: 13px;">Astronauta</div>
+                    <div style="font-size: 11px; color: #94A3B8;">3-8 años</div>
+                </a>
+                <a href="/personalize-story?story=zebra_stripes&admin_gift=1&name=Regalo" style="display: block; padding: 16px; border: 1px solid #E2E8F0; border-radius: 10px; text-align: center; text-decoration: none; color: #1a1a1a; background: white; transition: all 0.2s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 15px rgba(16,185,129,0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow=''; this.style.transform=''">
+                    <div style="font-size: 28px; margin-bottom: 6px;">🦓</div>
+                    <div style="font-weight: 600; font-size: 13px;">Aventura en la Sabana</div>
+                    <div style="font-size: 11px; color: #94A3B8;">3-8 años</div>
+                </a>
+            </div>
+        </div>
+        
+        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; overflow: hidden;">
+            <div style="padding: 10px 16px; background: linear-gradient(135deg, #3B82F6, #60A5FA); color: white;">
+                <span style="font-weight: 600; font-size: 14px;">🚀 Cuentos Mágicos Aventuras (5-7 años) — 4 cuentos</span>
+            </div>
+            <div style="padding: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+                <a href="/personalize-story?story=chronicles_valley&admin_gift=1&name=Regalo" style="display: block; padding: 16px; border: 1px solid #E2E8F0; border-radius: 10px; text-align: center; text-decoration: none; color: #1a1a1a; background: white; transition: all 0.2s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 15px rgba(59,130,246,0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow=''; this.style.transform=''">
+                    <div style="font-size: 28px; margin-bottom: 6px;">🏔️</div>
+                    <div style="font-weight: 600; font-size: 13px;">Crónicas del Valle</div>
+                    <div style="font-size: 11px; color: #94A3B8;">5-7 años</div>
+                </a>
+                <a href="/personalize-story?story=sunset_map&admin_gift=1&name=Regalo" style="display: block; padding: 16px; border: 1px solid #E2E8F0; border-radius: 10px; text-align: center; text-decoration: none; color: #1a1a1a; background: white; transition: all 0.2s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 15px rgba(59,130,246,0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow=''; this.style.transform=''">
+                    <div style="font-size: 28px; margin-bottom: 6px;">🗺️</div>
+                    <div style="font-weight: 600; font-size: 13px;">Mapa del Atardecer</div>
+                    <div style="font-size: 11px; color: #94A3B8;">5-7 años</div>
+                </a>
+                <a href="/personalize-story?story=star_guardian&admin_gift=1&name=Regalo" style="display: block; padding: 16px; border: 1px solid #E2E8F0; border-radius: 10px; text-align: center; text-decoration: none; color: #1a1a1a; background: white; transition: all 0.2s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 15px rgba(59,130,246,0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow=''; this.style.transform=''">
+                    <div style="font-size: 28px; margin-bottom: 6px;">🌟</div>
+                    <div style="font-weight: 600; font-size: 13px;">Guardián de las Estrellas</div>
+                    <div style="font-size: 11px; color: #94A3B8;">5-7 años</div>
+                </a>
+                <a href="/personalize-story?story=dog_forever&admin_gift=1&name=Regalo" style="display: block; padding: 16px; border: 1px solid #E2E8F0; border-radius: 10px; text-align: center; text-decoration: none; color: #1a1a1a; background: white; transition: all 0.2s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 15px rgba(59,130,246,0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow=''; this.style.transform=''">
+                    <div style="font-size: 28px; margin-bottom: 6px;">🐕</div>
+                    <div style="font-weight: 600; font-size: 13px;">Perro para Siempre</div>
+                    <div style="font-size: 11px; color: #94A3B8;">5-7 años</div>
+                </a>
+            </div>
+        </div>
+        
+        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; overflow: hidden;">
+            <div style="padding: 10px 16px; background: linear-gradient(135deg, #6366F1, #818CF8); color: white;">
+                <span style="font-weight: 600; font-size: 14px;">📖 Aventuras a tu Medida (tapa dura, 24 pág) — 4 cuentos</span>
+            </div>
+            <div style="padding: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+                <a href="/personalize-story?story=dragon_garden_illustrated&admin_gift=1&name=Regalo" style="display: block; padding: 16px; border: 1px solid #E2E8F0; border-radius: 10px; text-align: center; text-decoration: none; color: #1a1a1a; background: white; transition: all 0.2s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 15px rgba(99,102,241,0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow=''; this.style.transform=''">
+                    <div style="font-size: 28px; margin-bottom: 6px;">🐉</div>
+                    <div style="font-weight: 600; font-size: 13px;">El Jardín del Dragón</div>
+                    <div style="font-size: 11px; color: #94A3B8;">3-5 años</div>
+                </a>
+                <a href="/personalize-story?story=magic_chef_illustrated&admin_gift=1&name=Regalo" style="display: block; padding: 16px; border: 1px solid #E2E8F0; border-radius: 10px; text-align: center; text-decoration: none; color: #1a1a1a; background: white; transition: all 0.2s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 15px rgba(99,102,241,0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow=''; this.style.transform=''">
+                    <div style="font-size: 28px; margin-bottom: 6px;">👨‍🍳</div>
+                    <div style="font-weight: 600; font-size: 13px;">El Chef Mágico</div>
+                    <div style="font-size: 11px; color: #94A3B8;">3-5 años</div>
+                </a>
+                <a href="/personalize-story?story=magic_inventor_illustrated&admin_gift=1&name=Regalo" style="display: block; padding: 16px; border: 1px solid #E2E8F0; border-radius: 10px; text-align: center; text-decoration: none; color: #1a1a1a; background: white; transition: all 0.2s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 15px rgba(99,102,241,0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow=''; this.style.transform=''">
+                    <div style="font-size: 28px; margin-bottom: 6px;">🔧</div>
+                    <div style="font-weight: 600; font-size: 13px;">El Inventor Mágico</div>
+                    <div style="font-size: 11px; color: #94A3B8;">6-8 años</div>
+                </a>
+                <a href="/personalize-story?story=star_keeper_illustrated&admin_gift=1&name=Regalo" style="display: block; padding: 16px; border: 1px solid #E2E8F0; border-radius: 10px; text-align: center; text-decoration: none; color: #1a1a1a; background: white; transition: all 0.2s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 15px rgba(99,102,241,0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow=''; this.style.transform=''">
+                    <div style="font-size: 28px; margin-bottom: 6px;">⭐</div>
+                    <div style="font-weight: 600; font-size: 13px;">Guardián de Estrellas</div>
+                    <div style="font-size: 11px; color: #94A3B8;">3-5 años</div>
+                </a>
+            </div>
+        </div>
+        
+        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; overflow: hidden;">
+            <div style="padding: 10px 16px; background: linear-gradient(135deg, #EC4899, #F472B6); color: white;">
+                <span style="font-weight: 600; font-size: 14px;">🐾 Tu Amor Peludo (tapa dura, 24 pág) — 4 cuentos</span>
+            </div>
+            <div style="padding: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+                <a href="/personalize-furry-love?story=furry_love&admin_gift=1" style="display: block; padding: 16px; border: 1px solid #E2E8F0; border-radius: 10px; text-align: center; text-decoration: none; color: #1a1a1a; background: white; transition: all 0.2s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 15px rgba(236,72,153,0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow=''; this.style.transform=''">
+                    <div style="font-size: 28px; margin-bottom: 6px;">🐶👶</div>
+                    <div style="font-weight: 600; font-size: 13px;">Bebé (0-2 años)</div>
+                    <div style="font-size: 11px; color: #94A3B8;">Primer encuentro</div>
+                </a>
+                <a href="/personalize-furry-love?story=furry_love_adventure&admin_gift=1" style="display: block; padding: 16px; border: 1px solid #E2E8F0; border-radius: 10px; text-align: center; text-decoration: none; color: #1a1a1a; background: white; transition: all 0.2s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 15px rgba(236,72,153,0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow=''; this.style.transform=''">
+                    <div style="font-size: 28px; margin-bottom: 6px;">🐱🧒</div>
+                    <div style="font-weight: 600; font-size: 13px;">Aventura (3-8 años)</div>
+                    <div style="font-size: 11px; color: #94A3B8;">Aventuras juntos</div>
+                </a>
+                <a href="/personalize-furry-love?story=furry_love_teen&admin_gift=1" style="display: block; padding: 16px; border: 1px solid #E2E8F0; border-radius: 10px; text-align: center; text-decoration: none; color: #1a1a1a; background: white; transition: all 0.2s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 15px rgba(236,72,153,0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow=''; this.style.transform=''">
+                    <div style="font-size: 28px; margin-bottom: 6px;">🐕🧑</div>
+                    <div style="font-weight: 600; font-size: 13px;">Teen (10-19 años)</div>
+                    <div style="font-size: 11px; color: #94A3B8;">Compañero fiel</div>
+                </a>
+                <a href="/personalize-furry-love?story=furry_love_adult&admin_gift=1" style="display: block; padding: 16px; border: 1px solid #E2E8F0; border-radius: 10px; text-align: center; text-decoration: none; color: #1a1a1a; background: white; transition: all 0.2s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 15px rgba(236,72,153,0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow=''; this.style.transform=''">
+                    <div style="font-size: 28px; margin-bottom: 6px;">🐕🧑‍🦱</div>
+                    <div style="font-weight: 600; font-size: 13px;">Adulto (18+ años)</div>
+                    <div style="font-size: 11px; color: #94A3B8;">Amor incondicional</div>
+                </a>
+            </div>
+        </div>
+        
+        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; overflow: hidden;">
+            <div style="padding: 10px 16px; background: linear-gradient(135deg, #F472B6, #FB923C); color: white;">
+                <span style="font-weight: 600; font-size: 14px;">🎂 Cuentos de Cumpleaños — 3 cuentos</span>
+            </div>
+            <div style="padding: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+                <a href="/personalize-story?story=birthday_celebration_1_3&admin_gift=1&name=Regalo" style="display: block; padding: 16px; border: 1px solid #E2E8F0; border-radius: 10px; text-align: center; text-decoration: none; color: #1a1a1a; background: white; transition: all 0.2s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 15px rgba(244,114,182,0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow=''; this.style.transform=''">
+                    <div style="font-size: 28px; margin-bottom: 6px;">🎈</div>
+                    <div style="font-weight: 600; font-size: 13px;">Cumple 1-3 años</div>
+                    <div style="font-size: 11px; color: #94A3B8;">Primera celebración</div>
+                </a>
+                <a href="/personalize-story?story=birthday_celebration_4_6&admin_gift=1&name=Regalo" style="display: block; padding: 16px; border: 1px solid #E2E8F0; border-radius: 10px; text-align: center; text-decoration: none; color: #1a1a1a; background: white; transition: all 0.2s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 15px rgba(244,114,182,0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow=''; this.style.transform=''">
+                    <div style="font-size: 28px; margin-bottom: 6px;">🎉</div>
+                    <div style="font-weight: 600; font-size: 13px;">Cumple 4-6 años</div>
+                    <div style="font-size: 11px; color: #94A3B8;">Fiesta mágica</div>
+                </a>
+                <a href="/personalize-story?story=birthday_celebration_7_9&admin_gift=1&name=Regalo" style="display: block; padding: 16px; border: 1px solid #E2E8F0; border-radius: 10px; text-align: center; text-decoration: none; color: #1a1a1a; background: white; transition: all 0.2s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 15px rgba(244,114,182,0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow=''; this.style.transform=''">
+                    <div style="font-size: 28px; margin-bottom: 6px;">🎊</div>
+                    <div style="font-weight: 600; font-size: 13px;">Cumple 7-9 años</div>
+                    <div style="font-size: 11px; color: #94A3B8;">Aventura de cumpleaños</div>
+                </a>
+            </div>
+        </div>
+        
+    </div>
+</div>
+{% endblock %}

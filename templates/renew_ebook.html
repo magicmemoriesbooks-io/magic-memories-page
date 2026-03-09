@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if lang == 'es' %}Renovar acceso eBook{% else %}Renew eBook Access{% endif %} — Magic Memories Books</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #f5f3ff 0%, #fdf2f8 100%); min-height: 100vh; }
+        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+        .float-anim { animation: float 3s ease-in-out infinite; }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 text-center">
+        <div class="text-6xl mb-4 float-anim">📖</div>
+
+        <h1 class="text-2xl font-bold text-purple-700 mb-1">
+            {% if lang == 'es' %}Acceso Permanente al eBook{% else %}Permanent eBook Access{% endif %}
+        </h1>
+        {% if child_name %}
+        <p class="text-gray-500 text-sm mb-4">
+            {% if lang == 'es' %}El cuento de{% else %}The story of{% endif %}
+            <strong class="text-purple-600">{{ child_name }}</strong>
+        </p>
+        {% endif %}
+
+        <div class="bg-purple-50 rounded-2xl p-4 mb-6 text-left space-y-2">
+            <div class="flex items-center gap-2 text-sm text-gray-700">
+                <span class="text-green-500">✓</span>
+                {% if lang == 'es' %}Visor interactivo con flipbook{% else %}Interactive flipbook viewer{% endif %}
+            </div>
+            <div class="flex items-center gap-2 text-sm text-gray-700">
+                <span class="text-green-500">✓</span>
+                {% if lang == 'es' %}Narración por voz y música{% else %}Voice narration and music{% endif %}
+            </div>
+            <div class="flex items-center gap-2 text-sm text-gray-700">
+                <span class="text-green-500">✓</span>
+                {% if lang == 'es' %}Acceso permanente, sin expiración{% else %}Permanent access, no expiration{% endif %}
+            </div>
+            <div class="flex items-center gap-2 text-sm text-gray-700">
+                <span class="text-green-500">✓</span>
+                {% if lang == 'es' %}Se ve en cualquier dispositivo{% else %}Viewable on any device{% endif %}
+            </div>
+        </div>
+
+        <div class="text-4xl font-black text-purple-700 mb-2">$7 <span class="text-lg font-normal text-gray-400">USD</span></div>
+        <p class="text-xs text-gray-400 mb-6">{% if lang == 'es' %}Pago único — acceso para siempre{% else %}One-time payment — access forever{% endif %}</p>
+
+        <button id="buyBtn" onclick="openCheckout()"
+            class="w-full py-4 px-8 rounded-full text-white font-bold text-lg bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 active:scale-95">
+            ✨ {% if lang == 'es' %}Comprar acceso permanente{% else %}Buy permanent access{% endif %}
+        </button>
+
+        <p class="mt-4 text-xs text-gray-400">
+            {% if lang == 'es' %}
+            Pago seguro con Paddle. Recibirás un email con el link actualizado cuando se complete el pago.
+            {% else %}
+            Secure payment via Paddle. You'll receive an email with the updated link when payment is complete.
+            {% endif %}
+        </p>
+
+        <div class="mt-6 pt-4 border-t border-gray-100">
+            <a href="/" class="text-purple-400 hover:text-purple-600 text-sm transition-colors">
+                ← {% if lang == 'es' %}Volver al inicio{% else %}Back to home{% endif %}
+            </a>
+        </div>
+    </div>
+
+    <script>
+        {% if paddle_environment == 'sandbox' %}
+        Paddle.Environment.set("sandbox");
+        {% endif %}
+        Paddle.Initialize({
+            token: "{{ paddle_client_token }}",
+            eventCallback: function(event) {
+                if (event.name === "checkout.completed") {
+                    document.getElementById('buyBtn').disabled = true;
+                    document.getElementById('buyBtn').textContent = '{% if lang == "es" %}¡Pago exitoso! Revisando...{% else %}Payment successful! Processing...{% endif %}';
+                    setTimeout(function() {
+                        window.location.href = '/order-complete/{{ preview_id }}';
+                    }, 2500);
+                }
+            }
+        });
+
+        function openCheckout() {
+            Paddle.Checkout.open({
+                items: [{ priceId: "{{ paddle_price_id }}", quantity: 1 }],
+                customData: {
+                    preview_id: "{{ preview_id }}",
+                    product_type: "ebook",
+                    is_renewal: true
+                }
+            });
+        }
+    </script>
+</body>
+</html>

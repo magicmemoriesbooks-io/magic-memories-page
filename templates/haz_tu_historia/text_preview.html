@@ -1,0 +1,328 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'es' %}Vista Previa del Texto{% else %}Text Preview{% endif %} - {{ translations.site_title }}{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
+<style>
+    .book-text {
+        font-family: 'Libre Baskerville', Georgia, serif;
+        font-size: 1.1rem;
+        line-height: 1.9;
+        color: #2d2d2d;
+    }
+    .drop-cap {
+        float: left;
+        font-family: 'Cinzel Decorative', serif;
+        font-size: 4.5rem;
+        line-height: 0.8;
+        padding-right: 12px;
+        padding-top: 8px;
+        color: #7c3aed;
+        font-weight: 700;
+    }
+    .book-title {
+        font-family: 'Cinzel Decorative', serif;
+        color: #1f2937;
+    }
+    .book-page {
+        background: linear-gradient(135deg, #fffef7 0%, #fef3c7 100%);
+        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        border: 1px solid #e5ddd0;
+    }
+    .page-number {
+        font-family: 'Libre Baskerville', serif;
+        font-style: italic;
+        color: #9ca3af;
+    }
+    .first-line-text {
+        /* Normal text after drop cap - no special styling */
+        letter-spacing: 0.02em;
+    }
+    .act-text {
+        font-family: 'Libre Baskerville', Georgia, serif;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="py-8 px-4 max-w-4xl mx-auto">
+    <div class="mb-6">
+        <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
+            <span>{% if lang == 'es' %}Paso 3 de 6{% else %}Step 3 of 6{% endif %}</span>
+            <div class="flex-1 mx-4 h-2 bg-gray-200 rounded-full">
+                <div class="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full" style="width: 50%"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-center mb-8">
+        <h1 class="font-display text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent mb-4">
+            {% if lang == 'es' %}Vista Previa del Texto{% else %}Text Preview{% endif %}
+        </h1>
+        <p class="text-gray-600">
+            {% if lang == 'es' %}
+            Revisa la historia generada. Asi se vera en tu libro impreso.
+            {% else %}
+            Review the generated story. This is how it will look in your printed book.
+            {% endif %}
+        </p>
+        <div class="mt-4">
+            <a href="{{ url_for('haz_tu_historia_text_preview', regenerate='1') }}" 
+               class="inline-block py-2 px-6 bg-orange-500 text-white font-medium rounded-lg hover:bg-orange-600 transition-colors text-sm">
+                {% if lang == 'es' %}Regenerar toda la historia{% else %}Regenerate entire story{% endif %}
+            </a>
+        </div>
+    </div>
+
+    <div id="loadingContainer" class="{% if story_text %}hidden{% endif %} text-center py-16">
+        <div class="animate-spin rounded-full h-16 w-16 border-4 border-purple-500 border-t-transparent mx-auto mb-4"></div>
+        <p class="text-gray-600 text-lg">{% if lang == 'es' %}Generando tu historia magica...{% else %}Generating your magical story...{% endif %}</p>
+        <p class="text-gray-400 text-sm mt-2">{% if lang == 'es' %}Esto puede tomar unos segundos{% else %}This may take a few seconds{% endif %}</p>
+    </div>
+
+    <div id="storyContainer" class="{% if not story_text %}hidden{% endif %} space-y-6">
+        <div class="book-page rounded-2xl p-8 md:p-12 mb-8">
+            <h2 id="storyTitle" class="book-title text-3xl md:text-4xl text-center mb-8">
+                {{ story_text.title if story_text else '' }}
+            </h2>
+            
+            {% if story_data.dedication %}
+            <div class="text-center italic text-gray-600 mb-8 pb-8 border-b border-gray-200">
+                <p class="text-sm uppercase tracking-widest mb-2">{% if lang == 'es' %}Dedicatoria{% else %}Dedication{% endif %}</p>
+                <p class="book-text">{{ story_data.dedication }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div id="actsContainer" class="space-y-8">
+            {% if story_text %}
+            {% for act in story_text.acts %}
+            <div class="book-page rounded-2xl p-8 md:p-12 relative" data-act="{{ act.act }}">
+                <div class="absolute top-4 right-6 page-number text-sm">{{ act.act }}</div>
+                
+                <div class="book-text act-text mb-6">
+                    {% set rest_text = act.text[1:] if act.text else '' %}
+                    {% set words = rest_text.split() %}
+                    {% set first_words = words[:12]|join(' ') %}
+                    {% set remaining_words = words[12:]|join(' ') %}
+                    <span class="drop-cap">{{ act.text[0] if act.text else '' }}</span><span class="first-line-text">{{ first_words }}</span>{% if remaining_words %} <span id="actText{{ act.act }}">{{ remaining_words }}</span>{% endif %}
+                </div>
+                
+                <div class="flex justify-end mt-6 pt-6 border-t border-gray-200">
+                    <button onclick="acceptAct({{ act.act }})"
+                        class="accept-act-btn py-2 px-6 bg-green-500 text-white font-medium rounded-lg hover:bg-green-600 transition-colors text-sm">
+                        {% if lang == 'es' %}Aceptar{% else %}Accept{% endif %}
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+        
+        {% if story_text and story_text.moral %}
+        <div class="book-page rounded-2xl p-8 md:p-12 text-center">
+            <p class="text-sm uppercase tracking-widest text-gray-500 mb-4">{% if lang == 'es' %}Moraleja{% else %}Moral{% endif %}</p>
+            <p class="book-text italic text-lg">{{ story_text.moral }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="mt-8 flex justify-between items-center">
+        <a href="{{ url_for('haz_tu_historia_portraits') }}" class="text-purple-600 hover:text-purple-800 font-medium">
+            &#8592; {% if lang == 'es' %}Volver a personajes{% else %}Back to characters{% endif %}
+        </a>
+        
+        <div class="flex gap-3">
+            <button id="acceptAllBtn" onclick="acceptAllActs()"
+                class="py-3 px-6 bg-green-500 text-white font-bold rounded-xl hover:bg-green-600 transition-all shadow-lg">
+                {% if lang == 'es' %}Aceptar Todo{% else %}Accept All{% endif %}
+            </button>
+            
+            <button id="continueBtn" onclick="continueToIllustrations()" disabled
+                class="py-3 px-8 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold rounded-xl hover:from-purple-700 hover:to-pink-600 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                {% if lang == 'es' %}Continuar a Ilustraciones{% else %}Continue to Illustrations{% endif %} &#8594;
+            </button>
+        </div>
+    </div>
+</section>
+
+<div id="regenerateModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full">
+        <h3 class="text-lg font-bold mb-4">{% if lang == 'es' %}Regenerar Acto{% else %}Regenerate Act{% endif %}</h3>
+        <p class="text-gray-600 text-sm mb-4">{% if lang == 'es' %}Que cambios te gustaria? (opcional){% else %}What changes would you like? (optional){% endif %}</p>
+        <textarea id="feedbackInput" rows="3" class="w-full p-3 border border-gray-300 rounded-lg mb-4" 
+            placeholder="{% if lang == 'es' %}Ej: Hazlo mas emocionante, agrega mas magia...{% else %}E.g.: Make it more exciting, add more magic...{% endif %}"></textarea>
+        <div class="flex gap-3">
+            <button onclick="closeRegenerateModal()" class="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50">
+                {% if lang == 'es' %}Cancelar{% else %}Cancel{% endif %}
+            </button>
+            <button onclick="confirmRegenerate()" class="flex-1 py-2 px-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                {% if lang == 'es' %}Regenerar{% else %}Regenerate{% endif %}
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+const acceptedActs = {};
+let currentActToRegenerate = null;
+let storyGenerated = {{ 'true' if story_text else 'false' }};
+
+for (let i = 1; i <= 9; i++) {
+    acceptedActs[i] = false;
+}
+
+function checkAllAccepted() {
+    const allAccepted = Object.values(acceptedActs).every(v => v === true);
+    document.getElementById('continueBtn').disabled = !allAccepted;
+}
+
+async function generateStory() {
+    try {
+        const response = await fetch('{{ url_for("haz_tu_historia_generate_text") }}', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            displayStory(data.story);
+            storyGenerated = true;
+        } else {
+            alert(data.error || '{% if lang == "es" %}Error al generar la historia{% else %}Error generating story{% endif %}');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('{% if lang == "es" %}Error de conexion{% else %}Connection error{% endif %}');
+    }
+    
+    document.getElementById('loadingContainer').classList.add('hidden');
+    document.getElementById('storyContainer').classList.remove('hidden');
+}
+
+function displayStory(story) {
+    document.getElementById('storyTitle').textContent = story.title;
+    
+    const container = document.getElementById('actsContainer');
+    container.innerHTML = '';
+    
+    story.acts.forEach(act => {
+        const actHtml = `
+            <div class="book-page rounded-2xl p-8 md:p-12 relative" data-act="${act.act}">
+                <div class="absolute top-4 right-6 page-number text-sm">${act.act}</div>
+                
+                <div class="book-text act-text mb-6">
+                    <span class="drop-cap">${act.text[0]}</span>
+                    <span id="actText${act.act}">${act.text.slice(1)}</span>
+                </div>
+                
+                <div class="flex gap-3 mt-6 pt-6 border-t border-gray-200">
+                    <button onclick="regenerateAct(${act.act})" 
+                        class="regenerate-act-btn flex-1 py-2 px-4 border-2 border-purple-500 text-purple-600 font-medium rounded-lg hover:bg-purple-50 transition-colors text-sm">
+                        {% if lang == 'es' %}Regenerar este acto{% else %}Regenerate this act{% endif %}
+                    </button>
+                    <button onclick="acceptAct(${act.act})"
+                        class="accept-act-btn flex-1 py-2 px-4 bg-green-500 text-white font-medium rounded-lg hover:bg-green-600 transition-colors text-sm">
+                        {% if lang == 'es' %}Aceptar{% else %}Accept{% endif %}
+                    </button>
+                </div>
+            </div>
+        `;
+        container.innerHTML += actHtml;
+    });
+}
+
+function regenerateAct(actNumber) {
+    currentActToRegenerate = actNumber;
+    document.getElementById('feedbackInput').value = '';
+    document.getElementById('regenerateModal').classList.remove('hidden');
+}
+
+function closeRegenerateModal() {
+    document.getElementById('regenerateModal').classList.add('hidden');
+    currentActToRegenerate = null;
+}
+
+async function confirmRegenerate() {
+    const feedback = document.getElementById('feedbackInput').value;
+    const actNumber = currentActToRegenerate;
+    
+    closeRegenerateModal();
+    
+    const actContainer = document.querySelector(`[data-act="${actNumber}"]`);
+    const textSpan = actContainer.querySelector(`#actText${actNumber}`);
+    const originalText = textSpan.textContent;
+    textSpan.textContent = '{% if lang == "es" %}Regenerando...{% else %}Regenerating...{% endif %}';
+    
+    acceptedActs[actNumber] = false;
+    const acceptBtn = actContainer.querySelector('.accept-act-btn');
+    acceptBtn.classList.remove('bg-gray-400');
+    acceptBtn.classList.add('bg-green-500', 'hover:bg-green-600');
+    acceptBtn.textContent = '{% if lang == "es" %}Aceptar{% else %}Accept{% endif %}';
+    acceptBtn.disabled = false;
+    checkAllAccepted();
+    
+    try {
+        const response = await fetch('{{ url_for("haz_tu_historia_regenerate_act") }}', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({act_number: actNumber, feedback: feedback})
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            const dropCap = actContainer.querySelector('.drop-cap');
+            dropCap.textContent = data.new_text[0];
+            textSpan.textContent = data.new_text.slice(1);
+        } else {
+            textSpan.textContent = originalText;
+            alert(data.error || '{% if lang == "es" %}Error al regenerar{% else %}Error regenerating{% endif %}');
+        }
+    } catch (error) {
+        textSpan.textContent = originalText;
+        console.error('Error:', error);
+        alert('{% if lang == "es" %}Error de conexion{% else %}Connection error{% endif %}');
+    }
+}
+
+function acceptAct(actNumber) {
+    acceptedActs[actNumber] = true;
+    
+    const actContainer = document.querySelector(`[data-act="${actNumber}"]`);
+    const acceptBtn = actContainer.querySelector('.accept-act-btn');
+    acceptBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
+    acceptBtn.classList.add('bg-gray-400');
+    acceptBtn.textContent = '{% if lang == "es" %}Aceptado{% else %}Accepted{% endif %}';
+    acceptBtn.disabled = true;
+    
+    checkAllAccepted();
+}
+
+function acceptAllActs() {
+    for (let i = 1; i <= 9; i++) {
+        if (!acceptedActs[i]) {
+            acceptAct(i);
+        }
+    }
+    
+    const acceptAllBtn = document.getElementById('acceptAllBtn');
+    acceptAllBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
+    acceptAllBtn.classList.add('bg-gray-400');
+    acceptAllBtn.textContent = '{% if lang == "es" %}Todo Aceptado{% else %}All Accepted{% endif %}';
+    acceptAllBtn.disabled = true;
+}
+
+function continueToIllustrations() {
+    window.location.href = '{{ url_for("haz_tu_historia_illustrations") }}';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (!storyGenerated) {
+        generateStory();
+    }
+});
+</script>
+{% endblock %}

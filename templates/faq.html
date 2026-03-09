@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'es' %}Preguntas Frecuentes{% else %}FAQ{% endif %} - Magic Memories Books{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-12">
+    <a href="{{ url_for('index') }}" class="inline-flex items-center text-sm font-medium text-purple-600 hover:text-purple-800 transition mb-4" style="font-family:'Quicksand',sans-serif;">
+        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        {% if lang == 'es' %}Volver al inicio{% else %}Back to Home{% endif %}
+    </a>
+    <h1 class="text-3xl font-bold text-center mb-2 font-display" style="color:#D4AF37;">
+        {% if lang == 'es' %}Preguntas Frecuentes{% else %}Frequently Asked Questions{% endif %}
+    </h1>
+    <p class="text-center text-gray-500 mb-10">
+        {% if lang == 'es' %}Todo lo que necesitas saber sobre nuestros libros personalizados{% else %}Everything you need to know about our personalized books{% endif %}
+    </p>
+
+    <div class="space-y-3" id="faq-list">
+        {% set faqs = [
+            {
+                'q_es': '¿Cómo funciona la personalización?',
+                'q_en': 'How does personalization work?',
+                'a_es': 'Eliges el cuento, personalizas al protagonista (nombre, apariencia, edad) y opcionalmente subes una foto. Nuestra inteligencia artificial genera ilustraciones únicas y un texto adaptado. Revisas todo antes de pagar.',
+                'a_en': 'You choose a story, customize the main character (name, appearance, age) and optionally upload a photo. Our AI generates unique illustrations and adapted text. You review everything before paying.'
+            },
+            {
+                'q_es': '¿Qué métodos de pago aceptan?',
+                'q_en': 'What payment methods do you accept?',
+                'a_es': 'Aceptamos Visa, Mastercard, PayPal y otros métodos a través de nuestra plataforma de pago segura (Paddle). Todas las transacciones están protegidas con encriptación SSL.',
+                'a_en': 'We accept Visa, Mastercard, PayPal and other methods through our secure payment platform (Paddle). All transactions are protected with SSL encryption.'
+            },
+            {
+                'q_es': '¿Cuánto tarda en llegar el libro impreso?',
+                'q_en': 'How long does it take to receive the printed book?',
+                'a_es': 'El tiempo de entrega depende del método de envío seleccionado. Correo estándar: 7-14 días hábiles. Correo prioritario: 5-7 días. Expedited: 3-5 días. Express: 1-3 días. Los tiempos pueden variar según la ubicación.',
+                'a_en': 'Delivery time depends on the shipping method selected. Standard mail: 7-14 business days. Priority mail: 5-7 days. Expedited: 3-5 days. Express: 1-3 days. Times may vary by location.'
+            },
+            {
+                'q_es': '¿Qué formatos están disponibles?',
+                'q_en': 'What formats are available?',
+                'a_es': 'Ofrecemos libro impreso en tapa dura (hardcover) con envío a domicilio, PDF digital por email, y eBook interactivo con visor online. Puedes elegir solo digital o impreso + digital.',
+                'a_en': 'We offer printed hardcover book with home delivery, digital PDF via email, and interactive eBook with online viewer. You can choose digital only or print + digital.'
+            },
+            {
+                'q_es': '¿Cuál es la calidad de impresión?',
+                'q_en': 'What is the print quality?',
+                'a_es': 'Nuestros libros se imprimen con Lulu, líder mundial en impresión bajo demanda. Tapa dura premium, papel de alta calidad a todo color, encuadernación profesional. Cada libro es una pieza única.',
+                'a_en': 'Our books are printed with Lulu, a world leader in print-on-demand. Premium hardcover, high-quality full-color paper, professional binding. Each book is a unique piece.'
+            },
+            {
+                'q_es': '¿Tienen política de reembolso?',
+                'q_en': 'Do you have a refund policy?',
+                'a_es': 'Dado que cada libro es único y personalizado, no ofrecemos reembolsos. Sin embargo, te damos la oportunidad de revisar y aprobar todo el contenido (texto e ilustraciones) antes de realizar el pago. Además, después del pago tienes una oportunidad de regeneración si algo no te convence.',
+                'a_en': 'Since each book is unique and personalized, we do not offer refunds. However, you get to review and approve all content (text and illustrations) before making your payment. Additionally, after payment you have one regeneration opportunity if something doesn\'t convince you.'
+            },
+            {
+                'q_es': '¿Es seguro subir fotos de mi hijo/a?',
+                'q_en': 'Is it safe to upload photos of my child?',
+                'a_es': 'Sí. Cumplimos con COPPA y GDPR. Las fotos se utilizan exclusivamente para la generación de las ilustraciones y se eliminan automáticamente en 72 horas. Requerimos consentimiento explícito antes de cualquier subida.',
+                'a_en': 'Yes. We comply with COPPA and GDPR. Photos are used exclusively for illustration generation and are automatically deleted within 72 hours. We require explicit consent before any upload.'
+            },
+            {
+                'q_es': '¿Puedo crear un libro sin subir foto?',
+                'q_en': 'Can I create a book without uploading a photo?',
+                'a_es': '¡Por supuesto! La foto es completamente opcional. Puedes personalizar al protagonista seleccionando su color de pelo, ojos, tono de piel y más. La IA creará ilustraciones basadas en esa descripción.',
+                'a_en': 'Of course! The photo is completely optional. You can customize the character by selecting their hair color, eyes, skin tone and more. The AI will create illustrations based on that description.'
+            },
+            {
+                'q_es': '¿En qué idiomas están disponibles los cuentos?',
+                'q_en': 'In what languages are the stories available?',
+                'a_es': 'Todos nuestros cuentos están disponibles en español e inglés. Puedes seleccionar el idioma durante la personalización.',
+                'a_en': 'All our stories are available in Spanish and English. You can select the language during personalization.'
+            },
+            {
+                'q_es': '¿A qué países envían?',
+                'q_en': 'What countries do you ship to?',
+                'a_es': 'Enviamos a nivel mundial a través de Lulu. Los costos y tiempos de envío varían según el destino. Los cuentos digitales están disponibles instantáneamente para todo el mundo.',
+                'a_en': 'We ship worldwide through Lulu. Shipping costs and times vary by destination. Digital stories are available instantly worldwide.'
+            },
+            {
+                'q_es': '¿Por qué tengo un límite de previsualizaciones?',
+                'q_en': 'Why is there a preview limit?',
+                'a_es': 'Cada ilustración se genera individualmente con inteligencia artificial, lo que implica un costo por imagen. Ofrecemos 3 previsualizaciones gratuitas cada 3 horas para que puedas explorar y encontrar el diseño perfecto. Si ya encontraste uno que te gusta, puedes continuar directamente con tu pedido.',
+                'a_en': 'Each illustration is individually generated using artificial intelligence, which involves a cost per image. We offer 3 free previews every 3 hours so you can explore and find the perfect design. If you already found one you like, you can continue directly with your order.'
+            }
+        ] %}
+
+        {% for faq in faqs %}
+        <div class="faq-item rounded-xl overflow-hidden" style="background:rgba(255,255,255,0.7);backdrop-filter:blur(8px);border:1px solid rgba(212,175,55,0.15);">
+            <button onclick="toggleFaq(this)" class="w-full text-left px-5 py-4 flex justify-between items-center hover:bg-white/50 transition">
+                <span class="font-semibold text-gray-800" style="font-size:15px;">{{ faq['q_es'] if lang == 'es' else faq['q_en'] }}</span>
+                <svg class="faq-icon w-5 h-5 text-gray-400 transition-transform duration-300 flex-shrink-0 ml-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
+            <div class="faq-answer hidden px-5 pb-4">
+                <p class="text-gray-600" style="font-size:14px;line-height:1.7;">{{ faq['a_es'] if lang == 'es' else faq['a_en'] }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="text-center mt-10">
+        <p class="text-gray-500 text-sm mb-3">
+            {% if lang == 'es' %}¿No encontraste lo que buscabas?{% else %}Didn't find what you were looking for?{% endif %}
+        </p>
+        <a href="mailto:info@magicmemoriesbooks.com" class="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white font-semibold text-sm transition hover:shadow-lg" style="background:linear-gradient(135deg,#D4AF37,#B8860B);">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+            {% if lang == 'es' %}Contáctanos{% else %}Contact Us{% endif %}
+        </a>
+    </div>
+</div>
+
+<script>
+function toggleFaq(btn) {
+    const answer = btn.nextElementSibling;
+    const icon = btn.querySelector('.faq-icon');
+    const isOpen = !answer.classList.contains('hidden');
+    document.querySelectorAll('.faq-answer').forEach(a => a.classList.add('hidden'));
+    document.querySelectorAll('.faq-icon').forEach(i => i.style.transform = 'rotate(0deg)');
+    if (!isOpen) {
+        answer.classList.remove('hidden');
+        icon.style.transform = 'rotate(180deg)';
+    }
+}
+</script>
+{% endblock %}

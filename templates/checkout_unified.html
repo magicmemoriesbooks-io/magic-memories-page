@@ -1,0 +1,1163 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'es' %}Pago{% else %}Checkout{% endif %} - {{ translations.site_title }}{% endblock %}
+
+{% block content %}
+<section class="py-8 px-4 max-w-2xl mx-auto">
+    <div class="mb-6">
+        <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
+            <span>{% if lang == 'es' %}Paso 3 de 3{% else %}Step 3 of 3{% endif %}</span>
+            <div class="flex-1 mx-4 h-2 bg-gray-200 rounded-full">
+                <div class="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full" style="width: 100%"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-center mb-8">
+        <h1 class="font-display text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent mb-2">
+            {% if lang == 'es' %}Completa tu Compra{% else %}Complete Your Purchase{% endif %}
+        </h1>
+        <p class="text-gray-600">{{ story_data.story_name }} {% if lang == 'es' %}para{% else %}for{% endif %} {{ story_data.child_name }}</p>
+        <a href="{{ url_for('story_selection') }}" class="inline-block mt-4 text-purple-600 hover:text-purple-800 underline text-sm">
+            ← {% if lang == 'es' %}Volver a elegir otro cuento{% else %}Go back to choose another story{% endif %}
+        </a>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        <h3 class="font-display text-lg font-bold text-gray-800 mb-4">
+            {% if checkout_config.allow_digital and checkout_config.allow_print %}
+                {% if lang == 'es' %}Elige tu formato{% else %}Choose your format{% endif %}
+            {% else %}
+                {% if lang == 'es' %}Resumen del Pedido{% else %}Order Summary{% endif %}
+            {% endif %}
+        </h3>
+        
+        <div class="flex items-center gap-4 mb-4 pb-4 border-b border-gray-200">
+            <div class="w-20 h-24 rounded-lg overflow-hidden bg-purple-100 flex-shrink-0">
+                {% if story_data.cover_image %}
+                <img src="{{ story_data.cover_image if story_data.cover_image.startswith('/') else '/' ~ story_data.cover_image }}" alt="Cover" class="w-full h-full object-cover">
+                {% elif story_data.character_preview %}
+                <img src="{{ story_data.character_preview if story_data.character_preview.startswith('/') else '/' ~ story_data.character_preview }}" alt="Cover" class="w-full h-full object-cover">
+                {% else %}
+                <div class="w-full h-full flex items-center justify-center text-3xl">📚</div>
+                {% endif %}
+            </div>
+            <div class="flex-1">
+                <p class="font-bold text-gray-800">{{ story_data.story_name }}</p>
+                <p class="text-sm text-gray-600">{% if lang == 'es' %}Cuento para{% else %}Story for{% endif %} {{ story_data.child_name }}</p>
+                <p class="text-xs text-gray-500 mt-1">{{ checkout_config.product_description }}</p>
+            </div>
+        </div>
+
+        {% if checkout_config.allow_digital or checkout_config.allow_ebook or checkout_config.allow_print %}
+        <div class="space-y-3 mt-4">
+            {% if checkout_config.allow_ebook %}
+            <label class="flex items-start gap-3 p-4 border-2 border-gray-200 bg-white rounded-xl cursor-pointer transition-all hover:border-purple-300" id="optionEbook">
+                <input type="checkbox" name="formatOption" value="ebook" onchange="toggleFormat()"
+                    class="mt-1 w-5 h-5 text-purple-600 focus:ring-purple-500 cursor-pointer rounded">
+                <div class="flex-1">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-bold text-gray-800">
+                                {% if lang == 'es' %}eBook Interactivo{% else %}Interactive eBook{% endif %} 📱
+                            </p>
+                            <p class="text-sm text-gray-600 mt-1" id="ebookDescription">
+                                {% if lang == 'es' %}Flipbook interactivo con narración, música y animaciones. Acceso permanente desde cualquier dispositivo.{% else %}Interactive flipbook with narration, music and animations. Permanent access from any device.{% endif %}
+                            </p>
+                        </div>
+                        <p class="font-bold text-lg text-purple-700 ml-4 whitespace-nowrap">${{ checkout_config.ebook_base_price }} USD</p>
+                    </div>
+                </div>
+            </label>
+            {% endif %}
+
+            {% if checkout_config.allow_digital %}
+            <label class="flex items-start gap-3 p-4 border-2 border-purple-500 bg-purple-50 rounded-xl cursor-pointer transition-all" id="optionDigital">
+                <input type="checkbox" name="formatOption" value="digital" checked onchange="toggleFormat()"
+                    class="mt-1 w-5 h-5 text-purple-600 focus:ring-purple-500 cursor-pointer rounded">
+                <div class="flex-1">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-bold text-gray-800">
+                                {% if lang == 'es' %}PDF Digital + PDF Imprimible{% else %}Digital PDF + Printable PDF{% endif %}
+                            </p>
+                            <p class="text-sm text-gray-600 mt-1" id="digitalDescription">
+                                {% if lang == 'es' %}PDF digital + PDF imprimible con instrucciones. Entrega inmediata por email.{% else %}Digital PDF + printable PDF with instructions. Immediate email delivery.{% endif %}
+                            </p>
+                            <p class="text-xs text-green-600 font-medium mt-1" id="digitalEbookGift">
+                                {% if lang == 'es' %}+ eBook interactivo de regalo (6 meses){% else %}+ Gift interactive eBook (6 months){% endif %}
+                            </p>
+                        </div>
+                        <p class="font-bold text-lg text-purple-700 ml-4 whitespace-nowrap">${{ checkout_config.digital_base_price }} USD</p>
+                    </div>
+                </div>
+            </label>
+            {% endif %}
+
+            {% if checkout_config.allow_print %}
+            <label class="flex items-start gap-3 p-4 border-2 border-gray-200 bg-white rounded-xl cursor-pointer transition-all hover:border-amber-300" id="optionPrint">
+                <input type="checkbox" name="formatOption" value="print" onchange="toggleFormat()"
+                    class="mt-1 w-5 h-5 text-amber-600 focus:ring-amber-500 cursor-pointer rounded">
+                <div class="flex-1">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-bold text-gray-800">
+                                {% if lang == 'es' %}Libro Impreso + Envío{% else %}Printed Book + Shipping{% endif %} 📖
+                            </p>
+                            <p class="text-sm text-gray-600 mt-1">
+                                {% if lang == 'es' %}{{ checkout_config.print_description_es }}{% else %}{{ checkout_config.print_description_en }}{% endif %}
+                            </p>
+                            <p class="text-xs text-green-600 font-medium mt-1" id="printEbookGift">
+                                {% if lang == 'es' %}+ eBook interactivo de regalo (6 meses){% else %}+ Gift interactive eBook (6 months){% endif %}
+                            </p>
+                        </div>
+                        <p class="font-bold text-lg text-amber-700 ml-4 whitespace-nowrap" id="printPriceLabel">${{ checkout_config.print_base_price }}+ USD</p>
+                    </div>
+                </div>
+            </label>
+            {% endif %}
+        </div>
+        <p class="text-xs text-red-500 mt-2 hidden" id="formatError">
+            {% if lang == 'es' %}Selecciona al menos un formato{% else %}Select at least one format{% endif %}
+        </p>
+        {% endif %}
+
+        <div class="mt-4 pt-4 border-t border-gray-200">
+            <div class="flex justify-between items-center text-base">
+                <span class="text-gray-600">{% if lang == 'es' %}Precio del libro:{% else %}Book price:{% endif %}</span>
+                <span class="font-semibold text-gray-800" id="basePriceDisplay">
+                    {% if checkout_config.allow_digital and not checkout_config.allow_print %}
+                        ${{ checkout_config.digital_base_price }} USD
+                    {% elif checkout_config.allow_ebook and not checkout_config.allow_digital %}
+                        ${{ checkout_config.ebook_base_price }} USD
+                    {% else %}
+                        ${{ checkout_config.print_base_price }} USD
+                    {% endif %}
+                </span>
+            </div>
+            <div id="shippingCostLine" class="flex justify-between items-center text-base mt-1 {{ 'hidden' if checkout_config.allow_digital or checkout_config.allow_ebook else '' }}">
+                <span class="text-gray-600" id="shippingCostLabel">{% if lang == 'es' %}Impresión + envío:{% else %}Printing + shipping:{% endif %}</span>
+                <span class="font-semibold text-gray-800" id="shippingCostDisplay">
+                    {% if lang == 'es' %}Pendiente{% else %}Pending{% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div id="shippingSection" class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100 {{ 'hidden' if checkout_config.allow_digital or checkout_config.allow_ebook else '' }}">
+        <h3 class="font-display text-lg font-bold text-gray-800 mb-4">
+            {% if lang == 'es' %}Dirección de Envío{% else %}Shipping Address{% endif %}
+        </h3>
+        <p class="text-sm text-gray-600 mb-4">{% if lang == 'es' %}Tu libro impreso será enviado a esta dirección{% else %}Your printed book will be shipped to this address{% endif %}</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    {% if lang == 'es' %}Nombre Completo{% else %}Full Name{% endif %} <span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="shippingName" name="shipping_name" maxlength="100"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="{% if lang == 'es' %}Juan García López{% else %}John Smith{% endif %}">
+            </div>
+            
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    {% if lang == 'es' %}Dirección (Línea 1){% else %}Address Line 1{% endif %} <span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="shippingStreet" name="street1" maxlength="35"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="{% if lang == 'es' %}Calle Principal 123{% else %}123 Main Street{% endif %}">
+                <p class="text-xs text-gray-500 mt-1">{% if lang == 'es' %}Máximo 35 caracteres{% else %}Maximum 35 characters{% endif %}</p>
+            </div>
+            
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    {% if lang == 'es' %}Dirección (Línea 2){% else %}Address Line 2{% endif %}
+                </label>
+                <input type="text" id="shippingStreet2" name="street2" maxlength="35"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="{% if lang == 'es' %}Apartamento, piso, etc. (opcional){% else %}Apartment, floor, etc. (optional){% endif %}">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    {% if lang == 'es' %}Ciudad{% else %}City{% endif %} <span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="shippingCity" name="city" maxlength="50"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="{% if lang == 'es' %}Madrid{% else %}New York{% endif %}">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    {% if lang == 'es' %}Estado/Provincia{% else %}State/Province{% endif %}
+                </label>
+                <input type="text" id="shippingState" name="state_code" maxlength="50"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="{% if lang == 'es' %}Comunidad de Madrid{% else %}NY{% endif %}">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    {% if lang == 'es' %}Código Postal{% else %}Postal Code{% endif %} <span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="shippingPostal" name="postcode" maxlength="20"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="28001">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    {% if lang == 'es' %}País{% else %}Country{% endif %} <span class="text-red-500">*</span>
+                </label>
+                <select id="shippingCountry" name="country_code"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                    <option value="">{% if lang == 'es' %}Selecciona país{% else %}Select country{% endif %}</option>
+                    <option value="US">{% if lang == 'es' %}Estados Unidos{% else %}United States{% endif %}</option>
+                    <option value="ES">{% if lang == 'es' %}España{% else %}Spain{% endif %}</option>
+                    <option value="MX">{% if lang == 'es' %}México{% else %}Mexico{% endif %}</option>
+                    <option value="AR">Argentina</option>
+                    <option value="CO">Colombia</option>
+                    <option value="CL">Chile</option>
+                    <option value="PE">{% if lang == 'es' %}Perú{% else %}Peru{% endif %}</option>
+                    <option value="GB">{% if lang == 'es' %}Reino Unido{% else %}United Kingdom{% endif %}</option>
+                    <option value="CA">{% if lang == 'es' %}Canadá{% else %}Canada{% endif %}</option>
+                    <option value="FR">{% if lang == 'es' %}Francia{% else %}France{% endif %}</option>
+                    <option value="DE">{% if lang == 'es' %}Alemania{% else %}Germany{% endif %}</option>
+                    <option value="IT">{% if lang == 'es' %}Italia{% else %}Italy{% endif %}</option>
+                    <option value="PT">Portugal</option>
+                    <option value="BR">{% if lang == 'es' %}Brasil{% else %}Brazil{% endif %}</option>
+                    <option value="AU">Australia</option>
+                    <option value="NL">{% if lang == 'es' %}Países Bajos{% else %}Netherlands{% endif %}</option>
+                    <option value="BE">{% if lang == 'es' %}Bélgica{% else %}Belgium{% endif %}</option>
+                    <option value="CH">{% if lang == 'es' %}Suiza{% else %}Switzerland{% endif %}</option>
+                    <option value="AT">Austria</option>
+                    <option value="IE">{% if lang == 'es' %}Irlanda{% else %}Ireland{% endif %}</option>
+                    <option value="PL">{% if lang == 'es' %}Polonia{% else %}Poland{% endif %}</option>
+                    <option value="SE">{% if lang == 'es' %}Suecia{% else %}Sweden{% endif %}</option>
+                    <option value="NO">{% if lang == 'es' %}Noruega{% else %}Norway{% endif %}</option>
+                    <option value="DK">{% if lang == 'es' %}Dinamarca{% else %}Denmark{% endif %}</option>
+                    <option value="FI">{% if lang == 'es' %}Finlandia{% else %}Finland{% endif %}</option>
+                    <option value="JP">{% if lang == 'es' %}Japón{% else %}Japan{% endif %}</option>
+                    <option value="KR">{% if lang == 'es' %}Corea del Sur{% else %}South Korea{% endif %}</option>
+                    <option value="NZ">{% if lang == 'es' %}Nueva Zelanda{% else %}New Zealand{% endif %}</option>
+                </select>
+            </div>
+            
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    {% if lang == 'es' %}Teléfono{% else %}Phone{% endif %} <span class="text-red-500">*</span>
+                </label>
+                <input type="tel" id="shippingPhone" name="phone"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="+1 555 123 4567">
+                <p class="text-xs text-gray-500 mt-1">{% if lang == 'es' %}Requerido para el envío{% else %}Required for shipping{% endif %}</p>
+            </div>
+            
+            <div id="taxIdContainer" class="md:col-span-2 hidden">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <span id="taxIdLabel">RFC / Tax ID</span> <span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="shippingTaxId" name="recipient_tax_id"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder=""
+                    onblur="validateTaxIdInline()">
+                <p id="taxIdHelp" class="text-xs text-gray-500 mt-1"></p>
+                <p id="taxIdError" class="text-xs text-red-600 mt-1 hidden"></p>
+            </div>
+        </div>
+    </div>
+    
+    <div id="shippingMethodSection" class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6 hidden">
+        <h3 class="font-display text-lg font-bold text-gray-800 mb-4">{% if lang == 'es' %}Método de Envío{% else %}Shipping Method{% endif %}</h3>
+        
+        <div id="shippingLoading" class="text-center py-4">
+            <div class="animate-spin w-8 h-8 border-2 border-purple-200 border-t-purple-600 rounded-full mx-auto mb-2"></div>
+            <p class="text-gray-500 text-sm">{% if lang == 'es' %}Calculando opciones de envío...{% else %}Calculating shipping options...{% endif %}</p>
+        </div>
+        
+        <div id="shippingOptions" class="space-y-3 hidden"></div>
+        
+        <p class="text-xs text-gray-500 mt-4">
+            <span class="text-green-600 font-semibold">✓</span> 
+            {% if lang == 'es' %}Incluye impresión y envío del libro{% else %}Includes book printing and shipping{% endif %}
+        </p>
+    </div>
+
+    <div class="bg-blue-50 border border-blue-300 rounded-xl p-4 mb-6">
+        <div class="flex items-center gap-2 text-blue-800">
+            <span class="text-xl">🔒</span>
+            <p class="font-medium">{% if lang == 'es' %}PAGO SEGURO CON PADDLE{% else %}SECURE PAYMENT WITH PADDLE{% endif %}</p>
+        </div>
+        <p class="text-blue-700 text-sm mt-1">
+            {% if lang == 'es' %}Procesamos tu pago de forma segura.{% else %}We process your payment securely.{% endif %}
+        </p>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6">
+        <h3 class="font-display text-lg font-bold text-gray-800 mb-4">{% if lang == 'es' %}Email de Entrega{% else %}Delivery Email{% endif %}</h3>
+        
+        <form id="deliveryForm" onsubmit="event.preventDefault(); startCheckout();">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Email <span class="text-red-500">*</span>
+                </label>
+                <input type="email" id="email" name="email" required 
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="tu@email.com">
+                <p class="text-xs text-gray-500 mt-1">{% if lang == 'es' %}Recibirás el PDF digital aquí{% else %}You'll receive the digital PDF here{% endif %}</p>
+            </div>
+    </div>
+
+    <div class="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-6" id="totalSection">
+        <div class="flex justify-between items-center text-lg font-bold">
+            <span>{% if lang == 'es' %}Total a Pagar:{% else %}Total to Pay:{% endif %}</span>
+            <div class="text-right">
+                <span class="text-purple-700" id="totalAmount">
+                    {% if checkout_config.allow_digital %}
+                        ${{ checkout_config.digital_base_price }} USD
+                    {% else %}
+                        ${{ checkout_config.print_base_price }}+ USD
+                    {% endif %}
+                </span>
+                <span class="text-gray-400 text-xs block" id="totalTaxNote">+ tax</span>
+            </div>
+        </div>
+        <p class="text-xs text-gray-600 mt-1" id="totalBreakdown">
+            {% if checkout_config.allow_digital %}
+                {% if lang == 'es' %}PDF digital + PDF imprimible con instrucciones{% else %}Digital PDF + printable PDF with instructions{% endif %}
+            {% else %}
+                {% if lang == 'es' %}Selecciona tu país para calcular el precio{% else %}Select your country to calculate the price{% endif %}
+            {% endif %}
+        </p>
+    </div>
+    
+    <div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+        <button type="submit" id="payButton"
+            class="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white font-bold rounded-xl text-lg transition-all flex items-center justify-center gap-2">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span id="payButtonText">
+                {% if checkout_config.allow_digital %}
+                    {% if lang == 'es' %}Pagar ${{ checkout_config.digital_base_price }} USD{% else %}Pay ${{ checkout_config.digital_base_price }} USD{% endif %}
+                {% else %}
+                    {% if lang == 'es' %}Selecciona país para ver precio{% else %}Select country to see price{% endif %}
+                {% endif %}
+            </span>
+        </button>
+        </form>
+    </div>
+    
+    <p class="text-center text-gray-500 text-sm mt-6">
+        {% if lang == 'es' %}Al pagar, aceptas nuestros{% else %}By paying, you accept our{% endif %}
+        <a href="/terms" class="text-purple-600 underline">{% if lang == 'es' %}términos y condiciones{% else %}terms and conditions{% endif %}</a>
+    </p>
+</section>
+
+<div id="addressConfirmModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-6 max-w-lg mx-4">
+        <h3 class="font-display text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <span class="text-2xl">📍</span>
+            {% if lang == 'es' %}Confirmar Dirección{% else %}Confirm Address{% endif %}
+        </h3>
+        <p class="text-gray-600 mb-4">
+            {% if lang == 'es' %}Encontramos una versión más precisa de tu dirección. Por favor confirma:{% else %}We found a more precise version of your address. Please confirm:{% endif %}
+        </p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="p-4 border border-gray-300 rounded-xl bg-gray-50">
+                <p class="font-semibold text-gray-700 mb-2 text-sm">{% if lang == 'es' %}Tu dirección:{% else %}Your address:{% endif %}</p>
+                <p class="text-gray-600 text-sm" id="originalAddressDisplay"></p>
+            </div>
+            <div class="p-4 border-2 border-green-500 rounded-xl bg-green-50">
+                <p class="font-semibold text-green-700 mb-2 text-sm flex items-center gap-1">
+                    <span>✓</span> {% if lang == 'es' %}Dirección recomendada:{% else %}Recommended address:{% endif %}
+                </p>
+                <p class="text-green-800 text-sm" id="suggestedAddressDisplay"></p>
+            </div>
+        </div>
+        
+        <div class="flex gap-3">
+            <button type="button" onclick="useOriginalAddress()" 
+                class="flex-1 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-xl transition-all">
+                {% if lang == 'es' %}Usar mi dirección{% else %}Use my address{% endif %}
+            </button>
+            <button type="button" onclick="useSuggestedAddress()" 
+                class="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition-all">
+                {% if lang == 'es' %}Usar recomendada{% else %}Use recommended{% endif %}
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="loadingOverlay" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-8 max-w-md mx-4 text-center">
+        <div class="animate-spin w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full mx-auto mb-4"></div>
+        <h3 class="font-display text-xl font-bold text-gray-800 mb-2">{% if lang == 'es' %}Procesando tu Pedido{% else %}Processing Your Order{% endif %}</h3>
+        <p class="text-purple-700 font-medium text-sm" id="loadingMessage" style="transition: opacity 0.3s ease;">{% if lang == 'es' %}Creando las ilustraciones de tu cuento...{% else %}Creating your story illustrations...{% endif %}</p>
+        <p class="text-sm text-gray-500 mt-4">{% if lang == 'es' %}Esto puede tardar unos minutos{% else %}This may take a few minutes{% endif %}</p>
+        <div class="mt-4 bg-gray-200 rounded-full h-2 overflow-hidden">
+            <div id="progressBar" class="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-1000" style="width: 0%"></div>
+        </div>
+        <div class="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+            <p class="text-amber-800 font-semibold text-sm flex items-center justify-center gap-2">
+                <span class="text-lg">⚠️</span>
+                {% if lang == 'es' %}No cierres ni recargues esta página{% else %}Don't close or reload this page{% endif %}
+            </p>
+            <p class="text-amber-700 text-xs mt-1">
+                {% if lang == 'es' %}Tu cuento se está generando. Si cierras, escríbenos a pay@magicmemoriesbooks.com con tu email de compra para recuperarlo.{% else %}Your story is being generated. If you close, email us at pay@magicmemoriesbooks.com with your purchase email to recover it.{% endif %}
+            </p>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+<script>
+const CFG = {
+    previewId: '{{ preview_id }}',
+    lang: '{{ lang }}',
+    allowDigital: {{ 'true' if checkout_config.allow_digital else 'false' }},
+    allowPrint: {{ 'true' if checkout_config.allow_print else 'false' }},
+    allowEbook: {{ 'true' if checkout_config.allow_ebook else 'false' }},
+    digitalBasePrice: {{ checkout_config.digital_base_price|default(0) }},
+    printBasePrice: {{ checkout_config.print_base_price|default(0) }},
+    ebookBasePrice: {{ checkout_config.ebook_base_price|default(7) }},
+    digitalPriceId: '{{ checkout_config.digital_price_id|default("") }}',
+    ebookPriceId: '{{ checkout_config.ebook_price_id|default("") }}',
+    printProductType: '{{ checkout_config.print_product_type|default("personalized") }}',
+    digitalProductType: '{{ checkout_config.digital_product_type|default("qs_digital") }}',
+    ebookProductType: '{{ checkout_config.ebook_product_type|default("ebook") }}',
+    productType: '{{ checkout_config.product_type }}'
+};
+
+let selectedFormats = [];
+if (CFG.allowDigital) selectedFormats.push('digital');
+let selectedShippingMethod = 'MAIL';
+let dynamicPricingData = null;
+let currentTotalCents = 0;
+let currentTotal = CFG.allowDigital ? CFG.digitalBasePrice : 0;
+let suggestedAddress = null;
+let pendingCheckoutData = null;
+
+Paddle.Environment.set("sandbox");
+Paddle.Initialize({
+    token: "{{ paddle_client_token }}",
+    eventCallback: function(event) {
+        console.log("[PADDLE EVENT]", event.name, event);
+        if (event.name === "checkout.error") {
+            console.error("[PADDLE ERROR]", event.data);
+            alert("Paddle Error: " + (event.data?.error?.message || JSON.stringify(event.data)));
+        }
+        if (event.name === "checkout.completed") {
+            console.log("[PADDLE] Payment completed!", event.data);
+            try { Paddle.Checkout.close(); } catch(e) {}
+            handlePaddleSuccess(event.data?.transaction_id || event.data?.id || '');
+        }
+    }
+});
+
+const TAX_ID_COUNTRIES = {
+    'MX': {
+        label: CFG.lang === 'es' ? 'RFC (Registro Federal de Contribuyentes)' : 'RFC (Tax ID)',
+        placeholder: 'XAXX010101000',
+        help: CFG.lang === 'es' ? 'Requerido por la aduana mexicana para recibir envíos internacionales (13 caracteres)' : 'Required by Mexican customs for international shipments (13 characters)',
+        validate: function(val) {
+            const clean = val.replace(/[\s-]/g, '').toUpperCase();
+            if (clean.length !== 12 && clean.length !== 13) return CFG.lang === 'es' ? 'El RFC debe tener 12 o 13 caracteres' : 'RFC must be 12 or 13 characters';
+            if (!/^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/.test(clean)) return CFG.lang === 'es' ? 'Formato de RFC inválido. Ejemplo: XAXX010101000' : 'Invalid RFC format. Example: XAXX010101000';
+            return null;
+        }
+    },
+    'BR': {
+        label: 'CPF / CNPJ',
+        placeholder: '000.000.000-00',
+        help: CFG.lang === 'es' ? 'Requerido por la aduana brasileña para envíos internacionales' : 'Required by Brazilian customs for international shipments',
+        validate: function(val) {
+            const clean = val.replace(/[\s.\-\/]/g, '');
+            if (clean.length !== 11 && clean.length !== 14) return CFG.lang === 'es' ? 'CPF debe tener 11 dígitos o CNPJ 14 dígitos' : 'CPF must have 11 digits or CNPJ 14 digits';
+            if (!/^\d+$/.test(clean)) return CFG.lang === 'es' ? 'Solo se permiten números' : 'Only numbers allowed';
+            return null;
+        }
+    },
+    'CL': {
+        label: 'RUT',
+        placeholder: '11.111.111-1',
+        help: CFG.lang === 'es' ? 'Requerido por la aduana chilena para envíos internacionales' : 'Required by Chilean customs for international shipments',
+        validate: function(val) {
+            const clean = val.replace(/[\s.\-]/g, '').toUpperCase();
+            if (clean.length < 8 || clean.length > 9) return CFG.lang === 'es' ? 'El RUT debe tener 8-9 caracteres' : 'RUT must be 8-9 characters';
+            if (!/^\d{7,8}[0-9K]$/.test(clean)) return CFG.lang === 'es' ? 'Formato de RUT inválido. Ejemplo: 11111111-1' : 'Invalid RUT format. Example: 11111111-1';
+            return null;
+        }
+    },
+    'AR': {
+        label: 'CUIT / CUIL',
+        placeholder: '20-12345678-9',
+        help: CFG.lang === 'es' ? 'Requerido por la aduana argentina. Formato: XX-XXXXXXXX-X (11 dígitos)' : 'Required by Argentine customs. Format: XX-XXXXXXXX-X (11 digits)',
+        validate: function(val) {
+            const clean = val.replace(/[\s\-]/g, '');
+            if (clean.length !== 11) return CFG.lang === 'es' ? 'El CUIT/CUIL debe tener 11 dígitos' : 'CUIT/CUIL must have 11 digits';
+            if (!/^\d{11}$/.test(clean)) return CFG.lang === 'es' ? 'Solo se permiten números' : 'Only numbers allowed';
+            const prefix = clean.substring(0, 2);
+            const validPrefixes = ['20', '23', '24', '25', '26', '27', '30', '33', '34'];
+            if (!validPrefixes.includes(prefix)) return CFG.lang === 'es' ? 'CUIT/CUIL inválido: debe comenzar con 20, 23-27, 30, 33 o 34' : 'Invalid CUIT/CUIL: must start with 20, 23-27, 30, 33 or 34';
+            const multipliers = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+            let sum = 0;
+            for (let i = 0; i < 10; i++) sum += parseInt(clean[i]) * multipliers[i];
+            const checkDigit = 11 - (sum % 11);
+            const expected = checkDigit === 11 ? 0 : checkDigit === 10 ? 9 : checkDigit;
+            if (parseInt(clean[10]) !== expected) return CFG.lang === 'es' ? 'CUIT/CUIL inválido: el dígito verificador no es correcto' : 'Invalid CUIT/CUIL: check digit is incorrect';
+            return null;
+        }
+    },
+    'PE': {
+        label: 'DNI / RUC',
+        placeholder: '10000000001',
+        help: CFG.lang === 'es' ? 'Requerido por la aduana peruana para envíos internacionales' : 'Required by Peruvian customs for international shipments',
+        validate: function(val) {
+            const clean = val.replace(/[\s\-]/g, '');
+            if (clean.length !== 8 && clean.length !== 11) return CFG.lang === 'es' ? 'DNI debe tener 8 dígitos o RUC 11 dígitos' : 'DNI must have 8 digits or RUC 11 digits';
+            if (!/^\d+$/.test(clean)) return CFG.lang === 'es' ? 'Solo se permiten números' : 'Only numbers allowed';
+            return null;
+        }
+    }
+};
+
+function updateTaxIdField(countryCode) {
+    const container = document.getElementById('taxIdContainer');
+    const label = document.getElementById('taxIdLabel');
+    const input = document.getElementById('shippingTaxId');
+    const help = document.getElementById('taxIdHelp');
+    
+    if (TAX_ID_COUNTRIES[countryCode]) {
+        const config = TAX_ID_COUNTRIES[countryCode];
+        label.textContent = config.label;
+        input.placeholder = config.placeholder;
+        help.textContent = config.help;
+        container.classList.remove('hidden');
+    } else {
+        container.classList.add('hidden');
+        input.value = '';
+    }
+}
+
+function validateTaxIdInline() {
+    const cc = document.getElementById('shippingCountry').value;
+    const input = document.getElementById('shippingTaxId');
+    const errorEl = document.getElementById('taxIdError');
+    if (!TAX_ID_COUNTRIES[cc] || !input.value.trim()) {
+        errorEl.classList.add('hidden');
+        input.classList.remove('border-red-500');
+        input.classList.add('border-gray-300');
+        return true;
+    }
+    if (TAX_ID_COUNTRIES[cc].validate) {
+        const err = TAX_ID_COUNTRIES[cc].validate(input.value.trim());
+        if (err) {
+            errorEl.textContent = err;
+            errorEl.classList.remove('hidden');
+            input.classList.remove('border-gray-300');
+            input.classList.add('border-red-500');
+            return false;
+        }
+    }
+    errorEl.classList.add('hidden');
+    input.classList.remove('border-red-500');
+    input.classList.add('border-gray-300');
+    return true;
+}
+
+const countrySelect = document.getElementById('shippingCountry');
+if (countrySelect) {
+    countrySelect.addEventListener('change', function() {
+        updateTaxIdField(this.value);
+        if (this.value && selectedFormats.includes('print')) {
+            loadDynamicPricing(this.value);
+        }
+    });
+}
+
+function toggleFormat() {
+    const checkboxes = document.querySelectorAll('input[name="formatOption"]');
+    selectedFormats = [];
+    checkboxes.forEach(cb => { if (cb.checked) selectedFormats.push(cb.value); });
+    
+    const optDigital = document.getElementById('optionDigital');
+    const optPrint = document.getElementById('optionPrint');
+    const optEbook = document.getElementById('optionEbook');
+    const shipSection = document.getElementById('shippingSection');
+    const shipMethodSection = document.getElementById('shippingMethodSection');
+    const formatError = document.getElementById('formatError');
+    
+    if (formatError) formatError.classList.toggle('hidden', selectedFormats.length > 0);
+    
+    if (optDigital) {
+        if (selectedFormats.includes('digital')) {
+            optDigital.classList.remove('border-gray-200', 'bg-white');
+            optDigital.classList.add('border-purple-500', 'bg-purple-50');
+        } else {
+            optDigital.classList.remove('border-purple-500', 'bg-purple-50');
+            optDigital.classList.add('border-gray-200', 'bg-white');
+        }
+    }
+    if (optPrint) {
+        if (selectedFormats.includes('print')) {
+            optPrint.classList.remove('border-gray-200', 'bg-white');
+            optPrint.classList.add('border-amber-500', 'bg-amber-50');
+        } else {
+            optPrint.classList.remove('border-amber-500', 'bg-amber-50');
+            optPrint.classList.add('border-gray-200', 'bg-white');
+        }
+    }
+    if (optEbook) {
+        if (selectedFormats.includes('ebook')) {
+            optEbook.classList.remove('border-gray-200', 'bg-white');
+            optEbook.classList.add('border-purple-500', 'bg-purple-50');
+        } else {
+            optEbook.classList.remove('border-purple-500', 'bg-purple-50');
+            optEbook.classList.add('border-gray-200', 'bg-white');
+        }
+    }
+    
+    const hasPrint = selectedFormats.includes('print');
+    const hasEbook = selectedFormats.includes('ebook');
+    
+    if (hasPrint) {
+        shipSection.classList.remove('hidden');
+        const cc = document.getElementById('shippingCountry').value;
+        if (cc) loadDynamicPricing(cc);
+    } else {
+        shipSection.classList.add('hidden');
+        if (shipMethodSection) shipMethodSection.classList.add('hidden');
+        dynamicPricingData = null;
+        currentTotalCents = 0;
+    }
+    
+    const digitalGift = document.getElementById('digitalEbookGift');
+    const printGift = document.getElementById('printEbookGift');
+    if (hasEbook) {
+        if (digitalGift) digitalGift.classList.add('hidden');
+        if (printGift) printGift.classList.add('hidden');
+    } else {
+        if (digitalGift) digitalGift.classList.remove('hidden');
+        if (printGift) printGift.classList.remove('hidden');
+    }
+    
+    updatePriceDisplay();
+}
+
+async function loadDynamicPricing(countryCode) {
+    const section = document.getElementById('shippingMethodSection');
+    const loading = document.getElementById('shippingLoading');
+    const options = document.getElementById('shippingOptions');
+    
+    section.classList.remove('hidden');
+    loading.classList.remove('hidden');
+    options.classList.add('hidden');
+    
+    try {
+        const response = await fetch('/api/calculate-dynamic-price', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                product_type: CFG.printProductType,
+                country_code: countryCode 
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.error) {
+            options.innerHTML = `<p class="text-red-500">${result.error}</p>`;
+        } else {
+            dynamicPricingData = result.options;
+            renderShippingOptions(dynamicPricingData);
+        }
+        
+        loading.classList.add('hidden');
+        options.classList.remove('hidden');
+    } catch (error) {
+        loading.classList.add('hidden');
+        options.innerHTML = `<p class="text-red-500">${CFG.lang === 'es' ? 'Error al cargar opciones' : 'Error loading options'}</p>`;
+        options.classList.remove('hidden');
+    }
+}
+
+function renderShippingOptions(pricingOptions) {
+    const container = document.getElementById('shippingOptions');
+    container.innerHTML = '';
+    
+    const sortOrder = ['MAIL', 'PRIORITY_MAIL', 'GROUND', 'EXPEDITED', 'EXPRESS'];
+    const sorted = Object.entries(pricingOptions).sort((a, b) => sortOrder.indexOf(a[0]) - sortOrder.indexOf(b[0]));
+    
+    let isFirst = true;
+    sorted.forEach(([method, data]) => {
+        const name = CFG.lang === 'es' ? data.name_es : data.name_en;
+        const luluCost = data.lulu_cost;
+        
+        const div = document.createElement('div');
+        div.className = `p-4 border-2 rounded-xl cursor-pointer transition-all ${isFirst ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:border-purple-300'}`;
+        div.innerHTML = `
+            <label class="flex items-center justify-between cursor-pointer">
+                <div class="flex items-center gap-3">
+                    <input type="radio" name="shippingMethod" value="${method}" ${isFirst ? 'checked' : ''} 
+                        class="w-5 h-5 text-purple-600">
+                    <div>
+                        <span class="font-semibold text-gray-800">${name}</span>
+                        <span class="text-gray-500 text-sm ml-2">(${data.days} ${CFG.lang === 'es' ? 'días' : 'days'})</span>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span class="text-purple-700 font-bold">$${luluCost.toFixed(2)}</span>
+                </div>
+            </label>
+        `;
+        
+        div.addEventListener('click', () => {
+            document.querySelector(`input[name="shippingMethod"][value="${method}"]`).checked = true;
+            selectShipping(method);
+        });
+        div.querySelector('input[type="radio"]').addEventListener('change', () => selectShipping(method));
+        container.appendChild(div);
+        
+        if (isFirst) { selectShipping(method); isFirst = false; }
+    });
+}
+
+function selectShipping(method) {
+    selectedShippingMethod = method;
+    const data = dynamicPricingData ? dynamicPricingData[method] : null;
+    if (!data) return;
+    
+    currentTotal = data.customer_total;
+    currentTotalCents = data.customer_total_cents;
+    
+    document.querySelectorAll('#shippingOptions > div').forEach(div => {
+        div.classList.remove('border-purple-500', 'bg-purple-50');
+        div.classList.add('border-gray-200');
+    });
+    const sel = document.querySelector(`input[name="shippingMethod"][value="${method}"]`)?.closest('div.p-4');
+    if (sel) { sel.classList.remove('border-gray-200'); sel.classList.add('border-purple-500', 'bg-purple-50'); }
+    
+    updatePriceDisplay();
+}
+
+function updatePriceDisplay() {
+    const totalAmount = document.getElementById('totalAmount');
+    const payButtonText = document.getElementById('payButtonText');
+    const totalBreakdown = document.getElementById('totalBreakdown');
+    const printLabel = document.getElementById('printPriceLabel');
+    const basePriceDisplay = document.getElementById('basePriceDisplay');
+    const shippingCostLine = document.getElementById('shippingCostLine');
+    const shippingCostDisplay = document.getElementById('shippingCostDisplay');
+    const shippingCostLabel = document.getElementById('shippingCostLabel');
+    
+    if (selectedFormats.length === 0) {
+        totalAmount.textContent = '$0 USD';
+        payButtonText.textContent = CFG.lang === 'es' ? 'Selecciona un formato' : 'Select a format';
+        totalBreakdown.textContent = '';
+        if (basePriceDisplay) basePriceDisplay.textContent = '$0 USD';
+        if (shippingCostLine) shippingCostLine.classList.add('hidden');
+        return;
+    }
+    
+    const hasEbook = selectedFormats.includes('ebook');
+    const hasDigital = selectedFormats.includes('digital');
+    const hasPrint = selectedFormats.includes('print');
+    
+    let baseTotal = 0;
+    let parts = [];
+    
+    if (hasEbook) {
+        baseTotal += CFG.ebookBasePrice;
+        parts.push(CFG.lang === 'es' ? `eBook $${CFG.ebookBasePrice}` : `eBook $${CFG.ebookBasePrice}`);
+    }
+    if (hasDigital) {
+        baseTotal += CFG.digitalBasePrice;
+        parts.push(CFG.lang === 'es' ? `PDF Digital $${CFG.digitalBasePrice}` : `Digital PDF $${CFG.digitalBasePrice}`);
+    }
+    if (hasPrint) {
+        baseTotal += CFG.printBasePrice;
+    }
+    
+    if (hasPrint && dynamicPricingData && dynamicPricingData[selectedShippingMethod]) {
+        const data = dynamicPricingData[selectedShippingMethod];
+        const shipName = CFG.lang === 'es' ? data.name_es : data.name_en;
+        const shippingCost = data.lulu_cost;
+        const printTotal = CFG.printBasePrice + shippingCost;
+        const grandTotal = baseTotal - CFG.printBasePrice + printTotal;
+        
+        if (basePriceDisplay) basePriceDisplay.textContent = `$${baseTotal} USD`;
+        if (shippingCostLine) shippingCostLine.classList.remove('hidden');
+        if (shippingCostLabel) shippingCostLabel.textContent = CFG.lang === 'es'
+            ? `Impresión + envío (${shipName}):`
+            : `Printing + shipping (${shipName}):`;
+        if (shippingCostDisplay) shippingCostDisplay.textContent = `$${shippingCost.toFixed(2)} USD`;
+        
+        parts.push(CFG.lang === 'es' 
+            ? `Impreso $${CFG.printBasePrice} + envío $${shippingCost.toFixed(2)}`
+            : `Print $${CFG.printBasePrice} + shipping $${shippingCost.toFixed(2)}`);
+        
+        currentTotal = grandTotal;
+        totalAmount.textContent = `$${grandTotal.toFixed(2)} USD`;
+        payButtonText.textContent = CFG.lang === 'es' ? `Pagar $${grandTotal.toFixed(2)} USD` : `Pay $${grandTotal.toFixed(2)} USD`;
+        if (printLabel) printLabel.textContent = `$${printTotal.toFixed(2)} USD`;
+    } else if (hasPrint) {
+        if (basePriceDisplay) basePriceDisplay.textContent = `$${baseTotal} USD`;
+        if (shippingCostLine) shippingCostLine.classList.remove('hidden');
+        if (shippingCostDisplay) shippingCostDisplay.textContent = CFG.lang === 'es' ? 'Pendiente' : 'Pending';
+        if (shippingCostLabel) shippingCostLabel.textContent = CFG.lang === 'es' ? 'Impresión + envío:' : 'Printing + shipping:';
+        
+        totalAmount.textContent = `$${baseTotal}+ USD`;
+        payButtonText.textContent = CFG.lang === 'es' ? 'Selecciona país para ver precio' : 'Select country to see price';
+        totalBreakdown.textContent = CFG.lang === 'es'
+            ? 'Selecciona tu país para calcular el envío'
+            : 'Select your country to calculate shipping';
+        return;
+    } else {
+        if (basePriceDisplay) basePriceDisplay.textContent = `$${baseTotal} USD`;
+        if (shippingCostLine) shippingCostLine.classList.add('hidden');
+        
+        currentTotal = baseTotal;
+        totalAmount.textContent = `$${baseTotal} USD`;
+        payButtonText.textContent = CFG.lang === 'es' ? `Pagar $${baseTotal} USD` : `Pay $${baseTotal} USD`;
+    }
+    
+    let ebookNote = '';
+    if (!hasEbook && (hasDigital || hasPrint)) {
+        ebookNote = CFG.lang === 'es' ? ' + eBook de regalo (6 meses)' : ' + Gift eBook (6 months)';
+    }
+    totalBreakdown.textContent = parts.join(' + ') + ebookNote + ' (+ tax)';
+}
+
+function validateShipping() {
+    if (!selectedFormats.includes('print')) return true;
+    const fields = [
+        { id: 'shippingName', label: CFG.lang === 'es' ? 'Nombre' : 'Name' },
+        { id: 'shippingStreet', label: CFG.lang === 'es' ? 'Dirección' : 'Address' },
+        { id: 'shippingCity', label: CFG.lang === 'es' ? 'Ciudad' : 'City' },
+        { id: 'shippingPostal', label: CFG.lang === 'es' ? 'Código postal' : 'Postal code' },
+        { id: 'shippingCountry', label: CFG.lang === 'es' ? 'País' : 'Country' }
+    ];
+    for (const f of fields) {
+        if (!document.getElementById(f.id).value.trim()) {
+            alert(CFG.lang === 'es' ? `Por favor completa: ${f.label}` : `Please fill in: ${f.label}`);
+            document.getElementById(f.id).focus();
+            return false;
+        }
+    }
+    if (!dynamicPricingData || Object.keys(dynamicPricingData).length === 0) {
+        alert(CFG.lang === 'es' ? 'Selecciona tu país para calcular costos de envío' : 'Select your country to calculate shipping costs');
+        return false;
+    }
+    const cc = document.getElementById('shippingCountry').value;
+    if (TAX_ID_COUNTRIES[cc]) {
+        const taxVal = document.getElementById('shippingTaxId').value.trim();
+        if (!taxVal) {
+            const taxLabel = TAX_ID_COUNTRIES[cc].label;
+            alert(CFG.lang === 'es' ? `Por favor completa: ${taxLabel}` : `Please fill in: ${taxLabel}`);
+            document.getElementById('shippingTaxId').focus();
+            return false;
+        }
+        if (TAX_ID_COUNTRIES[cc].validate) {
+            const validationError = TAX_ID_COUNTRIES[cc].validate(taxVal);
+            if (validationError) {
+                alert(validationError);
+                document.getElementById('shippingTaxId').focus();
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+function getShippingAddress() {
+    if (!selectedFormats.includes('print')) return null;
+    const addr = {
+        name: document.getElementById('shippingName').value.trim(),
+        street1: document.getElementById('shippingStreet').value.trim(),
+        street2: document.getElementById('shippingStreet2').value.trim(),
+        city: document.getElementById('shippingCity').value.trim(),
+        state_code: document.getElementById('shippingState').value.trim(),
+        postcode: document.getElementById('shippingPostal').value.trim(),
+        country_code: document.getElementById('shippingCountry').value,
+        phone_number: document.getElementById('shippingPhone').value.trim(),
+        email: document.getElementById('email').value
+    };
+    const taxId = document.getElementById('shippingTaxId')?.value?.trim();
+    if (taxId) addr.recipient_tax_id = taxId;
+    return addr;
+}
+
+function formatAddressForDisplay(addr) {
+    let lines = [];
+    if (addr.street1) lines.push(addr.street1);
+    if (addr.street2) lines.push(addr.street2);
+    let cl = '';
+    if (addr.city) cl += addr.city;
+    if (addr.state_code) cl += ', ' + addr.state_code;
+    if (addr.postcode) cl += ' ' + addr.postcode;
+    if (cl) lines.push(cl);
+    if (addr.country_code) lines.push(addr.country_code);
+    return lines.join('<br>');
+}
+
+function useOriginalAddress() {
+    document.getElementById('addressConfirmModal').classList.add('hidden');
+    if (pendingCheckoutData) proceedWithPayment(pendingCheckoutData);
+}
+
+function useSuggestedAddress() {
+    if (suggestedAddress && pendingCheckoutData) {
+        document.getElementById('shippingStreet').value = suggestedAddress.street1 || '';
+        document.getElementById('shippingStreet2').value = suggestedAddress.street2 || '';
+        document.getElementById('shippingCity').value = suggestedAddress.city || '';
+        document.getElementById('shippingState').value = suggestedAddress.state_code || '';
+        document.getElementById('shippingPostal').value = suggestedAddress.postcode || '';
+        pendingCheckoutData.shipping_address = {
+            ...pendingCheckoutData.shipping_address,
+            street1: suggestedAddress.street1 || pendingCheckoutData.shipping_address.street1,
+            street2: suggestedAddress.street2 || '',
+            city: suggestedAddress.city || pendingCheckoutData.shipping_address.city,
+            state_code: suggestedAddress.state_code || pendingCheckoutData.shipping_address.state_code,
+            postcode: suggestedAddress.postcode || pendingCheckoutData.shipping_address.postcode
+        };
+    }
+    document.getElementById('addressConfirmModal').classList.add('hidden');
+    if (pendingCheckoutData) proceedWithPayment(pendingCheckoutData);
+}
+
+async function startCheckout() {
+    const email = document.getElementById('email').value;
+    if (!email) {
+        alert(CFG.lang === 'es' ? 'Por favor ingresa tu email' : 'Please enter your email');
+        return;
+    }
+    if (selectedFormats.length === 0) {
+        const formatError = document.getElementById('formatError');
+        if (formatError) formatError.classList.remove('hidden');
+        alert(CFG.lang === 'es' ? 'Selecciona al menos un formato' : 'Select at least one format');
+        return;
+    }
+    if (!validateShipping()) return;
+
+    const wantPrint = selectedFormats.includes('print');
+    const shippingAddress = wantPrint ? getShippingAddress() : null;
+
+    const checkoutData = {
+        email: email,
+        want_print: wantPrint,
+        shipping_method: wantPrint ? selectedShippingMethod : null,
+        shipping_address: shippingAddress
+    };
+
+    if (wantPrint && shippingAddress) {
+        const payButton = document.getElementById('payButton');
+        payButton.disabled = true;
+        document.getElementById('payButtonText').textContent = CFG.lang === 'es' ? 'Validando dirección...' : 'Validating address...';
+
+        try {
+            const response = await fetch('/api/validate-address', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(shippingAddress)
+            });
+            const data = await response.json();
+
+            payButton.disabled = false;
+            updatePriceDisplay();
+
+            if (data.country_not_supported) {
+                alert(data.message);
+            } else if (data.tax_id_error) {
+                alert(data.message);
+                document.getElementById('shippingTaxId').focus();
+                const errorEl = document.getElementById('taxIdError');
+                if (errorEl) {
+                    errorEl.textContent = data.message;
+                    errorEl.classList.remove('hidden');
+                }
+                const input = document.getElementById('shippingTaxId');
+                if (input) {
+                    input.classList.remove('border-gray-300');
+                    input.classList.add('border-red-500');
+                }
+            } else if (data.auto_corrected && data.suggested_address) {
+                checkoutData.shipping_address = data.suggested_address;
+                proceedWithPayment(checkoutData);
+            } else if (data.suggested_address && !data.valid) {
+                suggestedAddress = data.suggested_address;
+                pendingCheckoutData = checkoutData;
+                document.getElementById('originalAddressDisplay').innerHTML = formatAddressForDisplay(shippingAddress);
+                document.getElementById('suggestedAddressDisplay').innerHTML = formatAddressForDisplay(data.suggested_address);
+                document.getElementById('addressConfirmModal').classList.remove('hidden');
+            } else {
+                proceedWithPayment(checkoutData);
+            }
+        } catch (error) {
+            payButton.disabled = false;
+            updatePriceDisplay();
+            proceedWithPayment(checkoutData);
+        }
+    } else {
+        proceedWithPayment(checkoutData);
+    }
+}
+
+async function proceedWithPayment(checkoutData) {
+    checkoutData.formats = selectedFormats;
+    
+    try {
+        await fetch(`/api/save-checkout-data/${CFG.previewId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(checkoutData)
+        });
+    } catch (err) {
+        console.warn("[CHECKOUT] Could not save data:", err);
+    }
+
+    {% if test_mode %}
+    console.log("TEST MODE: Bypassing Paddle");
+    handlePaddleSuccess('TEST_' + Date.now());
+    return;
+    {% endif %}
+
+    const wantPrint = checkoutData.want_print;
+    const onlyDigitalNoPrint = !wantPrint && selectedFormats.includes('digital') && !selectedFormats.includes('ebook');
+
+    if (onlyDigitalNoPrint) {
+        try {
+            Paddle.Checkout.open({
+                items: [{ priceId: CFG.digitalPriceId, quantity: 1 }],
+                customer: { email: checkoutData.email },
+                customData: {
+                    preview_id: CFG.previewId,
+                    product_type: CFG.digitalProductType,
+                    want_print: "false",
+                    shipping_method: "none",
+                    formats: selectedFormats.join(',')
+                },
+                settings: { displayMode: "overlay", theme: "light", locale: CFG.lang }
+            });
+        } catch (error) {
+            alert("Error: " + error.message);
+        }
+        return;
+    }
+
+    const payButton = document.getElementById('payButton');
+    payButton.disabled = true;
+    document.getElementById('payButtonText').textContent = CFG.lang === 'es' ? 'Creando transacción...' : 'Creating transaction...';
+
+    try {
+        const txnResp = await fetch('/api/create-paddle-transaction', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                formats: selectedFormats,
+                email: checkoutData.email,
+                preview_id: CFG.previewId,
+                shipping_method: wantPrint ? selectedShippingMethod : null,
+                country_code: wantPrint ? document.getElementById('shippingCountry').value : null,
+                postal_code: wantPrint ? (document.getElementById('shippingPostal')?.value || '') : null,
+                want_print: wantPrint
+            })
+        });
+        
+        const txnResult = await txnResp.json();
+        
+        if (!txnResult.success || !txnResult.transaction_id) {
+            payButton.disabled = false;
+            updatePriceDisplay();
+            alert('Error: ' + (txnResult.error || 'Could not create transaction'));
+            return;
+        }
+        
+        const checkoutOpts = {
+            transactionId: txnResult.transaction_id,
+            customer: { email: checkoutData.email },
+            settings: { displayMode: "overlay", theme: "light", locale: CFG.lang }
+        };
+        if (wantPrint) {
+            checkoutOpts.customer.address = {
+                countryCode: document.getElementById('shippingCountry').value,
+                postalCode: document.getElementById('shippingPostal')?.value || ''
+            };
+        }
+        Paddle.Checkout.open(checkoutOpts);
+        
+        payButton.disabled = false;
+        updatePriceDisplay();
+        
+    } catch (error) {
+        payButton.disabled = false;
+        updatePriceDisplay();
+        alert("Error: " + error.message);
+    }
+}
+
+function handlePaddleSuccess(transactionId) {
+    const email = document.getElementById('email').value;
+    const wantPrint = selectedFormats.includes('print');
+    const hasEbook = selectedFormats.includes('ebook');
+    const hasDigital = selectedFormats.includes('digital');
+    let productType = CFG.digitalProductType;
+    if (hasEbook && !hasDigital && !wantPrint) productType = 'ebook';
+    else if (wantPrint) productType = CFG.printProductType;
+    
+    document.getElementById('loadingOverlay').classList.remove('hidden');
+    startRotatingMessages();
+    
+    fetch(`/api/process-payment/${CFG.previewId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            email: email,
+            paddle_transaction_id: transactionId,
+            phone: document.getElementById('shippingPhone')?.value || '',
+            shipping_method: wantPrint ? selectedShippingMethod : null,
+            shipping_address: getShippingAddress(),
+            want_print: wantPrint,
+            product_type: productType,
+            formats: selectedFormats
+        })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            window.location.href = result.redirect_url || `/order-complete/${CFG.previewId}?transaction_id=${transactionId}&email=${encodeURIComponent(email)}`;
+        } else {
+            stopRotatingMessages();
+            document.getElementById('loadingOverlay').classList.add('hidden');
+            alert(result.error || 'Error processing order');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        window.location.href = `/order-complete/${CFG.previewId}?transaction_id=${transactionId}`;
+    });
+}
+
+let rotatingInterval = null;
+function startRotatingMessages() {
+    const msgs = CFG.lang === 'es' 
+        ? ["Generando ilustraciones únicas para tu cuento...", "Cada imagen es creada especialmente...", "Nuestro artista digital está pintando cada escena...", "Las ilustraciones son irrepetibles...", "Creando un mundo mágico solo para tu historia...", "Podrás regenerar cualquier escena...", "Revisa bien cada ilustración...", "Un recuerdo único que durará para siempre...", "Añadiendo detalles mágicos...", "Casi listo... dando los últimos toques mágicos..."]
+        : ["Generating unique illustrations for your story...", "Each image is created especially...", "Our digital artist is painting each scene...", "The illustrations are one-of-a-kind...", "Creating a magical world just for your story...", "You can regenerate any scene...", "Review each illustration carefully...", "A unique keepsake that will last forever...", "Adding magical details...", "Almost ready... adding final touches..."];
+    let idx = 0;
+    const msgEl = document.getElementById('loadingMessage');
+    const bar = document.getElementById('progressBar');
+    rotatingInterval = setInterval(() => {
+        idx = (idx + 1) % msgs.length;
+        msgEl.style.opacity = '0';
+        setTimeout(() => { msgEl.textContent = msgs[idx]; msgEl.style.opacity = '1'; }, 300);
+        bar.style.width = Math.min(85, (idx + 1) * 5) + '%';
+    }, 8000);
+}
+function stopRotatingMessages() {
+    if (rotatingInterval) { clearInterval(rotatingInterval); rotatingInterval = null; }
+}
+</script>
+
+{% endblock %}

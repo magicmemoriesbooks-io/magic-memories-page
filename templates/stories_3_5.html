@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'es' %}Cuentos 3-5 años{% else %}Stories 3-5 years{% endif %} - {{ translations.site_title }}{% endblock %}
+
+{% block content %}
+<section class="py-6 px-4 max-w-6xl mx-auto">
+    <div class="text-center mb-6">
+        <a href="{{ url_for('story_selection') }}" class="text-purple-600 hover:text-purple-700 mb-4 inline-block">
+            ← {% if lang == 'es' %}Volver a categorías{% else %}Back to categories{% endif %}
+        </a>
+        <h1 class="font-display text-3xl md:text-4xl font-bold text-purple-700 mb-2">
+            {% if lang == 'es' %}Cuentos de Aventura{% else %}Adventure Stories{% endif %}
+        </h1>
+        <p class="text-lg text-purple-600">
+            {% if lang == 'es' %}3-5 años • Historias mágicas • Textos más largos{% else %}3-5 years • Magical stories • Longer texts{% endif %}
+        </p>
+    </div>
+
+    <div class="max-w-md mx-auto mb-8">
+        <div class="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-4">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2 text-center">
+                    {% if lang == 'es' %}¿Cómo se llama el protagonista?{% else %}What's the hero's name?{% endif %}
+                </label>
+                <input type="text" id="childName" 
+                       placeholder="{% if lang == 'es' %}Escribe el nombre...{% else %}Enter name...{% endif %}"
+                       class="w-full px-4 py-3 border-2 border-purple-200 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 text-lg text-center"
+                       oninput="updateAllTitles()">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2 text-center">
+                    {% if lang == 'es' %}Género{% else %}Gender{% endif %}
+                </label>
+                <div class="flex justify-center gap-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="childGender" value="female" checked class="text-purple-600 focus:ring-purple-500">
+                        <span>{% if lang == 'es' %}Niña{% else %}Girl{% endif %}</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="childGender" value="male" class="text-purple-600 focus:ring-purple-500">
+                        <span>{% if lang == 'es' %}Niño{% else %}Boy{% endif %}</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Dragon Friend Story (Quick) -->
+        <div class="story-card bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all cursor-pointer" onclick="selectStory('dragon_friend')">
+            <div class="flex">
+                <div class="w-1/3 flex-shrink-0">
+                    <div class="relative aspect-[3/4]">
+                        <img src="{{ url_for('static', filename='images/cover_dragon_friend.jpg') }}" alt="Mi Amigo el Dragón" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<div class=\'w-full h-full bg-gradient-to-br from-emerald-100 to-emerald-200 flex items-center justify-center\'><span class=\'text-4xl\'>🐉</span></div>'">
+                    </div>
+                </div>
+                <div class="w-2/3 p-4 flex flex-col justify-between">
+                    <div>
+                        <h3 class="story-title text-lg font-bold text-purple-700 mb-1" data-template="{% if lang == 'es' %}{name} y su Amigo el Dragón{% else %}{name} and Their Dragon Friend{% endif %}">
+                            {% if lang == 'es' %}[Nombre] y su Amigo el Dragón{% else %}[Name] and Their Dragon Friend{% endif %}
+                        </h3>
+                        <p class="text-sm text-gray-600 mb-2">
+                            {% if lang == 'es' %}Una historia de amistad mágica{% else %}A magical friendship story{% endif %}
+                        </p>
+                        <div class="flex flex-wrap gap-1">
+                            <span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs">8 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
+                            <span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs">{% if lang == 'es' %}Amistad{% else %}Friendship{% endif %}</span>
+                        </div>
+                    </div>
+                    <button class="select-btn mt-3 w-full bg-gray-200 text-gray-500 py-2 rounded-lg text-sm font-medium transition-all" disabled>
+                        {% if lang == 'es' %}Escribe el nombre arriba{% else %}Enter name above{% endif %}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Space Astronaut Story -->
+        <div class="story-card bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all cursor-pointer" onclick="selectStory('space_astronaut')">
+            <div class="flex">
+                <div class="w-1/3 flex-shrink-0">
+                    <div class="relative aspect-[3/4]">
+                        <img src="{{ url_for('static', filename='images/cover_space_astronaut.jpg') }}" alt="El Astronauta" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<div class=\'w-full h-full bg-gradient-to-br from-indigo-100 to-purple-200 flex items-center justify-center\'><span class=\'text-4xl\'>🚀</span></div>'">
+                    </div>
+                </div>
+                <div class="w-2/3 p-4 flex flex-col justify-between">
+                    <div>
+                        <h3 class="story-title text-lg font-bold text-purple-700 mb-1" data-template="{% if lang == 'es' %}{name} astronauta{% else %}{name} Astronaut{% endif %}">
+                            {% if lang == 'es' %}[Nombre] astronauta{% else %}[Name] Astronaut{% endif %}
+                        </h3>
+                        <p class="text-sm text-gray-600 mb-2">
+                            {% if lang == 'es' %}Aprende a escuchar el espacio{% else %}Learn to listen to space{% endif %}
+                        </p>
+                        <div class="flex flex-wrap gap-1">
+                            <span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs">8 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
+                            <span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs">{% if lang == 'es' %}Calma{% else %}Calm{% endif %}</span>
+                        </div>
+                    </div>
+                    <button class="select-btn mt-3 w-full bg-gray-200 text-gray-500 py-2 rounded-lg text-sm font-medium transition-all" disabled>
+                        {% if lang == 'es' %}Escribe el nombre arriba{% else %}Enter name above{% endif %}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zebra Stripes Story -->
+        <div class="story-card bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all cursor-pointer" onclick="selectStory('zebra_stripes')">
+            <div class="flex">
+                <div class="w-1/3 flex-shrink-0">
+                    <div class="relative aspect-[3/4]">
+                        <img src="{{ url_for('static', filename='images/cover_zebra_stripes.jpg') }}" alt="La Aventura en la Sabana" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<div class=\'w-full h-full bg-gradient-to-br from-amber-100 to-orange-200 flex items-center justify-center\'><span class=\'text-4xl\'>🦓</span></div>'">
+                    </div>
+                </div>
+                <div class="w-2/3 p-4 flex flex-col justify-between">
+                    <div>
+                        <h3 class="story-title text-lg font-bold text-purple-700 mb-1" data-template="{% if lang == 'es' %}{name} y la aventura en la sabana{% else %}{name} and the Savanna Adventure{% endif %}">
+                            {% if lang == 'es' %}[Nombre] y la aventura en la sabana{% else %}[Name] and the Savanna Adventure{% endif %}
+                        </h3>
+                        <p class="text-sm text-gray-600 mb-2">
+                            {% if lang == 'es' %}Una aventura de amistad en la sabana africana{% else %}A friendship adventure in the African savanna{% endif %}
+                        </p>
+                        <div class="flex flex-wrap gap-1">
+                            <span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-xs">8 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
+                            <span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-xs">{% if lang == 'es' %}Aventura{% else %}Adventure{% endif %}</span>
+                        </div>
+                    </div>
+                    <button class="select-btn mt-3 w-full bg-gray-200 text-gray-500 py-2 rounded-lg text-sm font-medium transition-all" disabled>
+                        {% if lang == 'es' %}Escribe el nombre arriba{% else %}Enter name above{% endif %}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Superhero Light Story -->
+        <div class="story-card bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all cursor-pointer" onclick="selectStory('superhero_light')">
+            <div class="flex">
+                <div class="w-1/3 flex-shrink-0">
+                    <div class="relative aspect-[3/4]">
+                        <img src="{{ url_for('static', filename='images/cover_superhero_light.jpg') }}" alt="El Superhéroe de la Luz Tranquila" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<div class=\'w-full h-full bg-gradient-to-br from-blue-100 to-yellow-100 flex items-center justify-center\'><span class=\'text-4xl\'>⭐</span></div>'">
+                    </div>
+                </div>
+                <div class="w-2/3 p-4 flex flex-col justify-between">
+                    <div>
+                        <h3 class="story-title text-lg font-bold text-purple-700 mb-1" data-template="{% if lang == 'es' %}{name} superhéroe de la luz{% else %}{name} Superhero of Light{% endif %}">
+                            {% if lang == 'es' %}[Nombre] superhéroe de la luz{% else %}[Name] Superhero of Light{% endif %}
+                        </h3>
+                        <p class="text-sm text-gray-600 mb-2">
+                            {% if lang == 'es' %}Poderes suaves que ayudan con el corazón{% else %}Gentle powers that help with the heart{% endif %}
+                        </p>
+                        <div class="flex flex-wrap gap-1">
+                            <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs">8 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
+                            <span class="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-xs">{% if lang == 'es' %}Empatía{% else %}Empathy{% endif %}</span>
+                        </div>
+                    </div>
+                    <button class="select-btn mt-3 w-full bg-gray-200 text-gray-500 py-2 rounded-lg text-sm font-medium transition-all" disabled>
+                        {% if lang == 'es' %}Escribe el nombre arriba{% else %}Enter name above{% endif %}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+const lang = '{{ lang }}';
+const defaultName = lang === 'es' ? '[Nombre]' : '[Name]';
+
+function updateAllTitles() {
+    const name = document.getElementById('childName').value.trim();
+    const displayName = name.length >= 2 ? name : defaultName;
+    
+    document.querySelectorAll('.story-title').forEach(title => {
+        const template = title.dataset.template;
+        title.textContent = template.replace('{name}', displayName);
+    });
+    
+    // Update regular story buttons
+    document.querySelectorAll('.select-btn').forEach(btn => {
+        if (name.length >= 2) {
+            btn.disabled = false;
+            btn.textContent = lang === 'es' ? 'Personalizar →' : 'Personalize →';
+            btn.classList.remove('bg-gray-200', 'text-gray-500');
+            btn.classList.add('bg-purple-500', 'text-white', 'hover:bg-purple-600');
+        } else {
+            btn.disabled = true;
+            btn.textContent = lang === 'es' ? 'Escribe el nombre arriba' : 'Enter name above';
+            btn.classList.add('bg-gray-200', 'text-gray-500');
+            btn.classList.remove('bg-purple-500', 'text-white', 'hover:bg-purple-600');
+        }
+    });
+    
+}
+
+function selectStory(storyId) {
+    const name = document.getElementById('childName').value.trim();
+    const gender = document.querySelector('input[name="childGender"]:checked').value;
+    if (name.length >= 2) {
+        window.location.href = `/personalize-story?story=${storyId}&name=${encodeURIComponent(name)}&gender=${gender}`;
+    }
+}
+</script>
+{% endblock %}

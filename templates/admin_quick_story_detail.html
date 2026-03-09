@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Cuento Rápido {{ preview_id }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">Cuento Rápido: {{ story.child_name }}</h1>
+                <p class="text-gray-600">ID: {{ preview_id }} | Historia: {{ story.story_id }}</p>
+            </div>
+            <a href="/admin/real-stories" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">← Volver</a>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-4 mb-6">
+            <h2 class="text-lg font-semibold mb-3">Información del Cuento</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div><strong>Título:</strong> {{ story.title or story.story_name or 'N/A' }}</div>
+                <div><strong>Autor:</strong> {{ story.author_name or 'N/A' }}</div>
+                <div><strong>Género:</strong> {{ story.gender or 'N/A' }}</div>
+                <div><strong>Páginas:</strong> {{ pages|length }}</div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-4">
+            <h2 class="text-lg font-semibold mb-4">Páginas del Cuento ({{ pages|length }})</h2>
+            
+            <div class="space-y-4">
+                {% for page in pages %}
+                <div class="flex gap-4 p-4 bg-gray-50 rounded-lg border">
+                    <div class="flex-shrink-0 w-24 h-32 bg-gray-200 rounded overflow-hidden">
+                        {% if page.fixed_scene %}
+                        <img src="/{{ page.fixed_scene }}" class="w-full h-full object-cover" alt="Página {{ page.page_num }}">
+                        {% elif page.scene_path %}
+                        <img src="/{{ page.scene_path }}" class="w-full h-full object-cover" alt="Página {{ page.page_num }}">
+                        {% else %}
+                        <div class="w-full h-full flex items-center justify-center text-gray-400 text-xs">Sin imagen</div>
+                        {% endif %}
+                    </div>
+                    <div class="flex-grow">
+                        <p class="font-semibold text-sm text-gray-700 mb-1">Página {{ page.page_num }}</p>
+                        <p class="text-sm text-gray-600">{{ page.text }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            {% if not pages %}
+            <p class="text-center text-gray-500 py-8">No hay páginas generadas aún</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

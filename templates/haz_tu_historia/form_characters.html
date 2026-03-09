@@ -1,0 +1,1146 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'es' %}Personajes - Haz tu Historia{% else %}Characters - Make Your Story{% endif %} - {{ translations.site_title }}{% endblock %}
+
+{% block extra_head %}
+<style>
+.form-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.char-card {
+    background: #ffffff;
+    border: 2px solid #e9d5ff;
+    border-radius: 20px;
+    padding: 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 24px rgba(139, 92, 246, 0.08);
+}
+
+.char-card-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #374151;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #f3e8ff;
+}
+
+.section-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+@media (max-width: 768px) {
+    .section-grid { grid-template-columns: 1fr; }
+}
+
+.section-box {
+    background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%);
+    border: 2px solid #ddd6fe;
+    border-radius: 16px;
+    padding: 20px;
+}
+
+.section-title {
+    font-size: 12px;
+    font-weight: 800;
+    color: #7c3aed;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #4b5563;
+    margin-bottom: 8px;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #d1d5db;
+    border-radius: 10px;
+    font-size: 15px;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #a855f7;
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1);
+}
+
+.form-select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #d1d5db;
+    border-radius: 10px;
+    font-size: 15px;
+    background: white;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: #a855f7;
+}
+
+.gender-group {
+    display: flex;
+    gap: 12px;
+}
+
+.gender-btn {
+    flex: 1;
+    padding: 14px;
+    border: 2px solid #d1d5db;
+    border-radius: 12px;
+    background: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.15s;
+}
+
+.gender-btn:hover {
+    border-color: #a855f7;
+    background: #faf5ff;
+}
+
+.gender-btn.selected {
+    border-color: #7c3aed;
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+.gender-btn input { display: none; }
+
+.color-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.color-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid #e5e7eb;
+    transition: all 0.15s ease;
+    display: inline-block;
+    box-sizing: border-box;
+}
+
+.color-circle:hover {
+    transform: scale(1.15);
+    border-color: #a855f7;
+}
+
+.color-circle.selected {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.35);
+    transform: scale(1.1);
+}
+
+.style-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.style-btn {
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 2px solid #d1d5db;
+    background: white;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.style-btn:hover {
+    border-color: #a855f7;
+    background: #faf5ff;
+}
+
+.style-btn.selected {
+    border-color: #7c3aed;
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+.style-btn .icon { font-size: 20px; }
+
+.accessory-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.accessory-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    border: 2px solid #d1d5db;
+    background: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    transition: all 0.15s;
+}
+
+.accessory-btn:hover {
+    border-color: #a855f7;
+    background: #faf5ff;
+}
+
+.accessory-btn.selected {
+    border-color: #7c3aed;
+    background: #ede9fe;
+}
+
+.toggle-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+}
+
+.toggle-btn {
+    padding: 14px 24px;
+    border-radius: 14px;
+    border: 2px solid #d1d5db;
+    background: white;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.15s;
+}
+
+.toggle-btn:hover {
+    border-color: #a855f7;
+    background: #faf5ff;
+}
+
+.toggle-btn.selected {
+    border-color: #7c3aed;
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+.toggle-btn .emoji { font-size: 26px; }
+
+.pet-toggle {
+    background: #fef3c7;
+    border-color: #f59e0b;
+}
+
+.pet-toggle.active {
+    background: #bbf7d0;
+    border-color: #22c55e;
+}
+
+.submit-btn {
+    width: 100%;
+    padding: 20px;
+    background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+    color: white;
+    border: none;
+    border-radius: 16px;
+    font-size: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    box-shadow: 0 8px 30px rgba(139, 92, 246, 0.35);
+    transition: all 0.2s;
+}
+
+.submit-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(139, 92, 246, 0.45);
+}
+
+.warning-box {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border: 2px solid #f59e0b;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+}
+
+.warning-box .icon { font-size: 28px; }
+
+.warning-box p {
+    color: #92400e;
+    font-size: 14px;
+    line-height: 1.5;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="form-container">
+    
+    <div class="warning-box">
+        <span class="icon">⚠️</span>
+        <p>
+            {% if lang == 'es' %}
+            <strong>Máximo 2 personajes.</strong> Solo describe los personajes que aparecerán en tu historia. Si eliges mascota, solo podrás agregar 1 personaje humano adicional.
+            {% else %}
+            <strong>Maximum 2 characters.</strong> Only describe characters that will appear in your story. If you choose a pet, you can only add 1 additional human character.
+            {% endif %}
+        </p>
+    </div>
+
+    <form id="charactersForm" action="/haz-tu-historia/submit" method="POST">
+        <input type="hidden" name="language" value="{{ lang }}">
+        <input type="hidden" name="story_description" value="{{ story_description }}">
+        <input type="hidden" name="dedication" value="{{ dedication }}">
+        <input type="hidden" name="author_signature" value="{{ author_signature }}">
+        <input type="hidden" name="author_name" value="{{ author_name }}">
+        <input type="hidden" name="author_email" value="{{ author_email }}">
+        
+        <div class="toggle-row">
+            <button type="button" onclick="setCharacterCount(1)" id="char1Btn" class="toggle-btn selected">
+                <span class="emoji">👤</span>
+                <span>1 {% if lang == 'es' %}Personaje{% else %}Character{% endif %}</span>
+            </button>
+            <button type="button" onclick="setCharacterCount(2)" id="char2Btn" class="toggle-btn">
+                <span class="emoji">👥</span>
+                <span>2 {% if lang == 'es' %}Personajes{% else %}Characters{% endif %}</span>
+            </button>
+            <button type="button" onclick="togglePetMode()" id="petToggleBtn" class="toggle-btn pet-toggle">
+                <span class="emoji">🐾</span>
+                <span id="petToggleText">{% if lang == 'es' %}+ Mascota{% else %}+ Pet{% endif %}</span>
+            </button>
+        </div>
+        <input type="hidden" name="character_count" id="characterCount" value="1">
+        <input type="hidden" name="has_pet" id="hasPet" value="0">
+
+        <!-- CHARACTER 1 -->
+        <div id="character1Section" class="char-card">
+            <div class="char-card-title">
+                <span style="font-size: 28px;">👤</span>
+                {% if lang == 'es' %}Personaje Principal{% else %}Main Character{% endif %}
+            </div>
+            
+            <div class="section-grid">
+                <div class="section-box">
+                    <div class="section-title">📝 {% if lang == 'es' %}DATOS BÁSICOS{% else %}BASIC INFO{% endif %}</div>
+                    <div style="margin-bottom: 16px;">
+                        <label class="form-label">{% if lang == 'es' %}Nombre{% else %}Name{% endif %} *</label>
+                        <input type="text" name="char1_name" required class="form-input" placeholder="{% if lang == 'es' %}Ej: Sofia{% else %}E.g.: Sofia{% endif %}">
+                    </div>
+                    <div>
+                        <label class="form-label">{% if lang == 'es' %}Género{% else %}Gender{% endif %}</label>
+                        <div class="gender-group">
+                            <label class="gender-btn selected" onclick="selectGender('char1', 'female', this)">
+                                <input type="radio" name="char1_gender" value="female" checked>
+                                <span style="font-size: 22px;">👧</span>
+                                <span>{% if lang == 'es' %}Femenino{% else %}Female{% endif %}</span>
+                            </label>
+                            <label class="gender-btn" onclick="selectGender('char1', 'male', this)">
+                                <input type="radio" name="char1_gender" value="male">
+                                <span style="font-size: 22px;">👦</span>
+                                <span>{% if lang == 'es' %}Masculino{% else %}Male{% endif %}</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-box">
+                    <div class="section-title">📏 {% if lang == 'es' %}EDAD, ALTURA Y CONTEXTURA{% else %}AGE, HEIGHT & BUILD{% endif %}</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <div>
+                            <label class="form-label">{% if lang == 'es' %}Años{% else %}Years{% endif %}</label>
+                            <select name="char1_age_years" class="form-select">
+                                {% for y in range(81) %}<option value="{{ y }}" {% if y == 5 %}selected{% endif %}>{{ y }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">{% if lang == 'es' %}Meses{% else %}Months{% endif %}</label>
+                            <select name="char1_age_months" class="form-select">
+                                {% for m in range(12) %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div>
+                            <label class="form-label">{% if lang == 'es' %}Altura{% else %}Height{% endif %}</label>
+                            <select name="char1_height" class="form-select">
+                                {% for h in range(50, 196, 5) %}<option value="{{ h }}" {% if h == 110 %}selected{% endif %}>{{ h }} cm</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">{% if lang == 'es' %}Contextura{% else %}Build{% endif %}</label>
+                            <select name="char1_body_type" id="char1_body_type" class="form-select">
+                                <option value="slim">🏃 {% if lang == 'es' %}Delgado{% else %}Slim{% endif %}</option>
+                                <option value="average" selected>👤 {% if lang == 'es' %}Media{% else %}Average{% endif %}</option>
+                                <option value="chubby">🧸 {% if lang == 'es' %}Kilos de más{% else %}Chubby{% endif %}</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-grid" style="margin-top: 20px;">
+                <div class="section-box">
+                    <div class="section-title">🎨 {% if lang == 'es' %}TONO DE PIEL{% else %}SKIN TONE{% endif %}</div>
+                    <div class="color-row">
+                        <div onclick="selectColor('char1_skin', 'porcelain', this)" class="color-circle" style="background-color: #FDEEF4;"></div>
+                        <div onclick="selectColor('char1_skin', 'very_light', this)" class="color-circle" style="background-color: #FDE8D7;"></div>
+                        <div onclick="selectColor('char1_skin', 'light', this)" class="color-circle selected" style="background-color: #F5D0B5;"></div>
+                        <div onclick="selectColor('char1_skin', 'light_medium', this)" class="color-circle" style="background-color: #E8BC9C;"></div>
+                        <div onclick="selectColor('char1_skin', 'medium', this)" class="color-circle" style="background-color: #D4A574;"></div>
+                        <div onclick="selectColor('char1_skin', 'olive', this)" class="color-circle" style="background-color: #C9A86C;"></div>
+                        <div onclick="selectColor('char1_skin', 'tan', this)" class="color-circle" style="background-color: #B8865A;"></div>
+                        <div onclick="selectColor('char1_skin', 'brown', this)" class="color-circle" style="background-color: #8D5524;"></div>
+                        <div onclick="selectColor('char1_skin', 'dark_brown', this)" class="color-circle" style="background-color: #6B4423;"></div>
+                        <div onclick="selectColor('char1_skin', 'dark', this)" class="color-circle" style="background-color: #3D2314;"></div>
+                    </div>
+                    <input type="hidden" name="char1_skin" id="char1_skin" value="light">
+                </div>
+
+                <div class="section-box">
+                    <div class="section-title">👁️ {% if lang == 'es' %}COLOR DE OJOS{% else %}EYE COLOR{% endif %}</div>
+                    <div class="color-row">
+                        <div onclick="selectColor('char1_eyes', 'brown', this)" class="color-circle selected" style="background-color: #634e34;"></div>
+                        <div onclick="selectColor('char1_eyes', 'dark_brown', this)" class="color-circle" style="background-color: #3D2314;"></div>
+                        <div onclick="selectColor('char1_eyes', 'hazel', this)" class="color-circle" style="background-color: #A67B5B;"></div>
+                        <div onclick="selectColor('char1_eyes', 'amber', this)" class="color-circle" style="background-color: #FFBF00;"></div>
+                        <div onclick="selectColor('char1_eyes', 'green', this)" class="color-circle" style="background-color: #228B22;"></div>
+                        <div onclick="selectColor('char1_eyes', 'blue', this)" class="color-circle" style="background-color: #4169E1;"></div>
+                        <div onclick="selectColor('char1_eyes', 'gray', this)" class="color-circle" style="background-color: #708090;"></div>
+                        <div onclick="selectColor('char1_eyes', 'black', this)" class="color-circle" style="background-color: #1a1a1a;"></div>
+                    </div>
+                    <input type="hidden" name="char1_eyes" id="char1_eyes" value="brown">
+                </div>
+            </div>
+
+            <div class="section-grid" style="margin-top: 20px;">
+                <div class="section-box" id="char1_hair_color_section">
+                    <div class="section-title">💇 {% if lang == 'es' %}COLOR DE CABELLO{% else %}HAIR COLOR{% endif %}</div>
+                    <div class="color-row">
+                        <div onclick="selectColor('char1_hair_color', 'black', this)" class="color-circle selected" style="background-color: #1a1a1a;"></div>
+                        <div onclick="selectColor('char1_hair_color', 'dark_brown', this)" class="color-circle" style="background-color: #3D2314;"></div>
+                        <div onclick="selectColor('char1_hair_color', 'brown', this)" class="color-circle" style="background-color: #6B4423;"></div>
+                        <div onclick="selectColor('char1_hair_color', 'light_brown', this)" class="color-circle" style="background-color: #A67B5B;"></div>
+                        <div onclick="selectColor('char1_hair_color', 'blonde', this)" class="color-circle" style="background-color: #E6BE8A;"></div>
+                        <div onclick="selectColor('char1_hair_color', 'platinum', this)" class="color-circle" style="background-color: #FAF0BE;"></div>
+                        <div onclick="selectColor('char1_hair_color', 'red', this)" class="color-circle" style="background-color: #A52A2A;"></div>
+                        <div onclick="selectColor('char1_hair_color', 'gray', this)" class="color-circle" style="background-color: #9CA3AF;"></div>
+                        <div onclick="selectColor('char1_hair_color', 'white', this)" class="color-circle" style="background-color: #FFFFFF; border-color: #ccc;"></div>
+                    </div>
+                    <input type="hidden" name="char1_hair_color" id="char1_hair_color" value="black">
+                </div>
+
+                <div class="section-box" id="char1_hair_type_section">
+                    <div class="section-title">✂️ {% if lang == 'es' %}TIPO DE CABELLO{% else %}HAIR TYPE{% endif %}</div>
+                    <div class="style-row">
+                        <div onclick="selectStyle('char1_hair_type', 'straight', this)" class="style-btn selected">
+                            <span class="icon">〰️</span>
+                            <span>{% if lang == 'es' %}Liso{% else %}Straight{% endif %}</span>
+                        </div>
+                        <div onclick="selectStyle('char1_hair_type', 'wavy', this)" class="style-btn">
+                            <span class="icon">🌊</span>
+                            <span>{% if lang == 'es' %}Ondulado{% else %}Wavy{% endif %}</span>
+                        </div>
+                        <div onclick="selectStyle('char1_hair_type', 'curly', this)" class="style-btn">
+                            <span class="icon">🌀</span>
+                            <span>{% if lang == 'es' %}Rizado{% else %}Curly{% endif %}</span>
+                        </div>
+                        <div onclick="selectStyle('char1_hair_type', 'coily', this)" class="style-btn">
+                            <span class="icon">🔄</span>
+                            <span>Afro</span>
+                        </div>
+                    </div>
+                    <input type="hidden" name="char1_hair_type" id="char1_hair_type" value="straight">
+                </div>
+            </div>
+
+            <div class="section-grid" style="margin-top: 20px;">
+                <div class="section-box">
+                    <div class="section-title">📐 {% if lang == 'es' %}LARGO DE CABELLO{% else %}HAIR LENGTH{% endif %}</div>
+                    <div class="style-row">
+                        <div onclick="selectHairLength('char1', 'bald', this)" class="style-btn">
+                            <span class="icon">🥚</span>
+                            <span>{% if lang == 'es' %}Calvo{% else %}Bald{% endif %}</span>
+                        </div>
+                        <div onclick="selectHairLength('char1', 'very_short', this)" class="style-btn">
+                            <span class="icon">👨‍🦲</span>
+                            <span>{% if lang == 'es' %}Muy corto{% else %}Buzz{% endif %}</span>
+                        </div>
+                        <div onclick="selectHairLength('char1', 'short', this)" class="style-btn">
+                            <span class="icon">👨</span>
+                            <span>{% if lang == 'es' %}Corto{% else %}Short{% endif %}</span>
+                        </div>
+                        <div onclick="selectHairLength('char1', 'medium', this)" class="style-btn selected">
+                            <span class="icon">🧑</span>
+                            <span>{% if lang == 'es' %}Medio{% else %}Medium{% endif %}</span>
+                        </div>
+                        <div onclick="selectHairLength('char1', 'long', this)" class="style-btn">
+                            <span class="icon">👩</span>
+                            <span>{% if lang == 'es' %}Largo{% else %}Long{% endif %}</span>
+                        </div>
+                        <div onclick="selectHairLength('char1', 'very_long', this)" class="style-btn">
+                            <span class="icon">💇‍♀️</span>
+                            <span>{% if lang == 'es' %}Muy largo{% else %}V. long{% endif %}</span>
+                        </div>
+                    </div>
+                    <input type="hidden" name="char1_hair_length" id="char1_hair_length" value="medium">
+                </div>
+
+                <div class="section-box">
+                    <div class="section-title">🧔 {% if lang == 'es' %}VELLO FACIAL{% else %}FACIAL HAIR{% endif %}</div>
+                    <div class="style-row">
+                        <div onclick="selectStyle('char1_facial_hair', 'none', this)" class="style-btn selected">
+                            <span class="icon">😊</span>
+                            <span>{% if lang == 'es' %}Sin vello{% else %}None{% endif %}</span>
+                        </div>
+                        <div onclick="selectStyle('char1_facial_hair', 'stubble', this)" class="style-btn">
+                            <span class="icon">🧑</span>
+                            <span>{% if lang == 'es' %}Barba corta{% else %}Stubble{% endif %}</span>
+                        </div>
+                        <div onclick="selectStyle('char1_facial_hair', 'short_beard', this)" class="style-btn">
+                            <span class="icon">🧔</span>
+                            <span>{% if lang == 'es' %}Barba media{% else %}Short{% endif %}</span>
+                        </div>
+                        <div onclick="selectStyle('char1_facial_hair', 'full_beard', this)" class="style-btn">
+                            <span class="icon">🧔‍♂️</span>
+                            <span>{% if lang == 'es' %}Barba larga{% else %}Full{% endif %}</span>
+                        </div>
+                        <div onclick="selectStyle('char1_facial_hair', 'mustache', this)" class="style-btn">
+                            <span class="icon">👨</span>
+                            <span>{% if lang == 'es' %}Bigote{% else %}Mustache{% endif %}</span>
+                        </div>
+                        <div onclick="selectStyle('char1_facial_hair', 'goatee', this)" class="style-btn">
+                            <span class="icon">🧔</span>
+                            <span>{% if lang == 'es' %}Candado{% else %}Goatee{% endif %}</span>
+                        </div>
+                    </div>
+                    <input type="hidden" name="char1_facial_hair" id="char1_facial_hair" value="none">
+                </div>
+            </div>
+
+            <div class="section-grid" style="margin-top: 20px;">
+                <div class="section-box">
+                    <div class="section-title">👔 {% if lang == 'es' %}ESTILO DE ROPA{% else %}CLOTHING STYLE{% endif %}</div>
+                    <div class="style-row">
+                        <div onclick="selectStyle('char1_clothing', 'casual', this)" class="style-btn selected">
+                            <span class="icon">👕</span>
+                            <span>Casual</span>
+                        </div>
+                        <div onclick="selectStyle('char1_clothing', 'formal', this)" class="style-btn">
+                            <span class="icon">👔</span>
+                            <span>Formal</span>
+                        </div>
+                        <div onclick="selectStyle('char1_clothing', 'sporty', this)" class="style-btn">
+                            <span class="icon">🏃</span>
+                            <span>{% if lang == 'es' %}Deportivo{% else %}Sporty{% endif %}</span>
+                        </div>
+                        <div onclick="selectStyle('char1_clothing', 'princess', this)" class="style-btn">
+                            <span class="icon">👗</span>
+                            <span>{% if lang == 'es' %}Princesa{% else %}Princess{% endif %}</span>
+                        </div>
+                        <div onclick="selectStyle('char1_clothing', 'superhero', this)" class="style-btn">
+                            <span class="icon">🦸</span>
+                            <span>{% if lang == 'es' %}Héroe{% else %}Hero{% endif %}</span>
+                        </div>
+                        <div onclick="selectStyle('char1_clothing', 'adventure', this)" class="style-btn">
+                            <span class="icon">🎒</span>
+                            <span>{% if lang == 'es' %}Aventurero{% else %}Adventure{% endif %}</span>
+                        </div>
+                    </div>
+                    <input type="hidden" name="char1_clothing" id="char1_clothing" value="casual">
+                </div>
+
+                <div class="section-box">
+                    <div class="section-title">🎀 {% if lang == 'es' %}ACCESORIOS{% else %}ACCESSORIES{% endif %}</div>
+                    <div class="accessory-row">
+                        <div onclick="toggleAccessory('char1', 'glasses', this)" class="accessory-btn" title="{% if lang == 'es' %}Lentes{% else %}Glasses{% endif %}">👓</div>
+                        <div onclick="toggleAccessory('char1', 'sunglasses', this)" class="accessory-btn" title="{% if lang == 'es' %}Lentes de sol{% else %}Sunglasses{% endif %}">🕶️</div>
+                        <div onclick="toggleAccessory('char1', 'cap', this)" class="accessory-btn" title="{% if lang == 'es' %}Gorra{% else %}Cap{% endif %}">🧢</div>
+                        <div onclick="toggleAccessory('char1', 'scarf', this)" class="accessory-btn" title="{% if lang == 'es' %}Bufanda{% else %}Scarf{% endif %}">🧣</div>
+                        <div onclick="toggleAccessory('char1', 'cowboy_hat', this)" class="accessory-btn" title="{% if lang == 'es' %}Sombrero vaquero{% else %}Cowboy hat{% endif %}">🤠</div>
+                        <div onclick="toggleAccessory('char1', 'winter_hat', this)" class="accessory-btn" title="{% if lang == 'es' %}Gorro de invierno{% else %}Winter hat{% endif %}">🎿</div>
+                    </div>
+                    <input type="hidden" name="char1_accessories" id="char1_accessories" value="">
+                </div>
+            </div>
+        </div>
+
+        <!-- CHARACTER 2 (HUMAN) -->
+        <div id="character2Section" class="char-card" style="display: none; border-color: #c4b5fd;">
+            <div class="char-card-title">
+                <span style="font-size: 28px;">👥</span>
+                {% if lang == 'es' %}Segundo Personaje{% else %}Second Character{% endif %}
+            </div>
+            
+            <div class="section-grid">
+                <div class="section-box">
+                    <div class="section-title">📝 {% if lang == 'es' %}DATOS BÁSICOS{% else %}BASIC INFO{% endif %}</div>
+                    <div style="margin-bottom: 16px;">
+                        <label class="form-label">{% if lang == 'es' %}Nombre{% else %}Name{% endif %} *</label>
+                        <input type="text" name="char2_name" class="form-input" placeholder="{% if lang == 'es' %}Ej: Mamá{% else %}E.g.: Mom{% endif %}">
+                    </div>
+                    <div style="margin-bottom: 16px;">
+                        <label class="form-label">{% if lang == 'es' %}Parentesco{% else %}Relationship{% endif %}</label>
+                        <select name="char2_relationship" class="form-select">
+                            <option value="mother">👩 {% if lang == 'es' %}Mamá{% else %}Mom{% endif %}</option>
+                            <option value="father">👨 {% if lang == 'es' %}Papá{% else %}Dad{% endif %}</option>
+                            <option value="partner">💑 {% if lang == 'es' %}Pareja{% else %}Partner{% endif %}</option>
+                            <option value="sibling">👫 {% if lang == 'es' %}Hermano/a{% else %}Sibling{% endif %}</option>
+                            <option value="grandmother">👵 {% if lang == 'es' %}Abuelita{% else %}Grandma{% endif %}</option>
+                            <option value="grandfather">👴 {% if lang == 'es' %}Abuelito{% else %}Grandpa{% endif %}</option>
+                            <option value="aunt">👩‍🦱 {% if lang == 'es' %}Tía{% else %}Aunt{% endif %}</option>
+                            <option value="uncle">👨‍🦱 {% if lang == 'es' %}Tío{% else %}Uncle{% endif %}</option>
+                            <option value="cousin">🤝 {% if lang == 'es' %}Primo/a{% else %}Cousin{% endif %}</option>
+                            <option value="friend">💛 {% if lang == 'es' %}Amigo/a{% else %}Friend{% endif %}</option>
+                            <option value="teacher">👩‍🏫 {% if lang == 'es' %}Maestro/a{% else %}Teacher{% endif %}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">{% if lang == 'es' %}Género{% else %}Gender{% endif %}</label>
+                        <div class="gender-group">
+                            <label class="gender-btn selected" onclick="selectGender('char2', 'female', this)">
+                                <input type="radio" name="char2_gender" value="female" checked>
+                                <span style="font-size: 22px;">👩</span>
+                                <span>{% if lang == 'es' %}Femenino{% else %}Female{% endif %}</span>
+                            </label>
+                            <label class="gender-btn" onclick="selectGender('char2', 'male', this)">
+                                <input type="radio" name="char2_gender" value="male">
+                                <span style="font-size: 22px;">👨</span>
+                                <span>{% if lang == 'es' %}Masculino{% else %}Male{% endif %}</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-box">
+                    <div class="section-title">📏 {% if lang == 'es' %}EDAD, ALTURA Y CONTEXTURA{% else %}AGE, HEIGHT & BUILD{% endif %}</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <div>
+                            <label class="form-label">{% if lang == 'es' %}Años{% else %}Years{% endif %}</label>
+                            <select name="char2_age_years" class="form-select">
+                                {% for y in range(81) %}<option value="{{ y }}" {% if y == 35 %}selected{% endif %}>{{ y }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">{% if lang == 'es' %}Meses{% else %}Months{% endif %}</label>
+                            <select name="char2_age_months" class="form-select">
+                                {% for m in range(12) %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div>
+                            <label class="form-label">{% if lang == 'es' %}Altura{% else %}Height{% endif %}</label>
+                            <select name="char2_height" class="form-select">
+                                {% for h in range(50, 196, 5) %}<option value="{{ h }}" {% if h == 165 %}selected{% endif %}>{{ h }} cm</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">{% if lang == 'es' %}Contextura{% else %}Build{% endif %}</label>
+                            <select name="char2_body_type" id="char2_body_type" class="form-select">
+                                <option value="slim">🏃 {% if lang == 'es' %}Delgado{% else %}Slim{% endif %}</option>
+                                <option value="average" selected>👤 {% if lang == 'es' %}Media{% else %}Average{% endif %}</option>
+                                <option value="chubby">🧸 {% if lang == 'es' %}Kilos de más{% else %}Chubby{% endif %}</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-grid" style="margin-top: 20px;">
+                <div class="section-box">
+                    <div class="section-title">🎨 {% if lang == 'es' %}TONO DE PIEL{% else %}SKIN TONE{% endif %}</div>
+                    <div class="color-row">
+                        <div onclick="selectColor('char2_skin', 'porcelain', this)" class="color-circle" style="background-color: #FDEEF4;"></div>
+                        <div onclick="selectColor('char2_skin', 'very_light', this)" class="color-circle" style="background-color: #FDE8D7;"></div>
+                        <div onclick="selectColor('char2_skin', 'light', this)" class="color-circle selected" style="background-color: #F5D0B5;"></div>
+                        <div onclick="selectColor('char2_skin', 'light_medium', this)" class="color-circle" style="background-color: #E8BC9C;"></div>
+                        <div onclick="selectColor('char2_skin', 'medium', this)" class="color-circle" style="background-color: #D4A574;"></div>
+                        <div onclick="selectColor('char2_skin', 'olive', this)" class="color-circle" style="background-color: #C9A86C;"></div>
+                        <div onclick="selectColor('char2_skin', 'tan', this)" class="color-circle" style="background-color: #B8865A;"></div>
+                        <div onclick="selectColor('char2_skin', 'brown', this)" class="color-circle" style="background-color: #8D5524;"></div>
+                        <div onclick="selectColor('char2_skin', 'dark_brown', this)" class="color-circle" style="background-color: #6B4423;"></div>
+                        <div onclick="selectColor('char2_skin', 'dark', this)" class="color-circle" style="background-color: #3D2314;"></div>
+                    </div>
+                    <input type="hidden" name="char2_skin" id="char2_skin" value="light">
+                </div>
+
+                <div class="section-box">
+                    <div class="section-title">👁️ {% if lang == 'es' %}COLOR DE OJOS{% else %}EYE COLOR{% endif %}</div>
+                    <div class="color-row">
+                        <div onclick="selectColor('char2_eyes', 'brown', this)" class="color-circle selected" style="background-color: #634e34;"></div>
+                        <div onclick="selectColor('char2_eyes', 'dark_brown', this)" class="color-circle" style="background-color: #3D2314;"></div>
+                        <div onclick="selectColor('char2_eyes', 'hazel', this)" class="color-circle" style="background-color: #A67B5B;"></div>
+                        <div onclick="selectColor('char2_eyes', 'amber', this)" class="color-circle" style="background-color: #FFBF00;"></div>
+                        <div onclick="selectColor('char2_eyes', 'green', this)" class="color-circle" style="background-color: #228B22;"></div>
+                        <div onclick="selectColor('char2_eyes', 'blue', this)" class="color-circle" style="background-color: #4169E1;"></div>
+                        <div onclick="selectColor('char2_eyes', 'gray', this)" class="color-circle" style="background-color: #708090;"></div>
+                        <div onclick="selectColor('char2_eyes', 'black', this)" class="color-circle" style="background-color: #1a1a1a;"></div>
+                    </div>
+                    <input type="hidden" name="char2_eyes" id="char2_eyes" value="brown">
+                </div>
+            </div>
+
+            <div class="section-grid" style="margin-top: 20px;">
+                <div class="section-box" id="char2_hair_color_section">
+                    <div class="section-title">💇 {% if lang == 'es' %}COLOR DE CABELLO{% else %}HAIR COLOR{% endif %}</div>
+                    <div class="color-row">
+                        <div onclick="selectColor('char2_hair_color', 'black', this)" class="color-circle selected" style="background-color: #1a1a1a;"></div>
+                        <div onclick="selectColor('char2_hair_color', 'dark_brown', this)" class="color-circle" style="background-color: #3D2314;"></div>
+                        <div onclick="selectColor('char2_hair_color', 'brown', this)" class="color-circle" style="background-color: #6B4423;"></div>
+                        <div onclick="selectColor('char2_hair_color', 'light_brown', this)" class="color-circle" style="background-color: #A67B5B;"></div>
+                        <div onclick="selectColor('char2_hair_color', 'blonde', this)" class="color-circle" style="background-color: #E6BE8A;"></div>
+                        <div onclick="selectColor('char2_hair_color', 'platinum', this)" class="color-circle" style="background-color: #FAF0BE;"></div>
+                        <div onclick="selectColor('char2_hair_color', 'red', this)" class="color-circle" style="background-color: #A52A2A;"></div>
+                        <div onclick="selectColor('char2_hair_color', 'gray', this)" class="color-circle" style="background-color: #9CA3AF;"></div>
+                        <div onclick="selectColor('char2_hair_color', 'white', this)" class="color-circle" style="background-color: #FFFFFF; border-color: #ccc;"></div>
+                    </div>
+                    <input type="hidden" name="char2_hair_color" id="char2_hair_color" value="black">
+                </div>
+
+                <div class="section-box" id="char2_hair_type_section">
+                    <div class="section-title">✂️ {% if lang == 'es' %}TIPO DE CABELLO{% else %}HAIR TYPE{% endif %}</div>
+                    <div class="style-row">
+                        <div onclick="selectStyle('char2_hair_type', 'straight', this)" class="style-btn selected">
+                            <span class="icon">〰️</span>
+                            <span>{% if lang == 'es' %}Liso{% else %}Straight{% endif %}</span>
+                        </div>
+                        <div onclick="selectStyle('char2_hair_type', 'wavy', this)" class="style-btn">
+                            <span class="icon">🌊</span>
+                            <span>{% if lang == 'es' %}Ondulado{% else %}Wavy{% endif %}</span>
+                        </div>
+                        <div onclick="selectStyle('char2_hair_type', 'curly', this)" class="style-btn">
+                            <span class="icon">🌀</span>
+                            <span>{% if lang == 'es' %}Rizado{% else %}Curly{% endif %}</span>
+                        </div>
+                        <div onclick="selectStyle('char2_hair_type', 'coily', this)" class="style-btn">
+                            <span class="icon">🔄</span>
+                            <span>Afro</span>
+                        </div>
+                    </div>
+                    <input type="hidden" name="char2_hair_type" id="char2_hair_type" value="straight">
+                </div>
+            </div>
+
+            <div class="section-grid" style="margin-top: 20px;">
+                <div class="section-box">
+                    <div class="section-title">📐 {% if lang == 'es' %}LARGO DE CABELLO{% else %}HAIR LENGTH{% endif %}</div>
+                    <div class="style-row">
+                        <div onclick="selectHairLength('char2', 'bald', this)" class="style-btn">
+                            <span class="icon">🥚</span>
+                            <span>{% if lang == 'es' %}Calvo{% else %}Bald{% endif %}</span>
+                        </div>
+                        <div onclick="selectHairLength('char2', 'very_short', this)" class="style-btn">
+                            <span class="icon">👨‍🦲</span>
+                            <span>{% if lang == 'es' %}Muy corto{% else %}Buzz{% endif %}</span>
+                        </div>
+                        <div onclick="selectHairLength('char2', 'short', this)" class="style-btn">
+                            <span class="icon">👨</span>
+                            <span>{% if lang == 'es' %}Corto{% else %}Short{% endif %}</span>
+                        </div>
+                        <div onclick="selectHairLength('char2', 'medium', this)" class="style-btn selected">
+                            <span class="icon">🧑</span>
+                            <span>{% if lang == 'es' %}Medio{% else %}Medium{% endif %}</span>
+                        </div>
+                        <div onclick="selectHairLength('char2', 'long', this)" class="style-btn">
+                            <span class="icon">👩</span>
+                            <span>{% if lang == 'es' %}Largo{% else %}Long{% endif %}</span>
+                        </div>
+                        <div onclick="selectHairLength('char2', 'very_long', this)" class="style-btn">
+                            <span class="icon">💇‍♀️</span>
+                            <span>{% if lang == 'es' %}Muy largo{% else %}V. long{% endif %}</span>
+                        </div>
+                    </div>
+                    <input type="hidden" name="char2_hair_length" id="char2_hair_length" value="medium">
+                </div>
+
+                <div class="section-box">
+                    <div class="section-title">🧔 {% if lang == 'es' %}VELLO FACIAL{% else %}FACIAL HAIR{% endif %}</div>
+                    <div class="style-row">
+                        <div onclick="selectStyle('char2_facial_hair', 'none', this)" class="style-btn selected">
+                            <span class="icon">😊</span>
+                            <span>{% if lang == 'es' %}Sin vello{% else %}None{% endif %}</span>
+                        </div>
+                        <div onclick="selectStyle('char2_facial_hair', 'stubble', this)" class="style-btn">
+                            <span class="icon">🧑</span>
+                            <span>{% if lang == 'es' %}Barba corta{% else %}Stubble{% endif %}</span>
+                        </div>
+                        <div onclick="selectStyle('char2_facial_hair', 'short_beard', this)" class="style-btn">
+                            <span class="icon">🧔</span>
+                            <span>{% if lang == 'es' %}Barba media{% else %}Short{% endif %}</span>
+                        </div>
+                        <div onclick="selectStyle('char2_facial_hair', 'full_beard', this)" class="style-btn">
+                            <span class="icon">🧔‍♂️</span>
+                            <span>{% if lang == 'es' %}Barba larga{% else %}Full{% endif %}</span>
+                        </div>
+                        <div onclick="selectStyle('char2_facial_hair', 'mustache', this)" class="style-btn">
+                            <span class="icon">👨</span>
+                            <span>{% if lang == 'es' %}Bigote{% else %}Mustache{% endif %}</span>
+                        </div>
+                        <div onclick="selectStyle('char2_facial_hair', 'goatee', this)" class="style-btn">
+                            <span class="icon">🧔</span>
+                            <span>{% if lang == 'es' %}Candado{% else %}Goatee{% endif %}</span>
+                        </div>
+                    </div>
+                    <input type="hidden" name="char2_facial_hair" id="char2_facial_hair" value="none">
+                </div>
+            </div>
+
+            <div class="section-grid" style="margin-top: 20px;">
+                <div class="section-box">
+                    <div class="section-title">👔 {% if lang == 'es' %}ESTILO DE ROPA{% else %}CLOTHING STYLE{% endif %}</div>
+                    <div class="style-row">
+                        <div onclick="selectStyle('char2_clothing', 'casual', this)" class="style-btn selected">
+                            <span class="icon">👕</span>
+                            <span>Casual</span>
+                        </div>
+                        <div onclick="selectStyle('char2_clothing', 'formal', this)" class="style-btn">
+                            <span class="icon">👔</span>
+                            <span>Formal</span>
+                        </div>
+                        <div onclick="selectStyle('char2_clothing', 'sporty', this)" class="style-btn">
+                            <span class="icon">🏃</span>
+                            <span>{% if lang == 'es' %}Deportivo{% else %}Sporty{% endif %}</span>
+                        </div>
+                        <div onclick="selectStyle('char2_clothing', 'princess', this)" class="style-btn">
+                            <span class="icon">👗</span>
+                            <span>{% if lang == 'es' %}Princesa{% else %}Princess{% endif %}</span>
+                        </div>
+                        <div onclick="selectStyle('char2_clothing', 'superhero', this)" class="style-btn">
+                            <span class="icon">🦸</span>
+                            <span>{% if lang == 'es' %}Héroe{% else %}Hero{% endif %}</span>
+                        </div>
+                        <div onclick="selectStyle('char2_clothing', 'adventure', this)" class="style-btn">
+                            <span class="icon">🎒</span>
+                            <span>{% if lang == 'es' %}Aventurero{% else %}Adventure{% endif %}</span>
+                        </div>
+                    </div>
+                    <input type="hidden" name="char2_clothing" id="char2_clothing" value="casual">
+                </div>
+
+                <div class="section-box">
+                    <div class="section-title">🎀 {% if lang == 'es' %}ACCESORIOS{% else %}ACCESSORIES{% endif %}</div>
+                    <div class="accessory-row">
+                        <div onclick="toggleAccessory('char2', 'glasses', this)" class="accessory-btn" title="{% if lang == 'es' %}Lentes{% else %}Glasses{% endif %}">👓</div>
+                        <div onclick="toggleAccessory('char2', 'sunglasses', this)" class="accessory-btn" title="{% if lang == 'es' %}Lentes de sol{% else %}Sunglasses{% endif %}">🕶️</div>
+                        <div onclick="toggleAccessory('char2', 'cap', this)" class="accessory-btn" title="{% if lang == 'es' %}Gorra{% else %}Cap{% endif %}">🧢</div>
+                        <div onclick="toggleAccessory('char2', 'scarf', this)" class="accessory-btn" title="{% if lang == 'es' %}Bufanda{% else %}Scarf{% endif %}">🧣</div>
+                        <div onclick="toggleAccessory('char2', 'cowboy_hat', this)" class="accessory-btn" title="{% if lang == 'es' %}Sombrero vaquero{% else %}Cowboy hat{% endif %}">🤠</div>
+                        <div onclick="toggleAccessory('char2', 'winter_hat', this)" class="accessory-btn" title="{% if lang == 'es' %}Gorro de invierno{% else %}Winter hat{% endif %}">🎿</div>
+                    </div>
+                    <input type="hidden" name="char2_accessories" id="char2_accessories" value="">
+                </div>
+            </div>
+        </div>
+
+        <!-- PET SECTION -->
+        <div id="petSection" class="char-card" style="display: none; background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border-color: #fbbf24;">
+            <div class="char-card-title" style="border-color: #fde68a;">
+                <span style="font-size: 28px;">🐾</span>
+                {% if lang == 'es' %}Mascota{% else %}Pet{% endif %}
+            </div>
+            
+            <div class="section-grid">
+                <div class="section-box" style="background: white;">
+                    <div class="section-title">📝 {% if lang == 'es' %}DATOS{% else %}INFO{% endif %}</div>
+                    <div style="margin-bottom: 16px;">
+                        <label class="form-label">{% if lang == 'es' %}Nombre{% else %}Name{% endif %}</label>
+                        <input type="text" name="pet_name" class="form-input" placeholder="{% if lang == 'es' %}Ej: Max, Luna{% else %}E.g.: Max, Luna{% endif %}">
+                    </div>
+                    <div>
+                        <label class="form-label">{% if lang == 'es' %}Tipo{% else %}Type{% endif %}</label>
+                        <div class="gender-group">
+                            <label class="gender-btn selected" onclick="selectPetType('dog', this)">
+                                <input type="radio" name="pet_species" value="dog" checked>
+                                <span style="font-size: 22px;">🐕</span>
+                                <span>{% if lang == 'es' %}Perro{% else %}Dog{% endif %}</span>
+                            </label>
+                            <label class="gender-btn" onclick="selectPetType('cat', this)">
+                                <input type="radio" name="pet_species" value="cat">
+                                <span style="font-size: 22px;">🐈</span>
+                                <span>{% if lang == 'es' %}Gato{% else %}Cat{% endif %}</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-box" style="background: white;">
+                    <div class="section-title">🐕 {% if lang == 'es' %}RAZA Y TAMAÑO{% else %}BREED & SIZE{% endif %}</div>
+                    <div id="dogBreedsSection" style="margin-bottom: 12px;">
+                        <label class="form-label">{% if lang == 'es' %}Raza{% else %}Breed{% endif %}</label>
+                        <select name="pet_dog_breed" class="form-select">
+                            <option value="mixed">{% if lang == 'es' %}Mestizo{% else %}Mixed{% endif %}</option>
+                            <option value="french_bulldog">{% if lang == 'es' %}Bulldog Francés{% else %}French Bulldog{% endif %}</option>
+                            <option value="labrador">Labrador Retriever</option>
+                            <option value="golden_retriever">Golden Retriever</option>
+                            <option value="german_shepherd">{% if lang == 'es' %}Pastor Alemán{% else %}German Shepherd{% endif %}</option>
+                            <option value="poodle">{% if lang == 'es' %}Caniche / Poodle{% else %}Poodle{% endif %}</option>
+                            <option value="bulldog">Bulldog</option>
+                            <option value="beagle">Beagle</option>
+                            <option value="rottweiler">Rottweiler</option>
+                            <option value="dachshund">{% if lang == 'es' %}Salchicha / Dachshund{% else %}Dachshund{% endif %}</option>
+                            <option value="yorkshire">Yorkshire Terrier</option>
+                            <option value="boxer">Boxer</option>
+                            <option value="husky">Husky Siberiano</option>
+                            <option value="chihuahua">Chihuahua</option>
+                            <option value="shih_tzu">Shih Tzu</option>
+                            <option value="corgi">Corgi</option>
+                            <option value="pug">Pug</option>
+                            <option value="maltese">{% if lang == 'es' %}Maltés{% else %}Maltese{% endif %}</option>
+                            <option value="schnauzer">Schnauzer</option>
+                            <option value="cocker_spaniel">Cocker Spaniel</option>
+                            <option value="border_collie">Border Collie</option>
+                        </select>
+                    </div>
+                    <div id="catBreedsSection" style="margin-bottom: 12px; display: none;">
+                        <label class="form-label">{% if lang == 'es' %}Raza{% else %}Breed{% endif %}</label>
+                        <select name="pet_cat_breed" class="form-select">
+                            <option value="domestic">{% if lang == 'es' %}Doméstico{% else %}Domestic{% endif %}</option>
+                            <option value="persian">{% if lang == 'es' %}Persa{% else %}Persian{% endif %}</option>
+                            <option value="siamese">{% if lang == 'es' %}Siamés{% else %}Siamese{% endif %}</option>
+                            <option value="maine_coon">Maine Coon</option>
+                            <option value="ragdoll">Ragdoll</option>
+                            <option value="british_shorthair">British Shorthair</option>
+                            <option value="bengal">Bengal</option>
+                            <option value="abyssinian">{% if lang == 'es' %}Abisinio{% else %}Abyssinian{% endif %}</option>
+                            <option value="scottish_fold">Scottish Fold</option>
+                            <option value="sphynx">Sphynx</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">{% if lang == 'es' %}Tamaño{% else %}Size{% endif %}</label>
+                        <select name="pet_size" class="form-select">
+                            <option value="small">🐕 {% if lang == 'es' %}Pequeño{% else %}Small{% endif %}</option>
+                            <option value="medium" selected>🐕‍🦺 {% if lang == 'es' %}Mediano{% else %}Medium{% endif %}</option>
+                            <option value="large">🦮 {% if lang == 'es' %}Grande{% else %}Large{% endif %}</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-grid" style="margin-top: 20px;">
+                <div class="section-box" style="background: white;">
+                    <div class="section-title">🎨 {% if lang == 'es' %}PATRÓN DE PELAJE{% else %}FUR PATTERN{% endif %}</div>
+                    <div class="style-row">
+                        <div onclick="selectPetPattern('solid', this)" class="style-btn selected">
+                            <span class="icon">⬤</span>
+                            <span>{% if lang == 'es' %}Sólido{% else %}Solid{% endif %}</span>
+                        </div>
+                        <div onclick="selectPetPattern('spotted', this)" class="style-btn">
+                            <span class="icon">🔴⚪</span>
+                            <span>{% if lang == 'es' %}Manchado{% else %}Spotted{% endif %}</span>
+                        </div>
+                        <div id="tabbyOption" onclick="selectPetPattern('tabby', this)" class="style-btn" style="display: none;">
+                            <span class="icon">🐯</span>
+                            <span>{% if lang == 'es' %}Atigrado{% else %}Tabby{% endif %}</span>
+                        </div>
+                    </div>
+                    <input type="hidden" name="pet_pattern" id="pet_pattern" value="solid">
+                </div>
+
+                <div class="section-box" style="background: white;">
+                    <div class="section-title">🎨 {% if lang == 'es' %}COLOR BASE{% else %}BASE COLOR{% endif %}</div>
+                    <div class="color-row">
+                        <div onclick="selectColor('pet_color', 'white', this)" class="color-circle" style="background-color: #FFFFFF; border-color: #ccc;"></div>
+                        <div onclick="selectColor('pet_color', 'cream', this)" class="color-circle" style="background-color: #FFFDD0;"></div>
+                        <div onclick="selectColor('pet_color', 'golden', this)" class="color-circle selected" style="background-color: #DAA520;"></div>
+                        <div onclick="selectColor('pet_color', 'orange', this)" class="color-circle" style="background-color: #FF8C00;"></div>
+                        <div onclick="selectColor('pet_color', 'brown', this)" class="color-circle" style="background-color: #8B4513;"></div>
+                        <div onclick="selectColor('pet_color', 'gray', this)" class="color-circle" style="background-color: #808080;"></div>
+                        <div onclick="selectColor('pet_color', 'black', this)" class="color-circle" style="background-color: #1a1a1a;"></div>
+                    </div>
+                    <input type="hidden" name="pet_color" id="pet_color" value="golden">
+                </div>
+            </div>
+
+            <div id="spotColorSection" class="section-box" style="background: white; margin-top: 20px; display: none;">
+                <div class="section-title">🔴 {% if lang == 'es' %}COLOR DE MANCHAS{% else %}SPOT COLOR{% endif %}</div>
+                <div class="color-row">
+                    <div onclick="selectColor('pet_spot_color', 'white', this)" class="color-circle selected" style="background-color: #FFFFFF; border-color: #ccc;"></div>
+                    <div onclick="selectColor('pet_spot_color', 'cream', this)" class="color-circle" style="background-color: #FFFDD0;"></div>
+                    <div onclick="selectColor('pet_spot_color', 'golden', this)" class="color-circle" style="background-color: #DAA520;"></div>
+                    <div onclick="selectColor('pet_spot_color', 'orange', this)" class="color-circle" style="background-color: #FF8C00;"></div>
+                    <div onclick="selectColor('pet_spot_color', 'brown', this)" class="color-circle" style="background-color: #8B4513;"></div>
+                    <div onclick="selectColor('pet_spot_color', 'gray', this)" class="color-circle" style="background-color: #808080;"></div>
+                    <div onclick="selectColor('pet_spot_color', 'black', this)" class="color-circle" style="background-color: #1a1a1a;"></div>
+                </div>
+                <input type="hidden" name="pet_spot_color" id="pet_spot_color" value="white">
+            </div>
+
+            <div id="tabbyColorSection" class="section-box" style="background: white; margin-top: 20px; display: none;">
+                <div class="section-title">🐯 {% if lang == 'es' %}COLOR DE RAYAS{% else %}STRIPE COLOR{% endif %}</div>
+                <div class="color-row">
+                    <div onclick="selectColor('pet_stripe_color', 'black', this)" class="color-circle selected" style="background-color: #1a1a1a;"></div>
+                    <div onclick="selectColor('pet_stripe_color', 'dark_brown', this)" class="color-circle" style="background-color: #3D2314;"></div>
+                    <div onclick="selectColor('pet_stripe_color', 'brown', this)" class="color-circle" style="background-color: #8B4513;"></div>
+                    <div onclick="selectColor('pet_stripe_color', 'gray', this)" class="color-circle" style="background-color: #808080;"></div>
+                </div>
+                <input type="hidden" name="pet_stripe_color" id="pet_stripe_color" value="black">
+            </div>
+        </div>
+
+        <button type="submit" class="submit-btn">
+            <span>✨</span>
+            <span>{% if lang == 'es' %}Crear Mi Historia{% else %}Create My Story{% endif %}</span>
+            <span>✨</span>
+        </button>
+    </form>
+</section>
+
+<script>
+let characterCount = 1;
+let hasPet = false;
+let accessories = { char1: [], char2: [] };
+
+function updateCharacterVisibility() {
+    const char2Section = document.getElementById('character2Section');
+    const petSection = document.getElementById('petSection');
+    
+    if (hasPet) {
+        petSection.style.display = 'block';
+        if (characterCount === 2) {
+            char2Section.style.display = 'block';
+        } else {
+            char2Section.style.display = 'none';
+        }
+    } else {
+        petSection.style.display = 'none';
+        char2Section.style.display = characterCount === 2 ? 'block' : 'none';
+    }
+}
+
+function setCharacterCount(count) {
+    characterCount = count;
+    document.getElementById('characterCount').value = count;
+    document.getElementById('char1Btn').classList.toggle('selected', count === 1);
+    document.getElementById('char2Btn').classList.toggle('selected', count === 2);
+    updateCharacterVisibility();
+}
+
+function togglePetMode() {
+    hasPet = !hasPet;
+    document.getElementById('hasPet').value = hasPet ? '1' : '0';
+    const btn = document.getElementById('petToggleBtn');
+    btn.classList.toggle('active', hasPet);
+    document.getElementById('petToggleText').textContent = hasPet 
+        ? '{% if lang == "es" %}✓ Mascota{% else %}✓ Pet{% endif %}'
+        : '{% if lang == "es" %}+ Mascota{% else %}+ Pet{% endif %}';
+    updateCharacterVisibility();
+}
+
+function selectPetType(type, el) {
+    el.closest('.gender-group').querySelectorAll('.gender-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+    el.querySelector('input').checked = true;
+    document.getElementById('dogBreedsSection').style.display = type === 'dog' ? 'block' : 'none';
+    document.getElementById('catBreedsSection').style.display = type === 'cat' ? 'block' : 'none';
+    document.getElementById('tabbyOption').style.display = type === 'cat' ? 'flex' : 'none';
+    if (type === 'dog' && document.getElementById('pet_pattern').value === 'tabby') {
+        selectPetPattern('solid', document.querySelector('#petSection .style-btn'));
+    }
+}
+
+function selectPetPattern(pattern, el) {
+    el.parentElement.querySelectorAll('.style-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('pet_pattern').value = pattern;
+    document.getElementById('spotColorSection').style.display = pattern === 'spotted' ? 'block' : 'none';
+    document.getElementById('tabbyColorSection').style.display = pattern === 'tabby' ? 'block' : 'none';
+}
+
+function selectColor(inputId, value, el) {
+    document.getElementById(inputId).value = value;
+    const parent = el.parentElement;
+    parent.querySelectorAll('.color-circle').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+}
+
+function selectStyle(inputId, value, el) {
+    document.getElementById(inputId).value = value;
+    const parent = el.parentElement;
+    parent.querySelectorAll('.style-btn').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+}
+
+function selectGender(charId, value, el) {
+    el.closest('.gender-group').querySelectorAll('.gender-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+    el.querySelector('input').checked = true;
+}
+
+function selectHairLength(charId, value, el) {
+    document.getElementById(charId + '_hair_length').value = value;
+    const parent = el.parentElement;
+    parent.querySelectorAll('.style-btn').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    
+    const hairColorSection = document.getElementById(charId + '_hair_color_section');
+    const hairTypeSection = document.getElementById(charId + '_hair_type_section');
+    
+    if (value === 'bald') {
+        hairColorSection.style.opacity = '0.4';
+        hairColorSection.style.pointerEvents = 'none';
+        hairTypeSection.style.opacity = '0.4';
+        hairTypeSection.style.pointerEvents = 'none';
+    } else {
+        hairColorSection.style.opacity = '1';
+        hairColorSection.style.pointerEvents = 'auto';
+        hairTypeSection.style.opacity = '1';
+        hairTypeSection.style.pointerEvents = 'auto';
+    }
+}
+
+function toggleAccessory(charId, accessory, el) {
+    const idx = accessories[charId].indexOf(accessory);
+    if (idx > -1) {
+        accessories[charId].splice(idx, 1);
+        el.classList.remove('selected');
+    } else {
+        accessories[charId].push(accessory);
+        el.classList.add('selected');
+    }
+    document.getElementById(charId + '_accessories').value = accessories[charId].join(',');
+}
+</script>
+{% endblock %}

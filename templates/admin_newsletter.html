@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Newsletter Admin - Magic Memories Books</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Quicksand', 'Segoe UI', sans-serif; background: #F9F9FB; color: #333; }
+        .header { background: linear-gradient(135deg, #D4AF37, #B8860B); color: #fff; padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 20px; }
+        .header a { color: #fff; text-decoration: none; font-size: 13px; opacity: 0.8; }
+        .container { max-width: 1000px; margin: 24px auto; padding: 0 20px; }
+        .stats { display: flex; gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: #fff; border-radius: 12px; padding: 20px; flex: 1; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .stat-card .number { font-size: 32px; font-weight: 700; color: #B8860B; }
+        .stat-card .label { font-size: 12px; color: #888; margin-top: 4px; }
+        .section { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .section h2 { font-size: 16px; color: #B8860B; margin-bottom: 16px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; padding: 10px 12px; background: #F9F9FB; color: #888; font-weight: 600; font-size: 11px; text-transform: uppercase; }
+        td { padding: 10px 12px; border-top: 1px solid #f0f0f0; }
+        .badge-active { background: #dcfce7; color: #16a34a; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+        .badge-inactive { background: #fef2f2; color: #dc2626; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+        label { display: block; font-size: 13px; color: #555; margin-bottom: 4px; font-weight: 600; }
+        input[type="text"], textarea, select { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; font-family: inherit; }
+        textarea { min-height: 120px; resize: vertical; }
+        .form-row { margin-bottom: 14px; }
+        .btn-send { background: linear-gradient(135deg, #D4AF37, #B8860B); color: #fff; border: none; padding: 12px 28px; border-radius: 20px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+        .btn-send:hover { opacity: 0.9; }
+        .flash { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Newsletter Admin</h1>
+        <a href="{{ url_for('admin_dashboard') }}">&larr; Dashboard</a>
+    </div>
+    <div class="container">
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        {% for msg in messages %}
+        <div class="flash">{{ msg }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="number">{{ active_count }}</div>
+                <div class="label">Suscriptores activos</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">{{ subscribers|length }}</div>
+                <div class="label">Total registros</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Enviar correo a la comunidad</h2>
+            <form method="POST" action="{{ url_for('admin_newsletter_send') }}">
+                <div class="form-row">
+                    <label>Asunto</label>
+                    <input type="text" name="subject" placeholder="Nuevo cuento disponible..." required>
+                </div>
+                <div class="form-row">
+                    <label>Contenido (HTML)</label>
+                    <textarea name="content" placeholder="<h2>¡Nuevo cuento!</h2><p>Hemos lanzado...</p>" required></textarea>
+                </div>
+                <div class="form-row">
+                    <label>Idioma destino</label>
+                    <select name="language">
+                        <option value="all">Todos</option>
+                        <option value="es">Solo Español</option>
+                        <option value="en">Solo English</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-send" onclick="return confirm('¿Enviar correo a todos los suscriptores activos?')">Enviar correo</button>
+            </form>
+        </div>
+
+        <div class="section">
+            <h2>Suscriptores ({{ subscribers|length }})</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Idioma</th>
+                        <th>Fecha</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in subscribers %}
+                    <tr>
+                        <td>{{ s.email }}</td>
+                        <td>{{ s.language|upper }}</td>
+                        <td>{{ s.subscribed_at.strftime('%d/%m/%Y %H:%M') if s.subscribed_at else '-' }}</td>
+                        <td>
+                            {% if s.is_active %}
+                            <span class="badge-active">Activo</span>
+                            {% else %}
+                            <span class="badge-inactive">Baja {{ s.unsubscribed_at.strftime('%d/%m') if s.unsubscribed_at else '' }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not subscribers %}
+                    <tr><td colspan="4" style="text-align:center;color:#999;padding:30px;">No hay suscriptores aún</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

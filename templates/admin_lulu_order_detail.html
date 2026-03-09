@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block title %}Orden Lulu: {{ order.child_name }} - Admin{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="background: white; min-height: 80vh;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Revisar Orden de Impresion</h2>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">Volver al Dashboard</a>
+    </div>
+    
+    {% if lulu_error %}
+    <div class="alert alert-danger mb-4">
+        <h5 class="alert-heading" style="margin-bottom:8px;">Error de Lulu</h5>
+        <code style="word-break:break-all;">{{ lulu_error }}</code>
+    </div>
+    {% endif %}
+    
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">Informacion del Pedido</div>
+                <div class="card-body">
+                    <p><strong>Preview ID:</strong> <code>{{ preview_id }}</code></p>
+                    <p><strong>Nombre:</strong> {{ order.child_name }}</p>
+                    <p><strong>Email:</strong> {{ order.email }}</p>
+                    <p><strong>Libro:</strong> {{ order.book_type }}</p>
+                    <p><strong>Creado:</strong> {{ order.created_at[:16].replace('T', ' ') }}</p>
+                    <p><strong>Expira:</strong> {{ order.expires_at[:16].replace('T', ' ') }}</p>
+                    <p>
+                        <strong>Estado:</strong> 
+                        {% if lulu_status == 'failed' %}
+                        <span class="badge bg-danger">Fallo en Lulu</span>
+                        {% elif order.status == 'pending' or order.status == 'pending_review' %}
+                        <span class="badge bg-warning text-dark">Pendiente de Revision</span>
+                        {% elif order.status == 'sent_to_lulu' %}
+                        <span class="badge bg-success">Enviado a Lulu</span>
+                        {% else %}
+                        <span class="badge bg-secondary">{{ order.status }}</span>
+                        {% endif %}
+                    </p>
+                    {% if order.lulu_job_id %}
+                    <p><strong>Job ID:</strong> <code>{{ order.lulu_job_id }}</code></p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">Direccion de Envio</div>
+                <div class="card-body">
+                    {% if shipping_address %}
+                    <div id="address-display">
+                        <p><strong>Nombre:</strong> <span id="disp-name">{{ shipping_address.name or '' }}</span></p>
+                        <p><strong>Calle 1:</strong> <span id="disp-street1">{{ shipping_address.street1 or '' }}</span></p>
+                        <p><strong>Calle 2:</strong> <span id="disp-street2">{{ shipping_address.street2 or '' }}</span></p>
+                        <p><strong>Ciudad:</strong> <span id="disp-city">{{ shipping_address.city or '' }}</span></p>
+                        <p><strong>Estado:</strong> <span id="disp-state">{{ shipping_address.state_code or '' }}</span></p>
+                        <p><strong>C. Postal:</strong> <span id="disp-postcode">{{ shipping_address.postcode or '' }}</span></p>
+                        <p><strong>Pais:</strong> <span id="disp-country">{{ shipping_address.country_code or '' }}</span></p>
+                        <p><strong>Telefono:</strong> <span id="disp-phone">{{ shipping_address.phone_number or '' }}</span></p>
+                        <button class="btn btn-sm btn-outline-primary mt-2" onclick="toggleEditAddress()">Editar Direccion</button>
+                    </div>
+                    <div id="address-edit" style="display:none;">
+                        <div class="mb-2"><label class="form-label mb-0 small">Nombre</label><input type="text" class="form-control form-control-sm" id="edit-name" value="{{ shipping_address.name or '' }}"></div>
+                        <div class="mb-2"><label class="form-label mb-0 small">Calle 1</label><input type="text" class="form-control form-control-sm" id="edit-street1" value="{{ shipping_address.street1 or '' }}"></div>
+                        <div class="mb-2"><label class="form-label mb-0 small">Calle 2</label><input type="text" class="form-control form-control-sm" id="edit-street2" value="{{ shipping_address.street2 or '' }}"></div>
+                        <div class="mb-2"><label class="form-label mb-0 small">Ciudad</label><input type="text" class="form-control form-control-sm" id="edit-city" value="{{ shipping_address.city or '' }}"></div>
+                        <div class="mb-2"><label class="form-label mb-0 small">Estado/Provincia</label><input type="text" class="form-control form-control-sm" id="edit-state" value="{{ shipping_address.state_code or '' }}"></div>
+                        <div class="mb-2"><label class="form-label mb-0 small">Codigo Postal</label><input type="text" class="form-control form-control-sm" id="edit-postcode" value="{{ shipping_address.postcode or '' }}"></div>
+                        <div class="mb-2"><label class="form-label mb-0 small">Pais (codigo)</label><input type="text" class="form-control form-control-sm" id="edit-country" value="{{ shipping_address.country_code or '' }}" maxlength="2" style="text-transform:uppercase;"></div>
+                        <div class="mb-2"><label class="form-label mb-0 small">Telefono</label><input type="text" class="form-control form-control-sm" id="edit-phone" value="{{ shipping_address.phone_number or '' }}"></div>
+                        <div class="d-flex gap-2 mt-3">
+                            <button class="btn btn-sm btn-success" onclick="saveAddress()">Guardar</button>
+                            <button class="btn btn-sm btn-secondary" onclick="toggleEditAddress()">Cancelar</button>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">Sin direccion de envio</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-dark text-white">Acciones</div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <h6 class="text-muted">Archivos</h6>
+                        {% if interior_exists %}
+                        <a href="{{ url_for('download_lulu_file', folder_name=order.folder_name, filename='interior.pdf') }}?t={{ range(100000)|random }}" 
+                           class="btn btn-outline-primary btn-sm" target="_blank">
+                            Descargar Interior PDF ({{ order.interior_size_mb|default('?') }} MB)
+                        </a>
+                        {% else %}
+                        <button class="btn btn-secondary btn-sm" disabled>Interior PDF no disponible</button>
+                        {% endif %}
+                        
+                        {% if cover_pdf_exists %}
+                        <a href="{{ url_for('download_lulu_file', folder_name=order.folder_name, filename='cover.pdf') }}?t={{ range(100000)|random }}" 
+                           class="btn btn-outline-success btn-sm" target="_blank">
+                            Descargar Cover PDF
+                        </a>
+                        {% else %}
+                        <button class="btn btn-secondary btn-sm" disabled>Cover PDF no disponible</button>
+                        {% endif %}
+                        
+                        <hr>
+                        <h6 class="text-muted">Impresion</h6>
+                        
+                        {% if order.status in ['pending', 'pending_review'] or lulu_status == 'failed' %}
+                        <button id="btn-regenerate" class="btn btn-warning btn-sm" onclick="regenerateCover()">
+                            Regenerar Portada
+                        </button>
+                        <button id="btn-approve" class="btn btn-success" onclick="approveOrder()" 
+                                {% if not interior_exists or not cover_pdf_exists %}disabled{% endif %}>
+                            Aprobar y Enviar a Lulu
+                        </button>
+                        {% if preview_id and lulu_status == 'failed' %}
+                        <button id="btn-retry" class="btn btn-danger" onclick="retryLulu()">
+                            Reintentar Envio a Lulu
+                        </button>
+                        {% endif %}
+                        {% elif order.status == 'sent_to_lulu' %}
+                        <div class="alert alert-success mb-0">
+                            Esta orden ya fue enviada a Lulu
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Previsualizacion de la Portada</h5>
+            <small class="text-white-50">Revisa que no haya defectos antes de aprobar</small>
+        </div>
+        <div class="card-body text-center p-4" style="background: #f5f5f5;">
+            {% if cover_preview_exists %}
+            <img src="{{ url_for('admin_get_cover_preview', folder_name=order.folder_name) }}" 
+                 alt="Cover Preview" class="img-fluid shadow-lg" 
+                 style="max-height: 600px; border-radius: 8px;">
+            {% else %}
+            <div class="alert alert-warning">
+                No hay previsualizacion de portada disponible. 
+                <button class="btn btn-sm btn-warning ms-2" onclick="regenerateCover()">Generar Portada</button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div id="status-message" class="mt-3"></div>
+</div>
+
+<script>
+function toggleEditAddress() {
+    var disp = document.getElementById('address-display');
+    var edit = document.getElementById('address-edit');
+    if (edit.style.display === 'none') {
+        edit.style.display = 'block';
+        disp.style.display = 'none';
+    } else {
+        edit.style.display = 'none';
+        disp.style.display = 'block';
+    }
+}
+
+function saveAddress() {
+    var statusMsg = document.getElementById('status-message');
+    var data = {
+        name: document.getElementById('edit-name').value,
+        street1: document.getElementById('edit-street1').value,
+        street2: document.getElementById('edit-street2').value,
+        city: document.getElementById('edit-city').value,
+        state_code: document.getElementById('edit-state').value,
+        postcode: document.getElementById('edit-postcode').value,
+        country_code: document.getElementById('edit-country').value.toUpperCase(),
+        phone_number: document.getElementById('edit-phone').value
+    };
+    
+    fetch('/admin/update-shipping/{{ preview_id }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(resp) {
+        if (resp.success) {
+            statusMsg.innerHTML = '<div class="alert alert-success">Direccion actualizada correctamente</div>';
+            document.getElementById('disp-name').textContent = data.name;
+            document.getElementById('disp-street1').textContent = data.street1;
+            document.getElementById('disp-street2').textContent = data.street2;
+            document.getElementById('disp-city').textContent = data.city;
+            document.getElementById('disp-state').textContent = data.state_code;
+            document.getElementById('disp-postcode').textContent = data.postcode;
+            document.getElementById('disp-country').textContent = data.country_code;
+            document.getElementById('disp-phone').textContent = data.phone_number;
+            toggleEditAddress();
+        } else {
+            statusMsg.innerHTML = '<div class="alert alert-danger">Error: ' + resp.error + '</div>';
+        }
+    })
+    .catch(function() {
+        statusMsg.innerHTML = '<div class="alert alert-danger">Error de conexion</div>';
+    });
+}
+
+function retryLulu() {
+    if (!confirm('Reintentar envio a Lulu con la direccion actual?')) return;
+    
+    var btn = document.getElementById('btn-retry');
+    var statusMsg = document.getElementById('status-message');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+    
+    fetch('/admin/retry-lulu/{{ preview_id }}', { method: 'POST' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            statusMsg.innerHTML = '<div class="alert alert-success"><strong>Enviado a Lulu!</strong> Job ID: ' + data.lulu_job_id + '</div>';
+            setTimeout(function() { location.reload(); }, 2000);
+        } else {
+            statusMsg.innerHTML = '<div class="alert alert-danger">Error: ' + (data.error || 'Unknown') + '</div>';
+            btn.disabled = false;
+            btn.innerHTML = 'Reintentar Envio a Lulu';
+        }
+    })
+    .catch(function() {
+        statusMsg.innerHTML = '<div class="alert alert-danger">Error de conexion</div>';
+        btn.disabled = false;
+        btn.innerHTML = 'Reintentar Envio a Lulu';
+    });
+}
+
+function regenerateCover() {
+    var btn = document.getElementById('btn-regenerate');
+    var statusMsg = document.getElementById('status-message');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Regenerando...';
+    statusMsg.innerHTML = '<div class="alert alert-info">Generando nueva portada... Esto puede tardar 1-2 minutos.</div>';
+    
+    fetch('/admin/lulu-order/{{ order.folder_name }}/regenerate-cover', { method: 'POST' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            statusMsg.innerHTML = '<div class="alert alert-success">Portada regenerada. Recargando...</div>';
+            setTimeout(function() { location.reload(); }, 1500);
+        } else {
+            statusMsg.innerHTML = '<div class="alert alert-danger">Error: ' + data.error + '</div>';
+            btn.disabled = false;
+            btn.innerHTML = 'Regenerar Portada';
+        }
+    })
+    .catch(function() {
+        statusMsg.innerHTML = '<div class="alert alert-danger">Error de conexion</div>';
+        btn.disabled = false;
+        btn.innerHTML = 'Regenerar Portada';
+    });
+}
+
+function approveOrder() {
+    if (!confirm('Enviar este pedido a Lulu para impresion?')) return;
+    
+    var btn = document.getElementById('btn-approve');
+    var statusMsg = document.getElementById('status-message');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando a Lulu...';
+    
+    fetch('/admin/lulu-order/{{ order.folder_name }}/approve', { method: 'POST' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            statusMsg.innerHTML = '<div class="alert alert-success"><strong>Enviado a Lulu!</strong> Job ID: ' + data.job_id + '</div>';
+            setTimeout(function() { location.reload(); }, 2000);
+        } else {
+            statusMsg.innerHTML = '<div class="alert alert-danger">Error: ' + data.error + '</div>';
+            btn.disabled = false;
+            btn.innerHTML = 'Aprobar y Enviar a Lulu';
+        }
+    })
+    .catch(function() {
+        statusMsg.innerHTML = '<div class="alert alert-danger">Error de conexion</div>';
+        btn.disabled = false;
+        btn.innerHTML = 'Aprobar y Enviar a Lulu';
+    });
+}
+</script>
+{% endblock %}

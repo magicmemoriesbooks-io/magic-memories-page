@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ translations.site_title }}{% endblock %}</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.png') }}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Quicksand:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Quicksand', sans-serif; }
+        .font-display { font-family: 'Playfair Display', serif; }
+        .gradient-magic { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .gradient-soft { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .watercolor-bg { background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 50%, #ee9ca7 100%); }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 min-h-screen">
+    <style>
+        @keyframes goldToFuchsia {
+            0%, 100% { color: #D4AF37; text-shadow: 0 0 10px rgba(212, 175, 55, 0.5); }
+            50% { color: #FF00FF; text-shadow: 0 0 10px rgba(255, 0, 255, 0.5); }
+        }
+        @keyframes goldToFuchsiaHero {
+            0%, 100% { 
+                background: linear-gradient(90deg, #D4AF37, #FFD700, #D4AF37);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+            50% { 
+                background: linear-gradient(90deg, #FF00FF, #E91E63, #FF00FF);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+        }
+        .brand-animated {
+            animation: goldToFuchsia 3s ease-in-out infinite;
+            font-weight: 700;
+        }
+        .slogan-animated {
+            background: linear-gradient(90deg, #D4AF37, #FFD700, #D4AF37);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: goldToFuchsiaHero 4s ease-in-out infinite;
+            display: inline-block;
+        }
+        .slogan-animated-delay {
+            background: linear-gradient(90deg, #FF00FF, #E91E63, #FF00FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: goldToFuchsiaHero 4s ease-in-out infinite;
+            animation-delay: 2s;
+            display: inline-block;
+        }
+        .slogan-footer-animated {
+            animation: goldToFuchsia 4s ease-in-out infinite;
+        }
+        .slogan-footer-animated-delay {
+            animation: goldToFuchsia 4s ease-in-out infinite;
+            animation-delay: 2s;
+        }
+        .nav-link-gold {
+            color: #B8860B;
+            position: relative;
+        }
+        .nav-link-gold::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: currentColor;
+            transition: width 0.3s ease;
+        }
+        .nav-link-gold:hover::after {
+            width: 100%;
+        }
+        .dropdown-menu {
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.2s ease;
+        }
+        .dropdown:hover .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+    </style>
+    <nav class="sticky top-0 z-50" style="background:rgba(255,255,255,0.75);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 1px 8px rgba(0,0,0,0.06);">
+        <div class="mx-auto" style="max-width:1400px;padding:0 5%;">
+            <div class="flex justify-between items-center" style="height:80px;">
+                <a href="{{ url_for('index') }}" class="flex items-center space-x-3">
+                    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Magic Memories Books" style="height:55px;">
+                    <span class="brand-animated text-xl font-display hidden sm:inline">Magic Memories Books</span>
+                </a>
+                <div class="hidden md:flex items-center space-x-6">
+                    <div class="dropdown relative">
+                        <button class="nav-link-gold hover:text-fuchsia-600 transition flex items-center gap-1" style="font-weight:500;font-size:15px;">
+                            {% if lang == 'es' %}Cuentos Mágicos Express{% else %}Magic Express Stories{% endif %}
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="dropdown-menu absolute top-full left-0 mt-1 rounded-lg shadow-lg border py-2 min-w-[160px]" style="background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);">
+                            <a href="{{ url_for('stories_0_1') }}" class="block px-4 py-2 text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition">{% if lang == 'es' %}Bebés 0-2{% else %}Babies 0-2{% endif %}</a>
+                            <a href="{{ url_for('stories_3_8') }}" class="block px-4 py-2 text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition">{% if lang == 'es' %}Niños 3-8{% else %}Kids 3-8{% endif %}</a>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('personalized_books') }}" class="nav-link-gold hover:text-emerald-600 transition" style="font-weight:500;font-size:15px;">{% if lang == 'es' %}Aventuras a tu Medida{% else %}Adventures Made for You{% endif %}</a>
+                    <a href="{{ url_for('furry_love_catalog') }}" class="nav-link-gold hover:text-amber-600 transition" style="font-weight:500;font-size:15px;">{% if lang == 'es' %}Tú y tu Amor Peludo{% else %}You & Your Furry Love{% endif %}</a>
+                    <a href="{{ url_for('stories_birthday') }}" class="nav-link-gold hover:text-pink-600 transition relative" style="font-weight:500;font-size:15px;">
+                        🎈 {% if lang == 'es' %}Cuentos de Cumple{% else %}Birthday Tales{% endif %} 🎉
+                    </a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center border rounded-full overflow-hidden">
+                        <a href="{{ url_for('set_language', lang='es') }}" class="px-3 py-1 text-sm {% if lang == 'es' %}bg-purple-600 text-white{% else %}text-gray-600 hover:bg-gray-100{% endif %} transition">ES</a>
+                        <a href="{{ url_for('set_language', lang='en') }}" class="px-3 py-1 text-sm {% if lang == 'en' %}bg-purple-600 text-white{% else %}text-gray-600 hover:bg-gray-100{% endif %} transition">EN</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="mt-8" style="background:rgba(252,252,254,0.6);backdrop-filter:blur(10px);font-family:'Quicksand',sans-serif;font-weight:400;">
+        <div style="height:1px;background:linear-gradient(90deg,transparent,#D4AF37 50%,transparent);"></div>
+        <div class="max-w-6xl mx-auto px-6" style="padding-top:15px;padding-bottom:15px;">
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
+                <div>
+                    <h3 style="font-family:'Playfair Display',serif;font-size:16px;color:#B8860B;font-weight:700;margin-bottom:6px;">
+                        {% if lang == 'es' %}Contacto{% else %}Contact{% endif %}
+                    </h3>
+                    <div style="font-size:13px;color:#333333;line-height:1.8;">
+                        <p><a href="{{ url_for('contact') }}?dept=info" class="footer-link-ethereal">info@magicmemoriesbooks.com</a> <span style="color:#666;font-size:11px;">{% if lang == 'es' %}(Consultas){% else %}(Inquiries){% endif %}</span></p>
+                        <p><a href="{{ url_for('contact') }}?dept=pay" class="footer-link-ethereal">pay@magicmemoriesbooks.com</a> <span style="color:#666;font-size:11px;">{% if lang == 'es' %}(Pagos){% else %}(Payments){% endif %}</span></p>
+                        <p><a href="{{ url_for('contact') }}?dept=contacto" class="footer-link-ethereal">contacto@magicmemoriesbooks.com</a> <span style="color:#666;font-size:11px;">{% if lang == 'es' %}(Sugerencias){% else %}(Suggestions){% endif %}</span></p>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="font-family:'Playfair Display',serif;font-size:16px;color:#B8860B;font-weight:700;margin-bottom:6px;">
+                        Links
+                    </h3>
+                    <div style="font-size:13px;color:#333333;line-height:1.8;">
+                        <p><a href="{{ url_for('about') }}" class="footer-link-ethereal">{% if lang == 'es' %}Sobre Nosotros{% else %}About Us{% endif %}</a></p>
+                        <p><a href="{{ url_for('faq') }}" class="footer-link-ethereal">{% if lang == 'es' %}Preguntas Frecuentes{% else %}FAQ{% endif %}</a></p>
+                        <p><a href="{{ url_for('contact') }}" class="footer-link-ethereal">{% if lang == 'es' %}Contacto{% else %}Contact{% endif %}</a></p>
+                        <p><a href="{{ url_for('terms') }}" class="footer-link-ethereal">{% if lang == 'es' %}Términos{% else %}Terms{% endif %}</a></p>
+                        <p><a href="{{ url_for('privacy') }}" class="footer-link-ethereal">{% if lang == 'es' %}Privacidad{% else %}Privacy{% endif %}</a></p>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="font-family:'Playfair Display',serif;font-size:16px;color:#B8860B;font-weight:700;margin-bottom:6px;">
+                        {% if lang == 'es' %}Comunidad{% else %}Community{% endif %}
+                    </h3>
+                    <div class="flex items-center gap-4" style="margin-top:4px;margin-bottom:12px;">
+                        <a href="https://www.instagram.com/magicmemoriesbooks" target="_blank" rel="noopener noreferrer" class="footer-social-ethereal" aria-label="Instagram">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+                        </a>
+                        <a href="https://www.facebook.com/MagicMemoriesBooks/" target="_blank" rel="noopener noreferrer" class="footer-social-ethereal" aria-label="Facebook">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                        </a>
+                        <a href="https://www.tiktok.com/@magicmemoriesbooks" target="_blank" rel="noopener noreferrer" class="footer-social-ethereal" aria-label="TikTok">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>
+                        </a>
+                    </div>
+                    <div id="newsletter" style="margin-top:4px;">
+                        <form id="newsletterForm" style="display:flex;flex-direction:column;gap:6px;">
+                            <div class="flex" style="display:flex;">
+                                <input type="email" id="nlEmail" placeholder="{% if lang == 'es' %}Tu email{% else %}Your email{% endif %}" required style="font-family:'Quicksand',sans-serif;font-size:11px;padding:3px 10px;border:1px solid #D4D4D4;border-right:none;border-radius:14px 0 0 14px;outline:none;color:#333;background:#fff;width:140px;">
+                                <button type="submit" id="nlBtn" style="font-family:'Quicksand',sans-serif;font-size:11px;padding:3px 10px;border-radius:0 14px 14px 0;border:1px solid #D4AF37;background:linear-gradient(135deg,#D4AF37,#C5A028);color:#fff;cursor:pointer;">OK</button>
+                            </div>
+                            <label style="display:flex;align-items:flex-start;gap:4px;cursor:pointer;">
+                                <input type="checkbox" id="nlConsent" required style="margin-top:2px;accent-color:#D4AF37;">
+                                <span style="font-size:10px;color:#888;line-height:1.3;">{% if lang == 'es' %}Acepto recibir novedades y ofertas por email{% else %}I agree to receive news and offers by email{% endif %}</span>
+                            </label>
+                            <p id="nlMsg" style="font-size:10px;margin:0;display:none;"></p>
+                        </form>
+                    </div>
+                    <script>
+                    document.getElementById('newsletterForm').addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        var email = document.getElementById('nlEmail').value.trim();
+                        var consent = document.getElementById('nlConsent').checked;
+                        var msg = document.getElementById('nlMsg');
+                        var btn = document.getElementById('nlBtn');
+                        if (!consent) { msg.style.display='block'; msg.style.color='#dc2626'; msg.textContent='{{ "Debes aceptar para continuar" if lang == "es" else "You must agree to continue" }}'; return; }
+                        btn.textContent='...';
+                        fetch('/api/newsletter-subscribe', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({email: email, language: '{{ lang }}', consent: true})
+                        }).then(function(r) { return r.json(); }).then(function(data) {
+                            msg.style.display='block';
+                            if (data.success) {
+                                msg.style.color='#16a34a';
+                                msg.textContent = data.message === 'already_subscribed' ? '{{ "Ya estás suscrito/a" if lang == "es" else "You are already subscribed" }}' : '{{ "¡Bienvenido/a a la familia!" if lang == "es" else "Welcome to the family!" }}';
+                                document.getElementById('nlEmail').value = '';
+                            } else {
+                                msg.style.color='#dc2626';
+                                msg.textContent = '{{ "Email inválido" if lang == "es" else "Invalid email" }}';
+                            }
+                            btn.textContent='OK';
+                        }).catch(function() { btn.textContent='OK'; msg.style.display='block'; msg.style.color='#dc2626'; msg.textContent='Error'; });
+                    });
+                    </script>
+                </div>
+            </div>
+
+            <div style="height:1px;background:rgba(212,175,55,0.2);margin-top:12px;"></div>
+
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-2" style="padding-top:8px;">
+                <p style="font-size:12px;color:#555;">
+                    &copy; 2026 Magic Memories Books. {% if lang == 'es' %}Hecho con polvos de estrellas{% else %}Made with stardust{% endif %} <a href="{{ url_for('admin_login_page') }}" class="admin-star">&#127776;</a>
+                </p>
+                <div class="flex items-center gap-3">
+                    <span style="font-size:11px;color:#777;">{% if lang == 'es' %}Pagos 100% seguros v&iacute;a Paddle{% else %}100% secure payments via Paddle{% endif %}</span>
+                    <svg class="h-4" viewBox="0 0 48 32" fill="none" style="opacity:0.3;"><rect width="48" height="32" rx="4" fill="#1A1F71"/><path d="M19.5 21.5L21.5 10.5H24.5L22.5 21.5H19.5Z" fill="white"/><path d="M33.5 10.8C32.8 10.5 31.7 10.2 30.3 10.2C27.3 10.2 25.2 11.7 25.2 13.9C25.2 15.5 26.7 16.4 27.8 16.9C29 17.5 29.4 17.9 29.4 18.4C29.4 19.2 28.4 19.5 27.5 19.5C26.2 19.5 25.5 19.3 24.4 18.8L23.9 18.6L23.4 21.4C24.2 21.8 25.7 22.1 27.2 22.1C30.4 22.1 32.4 20.6 32.4 18.3C32.4 17 31.6 16 29.8 15.2C28.8 14.7 28.2 14.3 28.2 13.8C28.2 13.3 28.8 12.8 30.1 12.8C31.1 12.8 31.9 13 32.5 13.3L32.8 13.4L33.5 10.8Z" fill="white"/><path d="M37.5 10.5H35.3C34.6 10.5 34 10.7 33.7 11.5L29.5 21.5H32.7L33.3 19.8H37.2L37.5 21.5H40.5L37.5 10.5ZM34.2 17.5C34.5 16.7 35.6 13.8 35.6 13.8L36.7 17.5H34.2Z" fill="white"/><path d="M17.5 10.5L14.5 18L14.2 16.5C13.6 14.7 11.9 12.7 10 11.7L12.7 21.5H16L21 10.5H17.5Z" fill="white"/><path d="M12.5 10.5H7.5L7.5 10.8C11.2 11.7 13.7 14 14.5 16.8L13.7 11.5C13.5 10.8 12.9 10.5 12.5 10.5Z" fill="#F7B600"/></svg>
+                    <svg class="h-4" viewBox="0 0 48 32" fill="none" style="opacity:0.3;"><rect width="48" height="32" rx="4" fill="#252525"/><circle cx="19" cy="16" r="8" fill="#EB001B"/><circle cx="29" cy="16" r="8" fill="#F79E1B"/><path d="M24 10.3C25.9 11.7 27.1 13.7 27.1 16C27.1 18.3 25.9 20.3 24 21.7C22.1 20.3 20.9 18.3 20.9 16C20.9 13.7 22.1 11.7 24 10.3Z" fill="#FF5F00"/></svg>
+                    <svg class="h-4" viewBox="0 0 48 32" fill="none" style="opacity:0.3;"><rect width="48" height="32" rx="4" fill="#003087"/><path d="M18.2 10.5H14.7C14.4 10.5 14.2 10.7 14.1 11L12.5 20.5C12.5 20.7 12.6 20.8 12.8 20.8H14.4C14.7 20.8 14.9 20.6 15 20.3L15.4 17.8C15.5 17.5 15.7 17.3 16 17.3H17.2C19.7 17.3 21.1 16.1 21.5 13.7C21.7 12.7 21.5 11.9 21 11.3C20.5 10.8 19.5 10.5 18.2 10.5Z" fill="white"/><path d="M27.2 10.5H23.7C23.4 10.5 23.2 10.7 23.1 11L21.5 20.5C21.5 20.7 21.6 20.8 21.8 20.8H23.6C23.8 20.8 23.9 20.7 23.9 20.5L24.4 17.8C24.5 17.5 24.7 17.3 25 17.3H26.2C28.7 17.3 30.1 16.1 30.5 13.7C30.7 12.7 30.5 11.9 30 11.3C29.5 10.8 28.5 10.5 27.2 10.5Z" fill="#B7DBFF"/><path d="M35.5 13.5C35.5 13.5 35.2 15.2 35.2 15.2C35.2 15.2 34.1 14.8 33.3 14.8C32.5 14.8 32.2 15.2 32.2 15.5C32.2 16.2 35.4 16.4 35.4 18.8C35.4 20.7 33.9 21.5 32.2 21.5C31 21.5 29.8 21.2 29.8 21.2L30.1 19.4C30.1 19.4 31.3 19.8 32.1 19.8C32.9 19.8 33.3 19.4 33.3 19.1C33.3 18.2 30.5 18.2 30.5 16C30.5 14.2 31.8 13.3 33.5 13.3C34.5 13.3 35.5 13.5 35.5 13.5Z" fill="white"/></svg>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <style>
+        .admin-star, .admin-star:hover, .admin-star:active, .admin-star:focus, .admin-star:visited {
+            cursor: default !important;
+            text-decoration: none !important;
+            color: inherit !important;
+            pointer-events: auto;
+        }
+        .footer-link-ethereal {
+            font-family: 'Quicksand', sans-serif;
+            font-size: 13px;
+            font-weight: 400;
+            color: #333333;
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.3s, color 0.3s;
+        }
+        .footer-link-ethereal:hover {
+            color: #B8860B;
+            border-bottom: 1px solid #D4AF37;
+        }
+        .footer-social-ethereal {
+            display: inline-flex;
+            color: #D4AF37;
+            opacity: 0.7;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        .footer-social-ethereal:hover {
+            opacity: 1;
+            transform: scale(1.15);
+        }
+    </style>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,433 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'es' %}Revisa tu Cuento{% else %}Review Your Story{% endif %} - {{ translations.site_title }}{% endblock %}
+
+{% block content %}
+<style>
+.review-warning-sticky {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: #fffbeb;
+    border-bottom: 2px solid #fcd34d;
+    padding: 0.75rem 1rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+</style>
+
+{% set age_range = story_data.age_range|default('0-1') %}
+{% set is_baby = age_range in ['0-1', '0-2'] %}
+
+<div class="review-warning-sticky" id="reviewWarningStickyBar">
+    <div class="max-w-4xl mx-auto flex items-start gap-3">
+        <span class="text-amber-500 text-xl flex-shrink-0">⚠️</span>
+        <div class="text-sm">
+            {% if is_baby %}
+            {% if lang == 'es' %}
+            <p class="text-amber-800 font-medium mb-1">Revisa la portada y los textos antes de continuar.</p>
+            <p class="text-amber-700">Si algo no te gusta, puedes <strong>volver y crear otro cuento</strong> antes de pagar. También puedes regenerar la portada si tiene errores.</p>
+            {% else %}
+            <p class="text-amber-800 font-medium mb-1">Review the cover and text before continuing.</p>
+            <p class="text-amber-700">If you don't like something, you can <strong>go back and create another story</strong> before paying. You can also regenerate the cover if it has errors.</p>
+            {% endif %}
+            {% else %}
+            {% if lang == 'es' %}
+            <p class="text-amber-800 font-medium mb-1">Revisa la imagen de portada antes de continuar.</p>
+            <p class="text-amber-700">Si algo no te gusta o hay errores en las ilustraciones, puedes <strong>volver a personalizar</strong> y regenerar las imágenes antes de pagar. También puedes regenerar la portada si tiene errores.</p>
+            {% else %}
+            <p class="text-amber-800 font-medium mb-1">Review the cover image before continuing.</p>
+            <p class="text-amber-700">If you don't like something or there are errors in the illustrations, you can <strong>go back to customize</strong> and regenerate the images before paying. You can also regenerate the cover if it has errors.</p>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+<div id="reviewWarningSpacer"></div>
+
+<section class="py-8 px-4 max-w-4xl mx-auto">
+    <div class="mb-4">
+        {% if is_baby %}
+        <a href="{{ url_for('stories_0_1') }}" 
+           class="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 font-medium transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            {% if lang == 'es' %}Volver a Elegir Cuento{% else %}Back to Choose Story{% endif %}
+        </a>
+        {% else %}
+        <a href="{{ url_for('personalize_story', story=story_data.story_template or story_data.story_id, name=story_data.child_name, gender=story_data.traits.gender) }}" 
+           class="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 font-medium transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            {% if lang == 'es' %}Volver a Personalizar{% else %}Back to Customize{% endif %}
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="mb-6">
+        <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
+            <span>{% if lang == 'es' %}Paso 2 de 3{% else %}Step 2 of 3{% endif %}</span>
+            <div class="flex-1 mx-4 h-2 bg-gray-200 rounded-full">
+                <div class="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full" style="width: 66%"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-center mb-8">
+        <h1 class="font-display text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent mb-2">
+            {% if lang == 'es' %}Revisa tu Cuento{% else %}Review Your Story{% endif %}
+        </h1>
+        <p class="text-gray-600">{{ story_data.story_name }} {% if lang == 'es' %}para{% else %}for{% endif %} {{ story_data.child_name }}</p>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        <h3 class="font-display text-lg font-bold text-purple-800 mb-4 text-center">{% if lang == 'es' %}Resumen de Personalización{% else %}Personalization Summary{% endif %}</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center text-sm">
+            <div class="bg-purple-50 rounded-lg p-3">
+                <p class="text-gray-500 text-xs">{% if lang == 'es' %}Nombre{% else %}Name{% endif %}</p>
+                <p class="font-bold text-purple-700">{{ story_data.child_name }}</p>
+            </div>
+            <div class="bg-purple-50 rounded-lg p-3">
+                <p class="text-gray-500 text-xs">{% if lang == 'es' %}Cabello{% else %}Hair{% endif %}</p>
+                <p class="font-bold text-purple-700">{{ story_data.traits.hair_color|default('--') }}</p>
+            </div>
+            <div class="bg-purple-50 rounded-lg p-3">
+                <p class="text-gray-500 text-xs">{% if lang == 'es' %}Ojos{% else %}Eyes{% endif %}</p>
+                <p class="font-bold text-purple-700">{{ story_data.traits.eye_color|default('--') }}</p>
+            </div>
+            <div class="bg-purple-50 rounded-lg p-3">
+                <p class="text-gray-500 text-xs">{% if lang == 'es' %}Piel{% else %}Skin{% endif %}</p>
+                <p class="font-bold text-purple-700">{{ story_data.traits.skin_tone|default('--') }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        <h3 class="font-display text-lg font-bold text-purple-800 mb-4 text-center">{% if lang == 'es' %}Portada de tu Cuento{% else %}Your Story Cover{% endif %}</h3>
+        <div class="flex justify-center">
+            <div class="{{ 'aspect-square' if is_baby else 'aspect-[3/4]' }} w-64 md:w-80 rounded-xl overflow-hidden shadow-lg border-4 border-purple-200 relative">
+                {% if story_data.cover_image %}
+                <img src="{{ story_data.cover_image }}" alt="{% if lang == 'es' %}Portada{% else %}Cover{% endif %}" class="w-full h-full object-cover">
+                {% elif story_data.character_image %}
+                <img src="{{ story_data.character_image }}" alt="{% if lang == 'es' %}Portada{% else %}Cover{% endif %}" class="w-full h-full object-cover">
+                {% elif story_data.images and story_data.images[0] %}
+                <img src="{{ story_data.images[0] }}" alt="{% if lang == 'es' %}Portada{% else %}Cover{% endif %}" class="w-full h-full object-cover">
+                {% else %}
+                <div class="w-full h-full bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+                    <span class="text-6xl">📚</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% set story_template = story_data.story_template|default(story_data.story_id|default('')) %}
+        {% if 'furry_love' in story_template %}
+        <div class="flex justify-center mt-3">
+            <button type="button" id="regenerateCoverBtn" onclick="regenerateCover('{{ preview_id }}')"
+                class="px-4 py-2 text-sm text-amber-600 border border-amber-200 rounded-full hover:bg-amber-50 transition-colors flex items-center gap-2">
+                <span id="regenCoverIcon">🔄</span>
+                <span id="regenCoverText">{% if lang == 'es' %}Regenerar Portada{% else %}Regenerate Cover{% endif %}</span>
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        <h3 class="font-display text-lg font-bold text-purple-800 mb-4 text-center">
+            {% if lang == 'es' %}Texto del Cuento{% else %}Story Text{% endif %}
+        </h3>
+        
+        <div class="space-y-4">
+            {% for page in story_data.pages %}
+            <div class="bg-gradient-to-br from-purple-50/50 to-pink-50/50 rounded-xl p-4 border border-purple-100">
+                <p class="text-sm text-purple-600 font-semibold mb-2">
+                    {% if lang == 'es' %}Escena {{ loop.index }}{% else %}Scene {{ loop.index }}{% endif %}
+                </p>
+                <p class="text-base whitespace-pre-line leading-relaxed text-gray-700">{{ page.text }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% if not is_baby %}
+        <p class="text-center text-sm text-gray-500 mt-4">
+            {% if lang == 'es' %}Las ilustraciones se generarán después del pago{% else %}Illustrations will be generated after payment{% endif %}
+        </p>
+        {% endif %}
+    </div>
+
+    {% if is_baby %}
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+        <div class="flex items-start gap-3">
+            <span class="text-xl">🎨</span>
+            <div class="text-sm">
+                {% if lang == 'es' %}
+                <p class="text-blue-800 font-medium">Las ilustraciones interiores se generarán después del pago.</p>
+                <p class="text-blue-700 mt-1">Podrás ver todas las imágenes y regenerar hasta 2 veces cada una si no te gustan.</p>
+                {% else %}
+                <p class="text-blue-800 font-medium">Interior illustrations will be generated after payment.</p>
+                <p class="text-blue-700 mt-1">You'll be able to see all images and regenerate each one up to 2 times if you don't like them.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-display text-lg font-bold text-purple-800">{% if lang == 'es' %}Dedicatoria y Autor{% else %}Dedication & Author{% endif %}</h3>
+            <button onclick="toggleEditDedication()" class="text-purple-600 hover:text-purple-800 text-sm font-medium flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                </svg>
+                {% if lang == 'es' %}Editar{% else %}Edit{% endif %}
+            </button>
+        </div>
+        
+        <div id="dedicationView" class="bg-gradient-to-br from-purple-50/50 to-pink-50/50 rounded-xl p-6">
+            <div class="mb-4">
+                <p class="text-sm text-purple-600 font-semibold mb-2">{% if lang == 'es' %}Dedicatoria{% else %}Dedication{% endif %}</p>
+                <p class="text-lg italic" id="dedicationText">{{ story_data.dedication or (lang == 'es' and 'Sin dedicatoria' or 'No dedication') }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-purple-600 font-semibold mb-2">{% if lang == 'es' %}Autor{% else %}Author{% endif %}</p>
+                <p class="text-lg" id="authorText">{{ story_data.author_name or story_data.author or (lang == 'es' and 'Anónimo' or 'Anonymous') }}</p>
+            </div>
+        </div>
+        
+        <div id="dedicationEdit" class="hidden bg-gradient-to-br from-purple-50/50 to-pink-50/50 rounded-xl p-6">
+            <div class="mb-4">
+                <label class="text-sm text-purple-600 font-semibold mb-2 block">{% if lang == 'es' %}Dedicatoria{% else %}Dedication{% endif %}</label>
+                <textarea id="dedicationInput" class="w-full p-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" rows="3" maxlength="200">{{ story_data.dedication or '' }}</textarea>
+                <p class="text-xs text-gray-500 mt-1"><span id="charCount">{{ (story_data.dedication or '')|length }}</span>/200</p>
+            </div>
+            <div class="mb-4">
+                <label class="text-sm text-purple-600 font-semibold mb-2 block">{% if lang == 'es' %}Autor{% else %}Author{% endif %}</label>
+                <input type="text" id="authorInput" class="w-full p-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" value="{{ story_data.author or '' }}" maxlength="50">
+            </div>
+            <div class="flex gap-2">
+                <button onclick="saveDedication()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium">
+                    {% if lang == 'es' %}Guardar{% else %}Save{% endif %}
+                </button>
+                <button onclick="toggleEditDedication()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium">
+                    {% if lang == 'es' %}Cancelar{% else %}Cancel{% endif %}
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+        <div class="flex items-start gap-3">
+            <span class="text-2xl">💡</span>
+            <div>
+                <p class="text-amber-800 font-medium">{% if lang == 'es' %}¿No te gusta esta historia?{% else %}Don't like this story?{% endif %}</p>
+                <p class="text-amber-700 text-sm mt-1">
+                    {% if lang == 'es' %}Puedes <a href="/story-selection" class="underline font-medium">regresar y elegir otra historia</a> diferente para personalizar.{% else %}You can <a href="/story-selection" class="underline font-medium">go back and choose a different story</a> to personalize.{% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-red-50 border-2 border-red-300 rounded-xl p-5 mb-6">
+        <div class="flex items-start gap-3">
+            <span class="text-2xl">⚠️</span>
+            <div>
+                <p class="text-red-800 font-bold mb-2">{% if lang == 'es' %}¡Importante! Lee cuidadosamente antes de pagar{% else %}Important! Read carefully before paying{% endif %}</p>
+                <p class="text-red-700 text-sm">
+                    {% if lang == 'es' %}
+                    Revisa bien el texto del cuento arriba. <strong>Una vez que pagues, no podrás cambiar el texto de la historia.</strong>
+                    {% else %}
+                    Review the story text above carefully. <strong>Once you pay, you cannot change the story text.</strong>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    {% if story_data.admin_gift %}
+    <div class="bg-white rounded-2xl shadow-lg p-6 border-2 border-purple-300">
+        <div class="text-center mb-4">
+            <span class="text-4xl">🎁</span>
+            <h3 class="text-xl font-bold text-purple-700 mt-2">Libro Regalo (Admin)</h3>
+            <p class="text-gray-600 text-sm mt-1">Sin cobro - Generación gratuita para regalo/colaboración</p>
+        </div>
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Email para enviar los PDFs de Lulu:</label>
+            <input type="email" id="adminGiftEmail" placeholder="tu@email.com" class="w-full px-4 py-3 border-2 border-purple-200 rounded-xl focus:outline-none focus:border-purple-500 text-center" required>
+        </div>
+        <button onclick="generateFree()" id="generateFreeBtn" class="w-full py-4 text-white font-bold rounded-xl text-lg transition-all transform hover:scale-[1.02] shadow-lg flex items-center justify-center gap-2" style="background: linear-gradient(135deg, #8B5CF6, #EC4899);">
+            🎁 Generar Libro Gratis
+        </button>
+        <p class="text-gray-500 text-xs text-center mt-2">Al finalizar recibirás los PDFs (interior + portada) por email</p>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+        <div class="text-center mb-6">
+            {% if story_data.is_illustrated_book %}
+            <div class="text-4xl font-bold text-emerald-700 mb-2">$35 USD</div>
+            <p class="text-gray-600 text-sm">{% if lang == 'es' %}+ costo de impresión y envío{% else %}+ printing and shipping cost{% endif %}</p>
+            <p class="text-gray-500 text-xs mt-1">{% if lang == 'es' %}PDF Digital + Libro Impreso Tapa Dura A4{% else %}Digital PDF + A4 Hardcover Printed Book{% endif %}</p>
+            {% elif is_baby %}
+            <div class="text-3xl font-bold text-purple-700 mb-2">{% if lang == 'es' %}Desde{% else %}From{% endif %} $7 USD</div>
+            <p class="text-gray-600 text-sm">{% if lang == 'es' %}eBook $7 | Impreso + Envío desde $20{% else %}eBook $7 | Printed + Shipping from $20{% endif %}</p>
+            {% else %}
+            <div class="text-3xl font-bold text-purple-700 mb-2">{% if lang == 'es' %}Desde{% else %}From{% endif %} $7 USD</div>
+            <p class="text-gray-600 text-sm">{% if lang == 'es' %}eBook $7 | Impreso + Envío desde $20{% else %}eBook $7 | Printed + Shipping from $20{% endif %}</p>
+            {% endif %}
+        </div>
+        
+        <div class="bg-purple-50 rounded-lg p-4 mb-6 text-sm text-gray-700">
+            {% if story_data.is_illustrated_book %}
+            <p class="flex items-center gap-2 mb-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}24 páginas ilustradas{% else %}24 illustrated pages{% endif %}</p>
+            <p class="flex items-center gap-2 mb-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}PDF digital de alta calidad{% else %}High-quality digital PDF{% endif %}</p>
+            <p class="flex items-center gap-2 mb-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}Libro impreso tapa dura A4{% else %}A4 hardcover printed book{% endif %}</p>
+            <p class="flex items-center gap-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}Envío incluido{% else %}Shipping included{% endif %}</p>
+            {% elif is_baby %}
+            {% set num_illustrations = story_data.pages|length if story_data.pages else 6 %}
+            <p class="flex items-center gap-2 mb-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}{{ num_illustrations }} ilustraciones únicas generadas por IA{% else %}{{ num_illustrations }} unique AI-generated illustrations{% endif %}</p>
+            <p class="flex items-center gap-2 mb-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}PDF digital 8.5" x 8.5" cuadrado{% else %}8.5" x 8.5" square digital PDF{% endif %}</p>
+            <p class="flex items-center gap-2 mb-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}Entrega inmediata por email{% else %}Immediate delivery by email{% endif %}</p>
+            <p class="flex items-center gap-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}Opción de libro impreso con envío{% else %}Printed book with shipping option{% endif %}</p>
+            {% else %}
+            <p class="flex items-center gap-2 mb-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}6 ilustraciones únicas generadas por IA{% else %}6 unique AI-generated illustrations{% endif %}</p>
+            <p class="flex items-center gap-2 mb-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}PDF digital de alta calidad{% else %}High-quality digital PDF{% endif %}</p>
+            <p class="flex items-center gap-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}Entrega inmediata por email{% else %}Immediate delivery by email{% endif %}</p>
+            {% endif %}
+        </div>
+        
+        <button onclick="proceedToPayment()" class="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white font-bold rounded-xl text-lg transition-all transform hover:scale-[1.02] shadow-lg flex items-center justify-center gap-2">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+            </svg>
+            {% if lang == 'es' %}Ir al Pago{% else %}Proceed to Payment{% endif %}
+        </button>
+    </div>
+    {% endif %}
+</section>
+
+<script>
+const previewId = "{{ preview_id }}";
+
+function toggleEditDedication() {
+    const view = document.getElementById('dedicationView');
+    const edit = document.getElementById('dedicationEdit');
+    view.classList.toggle('hidden');
+    edit.classList.toggle('hidden');
+}
+
+document.getElementById('dedicationInput')?.addEventListener('input', function() {
+    document.getElementById('charCount').textContent = this.value.length;
+});
+
+function saveDedication() {
+    const dedication = document.getElementById('dedicationInput').value;
+    const author = document.getElementById('authorInput').value;
+    
+    fetch('/api/update-story-data/' + previewId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dedication, author })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('dedicationText').textContent = dedication || '{% if lang == "es" %}Sin dedicatoria{% else %}No dedication{% endif %}';
+            document.getElementById('authorText').textContent = author || '{% if lang == "es" %}Anónimo{% else %}Anonymous{% endif %}';
+            toggleEditDedication();
+        }
+    });
+}
+
+function proceedToPayment() {
+    window.location.href = '/story-checkout/' + previewId;
+}
+
+async function generateFree() {
+    const emailInput = document.getElementById('adminGiftEmail');
+    const email = emailInput ? emailInput.value.trim() : '';
+    if (!email || !email.includes('@')) {
+        alert('Por favor ingresa un email válido para recibir los PDFs');
+        if (emailInput) emailInput.focus();
+        return;
+    }
+    
+    const btn = document.getElementById('generateFreeBtn');
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Iniciando generación...';
+    
+    try {
+        const response = await fetch('/admin/generate-free/' + previewId, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ admin_email: email })
+        });
+        const data = await response.json();
+        if (data.success) {
+            window.location.href = data.redirect_url;
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+            btn.disabled = false;
+            btn.innerHTML = '🎁 Generar Libro Gratis';
+        }
+    } catch (err) {
+        alert('Error: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = '🎁 Generar Libro Gratis';
+    }
+}
+
+async function regenerateCover(previewId) {
+    const btn = document.getElementById('regenerateCoverBtn');
+    const icon = document.getElementById('regenCoverIcon');
+    const text = document.getElementById('regenCoverText');
+    if (!btn) return;
+    
+    btn.disabled = true;
+    icon.textContent = '⏳';
+    text.textContent = '{{ "Generando portada..." if lang == "es" else "Generating cover..." }}';
+    
+    try {
+        const response = await fetch('/api/regenerate-cover/' + previewId, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await response.json();
+        if (data.success) {
+            const coverImg = document.querySelector('.aspect-\\[3\\/4\\] img, .aspect-square img');
+            if (coverImg) {
+                coverImg.src = data.cover_image + '?t=' + Date.now();
+            }
+            icon.textContent = '✅';
+            text.textContent = '{{ "Portada regenerada" if lang == "es" else "Cover regenerated" }}';
+            setTimeout(() => {
+                icon.textContent = '🔄';
+                text.textContent = '{{ "Regenerar Portada" if lang == "es" else "Regenerate Cover" }}';
+            }, 2000);
+        } else {
+            alert(data.error || '{{ "Error al regenerar" if lang == "es" else "Error regenerating" }}');
+            icon.textContent = '🔄';
+            text.textContent = '{{ "Regenerar Portada" if lang == "es" else "Regenerate Cover" }}';
+        }
+    } catch (err) {
+        alert('{{ "Error de conexión" if lang == "es" else "Connection error" }}');
+        icon.textContent = '🔄';
+        text.textContent = '{{ "Regenerar Portada" if lang == "es" else "Regenerate Cover" }}';
+    }
+    btn.disabled = false;
+}
+
+
+(function() {
+    const bar = document.getElementById('reviewWarningStickyBar');
+    const spacer = document.getElementById('reviewWarningSpacer');
+    if (bar && spacer) {
+        spacer.style.height = bar.offsetHeight + 'px';
+        window.addEventListener('resize', function() {
+            spacer.style.height = bar.offsetHeight + 'px';
+        });
+    }
+})();
+</script>
+{% endblock %}

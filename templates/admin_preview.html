@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}Preview: {{ preview.child_name }} - Admin{% endblock %}
+
+{% block content %}
+<style>
+    .ap-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 20px; overflow: hidden; }
+    .ap-card-header { padding: 12px 20px; font-weight: 700; font-size: 14px; border-bottom: 1px solid #f0f0f0; }
+    .ap-card-body { padding: 16px 20px; }
+    .ap-hdr-info { background: #f0f4ff; color: #3b3b8f; }
+    .ap-hdr-traits { background: #f0fdf4; color: #166534; }
+    .ap-hdr-stats { background: #fef9ee; color: #92400e; }
+    .ap-hdr-ded { background: #fdf2f8; color: #9d174d; }
+    .ap-hdr-scenes { background: #1a1a2e; color: #fff; }
+    .ap-hdr-pages { background: #f5f3ff; color: #5b21b6; }
+    .ap-hdr-covers { background: #fef3c7; color: #92400e; }
+    .ap-hdr-actions { background: #ecfdf5; color: #065f46; }
+    .ap-label { font-size: 13px; color: #666; margin-bottom: 4px; }
+    .ap-value { font-size: 14px; color: #1a1a1a; font-weight: 600; }
+    .ap-badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+    .ap-badge-green { background: #dcfce7; color: #166534; }
+    .ap-badge-red { background: #fee2e2; color: #991b1b; }
+    .ap-badge-yellow { background: #fef9c3; color: #854d0e; }
+    .ap-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none; border: none; cursor: pointer; transition: opacity 0.2s; }
+    .ap-btn:hover { opacity: 0.85; }
+    .ap-btn-pdf { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; }
+    .ap-btn-ebook { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: #fff; }
+    .ap-btn-back { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+    .ap-scene-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+    .ap-scene-card { background: #f9fafb; border-radius: 8px; overflow: hidden; border: 1px solid #e5e7eb; }
+    .ap-scene-card img { width: 100%; height: 160px; object-fit: cover; cursor: pointer; }
+    .ap-scene-label { padding: 6px 10px; font-size: 12px; font-weight: 600; color: #374151; }
+    .ap-page-item { display: flex; gap: 12px; padding: 12px; background: #f9fafb; border-radius: 8px; margin-bottom: 8px; border: 1px solid #e5e7eb; }
+    .ap-page-img { width: 80px; height: 100px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+    .ap-page-text { font-size: 13px; color: #374151; }
+    .ap-page-num { font-size: 12px; font-weight: 700; color: #6b21a8; margin-bottom: 4px; }
+    .ap-cover-img { height: 200px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; }
+    .ap-lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; align-items: center; justify-content: center; }
+    .ap-lightbox.active { display: flex; }
+    .ap-lightbox img { max-width: 90vw; max-height: 85vh; border-radius: 8px; }
+    .ap-lightbox-close { position: absolute; top: 20px; right: 30px; color: #fff; font-size: 32px; cursor: pointer; background: none; border: none; }
+</style>
+
+<div style="max-width:1100px; margin:24px auto; padding:0 20px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <div>
+            <h2 style="font-size:22px; color:#1a1a1a; margin:0;">Cuento de {{ preview.child_name }}</h2>
+            <p style="font-size:13px; color:#888; margin-top:4px;">{{ preview_id }}</p>
+        </div>
+        <a href="{{ url_for('admin_dashboard') }}" class="ap-btn ap-btn-back">&larr; Dashboard</a>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-bottom:20px;">
+        <div class="ap-card">
+            <div class="ap-card-header ap-hdr-info">Información</div>
+            <div class="ap-card-body">
+                <p><span class="ap-label">Nombre:</span> <span class="ap-value">{{ preview.child_name }}</span></p>
+                <p><span class="ap-label">Cuento:</span> <span class="ap-value">{{ preview.story_id }}</span></p>
+                <p><span class="ap-label">Idioma:</span> <span class="ap-value">{{ preview.language | default('es') }}</span></p>
+                <p><span class="ap-label">Género:</span> <span class="ap-value">{{ preview.gender | default('—') }}</span></p>
+                {% if preview.author_name %}
+                <p><span class="ap-label">Autor:</span> <span class="ap-value">{{ preview.author_name }}</span></p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="ap-card">
+            <div class="ap-card-header ap-hdr-traits">Rasgos</div>
+            <div class="ap-card-body">
+                {% if preview.traits %}
+                <p><span class="ap-label">Cabello:</span> <span class="ap-value">{{ preview.traits.hair_color }} {{ preview.traits.hair_type }}</span></p>
+                <p><span class="ap-label">Ojos:</span> <span class="ap-value">{{ preview.traits.eye_color }}</span></p>
+                <p><span class="ap-label">Piel:</span> <span class="ap-value">{{ preview.traits.skin_tone }}</span></p>
+                {% if preview.traits.child_age %}
+                <p><span class="ap-label">Edad:</span> <span class="ap-value">{{ preview.traits.child_age }}</span></p>
+                {% endif %}
+                {% else %}
+                <p style="color:#888; font-size:13px;">Sin información de rasgos</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="ap-card">
+            <div class="ap-card-header ap-hdr-stats">Estado</div>
+            <div class="ap-card-body">
+                <p><span class="ap-label">Pagado:</span>
+                    {% if preview.paid %}
+                    <span class="ap-badge ap-badge-green">Sí</span>
+                    {% else %}
+                    <span class="ap-badge ap-badge-red">No</span>
+                    {% endif %}
+                </p>
+                <p><span class="ap-label">Escenas:</span> <span class="ap-value">{{ preview.scenes|length if preview.scenes else (preview.scene_paths|length if preview.scene_paths else 0) }}</span></p>
+                {% if preview.scenes_pending %}
+                <p><span class="ap-badge ap-badge-yellow">Escenas pendientes</span></p>
+                {% endif %}
+                {% if preview.generation_failed %}
+                <p><span class="ap-badge ap-badge-red">Generación fallida</span></p>
+                {% endif %}
+                <p><span class="ap-label">Dedicatoria:</span> <span class="ap-value">{{ 'Sí' if preview.dedication else 'No' }}</span></p>
+                {% if preview.product_type %}
+                <p><span class="ap-label">Tipo:</span> <span class="ap-value">{{ preview.product_type }}</span></p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="ap-card">
+        <div class="ap-card-header ap-hdr-actions">Acciones</div>
+        <div class="ap-card-body" style="display:flex; gap:12px; flex-wrap:wrap;">
+            {% set has_pdf = preview.lulu_order_folder or preview.pdf_path or preview.digital_pdf_path or preview.pdf_printable_path %}
+            {% if has_pdf %}
+            <a href="{{ url_for('admin_download_pdf', preview_id=preview_id) }}" class="ap-btn ap-btn-pdf" target="_blank">📄 Descargar PDF</a>
+            {% endif %}
+            {% if preview.visor_url %}
+            <a href="{{ preview.visor_url }}" class="ap-btn ap-btn-ebook" target="_blank">📖 Ver eBook</a>
+            {% elif preview.project_hash %}
+            <a href="/visor_qs/?id={{ preview.project_hash }}" class="ap-btn ap-btn-ebook" target="_blank">📖 Ver eBook (QS)</a>
+            {% endif %}
+            {% if not has_pdf and not preview.visor_url and not preview.project_hash %}
+            <p style="color:#888; font-size:13px;">No hay PDF ni eBook disponibles todavía.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if preview.dedication %}
+    <div class="ap-card">
+        <div class="ap-card-header ap-hdr-ded">Dedicatoria</div>
+        <div class="ap-card-body">
+            <p style="font-size:14px; color:#1a1a1a; font-style:italic;">{{ preview.dedication }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    {% set cover_path = preview.cover_raw_path or preview.front_cover_path or preview.cover_spread_path %}
+    {% if cover_path or preview.back_cover_path %}
+    <div class="ap-card">
+        <div class="ap-card-header ap-hdr-covers">Portadas</div>
+        <div class="ap-card-body" style="display:flex; gap:16px; flex-wrap:wrap;">
+            {% if cover_path %}
+            <div style="text-align:center;">
+                <p style="font-size:12px; color:#666; margin-bottom:6px;">Portada</p>
+                <img src="/{{ cover_path }}?t={{ range(1000000)|random }}" class="ap-cover-img" onclick="openLB(this.src)" alt="Portada">
+            </div>
+            {% endif %}
+            {% if preview.back_cover_path %}
+            <div style="text-align:center;">
+                <p style="font-size:12px; color:#666; margin-bottom:6px;">Contraportada</p>
+                <img src="/{{ preview.back_cover_path }}?t={{ range(1000000)|random }}" class="ap-cover-img" onclick="openLB(this.src)" alt="Contraportada">
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% set all_images = preview.scene_paths or preview.images or preview.original_scene_paths %}
+    {% if preview.scenes or all_images %}
+    <div class="ap-card">
+        <div class="ap-card-header ap-hdr-scenes">Escenas del Cuento</div>
+        <div class="ap-card-body">
+            {% if preview.scenes %}
+            <div class="ap-scene-grid">
+                {% for scene in preview.scenes %}
+                <div class="ap-scene-card">
+                    {% set img = scene.image or scene.scene_path %}
+                    {% if img %}
+                    <img src="{% if img.startswith('/') %}{{ img }}{% else %}/{{ img }}{% endif %}?t={{ range(1000000)|random }}" onclick="openLB(this.src)" alt="Escena {{ loop.index }}">
+                    {% else %}
+                    <div style="width:100%; height:160px; background:#e5e7eb; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:12px;">Sin imagen</div>
+                    {% endif %}
+                    <div class="ap-scene-label">
+                        Escena {{ loop.index }}
+                        {% if scene.text %}<br><span style="font-weight:400; color:#6b7280;">{{ scene.text[:60] }}{% if scene.text|length > 60 %}...{% endif %}</span>{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% elif all_images %}
+            <div class="ap-scene-grid">
+                {% for img_path in all_images %}
+                <div class="ap-scene-card">
+                    <img src="{% if img_path.startswith('/') %}{{ img_path }}{% else %}/{{ img_path }}{% endif %}?t={{ range(1000000)|random }}" onclick="openLB(this.src)" alt="Escena {{ loop.index }}">
+                    <div class="ap-scene-label">Escena {{ loop.index }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if preview.pages %}
+    <div class="ap-card">
+        <div class="ap-card-header ap-hdr-pages">Páginas del Cuento ({{ preview.pages|length }})</div>
+        <div class="ap-card-body">
+            {% for page in preview.pages %}
+            <div class="ap-page-item">
+                {% set pg_img = page.fixed_scene or page.scene_path or page.image %}
+                {% if pg_img %}
+                <img src="{% if pg_img.startswith('/') %}{{ pg_img }}{% else %}/{{ pg_img }}{% endif %}" class="ap-page-img" alt="Pág {{ page.page_num }}">
+                {% endif %}
+                <div>
+                    <div class="ap-page-num">Página {{ page.page_num }}</div>
+                    <div class="ap-page-text">{{ page.text }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div id="ap-lb" class="ap-lightbox" onclick="closeLB()">
+    <button class="ap-lightbox-close" onclick="closeLB()">&times;</button>
+    <img id="ap-lb-img" src="" onclick="event.stopPropagation()">
+</div>
+
+<script>
+function openLB(src) {
+    document.getElementById('ap-lb-img').src = src;
+    document.getElementById('ap-lb').classList.add('active');
+}
+function closeLB() {
+    document.getElementById('ap-lb').classList.remove('active');
+}
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeLB(); });
+</script>
+{% endblock %}

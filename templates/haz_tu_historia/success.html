@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'es' %}Pedido Completado{% else %}Order Complete{% endif %} - {{ translations.site_title }}{% endblock %}
+
+{% block content %}
+<section class="py-12 px-4 max-w-2xl mx-auto text-center">
+    <div class="mb-8">
+        <div class="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <span class="text-5xl">&#10003;</span>
+        </div>
+        
+        <h1 class="font-display text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent mb-4">
+            {% if lang == 'es' %}Felicidades!{% else %}Congratulations!{% endif %}
+        </h1>
+        <p class="text-gray-600 text-lg">
+            {% if lang == 'es' %}
+            Tu libro "Haz tu Historia" esta siendo preparado.
+            {% else %}
+            Your "Make Your Story" book is being prepared.
+            {% endif %}
+        </p>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-lg p-8 border border-gray-100 mb-8">
+        <h2 class="font-display text-xl font-bold text-gray-800 mb-6">{% if lang == 'es' %}Que sigue ahora?{% else %}What happens next?{% endif %}</h2>
+        
+        <div class="space-y-6 text-left">
+            <div class="flex gap-4">
+                <div class="flex-shrink-0 w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                    <span class="text-purple-600 font-bold">1</span>
+                </div>
+                <div>
+                    <h3 class="font-medium text-gray-800">{% if lang == 'es' %}PDF Digital{% else %}Digital PDF{% endif %}</h3>
+                    <p class="text-gray-600 text-sm">{% if lang == 'es' %}Recibiras el PDF en tu email en los proximos minutos.{% else %}You'll receive the PDF in your email within minutes.{% endif %}</p>
+                </div>
+            </div>
+            
+            <div class="flex gap-4">
+                <div class="flex-shrink-0 w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                    <span class="text-purple-600 font-bold">2</span>
+                </div>
+                <div>
+                    <h3 class="font-medium text-gray-800">{% if lang == 'es' %}Produccion del Libro{% else %}Book Production{% endif %}</h3>
+                    <p class="text-gray-600 text-sm">{% if lang == 'es' %}Tu libro sera impreso en alta calidad (3-5 dias habiles).{% else %}Your book will be printed in high quality (3-5 business days).{% endif %}</p>
+                </div>
+            </div>
+            
+            <div class="flex gap-4">
+                <div class="flex-shrink-0 w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                    <span class="text-purple-600 font-bold">3</span>
+                </div>
+                <div>
+                    <h3 class="font-medium text-gray-800">{% if lang == 'es' %}Envio{% else %}Shipping{% endif %}</h3>
+                    <p class="text-gray-600 text-sm">{% if lang == 'es' %}Recibiras un email con el tracking cuando se envie (7-14 dias).{% else %}You'll receive a tracking email when shipped (7-14 days).{% endif %}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if pdf_url %}
+    <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-200 mb-8">
+        <h3 class="font-display text-lg font-bold text-gray-800 mb-4">{% if lang == 'es' %}Descarga tu PDF{% else %}Download your PDF{% endif %}</h3>
+        <a href="{{ pdf_url }}" download 
+            class="inline-block py-3 px-8 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold rounded-xl hover:from-purple-700 hover:to-pink-600 transition-all shadow-lg">
+            {% if lang == 'es' %}Descargar PDF{% else %}Download PDF{% endif %}
+        </a>
+    </div>
+    {% endif %}
+
+    <div class="space-y-4">
+        <p class="text-gray-500 text-sm">
+            {% if lang == 'es' %}
+            Si tienes alguna pregunta, contactanos a soporte@magicmemoriesbooks.com
+            {% else %}
+            If you have any questions, contact us at support@magicmemoriesbooks.com
+            {% endif %}
+        </p>
+        
+        <a href="{{ url_for('index') }}" class="inline-block text-purple-600 hover:text-purple-800 font-medium">
+            &#8592; {% if lang == 'es' %}Volver al Inicio{% else %}Back to Home{% endif %}
+        </a>
+    </div>
+</section>
+{% endblock %}

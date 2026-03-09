@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Fotos Subidas - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4" style="background: white; min-height: 80vh;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-dark">Fotos Subidas por Usuarios</h2>
+        <div>
+            <a href="/admin/dashboard" class="btn btn-outline-secondary me-2">Volver al Panel</a>
+            {% if expired_count > 0 %}
+            <button onclick="deleteExpired()" class="btn btn-danger">
+                Eliminar {{ expired_count }} Expiradas
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3>{{ total_photos }}</h3>
+                    <p class="mb-0">Total Fotos</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3>{{ total_photos - expired_count }}</h3>
+                    <p class="mb-0">Activas (&lt;72h)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                    <h3>{{ expired_count }}</h3>
+                    <p class="mb-0">Expiradas (&gt;72h)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info">
+        <strong>Retención de datos:</strong> Las fotos se eliminan automáticamente 72 horas después de la subida (cumplimiento COPPA/GDPR). 
+        Puedes eliminar fotos manualmente si un usuario lo solicita.
+    </div>
+
+    {% if photos %}
+    <div class="card">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">Fotos ({{ total_photos }} archivos)</h5>
+        </div>
+        <div id="bulkBar" style="display:none; background:#dc3545; padding:10px 16px; text-align:center;">
+            <span style="color:white; font-weight:600; margin-right:12px;"><span id="selectedCount">0</span> foto(s) seleccionadas</span>
+            <button onclick="deleteSelected()" style="background:white; color:#dc3545; border:none; padding:6px 18px; border-radius:6px; font-weight:700; cursor:pointer; font-size:14px;">
+                Eliminar seleccionadas
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 40px; text-align: center;">
+                            <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" title="Seleccionar todas" style="width:18px; height:18px; cursor:pointer;">
+                        </th>
+                        <th style="width: 80px;">Vista</th>
+                        <th>Archivo</th>
+                        <th>Subida</th>
+                        <th>Antigüedad</th>
+                        <th>Tiempo Restante</th>
+                        <th>Tamaño</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for photo in photos %}
+                    <tr class="{{ 'table-danger' if photo.expired else '' }}" id="row-{{ loop.index }}">
+                        <td style="text-align: center;">
+                            <input type="checkbox" class="photo-check" data-filename="{{ photo.filename }}" data-row="{{ loop.index }}" onchange="updateSelectedCount()" style="width:16px; height:16px; cursor:pointer;">
+                        </td>
+                        <td>
+                            <img src="/admin/uploaded-photos/serve/{{ photo.filename }}" 
+                                 alt="foto" 
+                                 style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; cursor: pointer;"
+                                 onclick="showFullPhoto(this.src)">
+                        </td>
+                        <td>
+                            <code style="font-size: 0.75rem;">{{ photo.filename }}</code>
+                        </td>
+                        <td>
+                            <small>{{ photo.upload_time }}</small>
+                        </td>
+                        <td>
+                            <span class="badge {{ 'bg-danger' if photo.age_hours >= 72 else 'bg-warning text-dark' if photo.age_hours >= 48 else 'bg-success' }}">
+                                {{ photo.age_hours }}h
+                            </span>
+                        </td>
+                        <td>
+                            {% if photo.expired %}
+                            <span class="badge bg-danger">EXPIRADA</span>
+                            {% else %}
+                            <span class="badge bg-info">{{ photo.hours_remaining }}h restantes</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ photo.size_kb }} KB</td>
+                        <td>
+                            <button onclick="deletePhoto('{{ photo.filename }}', {{ loop.index }})" 
+                                    class="btn btn-sm btn-outline-danger">
+                                Eliminar
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-success text-center py-5">
+        <h4>No hay fotos almacenadas</h4>
+        <p class="mb-0">Todas las fotos de usuarios han sido eliminadas correctamente.</p>
+    </div>
+    {% endif %}
+</div>
+
+<div id="photoModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:9999; cursor:pointer;" onclick="this.style.display='none'">
+    <img id="modalImg" style="max-width:90%; max-height:90%; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); border-radius:8px;">
+</div>
+
+<script>
+function showFullPhoto(src) {
+    document.getElementById('modalImg').src = src;
+    document.getElementById('photoModal').style.display = 'block';
+}
+
+function deletePhoto(filename, rowIndex) {
+    if (!confirm('¿Eliminar esta foto permanentemente?')) return;
+    fetch('/admin/uploaded-photos/delete/' + filename, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('row-' + rowIndex).remove();
+            } else {
+                alert('Error: ' + (data.error || 'Unknown'));
+            }
+        });
+}
+
+function deleteExpired() {
+    if (!confirm('¿Eliminar TODAS las fotos expiradas (>72h)?')) return;
+    fetch('/admin/uploaded-photos/delete-expired', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert('Eliminadas: ' + data.deleted + ' fotos expiradas');
+                location.reload();
+            }
+        });
+}
+
+function toggleSelectAll(master) {
+    document.querySelectorAll('.photo-check').forEach(cb => { cb.checked = master.checked; });
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const checked = document.querySelectorAll('.photo-check:checked');
+    const bar = document.getElementById('bulkBar');
+    const span = document.getElementById('selectedCount');
+    span.textContent = checked.length;
+    bar.style.display = checked.length > 0 ? 'block' : 'none';
+    const all = document.querySelectorAll('.photo-check');
+    document.getElementById('selectAll').checked = all.length > 0 && checked.length === all.length;
+}
+
+function deleteSelected() {
+    const checked = document.querySelectorAll('.photo-check:checked');
+    if (checked.length === 0) return;
+    if (!confirm('¿Eliminar ' + checked.length + ' foto(s) seleccionadas permanentemente?')) return;
+    let pending = checked.length;
+    let deleted = 0;
+    checked.forEach(cb => {
+        const fn = cb.dataset.filename;
+        const row = cb.dataset.row;
+        fetch('/admin/uploaded-photos/delete/' + fn, { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const el = document.getElementById('row-' + row);
+                    if (el) el.remove();
+                    deleted++;
+                }
+                pending--;
+                if (pending === 0) {
+                    updateSelectedCount();
+                    if (document.querySelectorAll('.photo-check').length === 0) location.reload();
+                }
+            });
+    });
+}
+</script>
+{% endblock %}

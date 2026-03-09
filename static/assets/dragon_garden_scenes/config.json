@@ -1,0 +1,508 @@
+{
+    "book_id": "dragon_garden",
+    "title_es": "El Jardín del Dragón",
+    "title_en": "The Dragon Garden",
+    "age_range": "3-7",
+    "page_count": 24,
+    "default_font": "Comic Sans MS",
+    "scenes": [
+        {
+            "id": 1,
+            "background": "scene_01_entrance.png",
+            "text_es": "{name} encontró una puerta mágica escondida entre las flores del jardín.",
+            "text_en": "{name} found a magical door hidden among the garden flowers.",
+            "text_position": {
+                "x": 512,
+                "y": 900
+            },
+            "text_color": "#FFFFFF",
+            "text_shadow": "#000000",
+            "font_size": 38,
+            "text_align": "center",
+            "character_position": {
+                "x": 350,
+                "y": 650
+            },
+            "character_scale": 0.85,
+            "pose_prompt": "standing curiously, looking at a magical glowing door, one hand reaching towards it, full body, side view",
+            "character_bbox": {
+                "x": 300,
+                "y": 500,
+                "width": 300,
+                "height": 400
+            }
+        },
+        {
+            "id": 2,
+            "background": "scene_02_meeting_dragon.png",
+            "text_es": "Al cruzarla, {name} vio un dragón pequeño de escamas brillantes.",
+            "text_en": "Crossing through, {name} saw a small dragon with shimmering scales.",
+            "text_position": {
+                "x": 512,
+                "y": 80
+            },
+            "text_color": "#1E3A5F",
+            "text_shadow": "#FFFFFF",
+            "font_size": 38,
+            "text_align": "center",
+            "character_position": {
+                "x": 250,
+                "y": 630
+            },
+            "character_scale": 0.84,
+            "pose_prompt": "standing amazed, hands clasped together in wonder, looking up at something magical, full body, three-quarter view",
+            "character_bbox": {
+                "x": 200,
+                "y": 550,
+                "width": 280,
+                "height": 380
+            }
+        },
+        {
+            "id": 3,
+            "background": "scene_03_flying.png",
+            "text_es": "¡Sube a mi espalda! —dijo el dragón— ¡Vamos a volar!",
+            "text_en": "Climb on my back! —said the dragon— Let's fly!",
+            "text_position": {
+                "x": 512,
+                "y": 920
+            },
+            "text_color": "#FFFFFF",
+            "text_shadow": "#000000",
+            "font_size": 38,
+            "text_align": "center",
+            "character_position": {
+                "x": 450,
+                "y": 450
+            },
+            "character_scale": 0.76,
+            "pose_prompt": "sitting on a dragon's back, arms spread wide with joy, hair blowing in wind, flying pose, three-quarter view from behind",
+            "character_bbox": {
+                "x": 400,
+                "y": 350,
+                "width": 320,
+                "height": 400
+            }
+        },
+        {
+            "id": 4,
+            "background": "scene_04_rainbow.png",
+            "text_es": "{name} y el dragón volaron a través de un arcoíris mágico.",
+            "text_en": "{name} and the dragon flew through a magical rainbow.",
+            "text_position": {
+                "x": 512,
+                "y": 950
+            },
+            "text_color": "#FFFFFF",
+            "text_shadow": "#2E1A47",
+            "font_size": 38,
+            "text_align": "center",
+            "character_position": {
+                "x": 500,
+                "y": 500
+            },
+            "character_scale": 0.7,
+            "pose_prompt": "riding on dragon, leaning forward excitedly, pointing ahead, flying through colorful sky, side view",
+            "character_bbox": {
+                "x": 350,
+                "y": 400,
+                "width": 300,
+                "height": 380
+            }
+        },
+        {
+            "id": 5,
+            "background": "scene_05_giant_flowers.png",
+            "text_es": "Aterrizaron en un campo de flores gigantes que brillaban con luz propia.",
+            "text_en": "They landed in a field of giant flowers that glowed with their own light.",
+            "text_position": {
+                "x": 512,
+                "y": 80
+            },
+            "text_color": "#2E1A47",
+            "text_shadow": "#FFFFFF",
+            "font_size": 36,
+            "text_align": "center",
+            "character_position": {
+                "x": 400,
+                "y": 700
+            },
+            "character_scale": 0.8,
+            "pose_prompt": "standing among giant flowers, touching a glowing petal gently, looking up in wonder, full body, front view",
+            "character_bbox": {
+                "x": 450,
+                "y": 550,
+                "width": 300,
+                "height": 400
+            }
+        },
+        {
+            "id": 6,
+            "background": "scene_06_forest_friends.png",
+            "text_es": "Los animales del bosque mágico saludaron a {name} con alegría.",
+            "text_en": "The magical forest animals greeted {name} with joy.",
+            "text_position": {
+                "x": 512,
+                "y": 920
+            },
+            "text_color": "#FFFFFF",
+            "text_shadow": "#1A3D1A",
+            "font_size": 38,
+            "text_align": "center",
+            "character_position": {
+                "x": 350,
+                "y": 600
+            },
+            "character_scale": 0.84,
+            "pose_prompt": "kneeling down, petting small forest animals, smiling warmly, surrounded by cute creatures, three-quarter view",
+            "character_bbox": {
+                "x": 350,
+                "y": 500,
+                "width": 320,
+                "height": 420
+            }
+        },
+        {
+            "id": 7,
+            "background": "scene_07_crystal_cave.png",
+            "text_es": "Entraron a una cueva llena de cristales que cantaban melodías suaves.",
+            "text_en": "They entered a cave full of crystals that sang soft melodies.",
+            "text_position": {
+                "x": 512,
+                "y": 920
+            },
+            "text_color": "#FFFFFF",
+            "text_shadow": "#1A1A3D",
+            "font_size": 36,
+            "text_align": "center",
+            "character_position": {
+                "x": 300,
+                "y": 650
+            },
+            "character_scale": 0.8,
+            "pose_prompt": "walking carefully, one hand on ear listening to music, looking at glowing crystals, full body, side view",
+            "character_bbox": {
+                "x": 400,
+                "y": 520,
+                "width": 300,
+                "height": 400
+            }
+        },
+        {
+            "id": 8,
+            "background": "scene_08_sunset_farewell.png",
+            "text_es": "El dragón llevó a {name} a ver el atardecer más hermoso del mundo mágico.",
+            "text_en": "The dragon took {name} to see the most beautiful sunset in the magical world.",
+            "text_position": {
+                "x": 512,
+                "y": 80
+            },
+            "text_color": "#FFFFFF",
+            "text_shadow": "#8B4513",
+            "font_size": 36,
+            "text_align": "center",
+            "character_position": {
+                "x": 380,
+                "y": 630
+            },
+            "character_scale": 0.76,
+            "pose_prompt": "sitting peacefully, hugging knees, watching a beautiful sunset, contemplative pose, side profile",
+            "character_bbox": {
+                "x": 350,
+                "y": 480,
+                "width": 300,
+                "height": 400
+            }
+        },
+        {
+            "id": 9,
+            "background": "scene_09_garden_path.png",
+            "text_es": "Caminaron por un sendero de piedras brillantes que guiaba hacia el corazón del jardín.",
+            "text_en": "They walked along a path of glowing stones leading to the heart of the garden.",
+            "text_position": {
+                "x": 512,
+                "y": 920
+            },
+            "text_color": "#FFFFFF",
+            "text_shadow": "#2E1A47",
+            "font_size": 36,
+            "text_align": "center",
+            "character_position": {
+                "x": 450,
+                "y": 650
+            },
+            "character_scale": 0.84,
+            "pose_prompt": "walking forward on a path, one foot stepping forward, arms swinging naturally, happy walking pose, back view",
+            "character_bbox": {
+                "x": 400,
+                "y": 550,
+                "width": 300,
+                "height": 400
+            }
+        },
+        {
+            "id": 10,
+            "background": "scene_10_dragon_nest.png",
+            "text_es": "Chispa le mostró su nido hecho de nubes y estrellas caídas.",
+            "text_en": "Chispa showed them the nest made of clouds and fallen stars.",
+            "text_position": {
+                "x": 512,
+                "y": 80
+            },
+            "text_color": "#2E1A47",
+            "text_shadow": "#FFFFFF",
+            "font_size": 36,
+            "text_align": "center",
+            "character_position": {
+                "x": 320,
+                "y": 630
+            },
+            "character_scale": 0.8,
+            "pose_prompt": "sitting cross-legged, looking up amazed, hands on cheeks in wonder, cozy sitting pose, front view",
+            "character_bbox": {
+                "x": 350,
+                "y": 500,
+                "width": 320,
+                "height": 400
+            }
+        },
+        {
+            "id": 11,
+            "background": "scene_11_waterfall.png",
+            "text_es": "Una cascada de agua arcoíris caía desde las nubes hasta un lago cristalino.",
+            "text_en": "A rainbow waterfall fell from the clouds into a crystal lake.",
+            "text_position": {
+                "x": 512,
+                "y": 920
+            },
+            "text_color": "#FFFFFF",
+            "text_shadow": "#1A3D5A",
+            "font_size": 36,
+            "text_align": "center",
+            "character_position": {
+                "x": 380,
+                "y": 670
+            },
+            "character_scale": 0.76,
+            "pose_prompt": "standing at water's edge, one hand dipping in water, looking at reflection, peaceful pose, side view",
+            "character_bbox": {
+                "x": 300,
+                "y": 520,
+                "width": 300,
+                "height": 400
+            }
+        },
+        {
+            "id": 12,
+            "background": "scene_12_mushroom_circle.png",
+            "text_es": "{name} descubrió un círculo de hongos mágicos donde bailaban pequeñas hadas.",
+            "text_en": "{name} discovered a circle of magical mushrooms where tiny fairies danced.",
+            "text_position": {
+                "x": 512,
+                "y": 80
+            },
+            "text_color": "#2E1A47",
+            "text_shadow": "#FFFFFF",
+            "font_size": 34,
+            "text_align": "center",
+            "character_position": {
+                "x": 500,
+                "y": 650
+            },
+            "character_scale": 0.8,
+            "pose_prompt": "dancing with arms up, spinning happily, one leg lifted, joyful dance pose, front view",
+            "character_bbox": {
+                "x": 450,
+                "y": 500,
+                "width": 320,
+                "height": 420
+            }
+        },
+        {
+            "id": 13,
+            "background": "scene_13_cloud_kingdom.png",
+            "text_es": "Subieron tan alto que llegaron al reino de las nubes esponjosas.",
+            "text_en": "They flew so high they reached the kingdom of fluffy clouds.",
+            "text_position": {
+                "x": 512,
+                "y": 920
+            },
+            "text_color": "#FFFFFF",
+            "text_shadow": "#5A5A8A",
+            "font_size": 36,
+            "text_align": "center",
+            "character_position": {
+                "x": 400,
+                "y": 600
+            },
+            "character_scale": 0.76,
+            "pose_prompt": "jumping on clouds, arms spread wide, jumping joyfully, floating in sky, dynamic jump pose, front view",
+            "character_bbox": {
+                "x": 400,
+                "y": 450,
+                "width": 300,
+                "height": 380
+            }
+        },
+        {
+            "id": 14,
+            "background": "scene_14_treasure_room.png",
+            "text_es": "El dragón mostró su tesoro: no era oro, sino recuerdos felices guardados en cristales.",
+            "text_en": "The dragon showed their treasure: not gold, but happy memories stored in crystals.",
+            "text_position": {
+                "x": 512,
+                "y": 80
+            },
+            "text_color": "#FFD700",
+            "text_shadow": "#8B4513",
+            "font_size": 34,
+            "text_align": "center",
+            "character_position": {
+                "x": 350,
+                "y": 650
+            },
+            "character_scale": 0.84,
+            "pose_prompt": "kneeling, holding a glowing crystal carefully in both hands, looking at it with wonder, three-quarter view",
+            "character_bbox": {
+                "x": 380,
+                "y": 520,
+                "width": 320,
+                "height": 400
+            }
+        },
+        {
+            "id": 15,
+            "background": "scene_15_stargazing.png",
+            "text_es": "{name} y Chispa se sentaron a ver las estrellas fugaces. Cada una llevaba un deseo.",
+            "text_en": "{name} and Chispa sat watching shooting stars. Each one carried a wish.",
+            "text_position": {
+                "x": 512,
+                "y": 920
+            },
+            "text_color": "#FFFFFF",
+            "text_shadow": "#1A1A3D",
+            "font_size": 34,
+            "text_align": "center",
+            "character_position": {
+                "x": 380,
+                "y": 630
+            },
+            "character_scale": 0.76,
+            "pose_prompt": "lying on back on grass, hands behind head, looking up at stars, relaxed stargazing pose, side view",
+            "character_bbox": {
+                "x": 400,
+                "y": 550,
+                "width": 350,
+                "height": 380
+            }
+        },
+        {
+            "id": 16,
+            "background": "scene_16_butterfly_meadow.png",
+            "text_es": "Mariposas de luz rodearon a {name}, formando una corona brillante.",
+            "text_en": "Butterflies of light surrounded {name}, forming a glowing crown.",
+            "text_position": {
+                "x": 512,
+                "y": 920
+            },
+            "text_color": "#FFFFFF",
+            "text_shadow": "#3D1A5A",
+            "font_size": 36,
+            "text_align": "center",
+            "character_position": {
+                "x": 500,
+                "y": 600
+            },
+            "character_scale": 0.84,
+            "pose_prompt": "standing with arms gently raised, butterflies landing on hands, eyes closed peacefully, serene pose, front view",
+            "character_bbox": {
+                "x": 380,
+                "y": 500,
+                "width": 320,
+                "height": 420
+            }
+        },
+        {
+            "id": 17,
+            "background": "scene_17_farewell_gate.png",
+            "text_es": "—Siempre serás mi amigo —dijo el dragón junto a la puerta mágica.",
+            "text_en": "—You will always be my friend —said the dragon by the magical gate.",
+            "text_position": {
+                "x": 512,
+                "y": 920
+            },
+            "text_color": "#FFFFFF",
+            "text_shadow": "#3D2A1A",
+            "font_size": 38,
+            "text_align": "center",
+            "character_position": {
+                "x": 350,
+                "y": 630
+            },
+            "character_scale": 0.84,
+            "pose_prompt": "hugging a small dragon, arms wrapped around, emotional goodbye hug, tender embrace, side view",
+            "character_bbox": {
+                "x": 350,
+                "y": 520,
+                "width": 300,
+                "height": 400
+            }
+        },
+        {
+            "id": 18,
+            "background": "scene_final_stars.png",
+            "text_es": "{name} volvió a casa, pero el jardín mágico siempre vivirá en su corazón.",
+            "text_en": "{name} returned home, but the magical garden will always live in their heart.",
+            "text_position": {
+                "x": 512,
+                "y": 920
+            },
+            "text_color": "#FFFFFF",
+            "text_shadow": "#1A1A3D",
+            "font_size": 36,
+            "text_align": "center",
+            "character_position": {
+                "x": 450,
+                "y": 630
+            },
+            "character_scale": 0.8,
+            "pose_prompt": "walking away, looking back over shoulder with a happy smile, waving goodbye, walking away pose, back three-quarter view",
+            "character_bbox": {
+                "x": 400,
+                "y": 500,
+                "width": 320,
+                "height": 400
+            }
+        }
+    ],
+    "cover": {
+        "background": "cover_background.png",
+        "title_position": {
+            "x": 512,
+            "y": 200
+        },
+        "title_color": "#FFD700",
+        "title_shadow": "#8B4513",
+        "title_font_size": 64,
+        "subtitle_es": "Una aventura de {name}",
+        "subtitle_en": "An adventure of {name}",
+        "subtitle_position": {
+            "x": 512,
+            "y": 280
+        },
+        "subtitle_color": "#FFFFFF",
+        "subtitle_font_size": 32
+    },
+    "dedication": {
+        "background": "dedication_background.png",
+        "text_position": {
+            "x": 512,
+            "y": 512
+        },
+        "text_color": "#3D2A1A",
+        "font_size": 28
+    },
+    "back_cover": {
+        "background": "back_cover.png"
+    }
+}

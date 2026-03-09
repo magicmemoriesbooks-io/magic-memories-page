@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'es' %}Direccion de Envio{% else %}Shipping Address{% endif %} - {{ translations.site_title }}{% endblock %}
+
+{% block content %}
+<section class="py-8 px-4 max-w-2xl mx-auto">
+    <div class="mb-6">
+        <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
+            <span>{% if lang == 'es' %}Paso 5 de 6{% else %}Step 5 of 6{% endif %}</span>
+            <div class="flex-1 mx-4 h-2 bg-gray-200 rounded-full">
+                <div class="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full" style="width: 83%"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-center mb-8">
+        <h1 class="font-display text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent mb-4">
+            {% if lang == 'es' %}Direccion de Envio{% else %}Shipping Address{% endif %}
+        </h1>
+        <p class="text-gray-600">
+            {% if lang == 'es' %}
+            Indica donde quieres recibir tu libro impreso.
+            {% else %}
+            Tell us where you want to receive your printed book.
+            {% endif %}
+        </p>
+    </div>
+
+    <form id="shippingForm" class="space-y-6" onsubmit="submitShipping(event)">
+        <div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 space-y-4">
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        {% if lang == 'es' %}Nombre Completo{% else %}Full Name{% endif %} <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="shipping_name" required
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        placeholder="{% if lang == 'es' %}Nombre y apellidos{% else %}First and last name{% endif %}">
+                </div>
+                
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Email <span class="text-red-500">*</span>
+                    </label>
+                    <input type="email" name="email" required
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        placeholder="tu@email.com">
+                    <p class="text-xs text-gray-500 mt-1">{% if lang == 'es' %}Aqui recibiras el PDF digital{% else %}You'll receive the digital PDF here{% endif %}</p>
+                </div>
+                
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        {% if lang == 'es' %}Direccion{% else %}Address{% endif %} <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="address_line1" required
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        placeholder="{% if lang == 'es' %}Calle y numero{% else %}Street and number{% endif %}">
+                </div>
+                
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        {% if lang == 'es' %}Direccion 2 (opcional){% else %}Address 2 (optional){% endif %}
+                    </label>
+                    <input type="text" name="address_line2"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        placeholder="{% if lang == 'es' %}Apartamento, piso, etc.{% else %}Apartment, floor, etc.{% endif %}">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        {% if lang == 'es' %}Ciudad{% else %}City{% endif %} <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="city" required
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        {% if lang == 'es' %}Estado/Provincia{% else %}State/Province{% endif %} <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="state" required
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        {% if lang == 'es' %}Codigo Postal{% else %}Postal Code{% endif %} <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="postal_code" required
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        {% if lang == 'es' %}Pais{% else %}Country{% endif %} <span class="text-red-500">*</span>
+                    </label>
+                    <select name="country" required
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                        <option value="">{% if lang == 'es' %}Seleccionar...{% else %}Select...{% endif %}</option>
+                        <option value="US">United States</option>
+                        <option value="CA">Canada</option>
+                        <option value="MX">Mexico</option>
+                        <option value="ES">Spain</option>
+                        <option value="AR">Argentina</option>
+                        <option value="CO">Colombia</option>
+                        <option value="CL">Chile</option>
+                        <option value="PE">Peru</option>
+                        <option value="GB">United Kingdom</option>
+                        <option value="DE">Germany</option>
+                        <option value="FR">France</option>
+                        <option value="IT">Italy</option>
+                        <option value="AU">Australia</option>
+                        <option value="BR">Brazil</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-100">
+            <h3 class="font-display text-lg font-bold text-gray-800 mb-4">{% if lang == 'es' %}Resumen del Pedido{% else %}Order Summary{% endif %}</h3>
+            <div class="space-y-2 text-sm text-gray-600 mb-4">
+                <div class="flex justify-between">
+                    <span>{% if lang == 'es' %}Libro personalizado A4 tapa dura{% else %}Personalized A4 hardcover book{% endif %}</span>
+                    <span>$65 USD</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>{% if lang == 'es' %}Envio internacional{% else %}International shipping{% endif %}</span>
+                    <span>$10 USD</span>
+                </div>
+            </div>
+            <div class="pt-4 border-t border-purple-200">
+                <div class="flex items-center justify-between">
+                    <span class="text-lg font-bold text-gray-800">Total:</span>
+                    <span class="text-2xl font-bold text-purple-700">$65 USD</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-between items-center">
+            <a href="{{ url_for('haz_tu_historia_illustrations') }}" class="text-purple-600 hover:text-purple-800 font-medium">
+                &#8592; {% if lang == 'es' %}Volver a ilustraciones{% else %}Back to illustrations{% endif %}
+            </a>
+            
+            <button type="submit" id="submitBtn"
+                class="py-3 px-8 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold rounded-xl hover:from-purple-700 hover:to-pink-600 transition-all shadow-lg">
+                {% if lang == 'es' %}Continuar al Pago{% else %}Continue to Payment{% endif %} &#8594;
+            </button>
+        </div>
+    </form>
+</section>
+
+<script>
+async function submitShipping(event) {
+    event.preventDefault();
+    
+    const btn = document.getElementById('submitBtn');
+    const originalText = btn.textContent;
+    btn.textContent = '{% if lang == "es" %}Procesando...{% else %}Processing...{% endif %}';
+    btn.disabled = true;
+    
+    const form = document.getElementById('shippingForm');
+    const formData = new FormData(form);
+    
+    try {
+        const response = await fetch('{{ url_for("haz_tu_historia_checkout") }}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            window.location.href = data.redirect;
+        } else {
+            alert(data.error || '{% if lang == "es" %}Error al procesar{% else %}Processing error{% endif %}');
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('{% if lang == "es" %}Error de conexion{% else %}Connection error{% endif %}');
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
+}
+</script>
+{% endblock %}

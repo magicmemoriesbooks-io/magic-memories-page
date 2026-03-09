@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Descargar Libro Regalo - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4" style="background: white; min-height: 80vh;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-dark">🎁 Libro Regalo - {{ story_data.child_name }}</h2>
+        <div>
+            <a href="/admin/gift-book" class="btn btn-outline-secondary me-2">Volver</a>
+            <a href="/order-complete/{{ preview_id }}" class="btn btn-outline-primary">Ver Libro</a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">Información del Libro</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr><td><strong>Nombre:</strong></td><td>{{ story_data.child_name }}</td></tr>
+                        <tr><td><strong>Cuento:</strong></td><td>{{ story_data.story_id }}</td></tr>
+                        <tr><td><strong>Idioma:</strong></td><td>{{ story_data.lang|default('es') }}</td></tr>
+                        <tr><td><strong>Estado:</strong></td><td>
+                            {% if story_data.pages_composed %}
+                            <span class="badge bg-success">PDF Listo</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark">En proceso</span>
+                            {% endif %}
+                        </td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header text-white" style="background: linear-gradient(135deg, #10B981, #059669);">
+                    <h5 class="mb-0">Archivos para Lulu</h5>
+                </div>
+                <div class="card-body">
+                    {% if interior_exists and cover_exists %}
+                    <p class="text-success mb-3"><strong>Los PDFs están listos para enviar a Lulu.</strong></p>
+                    
+                    <div class="d-grid gap-2">
+                        <a href="/admin/lulu-orders/{{ folder_name }}/interior.pdf" class="btn btn-lg btn-primary" download>
+                            📄 Descargar Interior PDF
+                        </a>
+                        <a href="/admin/lulu-orders/{{ folder_name }}/cover.pdf" class="btn btn-lg btn-success" download>
+                            📕 Descargar Cover PDF
+                        </a>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3">
+                        <small>
+                            <strong>Instrucciones:</strong><br>
+                            1. Ve a <a href="https://www.lulu.com/create/revision-upload" target="_blank">lulu.com</a><br>
+                            2. Sube el Interior PDF como contenido<br>
+                            3. Sube el Cover PDF como portada<br>
+                            4. Configura: Hardcover, A4, Color<br>
+                            5. Completa la dirección de envío
+                        </small>
+                    </div>
+                    {% else %}
+                    <p class="text-warning">Los PDFs aún no están listos. Espera a que la composición termine.</p>
+                    {% if not interior_exists %}
+                    <p class="text-muted"><small>Interior PDF: No disponible</small></p>
+                    {% endif %}
+                    {% if not cover_exists %}
+                    <p class="text-muted"><small>Cover PDF: No disponible</small></p>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if story_data.cover_preview %}
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">Vista Previa de Portada</h5>
+        </div>
+        <div class="card-body text-center">
+            <img src="{{ story_data.cover_preview }}" alt="Portada" style="max-width: 300px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

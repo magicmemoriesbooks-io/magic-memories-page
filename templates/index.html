@@ -1,0 +1,1451 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    @keyframes heroColorShift {
+        0% { color: #9333ea; }
+        25% { color: #ec4899; }
+        50% { color: #D4AF37; }
+        75% { color: #ec4899; }
+        100% { color: #9333ea; }
+    }
+    .hero-instant-text {
+        animation: heroColorShift 4s ease-in-out infinite;
+        font-family: 'Quicksand', 'Fredoka', sans-serif;
+    }
+    .hero-instant-text a {
+        color: inherit;
+    }
+    @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+    @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse-gold-strong {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.6), 0 0 20px rgba(212, 175, 55, 0.3); }
+        70% { box-shadow: 0 0 0 18px rgba(212, 175, 55, 0), 0 0 30px rgba(212, 175, 55, 0.1); }
+    }
+    @keyframes shimmer {
+        0% { background-position: -200% center; }
+        100% { background-position: 200% center; }
+    }
+    @keyframes countUp { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+    @keyframes confetti-fall {
+        0% { transform: translateY(-20px) rotate(0deg); opacity: 0; }
+        10% { opacity: 1; }
+        100% { transform: translateY(220px) rotate(720deg); opacity: 0; }
+    }
+    @keyframes balloon-float {
+        0%, 100% { transform: translateY(0) rotate(-5deg); }
+        50% { transform: translateY(-6px) rotate(5deg); }
+    }
+    .confetti-piece {
+        position: absolute;
+        top: -10px;
+        font-size: 10px;
+        animation: confetti-fall 3.5s ease-in infinite;
+        pointer-events: none;
+    }
+    @keyframes badge-glow {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.92; transform: scale(1.04); }
+    }
+    @keyframes tapHint { 0%,100% { transform: translate(0,0) scale(1); opacity:0.9; } 50% { transform: translate(-6px,-4px) scale(0.9); opacity:1; } }
+    @keyframes bounceHint { 0%,100% { transform: translateY(0); opacity:0.9; } 50% { transform: translateY(-5px); opacity:1; } }
+    @keyframes furryBounce { 0%,100% { transform: translateY(0); } 40% { transform: translateY(-10px); } 60% { transform: translateY(-3px); } }
+    .furry-bounce-dog .furry-bounce-body { animation: furryBounce 1.4s ease-in-out infinite; }
+    .furry-bounce-cat .furry-bounce-body { animation: furryBounce 1.4s ease-in-out infinite 0.7s; }
+    @media (prefers-reduced-motion: reduce) { .furry-bounce-dog .furry-bounce-body, .furry-bounce-cat .furry-bounce-body { animation: none; } }
+    @keyframes photoFade { 0%, 40% { opacity: 1; } 60%, 100% { opacity: 0; } }
+    @keyframes illuFade { 0%, 40% { opacity: 0; } 60%, 100% { opacity: 1; } }
+    @keyframes sceneFade { 0%, 45% { opacity: 1; } 50%, 95% { opacity: 0; } 100% { opacity: 1; } }
+    @keyframes sceneFadeAlt { 0%, 45% { opacity: 0; } 50%, 95% { opacity: 1; } 100% { opacity: 0; } }
+    .float-animation { animation: float 3s ease-in-out infinite; }
+    .marquee-track { display: flex; animation: marquee 40s linear infinite; }
+    .marquee-track:hover { animation-play-state: paused; }
+    .fade-in-up { animation: fadeInUp 0.8s ease-out forwards; opacity: 0; }
+    .fade-delay-1 { animation-delay: 0.2s; }
+    .fade-delay-2 { animation-delay: 0.4s; }
+    .fade-delay-3 { animation-delay: 0.6s; }
+    .fade-delay-4 { animation-delay: 0.8s; }
+    .pulse-gold { animation: pulse-gold-strong 2s infinite; }
+    .cta-shimmer {
+        background: linear-gradient(110deg, #f59e0b 0%, #fbbf24 25%, #fef3c7 50%, #fbbf24 75%, #f59e0b 100%);
+        background-size: 200% 100%;
+        animation: shimmer 3s linear infinite;
+    }
+    .cta-shimmer-green {
+        background: linear-gradient(110deg, #16a34a 0%, #4ade80 25%, #fef08a 50%, #4ade80 75%, #16a34a 100%);
+        background-size: 200% 100%;
+        animation: shimmer 3s linear infinite;
+    }
+    @keyframes pulse-green-strong {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.6), 0 0 20px rgba(34,197,94,0.3); }
+        70% { box-shadow: 0 0 0 18px rgba(34,197,94,0), 0 0 30px rgba(34,197,94,0.1); }
+    }
+    .pulse-green { animation: pulse-green-strong 2s infinite; }
+    .product-card { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    .product-card:hover { transform: translateY(-8px) scale(1.02); }
+    .step-card { transition: all 0.3s ease; }
+    .step-card:hover { transform: translateY(-5px); }
+    .gallery-item { transition: transform 0.3s ease; }
+    .gallery-item:hover { transform: scale(1.15); z-index: 10; }
+    .regen-highlight { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fbbf24 100%); }
+    .tap-hint { animation: tapHint 1.5s ease-in-out infinite; }
+    .magic-photos .photo-layer { animation: photoFade 4s ease-in-out infinite; }
+    .magic-photos .illu-layer { animation: illuFade 4s ease-in-out infinite; }
+    .flipbook-container { perspective: 1200px; background: transparent !important; padding: 0 !important; }
+    #heroFlipbook { background: transparent !important; position: relative; }
+    .magic-photos { background: transparent !important; }
+    .portal-card {
+        background: transparent;
+        border: none;
+        border-radius: 20px;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        transition: transform 0.3s ease;
+    }
+    .portal-card:hover { transform: translateY(-3px); }
+    .scene-toggle { position: relative; width: 100%; max-width: 380px; aspect-ratio: 1; border-radius: 16px; overflow: hidden; }
+    .scene-toggle img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .scene-toggle .scene-a { animation: sceneFade 8s ease-in-out infinite; }
+    .scene-toggle .scene-b { animation: sceneFadeAlt 8s ease-in-out infinite; }
+    @keyframes shooting-star {
+        0% { transform: translateX(0) translateY(0); opacity: 0; }
+        5% { opacity: 1; }
+        70% { opacity: 1; }
+        100% { transform: translateX(350px) translateY(200px); opacity: 0; }
+    }
+    @keyframes shooting-star-2 {
+        0% { transform: translateX(0) translateY(0); opacity: 0; }
+        8% { opacity: 1; }
+        65% { opacity: 0.8; }
+        100% { transform: translateX(-320px) translateY(220px); opacity: 0; }
+    }
+    @keyframes twinkle-1 {
+        0%, 100% { opacity: 0.4; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.3); }
+    }
+    @keyframes twinkle-2 {
+        0%, 100% { opacity: 0.6; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.15); }
+    }
+    @keyframes float-gentle {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-14px); }
+    }
+    @keyframes float-drift {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        33% { transform: translateY(-10px) rotate(3deg); }
+        66% { transform: translateY(-6px) rotate(-2deg); }
+    }
+    .hero-stars {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        pointer-events: none;
+        z-index: 1;
+    }
+    .hero-star {
+        position: absolute;
+        border-radius: 50%;
+        pointer-events: none;
+    }
+    .hero-star.gold { background: radial-gradient(circle, #FFD700, #D4AF37 60%, transparent 70%); }
+    .hero-star.white { background: radial-gradient(circle, #fff, #FFF8DC 60%, transparent 70%); }
+    .hero-star.lg { width: 12px; height: 12px; box-shadow: 0 0 12px 4px rgba(255,215,0,0.5); }
+    .hero-star.md { width: 7px; height: 7px; box-shadow: 0 0 8px 3px rgba(255,215,0,0.4); }
+    .hero-star.sm { width: 4px; height: 4px; box-shadow: 0 0 6px 2px rgba(255,215,0,0.35); }
+    .hero-star.xs { width: 2.5px; height: 2.5px; box-shadow: 0 0 4px 1px rgba(255,215,0,0.3); }
+    .hero-star.tw1 { animation: twinkle-1 3s ease-in-out infinite; }
+    .hero-star.tw2 { animation: twinkle-2 4s ease-in-out infinite 1s; }
+    .hero-star.tw3 { animation: twinkle-1 5s ease-in-out infinite 2s; }
+    .hero-star.tw4 { animation: twinkle-2 3.5s ease-in-out infinite 0.5s; }
+    .star-shape {
+        position: absolute;
+        pointer-events: none;
+        filter: drop-shadow(0 0 4px rgba(255,215,0,0.6));
+    }
+    .star-shape svg { display: block; }
+    .shooting-star {
+        position: absolute;
+        width: 140px;
+        height: 2.5px;
+        background: linear-gradient(90deg, rgba(255,255,255,0.95), rgba(255,215,0,0.7), rgba(255,215,0,0.2), transparent);
+        border-radius: 50px;
+        filter: blur(0.3px);
+        box-shadow: 0 0 10px 2px rgba(255,215,0,0.5), 0 0 20px rgba(255,215,0,0.2);
+    }
+    .shooting-star-1 {
+        top: 10%;
+        left: 12%;
+        animation: shooting-star 3.5s ease-in 1s infinite;
+        transform: rotate(25deg);
+    }
+    .shooting-star-2 {
+        top: 22%;
+        right: 8%;
+        width: 100px;
+        animation: shooting-star-2 4.5s ease-in 5s infinite;
+        transform: rotate(-18deg);
+    }
+    .shooting-star-3 {
+        top: 6%;
+        left: 50%;
+        width: 90px;
+        animation: shooting-star 5s ease-in 9s infinite;
+        transform: rotate(30deg);
+    }
+    @keyframes float-wave-1 {
+        0% { transform: translate(0, 0) rotate(0deg); }
+        25% { transform: translate(8px, -12px) rotate(3deg); }
+        50% { transform: translate(-4px, -20px) rotate(-2deg); }
+        75% { transform: translate(10px, -8px) rotate(4deg); }
+        100% { transform: translate(0, 0) rotate(0deg); }
+    }
+    @keyframes float-wave-2 {
+        0% { transform: translate(0, 0) rotate(0deg); }
+        20% { transform: translate(-10px, -8px) rotate(-3deg); }
+        40% { transform: translate(6px, -18px) rotate(2deg); }
+        60% { transform: translate(-8px, -14px) rotate(-4deg); }
+        80% { transform: translate(4px, -6px) rotate(1deg); }
+        100% { transform: translate(0, 0) rotate(0deg); }
+    }
+    @keyframes float-wave-3 {
+        0% { transform: translate(0, 0) rotate(0deg); }
+        33% { transform: translate(12px, -15px) rotate(5deg); }
+        66% { transform: translate(-6px, -10px) rotate(-3deg); }
+        100% { transform: translate(0, 0) rotate(0deg); }
+    }
+    .hero-magic-char {
+        position: absolute;
+        pointer-events: none;
+        z-index: 2;
+    }
+    .hero-magic-char img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+    .hero-magic-char.pos-1 { left: 10%; top: 22%; width: 140px; height: 140px; opacity: 0.8; animation: float-wave-1 9s ease-in-out infinite; }
+    .hero-magic-char.pos-2 { right: 10%; top: 20%; width: 130px; height: 130px; opacity: 0.75; animation: float-wave-2 11s ease-in-out infinite -2s; }
+    .hero-magic-char.pos-3 { left: 3%; top: 48%; width: 120px; height: 120px; opacity: 0.7; animation: float-wave-3 10s ease-in-out infinite -4s; }
+    .hero-magic-char.pos-4 { right: 3%; top: 54%; width: 130px; height: 130px; opacity: 0.75; animation: float-wave-1 12s ease-in-out infinite -1s; }
+    .hero-magic-char.pos-5 { left: 3%; top: 38%; width: 110px; height: 110px; opacity: 0.7; animation: float-wave-2 8s ease-in-out infinite -5s; }
+    .hero-magic-char.pos-6 { right: 4%; top: 42%; width: 120px; height: 120px; opacity: 0.75; animation: float-wave-3 10s ease-in-out infinite -3s; }
+    @media (max-width: 1023px) {
+        .hero-magic-char { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .float-animation, .marquee-track, .fade-in-up, .pulse-gold, .cta-shimmer, .tap-hint,
+        .magic-photos .photo-layer, .magic-photos .illu-layer,
+        .scene-toggle .scene-a, .scene-toggle .scene-b,
+        .confetti-piece, .birthday-balloon, .shooting-star, .hero-star, .star-shape,
+        .hero-magic-char, .float-wave-1, .float-wave-2, .float-wave-3 { animation: none !important; }
+        .fade-in-up { opacity: 1; }
+        .hero-star { opacity: 0.7; }
+        .star-shape { opacity: 0.5; }
+        .product-card:hover, .step-card:hover, .gallery-item:hover { transform: none; }
+        #wandCanvas { display: none !important; }
+    }
+</style>
+
+<section id="hero-section" class="relative overflow-hidden" style="background:linear-gradient(180deg, #5B3A8C 0%, #7B52B0 6%, #9B72CC 14%, #B494DB 22%, #CBAEE5 30%, #DFC8EF 38%, #EDE0F5 46%, #F5EDF9 54%, #FAF5FC 64%, #FDFAFE 76%, #ffffff 90%);">
+    <div class="hero-stars">
+        <div class="shooting-star shooting-star-1"></div>
+        <div class="shooting-star shooting-star-2"></div>
+        <div class="shooting-star shooting-star-3"></div>
+
+        <div class="hero-star gold lg tw1" style="top:6%;left:8%"></div>
+        <div class="hero-star white md tw2" style="top:12%;left:18%"></div>
+        <div class="hero-star gold sm tw3" style="top:4%;left:30%"></div>
+        <div class="hero-star white lg tw4" style="top:15%;left:42%"></div>
+        <div class="hero-star gold md tw1" style="top:3%;left:55%"></div>
+        <div class="hero-star white sm tw2" style="top:10%;left:68%"></div>
+        <div class="hero-star gold lg tw3" style="top:5%;left:82%"></div>
+        <div class="hero-star white md tw4" style="top:18%;left:92%"></div>
+
+        <div class="hero-star gold sm tw2" style="top:22%;left:5%"></div>
+        <div class="hero-star white xs tw1" style="top:28%;left:15%"></div>
+        <div class="hero-star gold md tw3" style="top:25%;left:88%"></div>
+        <div class="hero-star white sm tw4" style="top:30%;left:78%"></div>
+        <div class="hero-star gold xs tw1" style="top:35%;left:3%"></div>
+        <div class="hero-star white md tw2" style="top:8%;left:48%"></div>
+        <div class="hero-star gold sm tw4" style="top:20%;left:60%"></div>
+        <div class="hero-star white xs tw3" style="top:32%;left:95%"></div>
+
+        <div class="hero-star gold xs tw2" style="top:38%;left:10%"></div>
+        <div class="hero-star white sm tw1" style="top:42%;left:22%"></div>
+        <div class="hero-star gold xs tw4" style="top:45%;left:85%"></div>
+        <div class="hero-star white xs tw3" style="top:50%;left:75%"></div>
+        <div class="hero-star gold sm tw1" style="top:55%;left:5%"></div>
+        <div class="hero-star white xs tw2" style="top:48%;left:35%"></div>
+        <div class="hero-star gold xs tw3" style="top:52%;left:62%"></div>
+        <div class="hero-star white sm tw4" style="top:58%;left:90%"></div>
+
+        <div class="star-shape tw1" style="top:7%;left:25%">
+            <svg width="18" height="18" viewBox="0 0 24 24"><polygon points="12,0 15,9 24,9 17,14 19,24 12,18 5,24 7,14 0,9 9,9" fill="#FFD700" opacity="0.7"/></svg>
+        </div>
+        <div class="star-shape tw3" style="top:14%;left:75%">
+            <svg width="14" height="14" viewBox="0 0 24 24"><polygon points="12,0 15,9 24,9 17,14 19,24 12,18 5,24 7,14 0,9 9,9" fill="#FFF8DC" opacity="0.65"/></svg>
+        </div>
+        <div class="star-shape tw2" style="top:3%;left:62%">
+            <svg width="20" height="20" viewBox="0 0 24 24"><polygon points="12,0 15,9 24,9 17,14 19,24 12,18 5,24 7,14 0,9 9,9" fill="#FFD700" opacity="0.6"/></svg>
+        </div>
+        <div class="star-shape tw4" style="top:20%;left:10%">
+            <svg width="12" height="12" viewBox="0 0 24 24"><polygon points="12,0 15,9 24,9 17,14 19,24 12,18 5,24 7,14 0,9 9,9" fill="#FFF8DC" opacity="0.55"/></svg>
+        </div>
+        <div class="star-shape tw1" style="top:9%;left:90%">
+            <svg width="16" height="16" viewBox="0 0 24 24"><polygon points="12,0 15,9 24,9 17,14 19,24 12,18 5,24 7,14 0,9 9,9" fill="#FFD700" opacity="0.65"/></svg>
+        </div>
+    </div>
+
+    <div class="hero-magic-char pos-1">
+        <img src="{{ url_for('static', filename='images/hero_fairy.png') }}" alt="" loading="lazy">
+    </div>
+    <div class="hero-magic-char pos-2">
+        <img src="{{ url_for('static', filename='images/hero_dragon.png') }}" alt="" loading="lazy">
+    </div>
+    <div class="hero-magic-char pos-3">
+        <img src="{{ url_for('static', filename='images/hero_elf.png') }}" alt="" loading="lazy">
+    </div>
+    <div class="hero-magic-char pos-4">
+        <img src="{{ url_for('static', filename='images/hero_unicorn.png') }}" alt="" loading="lazy">
+    </div>
+    <div class="hero-magic-char pos-5">
+        <img src="{{ url_for('static', filename='images/hero_owl.png') }}" alt="" loading="lazy">
+    </div>
+    <div class="hero-magic-char pos-6">
+        <img src="{{ url_for('static', filename='images/hero_fairy2.png') }}" alt="" loading="lazy">
+    </div>
+
+    <canvas id="wandCanvas" class="pointer-events-none" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:60;will-change:transform;"></canvas>
+
+    <div class="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-6 lg:pt-12 lg:pb-10">
+        <div class="text-center fade-in-up fade-delay-1">
+            <div style="position:relative;display:flex;flex-direction:column;align-items:center;">
+                <h1 class="font-display font-bold leading-tight" style="font-size:clamp(26px,5vw,48px);background:linear-gradient(45deg,#D4AF37,#F7E98E,#B8860B);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(1px 1px 2px rgba(0,0,0,0.1));margin-bottom:0;position:relative;z-index:2;">
+                    {% if lang == 'es' %}Donde tu hijo es el <span class="slogan-animated">héroe</span> de su propia historia{% else %}Where your child is the <span class="slogan-animated">hero</span> of their own story{% endif %}
+                </h1>
+                <div class="flex justify-center" id="heroLogo" style="margin-top:-55px;margin-bottom:-35px;position:relative;z-index:1;">
+                    <img src="{{ url_for('static', filename='images/logo_book.png') }}" alt="Magic Memories Books" style="max-height:310px;filter:drop-shadow(0 0 20px rgba(212,175,55,0.5));">
+                </div>
+                <p class="fade-in-up fade-delay-2" style="font-family:'Great Vibes',cursive;font-size:clamp(1.8rem,4.5vw,2.8rem);color:#FFD700;text-shadow:0 0 15px rgba(255,215,0,0.5), 0 0 30px rgba(255,215,0,0.3), 0 0 50px rgba(255,215,0,0.15);position:relative;z-index:2;">
+                    {% if lang == 'es' %}¿Listos para la magia?{% else %}Ready for the magic?{% endif %}
+                </p>
+                <a href="{{ url_for('story_selection') }}" class="fade-in-up fade-delay-3" style="margin-top:8px;position:relative;z-index:2;text-decoration:none;display:inline-block;">
+                    <span class="inline-flex items-center gap-2 px-5 py-2 rounded-full text-white font-bold text-sm cursor-pointer hover:scale-105 transition-transform" style="background:linear-gradient(135deg,#7C3AED,#EC4899);animation:badge-glow 2.5s infinite;box-shadow:0 2px 12px rgba(124,58,237,0.3);">
+                        ✨ {% if lang == 'es' %}eBook personalizado solo por{% else %}Personalized eBook for just{% endif %} <span style="color:#FFD700;font-size:1.1em;">$7</span> ✨
+                    </span>
+                </a>
+            </div>
+        </div>
+
+        <div class="flex flex-col lg:flex-row justify-center lg:items-stretch gap-6 lg:gap-10 mt-8 fade-in-up fade-delay-3">
+
+            <div class="portal-card flex-1 max-w-lg" id="portalA">
+                <p class="flex items-center justify-center gap-2 flex-wrap">
+                    <span class="bg-amber-500 text-white text-xs font-black px-3 py-1 rounded-full">📸 {% if lang == 'es' %}CON TU FOTO{% else %}WITH YOUR PHOTO{% endif %}</span>
+                    <span class="text-gray-700 text-xs font-medium">{% if lang == 'es' %}Tu hijo es el protagonista{% else %}Your child is the protagonist{% endif %}</span>
+                </p>
+                <div class="magic-photos">
+                    <div class="flex items-center justify-center gap-4">
+                        <div class="relative rounded-xl overflow-hidden shadow-lg flex-shrink-0" style="width:100px;height:100px;">
+                            <img src="{{ url_for('static', filename='images/alex_ref.jpg') }}" alt="Alex" class="w-full h-full object-cover photo-layer absolute inset-0">
+                            <img src="{{ url_for('static', filename='images/flipbook_scene_6.jpg') }}" alt="Alex illustrated" class="w-full h-full object-cover illu-layer absolute inset-0">
+                        </div>
+                        <svg class="w-5 h-5 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                        <div class="relative rounded-xl overflow-hidden shadow-lg flex-shrink-0" style="width:100px;height:100px;">
+                            <img src="{{ url_for('static', filename='images/pug_ref.jpg') }}" alt="Pug" class="w-full h-full object-cover photo-layer absolute inset-0">
+                            <img src="{{ url_for('static', filename='images/pug_illustrated.jpg') }}" alt="Pug illustrated" class="w-full h-full object-cover illu-layer absolute inset-0">
+                        </div>
+                        <svg class="w-4 h-4 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+                        <div class="bg-gradient-to-r from-amber-400 to-amber-500 rounded-xl px-3 py-1.5 shadow-md">
+                            <span class="text-white text-sm font-bold">eBook</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flipbook-container w-full" style="position:relative;">
+                    <div id="heroFlipbook" class="mx-auto" style="width:100%;max-width:380px;box-shadow:0 20px 50px rgba(0,0,0,0.15);border-radius:8px;border:2px solid #fff;"></div>
+                    <button id="musicToggle" onclick="toggleMusic()" style="position:absolute;top:4px;right:4px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,0.45);border:1.5px solid rgba(255,255,255,0.5);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:70;backdrop-filter:blur(4px);transition:background 0.2s;" title="{% if lang == 'es' %}Silenciar música{% else %}Mute music{% endif %}">
+                        <svg id="musicIconOn" class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display:block;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M17.95 6.05a8 8 0 010 11.9M11 5L6 9H2v6h4l5 4V5z"></path></svg>
+                        <svg id="musicIconOff" class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display:none;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707A1 1 0 0112 5v14a1 1 0 01-1.707.707L5.586 15z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path></svg>
+                    </button>
+                </div>
+
+            </div>
+
+            <div class="portal-card flex-1 max-w-lg" id="portalB">
+                <p class="flex items-center justify-center gap-2 flex-wrap">
+                    <span class="bg-purple-600 text-white text-xs font-black px-3 py-1 rounded-full">✏️ {% if lang == 'es' %}SIN FOTO{% else %}NO PHOTO{% endif %}</span>
+                    <span class="text-gray-700 text-xs font-medium">{% if lang == 'es' %}Solo descríbelo, la IA lo ilustra{% else %}Just describe it, AI illustrates it{% endif %}</span>
+                </p>
+                <div class="scene-toggle shadow-lg">
+                    <img src="{{ url_for('static', filename='images/personalize_result.jpg') }}" alt="{% if lang == 'es' %}Niña con dragón{% else %}Girl with dragon{% endif %}" class="scene-a">
+                    <img src="{{ url_for('static', filename='images/magic_express_scene_2.jpg') }}" alt="{% if lang == 'es' %}Niño con cebra{% else %}Boy with zebra{% endif %}" class="scene-b">
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="relative rounded-xl overflow-hidden shadow-md flex-shrink-0" style="width:90px;height:90px;">
+                        <img src="{{ url_for('static', filename='images/personalize_form.jpg') }}" alt="{% if lang == 'es' %}Formulario{% else %}Form{% endif %}" class="w-full h-full object-cover object-top">
+                    </div>
+                    <svg class="w-5 h-5 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                    <div class="relative rounded-xl overflow-hidden shadow-md flex-shrink-0" style="width:90px;height:90px;">
+                        <img src="{{ url_for('static', filename='images/personalize_result.jpg') }}" alt="{% if lang == 'es' %}Resultado{% else %}Result{% endif %}" class="w-full h-full object-cover">
+                    </div>
+                    <svg class="w-4 h-4 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+                    <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl px-3 py-1.5 shadow-md">
+                        <span class="text-white text-xs font-bold">{% if lang == 'es' %}Sin foto{% else %}No photo{% endif %}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5 fade-in-up fade-delay-4">
+
+            <div class="flex flex-col items-center gap-1">
+                <p class="text-gray-800 text-xs font-semibold text-center">{% if lang == 'es' %}Sube la foto de tu hijo y su mascota{% else %}Upload your child's and pet's photo{% endif %}</p>
+                <a href="{{ url_for('furry_love_catalog') }}" id="ctaFurry" class="inline-flex items-center justify-center gap-2 w-full bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white font-bold rounded-full shadow-xl hover:shadow-2xl transition-all" style="height:44px;padding:0 1rem;font-size:0.875rem;">
+                    🐾 {% if lang == 'es' %}Tú y tu Amor Peludo{% else %}You & Your Furry Love{% endif %} 🐾
+                </a>
+            </div>
+
+            <div class="flex flex-col items-center gap-1">
+                <p class="text-gray-800 text-xs font-semibold text-center">{% if lang == 'es' %}Libro impreso 24 pág + eBook de regalo{% else %}24-page printed book + free eBook{% endif %}</p>
+                <a href="{{ url_for('personalized_books') }}" id="ctaAdventures" class="inline-flex items-center justify-center gap-2 w-full cta-shimmer-green text-gray-900 font-bold rounded-full shadow-xl hover:shadow-2xl transition-all pulse-green" style="height:44px;padding:0 1rem;font-size:0.875rem;">
+                    <img src="{{ url_for('static', filename='images/wand.png') }}" style="width:18px;height:18px;object-fit:contain;" alt="">
+                    {% if lang == 'es' %}Aventuras Mágicas{% else %}Magic Adventures{% endif %}
+                    <img src="{{ url_for('static', filename='images/wand.png') }}" style="width:18px;height:18px;object-fit:contain;transform:scaleX(-1);" alt="">
+                </a>
+            </div>
+
+            <div class="flex flex-col items-center gap-1">
+                <p class="text-gray-800 text-xs font-semibold text-center">{% if lang == 'es' %}PDF imprimible 12 pág inmediato{% else %}Printable PDF 12 pages instant{% endif %}</p>
+                <a href="{{ url_for('story_selection') }}" id="ctaExpress" class="inline-flex items-center justify-center gap-2 w-full cta-shimmer text-gray-900 font-bold rounded-full shadow-xl hover:shadow-2xl transition-all pulse-gold" style="height:44px;padding:0 1rem;font-size:0.875rem;">
+                    ✨ {% if lang == 'es' %}Cuentos Mágicos Express{% else %}Magic Express Stories{% endif %} ✨
+                </a>
+            </div>
+
+        </div>
+
+        <p class="text-center mt-5 mb-1 text-base sm:text-lg font-bold hero-instant-text fade-in-up fade-delay-3">
+            {% if lang == 'es' %}✨ ¡Tu cuento de <a href="{{ url_for('story_selection') }}" class="underline decoration-2 underline-offset-4 hover:opacity-80 transition-opacity">Cuentos Mágicos</a> o <a href="{{ url_for('birthday_selection') }}" class="underline decoration-2 underline-offset-4 hover:opacity-80 transition-opacity">Cumpleaños</a> al instante con PDF imprimible por solo $20! ✨{% else %}✨ Get your <a href="{{ url_for('story_selection') }}" class="underline decoration-2 underline-offset-4 hover:opacity-80 transition-opacity">Magic Story</a> or <a href="{{ url_for('birthday_selection') }}" class="underline decoration-2 underline-offset-4 hover:opacity-80 transition-opacity">Birthday Tale</a> instantly with printable PDF for only $20! ✨{% endif %}
+        </p>
+
+        <div class="flex flex-wrap justify-center gap-3 mt-4 fade-in-up fade-delay-4">
+            <div class="flex items-center gap-2 bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm border border-gray-100">
+                <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span class="text-gray-700 text-xs font-medium">{% if lang == 'es' %}Personalización gratuita{% else %}Free personalization{% endif %}</span>
+            </div>
+            <div class="flex items-center gap-2 bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm border border-gray-100">
+                <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span class="text-gray-700 text-xs font-medium">{% if lang == 'es' %}Envío a 150+ países{% else %}Ships to 150+ countries{% endif %}</span>
+            </div>
+            <div class="flex items-center gap-2 bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm border border-gray-100">
+                <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span class="text-gray-700 text-xs font-medium">{% if lang == 'es' %}Desde $7{% else %}From $7{% endif %}</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
+<script>
+(function() {
+    var pageFlipSound = null;
+    var bgMusic = null;
+    var musicStarted = false;
+    var musicMuted = false;
+
+    window.toggleMusic = function() {
+        if (!bgMusic) return;
+        musicMuted = !musicMuted;
+        bgMusic.muted = musicMuted;
+        document.getElementById('musicIconOn').style.display = musicMuted ? 'none' : 'block';
+        document.getElementById('musicIconOff').style.display = musicMuted ? 'block' : 'none';
+    };
+
+    function initFlipbook() {
+        var container = document.getElementById('heroFlipbook');
+        if (!container || typeof St === 'undefined' || !St.PageFlip) return;
+
+        var pages = [
+            '{{ url_for("static", filename="images/flipbook_scene_6.jpg") }}',
+            '{{ url_for("static", filename="images/flipbook_scene_pug_walk.jpg") }}',
+            '{{ url_for("static", filename="images/flipbook_scene_10.jpg") }}',
+            '{{ url_for("static", filename="images/flipbook_scene_14.jpg") }}',
+            '{{ url_for("static", filename="images/flipbook_scene_18.jpg") }}',
+            '{{ url_for("static", filename="images/flipbook_scene_butterfly.jpg") }}'
+        ];
+
+        var isMobile = window.innerWidth < 768;
+        var w = Math.min(container.offsetWidth, 380);
+        var h = Math.round(w * 1.33);
+
+        for (var i = 0; i < pages.length; i++) {
+            var div = document.createElement('div');
+            div.className = 'page';
+            div.style.cssText = 'background:white;';
+            var img = document.createElement('img');
+            img.src = pages[i];
+            img.alt = 'Scene ' + (i+1);
+            img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:4px;';
+            img.loading = 'lazy';
+            div.appendChild(img);
+            container.appendChild(div);
+        }
+
+        var flipbook = new St.PageFlip(container, {
+            width: w,
+            height: h,
+            size: 'stretch',
+            showCover: false,
+            usePortrait: isMobile,
+            flippingTime: 650,
+            maxShadowOpacity: 0.3,
+            mobileScrollSupport: true
+        });
+
+        flipbook.loadFromHTML(container.querySelectorAll('.page'));
+
+        setTimeout(function() {
+            var pages = container.querySelectorAll('.stf__item');
+            if (pages.length === 0) return;
+            var cRect = container.getBoundingClientRect();
+            var minL = Infinity, minT = Infinity, maxR = 0, maxB = 0;
+            pages.forEach(function(p) {
+                var r = p.getBoundingClientRect();
+                if (r.width === 0) return;
+                if (r.left < minL) minL = r.left;
+                if (r.top < minT) minT = r.top;
+                if (r.right > maxR) maxR = r.right;
+                if (r.bottom > maxB) maxB = r.bottom;
+            });
+            if (minL === Infinity) return;
+            var pad = 4;
+            var frame = document.createElement('div');
+            frame.style.cssText = 'position:absolute;pointer-events:none;border:2px solid rgba(255,255,255,0.6);border-radius:10px;box-shadow:0 8px 25px rgba(0,0,0,0.3);z-index:50;';
+            frame.style.left = (minL - cRect.left - pad) + 'px';
+            frame.style.top = (minT - cRect.top - pad) + 'px';
+            frame.style.width = (maxR - minL + pad*2) + 'px';
+            frame.style.height = (maxB - minT + pad*2) + 'px';
+            container.style.position = 'relative';
+            container.appendChild(frame);
+
+            var hand = document.createElement('div');
+            hand.style.cssText = 'position:absolute;pointer-events:none;z-index:51;font-size:28px;animation:tapHint 1.8s ease-in-out infinite;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));';
+            hand.style.left = (maxR - cRect.left - 10) + 'px';
+            hand.style.top = (maxB - cRect.top - 10) + 'px';
+            hand.textContent = '👆';
+            container.appendChild(hand);
+
+            var tryHint = document.createElement('div');
+            var tryLabel = '{{ "Prueba" if lang == "es" else "Try" }}';
+            tryHint.style.cssText = 'position:absolute;pointer-events:none;z-index:51;font-size:10px;font-weight:800;color:#fff;background:rgba(124,58,237,0.75);padding:2px 7px;border-radius:20px;letter-spacing:0.5px;animation:bounceHint 1.4s ease-in-out infinite;box-shadow:0 1px 6px rgba(0,0,0,0.2);white-space:nowrap;';
+            tryHint.style.left = (maxR - cRect.left - 16) + 'px';
+            tryHint.style.top = (maxB - cRect.top + 22) + 'px';
+            tryHint.textContent = tryLabel;
+            container.appendChild(tryHint);
+        }, 600);
+
+        var resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                try { flipbook.update(); } catch(e) {}
+            }, 250);
+        });
+
+        function loadAudioLazy() {
+            if (pageFlipSound) return;
+            try {
+                pageFlipSound = new Audio('{{ url_for("static", filename="sounds/page-flip.mp3") }}');
+                pageFlipSound.volume = 0.3;
+                bgMusic = new Audio('{{ url_for("static", filename="sounds/fantasia.mp3") }}');
+                bgMusic.volume = 0.06;
+                bgMusic.loop = true;
+            } catch(e) {}
+        }
+
+        flipbook.on('flip', function() {
+            loadAudioLazy();
+            if (pageFlipSound) {
+                pageFlipSound.currentTime = 0;
+                pageFlipSound.play().catch(function(){});
+            }
+            if (!musicStarted && bgMusic) {
+                bgMusic.play().catch(function(){});
+                musicStarted = true;
+            }
+        });
+
+        container.addEventListener('click', function() {
+            loadAudioLazy();
+            if (!musicStarted && bgMusic) {
+                bgMusic.play().catch(function(){});
+                musicStarted = true;
+            }
+        }, { once: true });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() { setTimeout(initFlipbook, 300); });
+    } else {
+        setTimeout(initFlipbook, 300);
+    }
+
+
+    function initWand() {
+        var canvas = document.getElementById('wandCanvas');
+        if (!canvas) return;
+        var mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+        if (mql.matches) { canvas.style.display = 'none'; return; }
+        if (window.innerWidth < 768) { canvas.style.display = 'none'; return; }
+
+        var ctx = canvas.getContext('2d');
+        var particles = [];
+        var heroSection = document.getElementById('hero-section');
+
+        var wandImg = new Image();
+        wandImg.src = '{{ url_for("static", filename="images/wand.png") }}';
+        var wandLoaded = false;
+        wandImg.onload = function() { wandLoaded = true; };
+
+        var wandX = 0, wandY = 0, angle = 0;
+        var currentTarget = { x: 0, y: 0 };
+        var phase = 0;
+        var phaseTimer = 0;
+        var sparkBurst = false;
+        var wandAlpha = 0;
+
+        var logo = document.getElementById('heroLogo');
+        var portalA = document.getElementById('ctaFurry');
+        var portalB = document.getElementById('ctaExpress');
+
+        var cachedPositions = { logo: null, portalA: null, portalB: null };
+
+        function cachePositions() {
+            var hr = heroSection.getBoundingClientRect();
+            function center(el) {
+                if (!el) return null;
+                var r = el.getBoundingClientRect();
+                return { x: r.left - hr.left + r.width / 2, y: r.top - hr.top + r.height / 2 };
+            }
+            cachedPositions.logo = center(logo);
+            cachedPositions.portalA = center(portalA);
+            cachedPositions.portalB = center(portalB);
+        }
+
+        var canvasW = 0, canvasH = 0;
+        function resize() {
+            var rect = heroSection.getBoundingClientRect();
+            var newW = Math.round(rect.width);
+            var newH = Math.round(rect.height);
+            if (newW !== canvasW || newH !== canvasH) {
+                canvasW = newW;
+                canvasH = newH;
+                canvas.width = canvasW;
+                canvas.height = canvasH;
+            }
+            cachePositions();
+        }
+
+        resize();
+        var resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(resize, 200);
+        });
+
+        if (cachedPositions.logo) { wandX = cachedPositions.logo.x; wandY = cachedPositions.logo.y; }
+
+        setTimeout(function() { resize(); }, 2000);
+        setTimeout(function() { resize(); }, 5000);
+
+        function spawnStar(x, y, count) {
+            count = count || 1;
+            for (var n = 0; n < count; n++) {
+                if (particles.length > 150) return;
+                particles.push({
+                    x: x + (Math.random() - 0.5) * 12,
+                    y: y + (Math.random() - 0.5) * 12,
+                    size: Math.random() * 5 + 2.5,
+                    alpha: 1,
+                    decay: 0.004 + Math.random() * 0.006,
+                    rotation: Math.random() * Math.PI * 2,
+                    color: Math.random() > 0.4 ? '#FFD700' : (Math.random() > 0.5 ? '#ffffff' : '#FFF8DC')
+                });
+            }
+        }
+
+        function drawStar(cx, cy, r, rot, alpha, color) {
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(rot);
+            ctx.globalAlpha = alpha;
+            ctx.beginPath();
+            for (var i = 0; i < 5; i++) {
+                var a1 = (i * 72 - 90) * Math.PI / 180;
+                var a2 = ((i * 72) + 36 - 90) * Math.PI / 180;
+                if (i === 0) ctx.moveTo(Math.cos(a1) * r, Math.sin(a1) * r);
+                else ctx.lineTo(Math.cos(a1) * r, Math.sin(a1) * r);
+                ctx.lineTo(Math.cos(a2) * r * 0.4, Math.sin(a2) * r * 0.4);
+            }
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.shadowColor = color;
+            ctx.shadowBlur = r * 4;
+            ctx.fill();
+            ctx.restore();
+        }
+
+        var heroVisible = true;
+        var hiwVisible = false;
+        var hiwSection = document.getElementById('how-it-works');
+        var hiwMode = false;
+        var hiwStepIndex = 0;
+
+        if ('IntersectionObserver' in window) {
+            new IntersectionObserver(function(e) { heroVisible = e[0].isIntersecting; }, { threshold: 0.1 }).observe(heroSection);
+            if (hiwSection) {
+                new IntersectionObserver(function(e) {
+                    hiwVisible = e[0].isIntersecting;
+                    if (hiwVisible && !hiwMode && phase >= 6) {
+                        hiwMode = true;
+                        hiwStepIndex = 0;
+                        phase = 10;
+                        phaseTimer = 0;
+                        switchToFixed();
+                        cacheHiwPositions();
+                    }
+                }, { threshold: 0.3 }).observe(hiwSection);
+            }
+        }
+
+        var hiwPositions = [];
+        function cacheHiwPositions() {
+            hiwPositions = [];
+            for (var s = 1; s <= 5; s++) {
+                var el = document.getElementById('hiwStep' + s);
+                if (el) {
+                    var r = el.getBoundingClientRect();
+                    hiwPositions.push({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+                }
+            }
+        }
+
+        function switchToFixed() {
+            canvas.style.position = 'fixed';
+            canvas.style.top = '0';
+            canvas.style.left = '0';
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            canvasW = window.innerWidth;
+            canvasH = window.innerHeight;
+        }
+
+        function switchToHero() {
+            canvas.style.position = 'absolute';
+            canvas.style.top = '0';
+            canvas.style.left = '0';
+            resize();
+        }
+
+        var targets = [];
+        var frameCount = 0;
+
+        function updatePhase() {
+            phaseTimer++;
+            var lp = cachedPositions.logo;
+            var pa = cachedPositions.portalA;
+            var pb = cachedPositions.portalB;
+
+            if (phase === 10) {
+                if (hiwPositions.length > hiwStepIndex) {
+                    currentTarget = hiwPositions[hiwStepIndex];
+                }
+                if (phaseTimer > 70) {
+                    sparkBurst = true;
+                    hiwStepIndex++;
+                    phaseTimer = 0;
+                    if (hiwStepIndex >= 5) {
+                        phase = 11;
+                        phaseTimer = 0;
+                    }
+                }
+            } else if (phase === 11) {
+                wandAlpha -= 0.015;
+                if (wandAlpha <= 0) {
+                    wandAlpha = 0;
+                    hiwMode = false;
+                    phase = 0;
+                    phaseTimer = 0;
+                    switchToHero();
+                    if (lp) { wandX = lp.x; wandY = lp.y; }
+                }
+            } else if (phase === 0) {
+                if (lp) currentTarget = lp;
+                if (wandAlpha < 1) wandAlpha += 0.02;
+                if (phaseTimer > 120) { phase = 1; phaseTimer = 0; }
+            } else if (phase === 1) {
+                if (lp) {
+                    var t = phaseTimer / 180;
+                    currentTarget = { x: lp.x + Math.cos(t * Math.PI * 2) * 60, y: lp.y + Math.sin(t * Math.PI * 2) * 30 };
+                }
+                if (phaseTimer > 180) { phase = 2; phaseTimer = 0; }
+            } else if (phase === 2) {
+                if (pa) currentTarget = pa;
+                if (phaseTimer > 80) { sparkBurst = true; phase = 3; phaseTimer = 0; }
+            } else if (phase === 3) {
+                if (phaseTimer > 40) { phase = 4; phaseTimer = 0; }
+            } else if (phase === 4) {
+                if (pb) currentTarget = pb;
+                if (phaseTimer > 80) { sparkBurst = true; phase = 5; phaseTimer = 0; }
+            } else if (phase === 5) {
+                if (phaseTimer > 40) { phase = 6; phaseTimer = 0; }
+            } else if (phase >= 6) {
+                if (lp) currentTarget = lp;
+                if (phaseTimer > 100) { phase = 0; phaseTimer = 0; }
+            }
+        }
+
+        function animate() {
+            if (!heroVisible && !hiwVisible && !hiwMode) { requestAnimationFrame(animate); return; }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            frameCount++;
+            updatePhase();
+
+            var dx = currentTarget.x - wandX;
+            var dy = currentTarget.y - wandY;
+            wandX += dx * 0.03;
+            wandY += dy * 0.03;
+            angle = Math.atan2(dy, dx);
+
+            var wandSize = 80;
+            var tipAngle = angle + Math.PI * 0.75 - Math.PI / 2;
+            var tipX = wandX + Math.cos(tipAngle) * wandSize * 0.5;
+            var tipY = wandY + Math.sin(tipAngle) * wandSize * 0.5;
+
+            if (frameCount % 2 === 0) spawnStar(tipX, tipY, 2);
+            if (sparkBurst) { spawnStar(tipX, tipY, 18); sparkBurst = false; }
+
+            if (wandLoaded && wandAlpha > 0) {
+                ctx.save();
+                ctx.translate(wandX, wandY);
+                ctx.rotate(angle + Math.PI * 0.75);
+                ctx.globalAlpha = Math.min(wandAlpha, 0.9);
+                ctx.drawImage(wandImg, -wandSize / 2, -wandSize, wandSize, wandSize);
+                ctx.restore();
+            }
+
+            for (var i = particles.length - 1; i >= 0; i--) {
+                var p = particles[i];
+                p.alpha -= p.decay;
+                p.rotation += 0.02;
+                p.y -= 0.3;
+                if (p.alpha <= 0) { particles.splice(i, 1); continue; }
+                drawStar(p.x, p.y, p.size, p.rotation, p.alpha, p.color);
+            }
+
+            requestAnimationFrame(animate);
+        }
+        animate();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() { setTimeout(initWand, 1500); });
+    } else {
+        setTimeout(initWand, 1500);
+    }
+})();
+</script>
+
+<style>
+    .hiw-step {
+        position: relative;
+        text-align: center;
+        padding: 20px 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        transition: transform 0.4s ease, box-shadow 0.4s ease;
+        border-radius: 16px;
+    }
+    .hiw-cta-block {
+        grid-column: 1 / -1;
+        text-align: center;
+        margin-top: 0;
+    }
+    @media (min-width: 1024px) {
+        .hiw-cta-block {
+            grid-column: 3 / 6;
+            align-self: start;
+            margin-top: -160px;
+        }
+    }
+    .hiw-step:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 40px rgba(0,0,0,0.06);
+    }
+    .hiw-step.hiw-active {
+        transform: scale(1.04);
+    }
+    .hiw-num {
+        width: 40px; height: 40px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; font-weight: 700; font-size: 1rem;
+        flex-shrink: 0;
+        font-family: 'Playfair Display', serif;
+    }
+    .hiw-visual {
+        width: 100%; max-width: 150px; border-radius: 14px;
+        overflow: hidden; position: relative;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .hiw-visual img { width: 100%; display: block; }
+    @keyframes regen-cycle {
+        0%, 30% { opacity: 1; }
+        33%, 63% { opacity: 0; }
+        66%, 96% { opacity: 0; }
+        100% { opacity: 1; }
+    }
+    @keyframes regen-cycle-2 {
+        0%, 30% { opacity: 0; }
+        33%, 63% { opacity: 1; }
+        66%, 96% { opacity: 0; }
+        100% { opacity: 0; }
+    }
+    @keyframes regen-cycle-3 {
+        0%, 30% { opacity: 0; }
+        33%, 63% { opacity: 0; }
+        66%, 96% { opacity: 1; }
+        100% { opacity: 0; }
+    }
+    .regen-img-1 { animation: regen-cycle 6s ease-in-out infinite; }
+    .regen-img-2 { animation: regen-cycle-2 6s ease-in-out infinite; }
+    .regen-img-3 { animation: regen-cycle-3 6s ease-in-out infinite; }
+    @keyframes hiw-glow-pulse {
+        0%, 100% { opacity: 0.4; transform: scale(1); }
+        50% { opacity: 0.7; transform: scale(1.05); }
+    }
+    .hiw-magic-glow {
+        position: absolute;
+        top: 10px; left: 50%; transform: translateX(-50%);
+        width: 130px; height: 130px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(212,175,55,0.18) 0%, transparent 70%);
+        animation: hiw-glow-pulse 3s ease-in-out infinite;
+        pointer-events: none; z-index: 0;
+    }
+    #hiw-path-svg { display: none; }
+    @media (min-width: 1024px) {
+        #hiw-path-svg { display: block; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .regen-img-1, .regen-img-2, .regen-img-3 { animation: none !important; }
+        .regen-img-2, .regen-img-3 { display: none; }
+        .regen-img-1 { opacity: 1; }
+        .hiw-magic-glow { animation: none !important; opacity: 0.4; }
+        .hiw-step:hover { transform: none; }
+    }
+</style>
+<section id="how-it-works" class="py-16 md:py-20 px-4" style="background:#F9F9FB;">
+    <div class="mx-auto" style="max-width:1280px;position:relative;">
+        <div class="text-center mb-14">
+            <p style="font-family:'Quicksand',sans-serif;font-size:13px;color:#D4AF37;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">{% if lang == 'es' %}La Ruta de la Magia{% else %}The Path of Magic{% endif %}</p>
+            <h2 style="font-family:'Playfair Display',serif;font-size:2.2rem;color:#333;font-weight:700;margin-bottom:8px;">{% if lang == 'es' %}¿Cómo Funciona?{% else %}How Does It Work?{% endif %}</h2>
+            <p style="font-family:'Quicksand',sans-serif;font-size:15px;color:#888;max-width:500px;margin:0 auto;">{% if lang == 'es' %}En 5 simples pasos, creas un recuerdo que durará para siempre.{% else %}In 5 simple steps, you create a memory that lasts forever.{% endif %}</p>
+        </div>
+
+        <svg id="hiw-path-svg" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;" preserveAspectRatio="none">
+            <path id="hiw-curve" fill="none" stroke="url(#hiw-gold-grad)" stroke-width="2" stroke-dasharray="8,6" opacity="0.4"/>
+            <defs>
+                <linearGradient id="hiw-gold-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#D4AF37" stop-opacity="0.2"/>
+                    <stop offset="50%" stop-color="#D4AF37" stop-opacity="0.6"/>
+                    <stop offset="100%" stop-color="#D4AF37" stop-opacity="0.2"/>
+                </linearGradient>
+            </defs>
+        </svg>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-6" style="position:relative;z-index:1;">
+
+            <div class="hiw-step" id="hiwStep1">
+                <div class="hiw-num" style="background:linear-gradient(135deg,#B8860B,#D4AF37);">1</div>
+                <div class="hiw-visual">
+                    <img src="{{ url_for('static', filename='images/how_step_1_form.jpg') }}" alt="{% if lang == 'es' %}Personaliza{% else %}Personalize{% endif %}" loading="lazy">
+                </div>
+                <h3 style="font-family:'Playfair Display',serif;font-size:15px;color:#B8860B;font-weight:700;">{% if lang == 'es' %}Elige y Personaliza{% else %}Choose & Personalize{% endif %}</h3>
+                <p style="font-family:'Quicksand',sans-serif;font-size:12px;color:#666;line-height:1.5;">{% if lang == 'es' %}Escoge una historia, ajusta pelo, ojos, piel y nombre.{% else %}Pick a story, adjust hair, eyes, skin and name.{% endif %}</p>
+                <p style="font-family:'Quicksand',sans-serif;font-size:11px;color:#B8860B;margin-top:2px;">{% if lang == 'es' %}100% gratis{% else %}100% free{% endif %}</p>
+            </div>
+
+            <div class="hiw-step" id="hiwStep2">
+                <div class="hiw-num" style="background:linear-gradient(135deg,#B8860B,#D4AF37);">2</div>
+                <div class="hiw-visual">
+                    <img src="{{ url_for('static', filename='images/how_step_2_review.jpg') }}" alt="{% if lang == 'es' %}Revisa{% else %}Review{% endif %}" loading="lazy">
+                </div>
+                <h3 style="font-family:'Playfair Display',serif;font-size:15px;color:#B8860B;font-weight:700;">{% if lang == 'es' %}Revisa tu Cuento{% else %}Review Your Story{% endif %}</h3>
+                <p style="font-family:'Quicksand',sans-serif;font-size:12px;color:#666;line-height:1.5;">{% if lang == 'es' %}Ve tu portada, el resumen y los textos generados con IA.{% else %}See your cover, summary and AI-generated texts.{% endif %}</p>
+                <p style="font-family:'Quicksand',sans-serif;font-size:11px;color:#B8860B;margin-top:2px;">{% if lang == 'es' %}Aprueba antes de pagar{% else %}Approve before paying{% endif %}</p>
+            </div>
+
+            <div class="hiw-step" id="hiwStep3">
+                <div class="hiw-num" style="background:linear-gradient(135deg,#B8860B,#D4AF37);">3</div>
+                <div class="hiw-visual" style="max-width:120px;background:linear-gradient(135deg,#FEFCE8,#FEF3C7);border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(212,175,55,0.1);">
+                    <svg class="w-12 h-12 mx-auto" style="color:#B8860B;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                    <div class="flex justify-center gap-1 mt-3">
+                        <div style="width:24px;height:15px;border-radius:3px;background:linear-gradient(135deg,#1a1f71,#2557d6);opacity:0.5;"></div>
+                        <div style="width:24px;height:15px;border-radius:3px;background:linear-gradient(135deg,#eb001b,#f79e1b);opacity:0.5;"></div>
+                    </div>
+                </div>
+                <h3 style="font-family:'Playfair Display',serif;font-size:15px;color:#B8860B;font-weight:700;">{% if lang == 'es' %}Paga Seguro{% else %}Pay Securely{% endif %}</h3>
+                <p style="font-family:'Quicksand',sans-serif;font-size:12px;color:#666;line-height:1.5;">{% if lang == 'es' %}Desde $7 eBook, desde $20 PDF imprimible, desde $30 libro impreso.{% else %}From $7 eBook, from $20 printable PDF, from $30 printed book.{% endif %}</p>
+            </div>
+
+            <div class="hiw-step" id="hiwStep4" style="position:relative;">
+                <div class="hiw-magic-glow"></div>
+                <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:10px;">
+                    <div class="hiw-num" style="background:linear-gradient(135deg,#B8860B,#D4AF37);box-shadow:0 0 20px rgba(212,175,55,0.3);">4</div>
+                    <div class="hiw-visual" style="max-width:150px;aspect-ratio:1;position:relative;">
+                        <img src="{{ url_for('static', filename='images/how_step_4_scene.jpg') }}" alt="{% if lang == 'es' %}Escena original{% else %}Original scene{% endif %}" class="regen-img-1" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy">
+                        <img src="{{ url_for('static', filename='images/how_step_4_regen.jpg') }}" alt="{% if lang == 'es' %}Regenerar{% else %}Regenerate{% endif %}" class="regen-img-2" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy">
+                        <img src="{{ url_for('static', filename='images/how_step_4_result.jpg') }}" alt="{% if lang == 'es' %}Resultado{% else %}Result{% endif %}" class="regen-img-3" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy">
+                    </div>
+                    <h3 style="font-family:'Playfair Display',serif;font-size:15px;color:#B8860B;font-weight:700;">{% if lang == 'es' %}Tú Tienes el Control{% else %}You're in Control{% endif %}</h3>
+                    <div style="text-align:left;width:100;">
+                        <p style="font-family:'Quicksand',sans-serif;font-size:11px;color:#555;line-height:1.6;">{% if lang == 'es' %}Regenera cualquier escena. 1 cambio de historia. Al confirmar, se envía.{% else %}Regenerate any scene. 1 story switch. Once confirmed, it ships.{% endif %}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hiw-step" id="hiwStep5">
+                <div class="hiw-num" style="background:linear-gradient(135deg,#B8860B,#D4AF37);">5</div>
+                <div class="hiw-visual">
+                    <img src="{{ url_for('static', filename='images/how_step_5_ebook.jpg') }}" alt="{% if lang == 'es' %}eBook{% else %}eBook{% endif %}" loading="lazy">
+                </div>
+                <h3 style="font-family:'Playfair Display',serif;font-size:15px;color:#B8860B;font-weight:700;">{% if lang == 'es' %}Recibe tu Libro{% else %}Receive Your Book{% endif %}</h3>
+                <p style="font-family:'Quicksand',sans-serif;font-size:12px;color:#666;line-height:1.5;">{% if lang == 'es' %}eBook instantáneo por email. Libro en tapa dura en 7-14 días.{% else %}Instant eBook by email. Hardcover book in 7-14 days.{% endif %}</p>
+                <p style="font-family:'Quicksand',sans-serif;font-size:11px;color:#B8860B;margin-top:2px;">{% if lang == 'es' %}Digital + impreso{% else %}Digital + printed{% endif %}</p>
+            </div>
+
+            <div class="hiw-cta-block" style="display:flex;flex-direction:column;align-items:center;">
+                <p style="font-family:'Playfair Display',serif;font-size:1rem;color:#B8860B;font-weight:600;line-height:1.5;">{% if lang == 'es' %}No olvides escribir tu dedicatoria especial y el nombre del autor{% else %}Don't forget to write your special dedication and the author's name{% endif %}</p>
+                <p style="font-family:'Quicksand',sans-serif;font-size:12px;color:#888;margin-top:2px;">{% if lang == 'es' %}Tu libro llevará un toque personal único{% else %}Your book will have a unique personal touch{% endif %}</p>
+                <div style="margin-top:10px;">
+                    <a href="{{ url_for('story_selection') }}" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#D4AF37,#B8860B);color:#fff;font-family:'Quicksand',sans-serif;font-weight:700;font-size:15px;padding:12px 32px;border-radius:30px;text-decoration:none;transition:all 0.3s;box-shadow:0 4px 16px rgba(212,175,55,0.25);" onmouseover="this.style.boxShadow='0 6px 24px rgba(212,175,55,0.4)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='0 4px 16px rgba(212,175,55,0.25)';this.style.transform='none'">
+                        {% if lang == 'es' %}Comenzar Ahora{% else %}Start Now{% endif %}
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                    </a>
+                    <p style="font-family:'Quicksand',sans-serif;font-size:11px;color:#AAA;margin-top:6px;">{% if lang == 'es' %}Sin tarjeta de crédito para personalizar. Pago seguro con Paddle.{% else %}No credit card needed to personalize. Secure payment with Paddle.{% endif %}</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+<script>
+(function(){
+    function drawHiwPath(){
+        if(window.innerWidth<1024)return;
+        var svg=document.getElementById('hiw-path-svg');
+        var curve=document.getElementById('hiw-curve');
+        if(!svg||!curve)return;
+        var section=document.getElementById('how-it-works');
+        var sr=section.getBoundingClientRect();
+        var pts=[];
+        for(var i=1;i<=5;i++){
+            var el=document.getElementById('hiwStep'+i);
+            if(el){var r=el.getBoundingClientRect();pts.push({x:r.left-sr.left+r.width/2,y:r.top-sr.top+40});}
+        }
+        if(pts.length<2)return;
+        var d='M '+pts[0].x+' '+pts[0].y;
+        for(var j=0;j<pts.length-1;j++){
+            var cx=(pts[j].x+pts[j+1].x)/2;
+            var cy=pts[j].y+(j%2===0?-20:20);
+            d+=' Q '+cx+' '+cy+' '+pts[j+1].x+' '+pts[j+1].y;
+        }
+        curve.setAttribute('d',d);
+    }
+    if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){setTimeout(drawHiwPath,500);});}
+    else{setTimeout(drawHiwPath,500);}
+    window.addEventListener('resize',drawHiwPath);
+})();
+</script>
+
+<section id="products" class="py-16 md:py-20 px-4 bg-gradient-to-br from-purple-50 via-pink-50 to-amber-50">
+    <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-12">
+            <h2 class="font-display text-3xl md:text-4xl font-bold text-purple-800 mb-3">{% if lang == 'es' %}Nuestros Libros Mágicos{% else %}Our Magical Books{% endif %}</h2>
+            <p class="text-gray-600 text-lg max-w-2xl mx-auto">{% if lang == 'es' %}Elige el formato perfecto para crear un recuerdo inolvidable.{% else %}Choose the perfect format to create an unforgettable memory.{% endif %}</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <a href="{{ url_for('story_selection') }}" class="product-card group block bg-white rounded-2xl shadow-lg overflow-hidden">
+                <div class="relative aspect-square overflow-hidden">
+                    <img src="{{ url_for('static', filename='images/hero_express.jpg') }}" alt="{% if lang == 'es' %}Cuentos Mágicos Express{% else %}Magic Express Stories{% endif %}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                    <div class="absolute top-2 left-2 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg">
+                        {% if lang == 'es' %}Regalo listo en 5 min{% else %}Gift ready in 5 min{% endif %}
+                    </div>
+                    <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/50 to-transparent h-16"></div>
+                </div>
+                <div class="p-4">
+                    <h3 class="font-display text-base font-bold text-purple-800 mb-1">{% if lang == 'es' %}Cuentos Mágicos Express{% else %}Magic Express Stories{% endif %}</h3>
+                    <p class="text-gray-600 text-xs mb-3 leading-relaxed">{% if lang == 'es' %}12 páginas ilustradas, 8.5" × 8.5", edades 0-8. PDF imprimible inmediato. eBook. Opción impreso 10-15 días.{% else %}12 illustrated pages, 8.5" × 8.5", ages 0-8. Printable PDF instant. eBook. Print option 10-15 days.{% endif %}</p>
+                    <div class="flex items-center justify-between">
+                        <span class="text-lg font-bold text-purple-700">{% if lang == 'es' %}Desde{% else %}From{% endif %} $7</span>
+                        <span class="bg-purple-100 text-purple-700 font-semibold px-3 py-1.5 rounded-full text-xs group-hover:bg-purple-600 group-hover:text-white transition-colors">{% if lang == 'es' %}Explorar{% else %}Explore{% endif %} &rarr;</span>
+                    </div>
+                </div>
+            </a>
+
+            <a href="{{ url_for('personalized_books') }}" class="product-card group block bg-white rounded-2xl shadow-lg overflow-hidden">
+                <div class="relative aspect-square overflow-hidden">
+                    <img src="{{ url_for('static', filename='images/hero_adventures.jpg') }}" alt="{% if lang == 'es' %}Aventuras a tu Medida{% else %}Adventures Made for You{% endif %}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                    <div class="absolute top-2 left-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg">
+                        {% if lang == 'es' %}Incluye eBook de regalo{% else %}Includes free eBook{% endif %}
+                    </div>
+                    <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/50 to-transparent h-16"></div>
+                </div>
+                <div class="p-4">
+                    <h3 class="font-display text-base font-bold text-purple-800 mb-1">{% if lang == 'es' %}Aventuras a tu Medida{% else %}Adventures Made for You{% endif %}</h3>
+                    <p class="text-gray-600 text-xs mb-3 leading-relaxed">{% if lang == 'es' %}24 páginas, A4, edades 3-8. Impreso 10-15 días a tu puerta. eBook de regalo (6 meses).{% else %}24 pages, A4, ages 3-8. Printed 10-15 days to your door. Free eBook gift (6 months).{% endif %}</p>
+                    <div class="flex items-center justify-between">
+                        <span class="text-lg font-bold text-emerald-700">{% if lang == 'es' %}Desde{% else %}From{% endif %} $30</span>
+                        <span class="bg-emerald-100 text-emerald-700 font-semibold px-3 py-1.5 rounded-full text-xs group-hover:bg-emerald-600 group-hover:text-white transition-colors">{% if lang == 'es' %}Crear{% else %}Create{% endif %} &rarr;</span>
+                    </div>
+                </div>
+            </a>
+
+            <a href="{{ url_for('furry_love_catalog') }}" class="product-card group block bg-white rounded-2xl shadow-lg overflow-hidden">
+                <div class="relative aspect-square overflow-hidden">
+                    <img src="{{ url_for('static', filename='images/hero_furry.jpg') }}" alt="{% if lang == 'es' %}Tú y tu Amor Peludo{% else %}You & Your Furry Love{% endif %}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                    <div class="absolute top-2 left-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg">
+                        {% if lang == 'es' %}Perros y gatos{% else %}Dogs & cats{% endif %}
+                    </div>
+                    <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/50 to-transparent h-16"></div>
+                </div>
+                <div class="p-4">
+                    <h3 class="font-display text-base font-bold text-purple-800 mb-1">{% if lang == 'es' %}Tú y tu Amor Peludo{% else %}You & Your Furry Love{% endif %}</h3>
+                    <p class="text-gray-600 text-xs mb-3 leading-relaxed">{% if lang == 'es' %}Sube tu foto y tu mascota. 24 páginas, A4, todas las edades. Impreso 10-15 días. eBook de regalo.{% else %}Upload your photo and your pet. 24 pages, A4, all ages. Printed 10-15 days. Free eBook gift.{% endif %}</p>
+                    <div class="flex items-center justify-between">
+                        <span class="text-lg font-bold text-amber-700">{% if lang == 'es' %}Desde{% else %}From{% endif %} $30</span>
+                        <span class="bg-amber-100 text-amber-700 font-semibold px-3 py-1.5 rounded-full text-xs group-hover:bg-amber-600 group-hover:text-white transition-colors">{% if lang == 'es' %}Crear{% else %}Create{% endif %} &rarr;</span>
+                    </div>
+                </div>
+            </a>
+
+            <a href="{{ url_for('stories_birthday') }}" class="product-card group block bg-white rounded-2xl shadow-lg overflow-hidden relative">
+                <div class="relative aspect-square overflow-hidden">
+                    <img src="{{ url_for('static', filename='images/cover_birthday_celebration.jpg') }}" alt="{% if lang == 'es' %}Cuentos de Cumple{% else %}Birthday Tales{% endif %}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                    <div class="absolute top-2 left-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg">
+                        {% if lang == 'es' %}El regalo perfecto{% else %}The perfect gift{% endif %} 🎈
+                    </div>
+                    <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/50 to-transparent h-16"></div>
+                </div>
+                <div class="p-4">
+                    <h3 class="font-display text-base font-bold text-purple-800 mb-1">{% if lang == 'es' %}Cuentos de Cumple{% else %}Birthday Tales{% endif %}</h3>
+                    <p class="text-gray-600 text-xs mb-3 leading-relaxed">{% if lang == 'es' %}El regalo perfecto para la fiesta. Un cuento donde el cumpleañero es la estrella. Imprímelo al instante o regala el eBook.{% else %}The perfect party gift. A story where the birthday child is the star. Print instantly or gift the eBook.{% endif %}</p>
+                    <div class="flex items-center justify-between">
+                        <span class="text-lg font-bold text-pink-700">{% if lang == 'es' %}Desde{% else %}From{% endif %} $7</span>
+                        <span class="bg-pink-100 text-pink-700 font-semibold px-3 py-1.5 rounded-full text-xs group-hover:bg-pink-600 group-hover:text-white transition-colors">{% if lang == 'es' %}Ver Cuentos{% else %}See Stories{% endif %} &rarr;</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+</section>
+
+<section class="py-12 md:py-16 px-4 bg-white overflow-hidden">
+    <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-8">
+            <h2 class="font-display text-3xl md:text-4xl font-bold text-purple-800 mb-3">{% if lang == 'es' %}Galería de Portadas{% else %}Cover Gallery{% endif %}</h2>
+            <p class="text-gray-600 text-lg">{% if lang == 'es' %}Cada historia es única, cada ilustración irrepetible.{% else %}Every story is unique, every illustration unrepeatable.{% endif %}</p>
+        </div>
+    </div>
+    <div class="relative w-full overflow-hidden">
+        <div class="marquee-track">
+            {% set covers = [
+                ('cover_dragon_garden.jpg', 'El Jardín del Dragón', 'Dragon Garden'),
+                ('cover_magic_chef.jpg', 'El Chef Mágico', 'The Magic Chef'),
+                ('cover_space_astronaut.jpg', 'Astronauta Espacial', 'Space Astronaut'),
+                ('cover_baby_soft_world.jpg', 'Mundo Suave', 'Soft World'),
+                ('cover_baby_puppy_love.jpg', 'Mi Perrito', 'My Puppy'),
+                ('cover_superhero_light.jpg', 'Superhéroe de la Luz', 'Superhero of Light'),
+                ('cover_star_guardian.jpg', 'Guardián de Estrellas', 'Star Guardian'),
+                ('cover_furry_love.jpg', 'Tu Amor Peludo', 'Your Furry Love'),
+                ('cover_furry_love_adventure.jpg', 'Aventura Peluda', 'Furry Adventure'),
+                ('cover_furry_love_teen.jpg', 'Amor Peludo Teen', 'Furry Love Teen'),
+                ('cover_magic_inventor.jpg', 'El Inventor Mágico', 'Magic Inventor'),
+                ('cover_star_keeper.jpg', 'Guardián de Estrellas', 'Star Keeper'),
+                ('cover_birthday_celebration.jpg', 'Cumpleaños Mágico', 'Magic Birthday'),
+                ('cover_zebra_stripes.jpg', 'La Cebra Única', 'Unique Zebra'),
+                ('cover_baby_guardian_light.jpg', 'Guardián de Luz', 'Guardian of Light'),
+                ('cover_dog_forever.jpg', 'Mi Perro Para Siempre', 'My Dog Forever'),
+                ('cover_baby_first_pet.jpg', 'Mi Primera Mascota', 'My First Pet'),
+                ('cover_furry_love_adult.jpg', 'Amor Peludo Adulto', 'Furry Love Adult'),
+                ('cover_dragon_friend.jpg', 'Amigo Dragón', 'Dragon Friend'),
+                ('cover_chronicles_valley.jpg', 'Crónicas del Valle', 'Valley Chronicles'),
+                ('cover_sunset_map.jpg', 'Mapa del Atardecer', 'Sunset Map')
+            ] %}
+            {% for filename, name_es, name_en in covers %}
+            <div class="gallery-item flex-shrink-0 mx-2">
+                <div class="w-36 md:w-44 rounded-xl overflow-hidden shadow-md relative group cursor-pointer">
+                    <img src="{{ url_for('static', filename='images/' + filename) }}" alt="{{ name_es if lang == 'es' else name_en }}" class="w-full aspect-square object-cover" loading="lazy">
+                    <div class="absolute inset-0 bg-gradient-to-t from-purple-900/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-3">
+                        <span class="text-white text-xs font-bold text-center px-2">{{ name_es if lang == 'es' else name_en }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% for filename, name_es, name_en in covers %}
+            <div class="gallery-item flex-shrink-0 mx-2">
+                <div class="w-36 md:w-44 rounded-xl overflow-hidden shadow-md relative group cursor-pointer">
+                    <img src="{{ url_for('static', filename='images/' + filename) }}" alt="{{ name_es if lang == 'es' else name_en }}" class="w-full aspect-square object-cover" loading="lazy">
+                    <div class="absolute inset-0 bg-gradient-to-t from-purple-900/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-3">
+                        <span class="text-white text-xs font-bold text-center px-2">{{ name_es if lang == 'es' else name_en }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<div style="text-align:center;margin:24px 0 16px;">
+    <h2 style="font-family:'Playfair Display',serif;font-size:1.8rem;color:#B8860B;font-weight:700;margin-bottom:4px;">{% if lang == 'es' %}Historias que Enamoran{% else %}Stories That Inspire Love{% endif %}</h2>
+    <p style="font-family:'Quicksand',sans-serif;font-size:13px;color:#999;">{% if lang == 'es' %}Más de 500 cuentos mágicos creados{% else %}Over 500 magical stories created{% endif %} &#9733;</p>
+</div>
+<div style="overflow:hidden;width:100%;padding:8px 0 20px;">
+    <div class="testimonial-marquee">
+        {% set testimonials = [
+            {'initial': 'M', 'name': 'María G.', 'color': '#C084FC',
+             'es': 'Mi hija no podía creer que ella era la protagonista. ¡Lo leemos todas las noches!',
+             'en': 'My daughter couldn\'t believe she was the star. We read it every night!'},
+            {'initial': 'C', 'name': 'Carlos R.', 'color': '#60A5FA',
+             'es': 'El mejor regalo de cumpleaños. Lo imprimí y lo llevé a la fiesta en 20 minutos.',
+             'en': 'The best birthday gift. I printed it and took it to the party in 20 minutes.'},
+            {'initial': 'A', 'name': 'Ana P.', 'color': '#FBBF24',
+             'es': 'Incluimos a nuestra perrita Luna y el resultado fue increíble. Un recuerdo para toda la vida.',
+             'en': 'We included our dog Luna and the result was incredible. A memory for a lifetime.'},
+            {'initial': 'L', 'name': 'Laura M.', 'color': '#F472B6',
+             'es': 'Llegó a tiempo para Navidad. La calidad del libro es increíble, parece de librería.',
+             'en': 'It arrived in time for Christmas. The book quality is incredible, looks like a bookstore book.'},
+            {'initial': 'P', 'name': 'Pedro S.', 'color': '#34D399',
+             'es': 'Mi hijo se emociona cada vez que ve su nombre en el cuento. Vale cada centavo.',
+             'en': 'My son gets excited every time he sees his name in the story. Worth every penny.'},
+            {'initial': 'D', 'name': 'Diana L.', 'color': '#A78BFA',
+             'es': 'Lo regalé en un baby shower y fue el regalo más original de todos.',
+             'en': 'I gave it as a baby shower gift and it was the most original gift of all.'},
+            {'initial': 'R', 'name': 'Roberto K.', 'color': '#FB923C',
+             'es': 'Las ilustraciones parecen de película Disney. Mi hija dice que es su libro favorito.',
+             'en': 'The illustrations look like a Disney movie. My daughter says it\'s her favorite book.'},
+            {'initial': 'J', 'name': 'Javier T.', 'color': '#38BDF8',
+             'es': 'Mi esposa lloró de la emoción al verlo. Un regalo que no se olvida.',
+             'en': 'My wife cried with emotion when she saw it. A gift you never forget.'}
+        ] %}
+        {% for t in testimonials + testimonials %}
+        <div class="tcard">
+            <div style="color:#D4AF37;font-size:12px;margin-bottom:6px;">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+            <p style="font-family:'Quicksand',sans-serif;font-size:12px;color:#444;line-height:1.5;margin-bottom:10px;font-style:italic;">"{{ t.es if lang == 'es' else t.en }}"</p>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <div style="width:28px;height:28px;border-radius:50%;background:{{ t.color }};display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;">{{ t.initial }}</div>
+                <span style="font-family:'Quicksand',sans-serif;font-size:12px;color:#666;font-weight:600;">— {{ t.name }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+<style>
+    .testimonial-marquee {
+        display: flex;
+        gap: 16px;
+        animation: marquee-testimonials 40s linear infinite;
+        width: max-content;
+    }
+    .testimonial-marquee:hover { animation-play-state: paused; }
+    .tcard {
+        flex-shrink: 0;
+        width: 250px;
+        padding: 16px;
+        border-radius: 14px;
+        background: rgba(139,92,246,0.05);
+        border: 1px solid rgba(139,92,246,0.1);
+        transition: box-shadow 0.3s;
+    }
+    .tcard:hover {
+        box-shadow: 0 8px 30px rgba(139,92,246,0.1);
+    }
+    @keyframes marquee-testimonials {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .testimonial-marquee { animation: none; flex-wrap: wrap; justify-content: center; }
+    }
+</style>
+
+<section class="py-16 md:py-20 px-4 bg-white">
+    <div class="max-w-5xl mx-auto">
+        <div class="text-center mb-12">
+            <h2 class="font-display text-3xl md:text-4xl font-bold text-purple-800 mb-3">{% if lang == 'es' %}Formatos de Entrega{% else %}Delivery Formats{% endif %}</h2>
+            <p class="text-gray-600 text-lg">{% if lang == 'es' %}La personalización del personaje siempre es GRATUITA. Solo pagas si te gusta.{% else %}Character personalization is always FREE. You only pay if you like it.{% endif %}</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-5 text-center border-2 border-purple-100 hover:border-purple-300 transition-colors">
+                <div class="w-14 h-14 mx-auto mb-3 bg-purple-100 rounded-2xl flex items-center justify-center">
+                    <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                </div>
+                <h3 class="font-display text-lg font-bold text-purple-800 mb-1">eBook</h3>
+                <p class="text-2xl font-bold text-purple-700 mb-1">$7</p>
+                <p class="text-xs text-gray-400 mb-3">{% if lang == 'es' %}Todos los cuentos{% else %}All stories{% endif %}</p>
+                <ul class="text-left text-xs text-gray-600 space-y-1.5">
+                    <li class="flex items-start gap-1.5"><svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>{% if lang == 'es' %}Visor interactivo con flipbook{% else %}Interactive flipbook viewer{% endif %}</li>
+                    <li class="flex items-start gap-1.5"><svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>{% if lang == 'es' %}Narración por voz + música{% else %}Voice narration + music{% endif %}</li>
+                    <li class="flex items-start gap-1.5"><svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>{% if lang == 'es' %}Acceso permanente{% else %}Permanent access{% endif %}</li>
+                    <li class="flex items-start gap-1.5"><svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>{% if lang == 'es' %}Entrega instantánea{% else %}Instant delivery{% endif %}</li>
+                    <li class="flex items-start gap-1.5"><svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>{% if lang == 'es' %}Comparte el link — cualquier dispositivo{% else %}Share the link — any device{% endif %}</li>
+                </ul>
+                <div class="mt-3 pt-2.5 border-t border-purple-200">
+                    <p class="text-xs text-purple-600 font-medium">{% if lang == 'es' %}Gratis (6 meses) con PDF o impreso{% else %}Free (6 months) with PDF or print{% endif %}</p>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-5 text-center border-2 border-emerald-100 hover:border-emerald-300 transition-colors">
+                <div class="w-14 h-14 mx-auto mb-3 bg-emerald-100 rounded-2xl flex items-center justify-center">
+                    <svg class="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                </div>
+                <h3 class="font-display text-lg font-bold text-purple-800 mb-1">{% if lang == 'es' %}PDF Imprimible{% else %}Printable PDF{% endif %}</h3>
+                <p class="text-2xl font-bold text-emerald-700 mb-1">$20</p>
+                <p class="text-xs text-gray-400 mb-3">{% if lang == 'es' %}8.5" × 8.5" — Todos los cuentos{% else %}8.5" × 8.5" — All stories{% endif %}</p>
+                <ul class="text-left text-xs text-gray-600 space-y-1.5">
+                    <li class="flex items-start gap-1.5"><svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>{% if lang == 'es' %}PDF de alta resolución{% else %}High-resolution PDF{% endif %}</li>
+                    <li class="flex items-start gap-1.5"><svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>{% if lang == 'es' %}Imprime en casa o imprenta{% else %}Print at home or print shop{% endif %}</li>
+                    <li class="flex items-start gap-1.5"><svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>{% if lang == 'es' %}Incluye eBook de regalo (6 meses){% else %}Includes free eBook (6 months){% endif %}</li>
+                    <li class="flex items-start gap-1.5"><svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>{% if lang == 'es' %}Entrega inmediata por email{% else %}Instant email delivery{% endif %}</li>
+                </ul>
+            </div>
+
+            <div class="bg-gradient-to-br from-sky-50 to-blue-50 rounded-2xl p-5 text-center border-2 border-sky-100 hover:border-sky-300 transition-colors">
+                <div class="w-14 h-14 mx-auto mb-3 bg-sky-100 rounded-2xl flex items-center justify-center">
+                    <svg class="w-8 h-8 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                </div>
+                <h3 class="font-display text-lg font-bold text-purple-800 mb-1">{% if lang == 'es' %}Impreso Cuadrado{% else %}Square Print{% endif %}</h3>
+                <p class="text-2xl font-bold text-sky-700 mb-1">{% if lang == 'es' %}$20 + envío{% else %}$20 + shipping{% endif %}</p>
+                <p class="text-xs text-gray-400 mb-3">{% if lang == 'es' %}8.5" × 8.5" — Cuentos Mágicos Express{% else %}8.5" × 8.5" — Magic Express Stories{% endif %}</p>
+                <ul class="text-left text-xs text-gray-600 space-y-1.5">
+                    <li class="flex items-start gap-1.5"><svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>{% if lang == 'es' %}Impresión profesional a color{% else %}Professional color printing{% endif %}</li>
+                    <li class="flex items-start gap-1.5"><svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>{% if lang == 'es' %}Envío a 150+ países{% else %}Ships to 150+ countries{% endif %}</li>
+                    <li class="flex items-start gap-1.5"><svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>{% if lang == 'es' %}Incluye eBook de regalo (6 meses){% else %}Includes free eBook (6 months){% endif %}</li>
+                    <li class="flex items-start gap-1.5"><svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>{% if lang == 'es' %}10-15 días a tu puerta{% else %}10-15 days to your door{% endif %}</li>
+                </ul>
+            </div>
+
+            <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-5 text-center border-2 border-amber-200 hover:border-amber-400 transition-colors relative">
+                <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-4 py-1 rounded-full shadow-lg">
+                    {% if lang == 'es' %}MÁS POPULAR{% else %}MOST POPULAR{% endif %}
+                </div>
+                <div class="w-14 h-14 mx-auto mb-3 bg-amber-100 rounded-2xl flex items-center justify-center">
+                    <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                </div>
+                <h3 class="font-display text-lg font-bold text-purple-800 mb-1">{% if lang == 'es' %}Libro Tapa Dura{% else %}Hardcover Book{% endif %}</h3>
+                <p class="text-2xl font-bold text-amber-700 mb-1">{% if lang == 'es' %}$30 + envío{% else %}$30 + shipping{% endif %}</p>
+                <p class="text-xs text-gray-400 mb-3">{% if lang == 'es' %}A4 — Aventuras y Tu Amor Peludo{% else %}A4 — Adventures & Your Furry Love{% endif %}</p>
+                <ul class="text-left text-xs text-gray-600 space-y-1.5">
+                    <li class="flex items-start gap-1.5"><svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>{% if lang == 'es' %}Tapa dura, papel premium{% else %}Hardcover, premium paper{% endif %}</li>
+                    <li class="flex items-start gap-1.5"><svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>{% if lang == 'es' %}Envío a 150+ países (impresora global){% else %}Ships to 150+ countries (global printer){% endif %}</li>
+                    <li class="flex items-start gap-1.5"><svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>{% if lang == 'es' %}Incluye eBook de regalo (6 meses){% else %}Includes free eBook (6 months){% endif %}</li>
+                    <li class="flex items-start gap-1.5"><svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>{% if lang == 'es' %}10-15 días a tu puerta{% else %}10-15 days to your door{% endif %}</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="mt-8 max-w-2xl mx-auto bg-gradient-to-r from-purple-50 via-pink-50 to-amber-50 rounded-2xl p-5 border border-purple-200">
+            <div class="text-center">
+                <p class="font-display font-bold text-purple-800 text-sm mb-2">{% if lang == 'es' %}Combina formatos a tu gusto{% else %}Combine formats as you like{% endif %}</p>
+                <p class="text-gray-600 text-xs leading-relaxed">{% if lang == 'es' %}Al pagar puedes seleccionar varias opciones: PDF para imprimir por tu cuenta, libro impreso enviado a tu puerta, y/o eBook permanente ($7). Todo en un mismo pedido.{% else %}At checkout you can select multiple options: PDF to print yourself, printed book shipped to your door, and/or permanent eBook ($7). All in a single order.{% endif %}</p>
+                <div class="flex items-center justify-center gap-3 mt-3">
+                    <span class="inline-flex items-center gap-1 text-xs bg-white px-2.5 py-1 rounded-full border border-gray-200 text-gray-600"><svg class="w-3.5 h-3.5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>PDF</span>
+                    <span class="text-gray-300">+</span>
+                    <span class="inline-flex items-center gap-1 text-xs bg-white px-2.5 py-1 rounded-full border border-gray-200 text-gray-600"><svg class="w-3.5 h-3.5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>{% if lang == 'es' %}Impreso{% else %}Print{% endif %}</span>
+                    <span class="text-gray-300">+</span>
+                    <span class="inline-flex items-center gap-1 text-xs bg-white px-2.5 py-1 rounded-full border border-gray-200 text-gray-600"><svg class="w-3.5 h-3.5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>eBook</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-16 md:py-20 px-4 bg-gradient-to-br from-purple-100 via-pink-100 to-amber-100">
+    <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-8">
+            <h2 class="font-display text-3xl md:text-4xl font-bold text-purple-800 mb-3">{% if lang == 'es' %}Preguntas Frecuentes{% else %}Frequently Asked Questions{% endif %}</h2>
+        </div>
+
+        <div class="space-y-4">
+            <details class="group bg-white rounded-2xl shadow-md overflow-hidden">
+                <summary class="flex items-center justify-between p-5 cursor-pointer list-none">
+                    <h3 class="font-display text-lg font-bold text-purple-800">{% if lang == 'es' %}¿Realmente es gratis personalizar?{% else %}Is personalization really free?{% endif %}</h3>
+                    <svg class="w-5 h-5 text-purple-600 transform transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </summary>
+                <div class="px-5 pb-5 text-gray-600">
+                    {% if lang == 'es' %}¡Sí! Puedes personalizar el personaje (pelo, ojos, piel), ver la portada y leer los textos sin pagar nada. Solo pagas cuando estés satisfecho con el resultado.{% else %}Yes! You can personalize the character (hair, eyes, skin), see the cover and read the texts without paying anything. You only pay when you're satisfied with the result.{% endif %}
+                </div>
+            </details>
+
+            <details class="group bg-white rounded-2xl shadow-md overflow-hidden">
+                <summary class="flex items-center justify-between p-5 cursor-pointer list-none">
+                    <h3 class="font-display text-lg font-bold text-purple-800">{% if lang == 'es' %}¿Puedo regenerar las ilustraciones?{% else %}Can I regenerate illustrations?{% endif %}</h3>
+                    <svg class="w-5 h-5 text-purple-600 transform transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </summary>
+                <div class="px-5 pb-5 text-gray-600">
+                    {% if lang == 'es' %}¡Absolutamente! Antes de pagar, puedes regenerar la portada y la vista previa del personaje las veces que necesites. Después del pago, también puedes regenerar cada ilustración individual hasta que quede perfecta.{% else %}Absolutely! Before paying, you can regenerate the cover and character preview as many times as you need. After payment, you can also regenerate each individual illustration until it's perfect.{% endif %}
+                </div>
+            </details>
+
+            <details class="group bg-white rounded-2xl shadow-md overflow-hidden">
+                <summary class="flex items-center justify-between p-5 cursor-pointer list-none">
+                    <h3 class="font-display text-lg font-bold text-purple-800">{% if lang == 'es' %}¿Qué formatos recibo?{% else %}What formats do I receive?{% endif %}</h3>
+                    <svg class="w-5 h-5 text-purple-600 transform transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </summary>
+                <div class="px-5 pb-5 text-gray-600">
+                    {% if lang == 'es' %}<strong>eBook ($7):</strong> Visor interactivo con flipbook, narración y música. Acceso permanente. Disponible para todos los cuentos. Se ve en cualquier dispositivo copiando el link. Si compras otro formato, te lo regalamos con acceso a 6 meses.<br><strong>PDF Imprimible ($20):</strong> PDF de alta resolución 8.5" × 8.5". Imprime en casa o imprenta. Incluye eBook de regalo (6 meses).<br><strong>Impreso Cuadrado ($20 + envío):</strong> 8.5" × 8.5" para Cuentos Mágicos Express. Impresión profesional, envío a 150+ países. 10-15 días. Incluye eBook (6 meses).<br><strong>Libro Tapa Dura ($30 + envío):</strong> Tamaño A4, papel premium. Para Aventuras a tu Medida y Tu Amor Peludo. 10-15 días a tu puerta. Incluye eBook (6 meses).<br><br>Puedes combinar formatos al pagar: PDF + impreso + eBook permanente, todo en un pedido.{% else %}<strong>eBook ($7):</strong> Interactive flipbook viewer with narration and music. Permanent access. All stories. Viewable on any device via link. Included free (6 months) with any other format.<br><strong>Printable PDF ($20):</strong> High-resolution 8.5" × 8.5" PDF. Print at home or print shop. Includes free eBook (6 months).<br><strong>Square Print ($20 + shipping):</strong> 8.5" × 8.5" for Magic Express Stories. Professional printing, ships to 150+ countries. 10-15 days. Includes eBook (6 months).<br><strong>Hardcover Book ($30 + shipping):</strong> A4 size, premium paper. For Adventures Made for You and Your Furry Love. 10-15 days to your door. Includes eBook (6 months).<br><br>You can combine formats at checkout: PDF + printed + permanent eBook, all in one order.{% endif %}
+                </div>
+            </details>
+
+            <details class="group bg-white rounded-2xl shadow-md overflow-hidden">
+                <summary class="flex items-center justify-between p-5 cursor-pointer list-none">
+                    <h3 class="font-display text-lg font-bold text-purple-800">{% if lang == 'es' %}¿Cuánto tarda en llegar el libro impreso?{% else %}How long does the printed book take?{% endif %}</h3>
+                    <svg class="w-5 h-5 text-purple-600 transform transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </summary>
+                <div class="px-5 pb-5 text-gray-600">
+                    {% if lang == 'es' %}<strong>Producción:</strong> 3-5 días hábiles. <strong>Envío:</strong> 7-10 días (varía por país). Se imprime en la instalación de Lulu más cercana a tu ubicación (150+ países). Los formatos digitales (eBook, PDF) llegan al instante.{% else %}<strong>Production:</strong> 3-5 business days. <strong>Shipping:</strong> 7-10 days (varies by country). Printed at the Lulu facility nearest to you (150+ countries). Digital formats (eBook, PDF) arrive instantly.{% endif %}
+                </div>
+            </details>
+
+            <details class="group bg-white rounded-2xl shadow-md overflow-hidden">
+                <summary class="flex items-center justify-between p-5 cursor-pointer list-none">
+                    <h3 class="font-display text-lg font-bold text-purple-800">{% if lang == 'es' %}¿Qué es "Tú y tu Amor Peludo"?{% else %}What is "You & Your Furry Love"?{% endif %}</h3>
+                    <svg class="w-5 h-5 text-purple-600 transform transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </summary>
+                <div class="px-5 pb-5 text-gray-600">
+                    {% if lang == 'es' %}Es un libro personalizado que celebra el vínculo entre una persona y su mascota (perro o gato). Describes al protagonista humano y a su mascota, y la IA genera 19 ilustraciones únicas con ambos personajes en cada escena. Disponible para todas las edades: bebés, niños, adolescentes y adultos.{% else %}It's a personalized book that celebrates the bond between a person and their pet (dog or cat). You describe the human protagonist and their pet, and AI generates 19 unique illustrations with both characters in every scene. Available for all ages: babies, kids, teens and adults.{% endif %}
+                </div>
+            </details>
+        </div>
+    </div>
+</section>
+
+<script>
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - Magic Memories Books{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="min-height: 60vh; background: white;">
+    <div class="row justify-content-center align-items-center" style="min-height: 50vh;">
+        <div class="col-md-5 col-lg-4">
+            <div class="card shadow-lg" style="border-radius: 20px; overflow: hidden; background: white;">
+                <div class="card-header text-white text-center py-4" style="background: #333;">
+                    <h4 class="mb-0">Panel de Administración</h4>
+                    <small class="opacity-75">Acceso privado</small>
+                </div>
+                <div class="card-body p-4" style="background: white;">
+                    {% if error %}
+                    <div class="alert alert-danger" role="alert">
+                        {{ error }}
+                    </div>
+                    {% endif %}
+                    
+                    <form method="POST" action="{{ url_for('admin_login') }}">
+                        <div class="mb-4">
+                            <label for="password" class="form-label fw-bold text-dark">Contraseña</label>
+                            <input type="password" class="form-control form-control-lg" id="password" name="password" 
+                                   placeholder="Ingresa tu contraseña" required autofocus
+                                   style="border-radius: 10px; color: black;">
+                        </div>
+                        <button type="submit" class="btn btn-lg w-100 text-white" 
+                                style="background: #333; border-radius: 10px;">
+                            Entrar
+                        </button>
+                    </form>
+                </div>
+                <div class="card-footer text-center py-3" style="background: #f8f9fa;">
+                    <a href="{{ url_for('index') }}" class="text-decoration-none" style="color: #333;">
+                        Volver al inicio
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

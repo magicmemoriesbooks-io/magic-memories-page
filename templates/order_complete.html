@@ -1,0 +1,1706 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'es' %}¡Revisa tu Cuento!{% else %}Review Your Story!{% endif %} - {{ translations.site_title }}{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@600;800&display=swap" rel="stylesheet">
+<style>
+.review-warning-fixed {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: #fffbeb;
+    border-bottom: 2px solid #fcd34d;
+    padding: 0.75rem 1rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.review-warning-fixed .warning-content {
+    max-width: 56rem;
+    margin: 0 auto;
+}
+.review-warning-spacer {
+    height: 0;
+    transition: height 0.2s;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% set scenes_still_loading = story_data.scenes_pending or story_data.scenes_generating %}
+{% set book_scenes_ready = story_data.book_scenes_ready|default(false) and not story_data.pages_composed|default(false) and not story_data.book_composing|default(false) %}
+{% set book_composing = story_data.book_composing|default(false) %}
+{% set show_clean_sent = email_sent and (not story_data.is_illustrated_book or story_data.pages_composed|default(false)) and not book_composing and not scenes_still_loading %}
+
+{% if show_clean_sent %}
+<section class="py-12 px-4 max-w-lg mx-auto">
+    <div class="text-center">
+        <div class="text-7xl mb-6">✅</div>
+        <h1 class="font-display text-3xl md:text-4xl font-bold text-green-800 mb-4">
+            {% if lang == 'es' %}¡Tu cuento fue enviado!{% else %}Your story has been sent!{% endif %}
+        </h1>
+        <p class="text-gray-600 mb-8 text-lg">
+            {% if lang == 'es' %}Hemos enviado tu cuento a{% else %}We've sent your story to{% endif %}
+            <strong class="text-gray-800">{{ delivery_email }}</strong>
+        </p>
+
+        <div class="bg-white rounded-2xl shadow-lg p-8 mb-8 border border-gray-100">
+            <div class="text-5xl mb-4">📖</div>
+            <h4 class="font-display text-xl font-bold text-blue-800 mb-2">
+                {% if lang == 'es' %}Tu eBook Interactivo{% else %}Your Interactive eBook{% endif %}
+            </h4>
+            <p class="text-gray-500 text-sm mb-5">
+                {% if lang == 'es' %}Abre tu cuento personalizado{% else %}Open your personalized story{% endif %}
+            </p>
+            <a href="{{ story_data.visor_url or '/visor/?id=' ~ preview_id }}" target="_blank"
+               class="block w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-xl transition-all text-center no-underline text-lg shadow-lg">
+                {% if lang == 'es' %}📖 Descarga tu eBook{% else %}📖 Download your eBook{% endif %}
+            </a>
+        </div>
+
+        {% if story_data.want_print %}
+        <div class="mb-8">
+            {% if story_data.lulu_status == 'sent' %}
+            <div class="bg-green-50 border border-green-200 rounded-xl p-5">
+                <p class="text-green-800 text-sm">
+                    {% if lang == 'es' %}
+                    📦 <strong>Libro impreso:</strong> Tu libro fue enviado a producción. Recibirás un email de seguimiento en los próximos días.
+                    {% else %}
+                    📦 <strong>Printed book:</strong> Your book has been sent to production. You'll receive a tracking email soon.
+                    {% endif %}
+                </p>
+            </div>
+            {% elif story_data.lulu_status == 'failed' %}
+            <div class="bg-red-50 border border-red-200 rounded-xl p-5">
+                <p class="text-red-800 text-sm">
+                    {% if lang == 'es' %}
+                    ⚠️ Hubo un problema con el envío impreso. Tu eBook digital está disponible arriba. Escríbenos a
+                    <a href="mailto:info@magicmemoriesbooks.com" class="underline font-semibold">info@magicmemoriesbooks.com</a>.
+                    {% else %}
+                    ⚠️ There was a problem with print shipping. Your digital eBook is available above. Email us at
+                    <a href="mailto:info@magicmemoriesbooks.com" class="underline font-semibold">info@magicmemoriesbooks.com</a>.
+                    {% endif %}
+                </p>
+            </div>
+            {% else %}
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-5">
+                <p class="text-amber-800 text-sm">
+                    {% if lang == 'es' %}
+                    📦 <strong>Libro impreso:</strong> Tu libro se está preparando para envío. Recibirás un email de seguimiento.
+                    {% else %}
+                    📦 <strong>Printed book:</strong> Your book is being prepared for shipping. You'll receive a tracking email.
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if story_data.admin_gift and story_data.lulu_order_folder %}
+        <div class="mb-8 text-center">
+            <a href="/admin/gift-download/{{ preview_id }}" class="inline-block px-6 py-3 text-white font-semibold rounded-lg no-underline" style="background: linear-gradient(135deg, #8B5CF6, #EC4899);">
+                Descargar PDFs para Lulu
+            </a>
+        </div>
+        {% endif %}
+
+        <div class="text-center">
+            <a href="/" class="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 font-medium text-lg">
+                ← {% if lang == 'es' %}Crear otro cuento{% else %}Create another story{% endif %}
+            </a>
+        </div>
+    </div>
+</section>
+
+{% elif is_baby %}
+<section class="py-8 px-4 max-w-4xl mx-auto">
+    <div class="text-center mb-8">
+        <div class="text-6xl mb-4">📖</div>
+        <h1 class="font-display text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent mb-2">
+            {% if email_sent %}
+            {% if lang == 'es' %}Tu Cuento{% else %}Your Story{% endif %}
+            {% else %}
+            {% if lang == 'es' %}Revisa tu Cuento{% else %}Review Your Story{% endif %}
+            {% endif %}
+        </h1>
+        <p class="text-gray-600">{{ story_data.story_name }} {% if lang == 'es' %}para{% else %}for{% endif %} {{ story_data.child_name }}</p>
+    </div>
+
+    {% if not email_sent %}
+    <div class="review-warning-fixed" id="reviewWarningBaby">
+        <div class="warning-content">
+            <div class="flex items-start gap-3">
+                <span class="text-2xl flex-shrink-0">⚠️</span>
+                <div>
+                    <p class="text-amber-800 font-bold mb-1">{% if lang == 'es' %}Revisa bien tu cuento antes de confirmar{% else %}Review your story carefully before confirming{% endif %}</p>
+                    <p class="text-amber-700 text-sm mb-1">
+                        {% if lang == 'es' %}
+                        Si ves algo raro o inconsistencias, <strong>puedes regenerar cada ilustraci&oacute;n hasta 2 veces</strong>. {% if not story_data.regeneration_used %}Tienes <strong>1 oportunidad de elegir otro cuento</strong> sin costo adicional.{% else %}<strong>Ya usaste tu oportunidad de cambio.</strong>{% endif %} ⚡ Una vez que confirmes, <strong>no podr&aacute;s hacer m&aacute;s cambios</strong>.
+                        {% else %}
+                        If you see anything strange, <strong>you can regenerate each illustration up to 2 times</strong>. {% if not story_data.regeneration_used %}You have <strong>1 opportunity to choose another story</strong> at no extra cost.{% else %}<strong>You already used your change opportunity.</strong>{% endif %} ⚡ Once you confirm, <strong>you cannot make any more changes</strong>.
+                        {% endif %}
+                    </p>
+                    <details class="mt-2">
+                        <summary class="text-amber-800 text-xs font-semibold cursor-pointer hover:text-amber-900">
+                            {% if lang == 'es' %}Ver todos los cuentos disponibles ▼{% else %}See all available stories ▼{% endif %}
+                        </summary>
+                        <div class="mt-2 text-xs text-amber-800 grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <div>
+                                <p class="font-bold mb-1">{% if lang == 'es' %}Cuentos R&aacute;pidos - Beb&eacute;s (0-2){% else %}Quick Stories - Babies (0-2){% endif %}</p>
+                                <ul class="list-disc ml-4 space-y-0.5">
+                                    <li>{% if lang == 'es' %}El Mundo Suave{% else %}The Soft World{% endif %}</li>
+                                    <li>{% if lang == 'es' %}¿Sabes cu&aacute;nto te quiero?{% else %}Do You Know How Much I Love You?{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Mi Primera Mascota{% else %}My First Pet{% endif %}</li>
+                                    <li>{% if lang == 'es' %}La Luz que te Cuida{% else %}The Light That Watches Over{% endif %}</li>
+                                </ul>
+                                <p class="font-bold mt-2 mb-1">{% if lang == 'es' %}Cuentos R&aacute;pidos - Ni&ntilde;os (3-8){% else %}Quick Stories - Kids (3-8){% endif %}</p>
+                                <ul class="list-disc ml-4 space-y-0.5">
+                                    <li>{% if lang == 'es' %}El Amigo Drag&oacute;n{% else %}The Dragon Friend{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Astronauta{% else %}Astronaut{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Aventura en la Sabana{% else %}Savanna Adventure{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Superh&eacute;roe de la Luz{% else %}Superhero of Light{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Cr&oacute;nicas del Valle{% else %}Chronicles of the Valley{% endif %}</li>
+                                    <li>{% if lang == 'es' %}El Mapa del Atardecer{% else %}The Sunset Map{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Guardi&aacute;n de las Estrellas{% else %}Star Guardian{% endif %}</li>
+                                    <li>{% if lang == 'es' %}El Perro que Lleg&oacute; para Quedarse{% else %}The Dog Who Came to Stay{% endif %}</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p class="font-bold mb-1">{% if lang == 'es' %}Cumplea&ntilde;os{% else %}Birthday{% endif %}</p>
+                                <ul class="list-disc ml-4 space-y-0.5">
+                                    <li>{% if lang == 'es' %}Cumplea&ntilde;os 1-3 a&ntilde;os{% else %}Birthday 1-3 years{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Cumplea&ntilde;os 4-6 a&ntilde;os{% else %}Birthday 4-6 years{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Cumplea&ntilde;os 7-9 a&ntilde;os{% else %}Birthday 7-9 years{% endif %}</li>
+                                </ul>
+                                <p class="font-bold mt-2 mb-1">{% if lang == 'es' %}Libros Personalizados{% else %}Personalized Books{% endif %}</p>
+                                <ul class="list-disc ml-4 space-y-0.5">
+                                    <li>{% if lang == 'es' %}El Jard&iacute;n del Drag&oacute;n{% else %}The Dragon Garden{% endif %}</li>
+                                    <li>{% if lang == 'es' %}El Chef M&aacute;gico{% else %}The Magic Chef{% endif %}</li>
+                                    <li>{% if lang == 'es' %}El Taller de Inventos{% else %}Magic Inventor Workshop{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Guardi&aacute;n de Estrellas{% else %}The Star Keeper{% endif %}</li>
+                                </ul>
+                                <p class="font-bold mt-2 mb-1">{% if lang == 'es' %}Tu Amor Peludo{% else %}Your Furry Love{% endif %}</p>
+                                <ul class="list-disc ml-4 space-y-0.5">
+                                    <li>{% if lang == 'es' %}Beb&eacute; (0-2 a&ntilde;os){% else %}Baby (0-2 years){% endif %}</li>
+                                    <li>{% if lang == 'es' %}Aventura (3-8 a&ntilde;os){% else %}Adventure (3-8 years){% endif %}</li>
+                                    <li>{% if lang == 'es' %}Teen (10-19 a&ntilde;os){% else %}Teen (10-19 years){% endif %}</li>
+                                    <li>{% if lang == 'es' %}Adulto (18+ a&ntilde;os){% else %}Adult (18+ years){% endif %}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="review-warning-spacer" id="reviewWarningBabySpacer"></div>
+    {% endif %}
+
+    {% if not email_sent %}
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        <h3 class="font-display text-lg font-bold text-purple-800 mb-4 text-center">{% if lang == 'es' %}Portada de tu Cuento{% else %}Your Story Cover{% endif %}</h3>
+        {% if story_data.cover_image or story_data.original_cover %}
+        <div class="flex justify-center mb-3">
+            <div class="aspect-square w-48 md:w-56 rounded-xl overflow-hidden shadow-lg border-4 border-purple-200 relative">
+                <img src="{{ story_data.cover_image or story_data.original_cover }}" alt="{% if lang == 'es' %}Portada{% else %}Cover{% endif %}" class="w-full h-full object-cover">
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if story_data.dedication %}
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        <h3 class="font-display text-lg font-bold text-purple-800 mb-3 text-center">{% if lang == 'es' %}Dedicatoria{% else %}Dedication{% endif %}</h3>
+        <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 text-center">
+            <p class="text-gray-700 italic text-lg leading-relaxed">{{ story_data.dedication }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if scenes_still_loading %}
+    <div id="generation-loading" class="bg-white rounded-2xl shadow-lg p-8 mb-6 border border-gray-100">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-16 w-16 border-4 border-purple-200 border-t-purple-600 mx-auto mb-6"></div>
+            <h3 class="font-display text-xl font-bold text-purple-800 mb-3">
+                {% if lang == 'es' %}Creando las ilustraciones de tu cuento...{% else %}Creating your story illustrations...{% endif %}
+            </h3>
+            <p class="text-gray-600 mb-4">
+                {% if lang == 'es' %}
+                Esto tarda unos minutos. <strong>Puedes cerrar esta página</strong> y volver después con el link de tu email.
+                {% else %}
+                This takes a few minutes. <strong>You can close this page</strong> and come back later with the link in your email.
+                {% endif %}
+            </p>
+            <div class="w-full bg-gray-200 rounded-full h-3 mb-2">
+                <div id="gen-progress-bar" class="bg-gradient-to-r from-purple-500 to-pink-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+            <p class="text-sm text-gray-500" id="gen-progress-text">
+                {% if lang == 'es' %}Preparando...{% else %}Preparing...{% endif %}
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+    <div id="story-pages-content" {% if scenes_still_loading %}style="display:none"{% endif %}>
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        <h3 class="font-display text-lg font-bold text-purple-800 mb-4 text-center">{% if lang == 'es' %}Páginas del Cuento{% else %}Story Pages{% endif %}</h3>
+        {% if not email_sent %}
+        <p class="text-center text-sm text-gray-500 mb-4">
+            {% if lang == 'es' %}Puedes regenerar cada ilustración hasta 2 veces si no te gusta el resultado.{% else %}You can regenerate each illustration up to 2 times if you don't like the result.{% endif %}
+        </p>
+        {% endif %}
+        {% set scene_images = story_data.scene_paths or story_data.images or [] %}
+        {% set regen_counts = story_data.scene_regenerations or {} %}
+        {% set num_pages = story_data.pages|length if story_data.pages else 6 %}
+        {% set has_closing = story_data.closing_image or false %}
+        <div class="grid grid-cols-2 gap-3">
+            {% for i in range(num_pages) %}
+            {% if i < scene_images|length and i < story_data.pages|length %}
+            <div class="aspect-square rounded-lg overflow-hidden shadow-md border-2 border-purple-100 relative" id="scene-container-{{ i + 1 }}">
+                <img src="{{ scene_images[i] }}" alt="{% if lang == 'es' %}Escena {{ i + 1 }}{% else %}Scene {{ i + 1 }}{% endif %}" class="w-full h-full object-cover" id="scene-img-{{ i + 1 }}">
+                {% if not story_data.get('qs_text_composed', false) %}
+                {% set text_above = story_data.pages[i].get('text_above', '') %}
+                {% set text_below = story_data.pages[i].get('text_below', '') %}
+                {% set page_text = story_data.pages[i].get('text', story_data.pages[i].get('text_' + lang, story_data.pages[i].get('text_es', ''))) %}
+                {% if text_above or text_below %}
+                {% if text_above %}
+                <div style="position: absolute; top: 5%; left: 5%; right: 5%; pointer-events: none;">
+                    <div style="background: rgba(255, 253, 230, 0.50); border-radius: 4px; padding: 5px 8px; font-family: 'Fredoka', sans-serif; font-size: 9px; line-height: 1.3; color: #2E1A47; font-weight: 500; box-shadow: 3px 3px 6px rgba(0,0,0,0.12);">
+                        <span style="float: left; font-size: 16px; font-weight: 700; color: #6a3d9a; line-height: 0.75; margin-right: 2px; padding-top: 1px;">{{ text_above[0] }}</span>{{ text_above[1:] }}
+                    </div>
+                </div>
+                {% endif %}
+                {% if text_below %}
+                <div style="position: absolute; bottom: 5%; left: 5%; right: 5%; pointer-events: none;">
+                    <div style="background: rgba(255, 253, 230, 0.50); border-radius: 4px; padding: 5px 8px; font-family: 'Fredoka', sans-serif; font-size: 9px; line-height: 1.3; color: #2E1A47; font-weight: 500; box-shadow: 3px 3px 6px rgba(0,0,0,0.12);">
+                        {{ text_below }}
+                    </div>
+                </div>
+                {% endif %}
+                {% elif page_text %}
+                <div class="absolute" style="bottom: 5%; left: 5%; right: 5%; pointer-events: none;">
+                    <div style="background: rgba(255, 253, 230, 0.50); border-radius: 4px; padding: 5px 8px; font-family: 'Fredoka', sans-serif; font-size: 9px; line-height: 1.3; color: #2E1A47; font-weight: 500; box-shadow: 3px 3px 6px rgba(0,0,0,0.12);">
+                        <span style="float: left; font-size: 16px; font-weight: 700; color: #6a3d9a; line-height: 0.75; margin-right: 2px; padding-top: 1px;">{{ page_text[0] }}</span>{{ page_text[1:] }}
+                    </div>
+                </div>
+                {% endif %}
+                {% endif %}
+                {% if not email_sent %}
+                {% set scene_regen = regen_counts.get((i + 1)|string, 0) if regen_counts else 0 %}
+                {% if scene_regen < 2 %}
+                <button onclick="regenerateQuickScene({{ i + 1 }})" 
+                        id="regen-qs-btn-{{ i + 1 }}"
+                        class="absolute top-2 right-2 px-2 py-1 bg-white/90 hover:bg-white text-purple-700 rounded-md font-medium text-xs shadow-md transition-all flex items-center gap-1 backdrop-blur-sm">
+                    <span class="text-sm">🔄</span>
+                    <span class="text-xs bg-purple-100 px-1.5 py-0.5 rounded-full" id="regen-qs-count-{{ i + 1 }}">{{ 2 - scene_regen }}/2</span>
+                </button>
+                {% endif %}
+                {% endif %}
+                <div id="regen-qs-loading-{{ i + 1 }}" class="hidden absolute inset-0 bg-white/80 flex items-center justify-center">
+                    <div class="text-center">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-1"></div>
+                        <p class="text-purple-700 font-medium text-xs">{% if lang == 'es' %}Regenerando...{% else %}Regenerating...{% endif %}</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+
+            {% set closing_img = story_data.closing_image or '' %}
+            {% if closing_img and not closing_img.startswith('/') %}
+                {% set closing_img = '/' + closing_img %}
+            {% endif %}
+            {% if not closing_img and scene_images|length > num_pages %}
+                {% set closing_img = scene_images[num_pages] %}
+            {% endif %}
+            {% if not is_baby %}
+            {% if closing_img %}
+            <div class="aspect-square rounded-lg overflow-hidden shadow-md border-2 border-purple-100 relative">
+                <img src="{{ closing_img }}" alt="{% if lang == 'es' %}Cierre{% else %}Closing{% endif %}" class="w-full h-full object-cover">
+                {% if story_data.get('closing_message') and not story_data.get('qs_text_composed', false) %}
+                <div style="position: absolute; bottom: 5%; left: 5%; right: 5%; pointer-events: none;">
+                    <div style="background: rgba(255, 253, 230, 0.50); border-radius: 4px; padding: 5px 8px; font-family: 'Fredoka', sans-serif; font-size: 9px; line-height: 1.3; color: #2E1A47; font-weight: 500; text-align: center; box-shadow: 3px 3px 6px rgba(0,0,0,0.12);">
+                        {{ story_data.closing_message }}
+                        <br><span style="font-size: 7px; font-weight: 500; float: right; margin-top: 3px; color: #6a3d9a;">{% if story_data.get('lang', story_data.get('language', lang)) == 'es' %}tus amigos de Magic Memories Books{% else %}your friends at Magic Memories Books{% endif %}</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="aspect-square rounded-lg overflow-hidden shadow-md border-2 border-purple-100 relative bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+                <div class="text-center">
+                    <p class="text-purple-800 text-2xl font-bold" style="font-family: 'Brush Script MT', 'Segoe Script', cursive;">{% if lang == 'es' %}Fin{% else %}The End{% endif %}</p>
+                    <p class="text-purple-400 text-3xl mt-2">✨</p>
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+
+            <div class="aspect-square rounded-lg overflow-hidden shadow-md border-2 border-purple-100 relative">
+                <img src="/static/images/quick_story_back_cover.png" alt="{% if lang == 'es' %}Contraportada{% else %}Back Cover{% endif %}" class="w-full h-full object-cover">
+                <div class="absolute bottom-1 left-0 right-0 text-center">
+                    <span class="text-xs bg-white/80 px-2 py-0.5 rounded-full text-purple-600 font-semibold">{% if lang == 'es' %}Contraportada{% else %}Back Cover{% endif %}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    {% if not story_data.regeneration_used %}
+    <div id="different-story-section" {% if scenes_still_loading %}style="display:none"{% endif %}>
+    <div class="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4">
+        <div class="text-center">
+            <p class="text-orange-600 text-sm mb-2">{% if lang == 'es' %}Elegir historia diferente (1 vez){% else %}Choose a different story (1 time){% endif %}</p>
+            <button onclick="requestDifferentStory()" class="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-colors text-center">
+                {% if is_furry_love %}
+                {% if lang == 'es' %}Quiero otra de mi Amor Peludo{% else %}I want another Furry Love story{% endif %}
+                {% else %}
+                {% if lang == 'es' %}Quiero otro Cuento R&aacute;pido{% else %}I want a different Quick Story{% endif %}
+                {% endif %}
+            </button>
+        </div>
+    </div>
+    </div>
+    {% endif %}
+    {% endif %}{# end if not email_sent - baby review content #}
+
+    <div id="confirm-section" {% if scenes_still_loading %}style="display:none"{% endif %}>
+    {% if not email_sent %}
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        <h3 class="font-display text-lg font-bold text-purple-800 mb-4 text-center">{% if lang == 'es' %}¿Te gusta tu cuento?{% else %}Do you like your story?{% endif %}</h3>
+        <p class="text-gray-600 text-sm text-center mb-4">
+            {% if lang == 'es' %}Al aprobar, prepararemos tu cuento y te lo enviaremos por email.{% else %}When you approve, we'll prepare your story and send it to your email.{% endif %}
+        </p>
+        <button onclick="confirmAndSend()" id="confirmBtn" class="w-full py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold rounded-xl text-lg transition-all shadow-lg flex items-center justify-center gap-2">
+            {% if lang == 'es' %}Aprobar mi cuento{% else %}Approve my story{% endif %}
+        </button>
+    </div>
+    {% endif %}
+    </div>
+
+    <div class="text-center">
+        <a href="/story-selection" class="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 font-medium">
+            ← {% if lang == 'es' %}Crear otro cuento{% else %}Create another story{% endif %}
+        </a>
+    </div>
+</section>
+
+{% elif is_kids %}
+
+<section class="py-8 px-4 max-w-4xl mx-auto">
+    <div class="text-center mb-8">
+        <div class="text-6xl mb-4">📖</div>
+        <h1 class="font-display text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent mb-2">
+            {% if email_sent %}
+            {% if lang == 'es' %}Tu Cuento{% else %}Your Story{% endif %}
+            {% else %}
+            {% if lang == 'es' %}Revisa tu Cuento{% else %}Review Your Story{% endif %}
+            {% endif %}
+        </h1>
+        <p class="text-gray-600">{{ story_data.story_name }} {% if lang == 'es' %}para{% else %}for{% endif %} {{ story_data.child_name }}</p>
+    </div>
+
+    {% if not email_sent %}
+    <div class="review-warning-fixed" id="reviewWarningKids">
+        <div class="warning-content">
+            <div class="flex items-start gap-3">
+                <span class="text-2xl flex-shrink-0">⚠️</span>
+                <div>
+                    <p class="text-amber-800 font-bold mb-1">{% if lang == 'es' %}Revisa bien tu cuento antes de confirmar{% else %}Review your story carefully before confirming{% endif %}</p>
+                    <p class="text-amber-700 text-sm mb-1">
+                        {% if lang == 'es' %}
+                        Si ves algo raro o inconsistencias, <strong>puedes regenerar cada ilustraci&oacute;n hasta 2 veces</strong>. {% if not story_data.regeneration_used %}Tienes <strong>1 oportunidad de elegir otro cuento</strong> sin costo adicional.{% else %}<strong>Ya usaste tu oportunidad de cambio.</strong>{% endif %} ⚡ Una vez que confirmes, <strong>no podr&aacute;s hacer m&aacute;s cambios</strong>.
+                        {% else %}
+                        If you see anything strange, <strong>you can regenerate each illustration up to 2 times</strong>. {% if not story_data.regeneration_used %}You have <strong>1 opportunity to choose another story</strong> at no extra cost.{% else %}<strong>You already used your change opportunity.</strong>{% endif %} ⚡ Once you confirm, <strong>you cannot make any more changes</strong>.
+                        {% endif %}
+                    </p>
+                    <details class="mt-2">
+                        <summary class="text-amber-800 text-xs font-semibold cursor-pointer hover:text-amber-900">
+                            {% if lang == 'es' %}Ver todos los cuentos disponibles ▼{% else %}See all available stories ▼{% endif %}
+                        </summary>
+                        <div class="mt-2 text-xs text-amber-800 grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <div>
+                                <p class="font-bold mb-1">{% if lang == 'es' %}Cuentos R&aacute;pidos - Beb&eacute;s (0-2){% else %}Quick Stories - Babies (0-2){% endif %}</p>
+                                <ul class="list-disc ml-4 space-y-0.5">
+                                    <li>{% if lang == 'es' %}El Mundo Suave{% else %}The Soft World{% endif %}</li>
+                                    <li>{% if lang == 'es' %}¿Sabes cu&aacute;nto te quiero?{% else %}Do You Know How Much I Love You?{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Mi Primera Mascota{% else %}My First Pet{% endif %}</li>
+                                    <li>{% if lang == 'es' %}La Luz que te Cuida{% else %}The Light That Watches Over{% endif %}</li>
+                                </ul>
+                                <p class="font-bold mt-2 mb-1">{% if lang == 'es' %}Cuentos R&aacute;pidos - Ni&ntilde;os (3-8){% else %}Quick Stories - Kids (3-8){% endif %}</p>
+                                <ul class="list-disc ml-4 space-y-0.5">
+                                    <li>{% if lang == 'es' %}El Amigo Drag&oacute;n{% else %}The Dragon Friend{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Astronauta{% else %}Astronaut{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Aventura en la Sabana{% else %}Savanna Adventure{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Superh&eacute;roe de la Luz{% else %}Superhero of Light{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Cr&oacute;nicas del Valle{% else %}Chronicles of the Valley{% endif %}</li>
+                                    <li>{% if lang == 'es' %}El Mapa del Atardecer{% else %}The Sunset Map{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Guardi&aacute;n de las Estrellas{% else %}Star Guardian{% endif %}</li>
+                                    <li>{% if lang == 'es' %}El Perro que Lleg&oacute; para Quedarse{% else %}The Dog Who Came to Stay{% endif %}</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p class="font-bold mb-1">{% if lang == 'es' %}Cumplea&ntilde;os{% else %}Birthday{% endif %}</p>
+                                <ul class="list-disc ml-4 space-y-0.5">
+                                    <li>{% if lang == 'es' %}Cumplea&ntilde;os 1-3 a&ntilde;os{% else %}Birthday 1-3 years{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Cumplea&ntilde;os 4-6 a&ntilde;os{% else %}Birthday 4-6 years{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Cumplea&ntilde;os 7-9 a&ntilde;os{% else %}Birthday 7-9 years{% endif %}</li>
+                                </ul>
+                                <p class="font-bold mt-2 mb-1">{% if lang == 'es' %}Libros Personalizados{% else %}Personalized Books{% endif %}</p>
+                                <ul class="list-disc ml-4 space-y-0.5">
+                                    <li>{% if lang == 'es' %}El Jard&iacute;n del Drag&oacute;n{% else %}The Dragon Garden{% endif %}</li>
+                                    <li>{% if lang == 'es' %}El Chef M&aacute;gico{% else %}The Magic Chef{% endif %}</li>
+                                    <li>{% if lang == 'es' %}El Taller de Inventos{% else %}Magic Inventor Workshop{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Guardi&aacute;n de Estrellas{% else %}The Star Keeper{% endif %}</li>
+                                </ul>
+                                <p class="font-bold mt-2 mb-1">{% if lang == 'es' %}Tu Amor Peludo{% else %}Your Furry Love{% endif %}</p>
+                                <ul class="list-disc ml-4 space-y-0.5">
+                                    <li>{% if lang == 'es' %}Beb&eacute; (0-2 a&ntilde;os){% else %}Baby (0-2 years){% endif %}</li>
+                                    <li>{% if lang == 'es' %}Aventura (3-8 a&ntilde;os){% else %}Adventure (3-8 years){% endif %}</li>
+                                    <li>{% if lang == 'es' %}Teen (10-19 a&ntilde;os){% else %}Teen (10-19 years){% endif %}</li>
+                                    <li>{% if lang == 'es' %}Adulto (18+ a&ntilde;os){% else %}Adult (18+ years){% endif %}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="review-warning-spacer" id="reviewWarningKidsSpacer"></div>
+    {% endif %}
+
+    {% if not email_sent %}
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        <h3 class="font-display text-lg font-bold text-purple-800 mb-4 text-center">{% if lang == 'es' %}Portada de tu Cuento{% else %}Your Story Cover{% endif %}</h3>
+        {% if story_data.cover_image or story_data.original_cover %}
+        <div class="flex justify-center mb-3">
+            <div class="aspect-square w-48 md:w-56 rounded-xl overflow-hidden shadow-lg border-4 border-purple-200 relative">
+                <img src="{{ story_data.cover_image or story_data.original_cover }}" alt="{% if lang == 'es' %}Portada{% else %}Cover{% endif %}" class="w-full h-full object-cover">
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if story_data.dedication %}
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        <h3 class="font-display text-lg font-bold text-purple-800 mb-3 text-center">{% if lang == 'es' %}Dedicatoria{% else %}Dedication{% endif %}</h3>
+        <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 text-center">
+            <p class="text-gray-700 italic text-lg leading-relaxed">{{ story_data.dedication }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if scenes_still_loading %}
+    <div id="generation-loading-kids" class="bg-white rounded-2xl shadow-lg p-8 mb-6 border border-gray-100">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-16 w-16 border-4 border-purple-200 border-t-purple-600 mx-auto mb-6"></div>
+            <h3 class="font-display text-xl font-bold text-purple-800 mb-3">
+                {% if lang == 'es' %}Creando las ilustraciones de tu cuento...{% else %}Creating your story illustrations...{% endif %}
+            </h3>
+            <p class="text-gray-600 mb-4">
+                {% if lang == 'es' %}
+                Esto tarda unos minutos. <strong>Puedes cerrar esta página</strong> y volver después con el link de tu email.
+                {% else %}
+                This takes a few minutes. <strong>You can close this page</strong> and come back later with the link in your email.
+                {% endif %}
+            </p>
+            <div class="w-full bg-gray-200 rounded-full h-3 mb-2">
+                <div id="gen-progress-bar-kids" class="bg-gradient-to-r from-purple-500 to-pink-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+            <p class="text-sm text-gray-500" id="gen-progress-text-kids">
+                {% if lang == 'es' %}Preparando...{% else %}Preparing...{% endif %}
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+    <div id="story-pages-content-kids" {% if scenes_still_loading %}style="display:none"{% endif %}>
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        <h3 class="font-display text-lg font-bold text-purple-800 mb-4 text-center">{% if lang == 'es' %}Páginas del Cuento{% else %}Story Pages{% endif %}</h3>
+        {% if not email_sent %}
+        <p class="text-center text-sm text-gray-500 mb-4">
+            {% if lang == 'es' %}Puedes regenerar cada ilustración hasta 2 veces si no te gusta el resultado.{% else %}You can regenerate each illustration up to 2 times if you don't like the result.{% endif %}
+        </p>
+        {% endif %}
+        {% set scene_images = story_data.scene_paths or story_data.images or [] %}
+        {% set regen_counts = story_data.scene_regenerations or {} %}
+        {% set num_pages = story_data.pages|length if story_data.pages else 7 %}
+        {% set is_split = story_data.get('text_layout', 'single') == 'split' %}
+        <div class="grid grid-cols-2 gap-3">
+            {% for i in range(num_pages) %}
+            {% if i < scene_images|length and i < story_data.pages|length %}
+            {% set pg = story_data.pages[i] %}
+            <div class="rounded-lg overflow-hidden shadow-md border-2 border-purple-100 relative" id="scene-container-{{ i + 1 }}">
+                <div class="aspect-square relative">
+                    <img src="{{ scene_images[i] }}" alt="{% if lang == 'es' %}Escena {{ i + 1 }}{% else %}Scene {{ i + 1 }}{% endif %}" class="w-full h-full object-cover" id="scene-img-{{ i + 1 }}">
+                    {% if not story_data.get('qs_text_composed', false) %}
+                    {% if is_split and pg.get('text_above') %}
+                    <div style="position: absolute; top: 5%; left: 5%; right: 5%; pointer-events: none;">
+                        <div style="background: rgba(255, 253, 230, 0.50); border-radius: 4px; padding: 5px 8px; font-family: 'Fredoka', sans-serif; font-size: 9px; line-height: 1.3; color: #2E1A47; font-weight: 500; box-shadow: 3px 3px 6px rgba(0,0,0,0.12);">
+                            <span style="float: left; font-size: 16px; font-weight: 700; color: #6a3d9a; line-height: 0.75; margin-right: 2px; padding-top: 1px;">{{ pg.text_above[0] }}</span>{{ pg.text_above[1:] }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if is_split and pg.get('text_below') %}
+                    <div style="position: absolute; bottom: 5%; left: 5%; right: 5%; pointer-events: none;">
+                        <div style="background: rgba(255, 253, 230, 0.50); border-radius: 4px; padding: 5px 8px; font-family: 'Fredoka', sans-serif; font-size: 9px; line-height: 1.3; color: #2E1A47; font-weight: 500; box-shadow: 3px 3px 6px rgba(0,0,0,0.12);">{{ pg.text_below }}</div>
+                    </div>
+                    {% elif not is_split and pg.get('text') %}
+                    <div style="position: absolute; bottom: 5%; left: 5%; right: 5%; pointer-events: none;">
+                        <div style="background: rgba(255, 253, 230, 0.50); border-radius: 4px; padding: 5px 8px; font-family: 'Fredoka', sans-serif; font-size: 9px; line-height: 1.3; color: #2E1A47; font-weight: 500; box-shadow: 3px 3px 6px rgba(0,0,0,0.12);">
+                            <span style="float: left; font-size: 16px; font-weight: 700; color: #6a3d9a; line-height: 0.75; margin-right: 2px; padding-top: 1px;">{{ pg.text[0] }}</span>{{ pg.text[1:] }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                    {% if not email_sent %}
+                    {% set scene_regen = regen_counts.get((i + 1)|string, 0) if regen_counts else 0 %}
+                    {% if scene_regen < 2 %}
+                    <button onclick="regenerateQuickScene({{ i + 1 }})" 
+                            id="regen-qs-btn-{{ i + 1 }}"
+                            class="absolute top-2 right-2 px-2 py-1 bg-white/90 hover:bg-white text-purple-700 rounded-md font-medium text-xs shadow-md transition-all flex items-center gap-1 backdrop-blur-sm">
+                        <span class="text-sm">🔄</span>
+                        <span class="text-xs bg-purple-100 px-1.5 py-0.5 rounded-full" id="regen-qs-count-{{ i + 1 }}">{{ 2 - scene_regen }}/2</span>
+                    </button>
+                    {% endif %}
+                    {% endif %}
+                    <div id="regen-qs-loading-{{ i + 1 }}" class="hidden absolute inset-0 bg-white/80 flex items-center justify-center">
+                        <div class="text-center">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-1"></div>
+                            <p class="text-purple-700 font-medium text-xs">{% if lang == 'es' %}Regenerando...{% else %}Regenerating...{% endif %}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-1 bg-white">
+                    <p class="text-xs text-purple-600 font-semibold text-center">{% if lang == 'es' %}Escena {{ i + 1 }}{% else %}Scene {{ i + 1 }}{% endif %}</p>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+
+        {% if is_split and story_data.get('closing_image') %}
+        <div class="mt-4">
+            <h4 class="font-display text-sm font-bold text-purple-700 mb-2 text-center">{% if lang == 'es' %}Página de cierre{% else %}Closing page{% endif %}</h4>
+            <div class="max-w-xs mx-auto rounded-lg overflow-hidden shadow-md border-2 border-purple-100">
+                <div class="aspect-square relative">
+                    <img src="{{ story_data.closing_image }}" alt="{% if lang == 'es' %}Cierre{% else %}Closing{% endif %}" class="w-full h-full object-cover">
+                    {% if story_data.get('closing_message') and not story_data.get('qs_text_composed', false) %}
+                    <div style="position: absolute; bottom: 5%; left: 5%; right: 5%; pointer-events: none;">
+                        <div style="background: rgba(255, 253, 230, 0.50); border-radius: 4px; padding: 5px 8px; font-family: 'Fredoka', sans-serif; font-size: 9px; line-height: 1.3; color: #2E1A47; font-weight: 500; text-align: center; box-shadow: 3px 3px 6px rgba(0,0,0,0.12);">
+                            {{ story_data.closing_message }}
+                            <br><span style="font-size: 7px; font-weight: 500; float: right; margin-top: 3px; color: #6a3d9a;">{% if story_data.get('lang', story_data.get('language', lang)) == 'es' %}tus amigos de Magic Memories Books{% else %}your friends at Magic Memories Books{% endif %}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="mt-4">
+            <h4 class="font-display text-sm font-bold text-purple-700 mb-2 text-center">{% if lang == 'es' %}Contraportada{% else %}Back Cover{% endif %}</h4>
+            <div class="max-w-xs mx-auto rounded-lg overflow-hidden shadow-md border-2 border-purple-100">
+                <div class="aspect-square relative">
+                    <img src="/static/images/quick_story_back_cover.png" alt="{% if lang == 'es' %}Contraportada{% else %}Back Cover{% endif %}" class="w-full h-full object-cover">
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    {% if not story_data.regeneration_used %}
+    <div id="different-story-section-kids" {% if scenes_still_loading %}style="display:none"{% endif %}>
+    <div class="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4">
+        <div class="text-center">
+            <p class="text-orange-600 text-sm mb-2">{% if lang == 'es' %}Elegir historia diferente (1 vez){% else %}Choose a different story (1 time){% endif %}</p>
+            <button onclick="requestDifferentStory()" class="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-colors text-center">
+                {% if is_furry_love %}
+                {% if lang == 'es' %}Quiero otra de mi Amor Peludo{% else %}I want another Furry Love story{% endif %}
+                {% else %}
+                {% if lang == 'es' %}Quiero otro Cuento R&aacute;pido{% else %}I want a different Quick Story{% endif %}
+                {% endif %}
+            </button>
+        </div>
+    </div>
+    </div>
+    {% endif %}
+    {% endif %}{# end if not email_sent - kids review content #}
+
+    <div id="confirm-section-kids" {% if scenes_still_loading %}style="display:none"{% endif %}>
+    {% if not email_sent %}
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        <h3 class="font-display text-lg font-bold text-purple-800 mb-4 text-center">{% if lang == 'es' %}¿Te gusta tu cuento?{% else %}Do you like your story?{% endif %}</h3>
+        <p class="text-gray-600 text-sm text-center mb-4">
+            {% if lang == 'es' %}Al aprobar, prepararemos tu cuento y te lo enviaremos por email.{% else %}When you approve, we'll prepare your story and send it to your email.{% endif %}
+        </p>
+        <button onclick="confirmAndSend()" id="confirmBtn" class="w-full py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold rounded-xl text-lg transition-all shadow-lg flex items-center justify-center gap-2">
+            {% if lang == 'es' %}Aprobar mi cuento{% else %}Approve my story{% endif %}
+        </button>
+    </div>
+    {% endif %}
+    </div>
+
+    <div class="text-center">
+        <a href="/story-selection" class="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 font-medium">
+            ← {% if lang == 'es' %}Crear otro cuento{% else %}Create another story{% endif %}
+        </a>
+    </div>
+</section>
+
+{% else %}
+
+    {% set show_review = (not email_sent or (story_data.is_illustrated_book and not story_data.pages_composed)) and not (scenes_still_loading and story_data.is_illustrated_book) and not (book_composing and story_data.is_illustrated_book) %}
+    {% set show_sent = email_sent and (not story_data.is_illustrated_book or story_data.pages_composed) and not book_composing and not scenes_still_loading %}
+    {% if show_review %}
+    <div class="review-warning-fixed" id="reviewWarningIllustrated">
+        <div class="warning-content">
+            <div class="flex items-start gap-3">
+                <span class="text-2xl flex-shrink-0">⚠️</span>
+                <div>
+                    <p class="text-amber-800 font-bold mb-1">{% if lang == 'es' %}Revisa cuidadosamente todas las ilustraciones{% else %}Carefully review all illustrations{% endif %}</p>
+                    <p class="text-amber-700 text-sm mb-1">
+                        {% if lang == 'es' %}
+                        Las ilustraciones son generadas por IA y pueden contener errores. <strong>Puedes regenerar cada ilustraci&oacute;n hasta 2 veces</strong>. {% if not story_data.regeneration_used %}Tienes <strong>1 oportunidad de elegir otro cuento</strong> sin costo adicional.{% else %}<strong>Ya usaste tu oportunidad de cambio.</strong>{% endif %} ⚡ Una vez que confirmes, <strong>no podr&aacute;s hacer m&aacute;s cambios</strong>.
+                        {% else %}
+                        Illustrations are AI-generated and may contain errors. <strong>You can regenerate each illustration up to 2 times</strong>. {% if not story_data.regeneration_used %}You have <strong>1 opportunity to choose another story</strong> at no extra cost.{% else %}<strong>You already used your change opportunity.</strong>{% endif %} ⚡ Once you confirm, <strong>you cannot make any more changes</strong>.
+                        {% endif %}
+                    </p>
+                    <p class="text-blue-700 text-xs bg-blue-50 rounded-lg p-2 border border-blue-200 mb-1">
+                        {% if lang == 'es' %}
+                        📷 Las imágenes aquí están en baja resolución con marca de agua. El libro final tendrá <strong>imágenes en alta resolución, sin marca de agua, con textos nítidos</strong>.
+                        {% else %}
+                        📷 Images here are low resolution with watermark. The final book will have <strong>high resolution images, no watermark, with sharp text</strong>.
+                        {% endif %}
+                    </p>
+                    <details class="mt-2">
+                        <summary class="text-amber-800 text-xs font-semibold cursor-pointer hover:text-amber-900">
+                            {% if lang == 'es' %}Ver todos los cuentos disponibles ▼{% else %}See all available stories ▼{% endif %}
+                        </summary>
+                        <div class="mt-2 text-xs text-amber-800 grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <div>
+                                <p class="font-bold mb-1">{% if lang == 'es' %}Cuentos R&aacute;pidos - Beb&eacute;s (0-2){% else %}Quick Stories - Babies (0-2){% endif %}</p>
+                                <ul class="list-disc ml-4 space-y-0.5">
+                                    <li>{% if lang == 'es' %}El Mundo Suave{% else %}The Soft World{% endif %}</li>
+                                    <li>{% if lang == 'es' %}¿Sabes cu&aacute;nto te quiero?{% else %}Do You Know How Much I Love You?{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Mi Primera Mascota{% else %}My First Pet{% endif %}</li>
+                                    <li>{% if lang == 'es' %}La Luz Guardiana{% else %}The Guardian Light{% endif %}</li>
+                                </ul>
+                                <p class="font-bold mt-2 mb-1">{% if lang == 'es' %}Cuentos R&aacute;pidos - Ni&ntilde;os (3-8){% else %}Quick Stories - Kids (3-8){% endif %}</p>
+                                <ul class="list-disc ml-4 space-y-0.5">
+                                    <li>{% if lang == 'es' %}El Amigo Drag&oacute;n{% else %}The Dragon Friend{% endif %}</li>
+                                    <li>{% if lang == 'es' %}El Astronauta{% else %}The Astronaut{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Aventura en la Sabana{% else %}Savanna Adventure{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Superh&eacute;roe de la Luz{% else %}Superhero of Light{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Cr&oacute;nicas del Valle{% else %}Chronicles of the Valley{% endif %}</li>
+                                    <li>{% if lang == 'es' %}El Mapa del Atardecer{% else %}The Sunset Map{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Guardi&aacute;n de las Estrellas{% else %}Star Guardian{% endif %}</li>
+                                    <li>{% if lang == 'es' %}El Perro para Siempre{% else %}The Dog Forever{% endif %}</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p class="font-bold mb-1">{% if lang == 'es' %}Cumplea&ntilde;os{% else %}Birthday{% endif %}</p>
+                                <ul class="list-disc ml-4 space-y-0.5">
+                                    <li>{% if lang == 'es' %}Cumplea&ntilde;os 1-3 a&ntilde;os{% else %}Birthday 1-3 years{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Cumplea&ntilde;os 4-6 a&ntilde;os{% else %}Birthday 4-6 years{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Cumplea&ntilde;os 7-9 a&ntilde;os{% else %}Birthday 7-9 years{% endif %}</li>
+                                </ul>
+                                <p class="font-bold mt-2 mb-1">{% if lang == 'es' %}Libros Personalizados{% else %}Personalized Books{% endif %}</p>
+                                <ul class="list-disc ml-4 space-y-0.5">
+                                    <li>{% if lang == 'es' %}El Jard&iacute;n del Drag&oacute;n{% else %}The Dragon Garden{% endif %}</li>
+                                    <li>{% if lang == 'es' %}El Chef M&aacute;gico{% else %}The Magic Chef{% endif %}</li>
+                                    <li>{% if lang == 'es' %}El Taller de Inventos{% else %}Magic Inventor Workshop{% endif %}</li>
+                                    <li>{% if lang == 'es' %}Guardi&aacute;n de Estrellas{% else %}The Star Keeper{% endif %}</li>
+                                </ul>
+                                <p class="font-bold mt-2 mb-1">{% if lang == 'es' %}Tu Amor Peludo{% else %}Your Furry Love{% endif %}</p>
+                                <ul class="list-disc ml-4 space-y-0.5">
+                                    <li>{% if lang == 'es' %}Beb&eacute; (0-2 a&ntilde;os){% else %}Baby (0-2 years){% endif %}</li>
+                                    <li>{% if lang == 'es' %}Aventura (3-8 a&ntilde;os){% else %}Adventure (3-8 years){% endif %}</li>
+                                    <li>{% if lang == 'es' %}Teen (10-19 a&ntilde;os){% else %}Teen (10-19 years){% endif %}</li>
+                                    <li>{% if lang == 'es' %}Adulto (18+ a&ntilde;os){% else %}Adult (18+ years){% endif %}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="review-warning-spacer" id="reviewWarningIllustratedSpacer"></div>
+    {% elif show_sent %}
+    <div class="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
+        <div class="flex items-center gap-3">
+            <span class="text-2xl">✅</span>
+            <div>
+                <p class="text-green-800 font-medium">{% if lang == 'es' %}¡Cuento enviado!{% else %}Story sent!{% endif %}</p>
+                <p class="text-green-700 text-sm">{% if lang == 'es' %}Hemos enviado tu cuento a{% else %}We've sent your story to{% endif %} <strong>{{ delivery_email }}</strong></p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if scenes_still_loading and story_data.is_illustrated_book %}
+    <div id="generation-loading-illustrated" class="bg-white rounded-2xl shadow-lg p-8 mb-6 border border-gray-100">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-16 w-16 border-4 border-purple-200 border-t-purple-600 mx-auto mb-6"></div>
+            <h3 class="font-display text-xl font-bold text-purple-800 mb-3">
+                {% if lang == 'es' %}Creando las ilustraciones de tu libro...{% else %}Creating your book illustrations...{% endif %}
+            </h3>
+            <p class="text-gray-600 mb-4">
+                {% if lang == 'es' %}
+                Estamos generando las 19 ilustraciones de tu libro personalizado con IA. Esto tarda entre 5-10 minutos.
+                <strong>Puedes cerrar esta página</strong> y volver después con el link de tu email.
+                {% else %}
+                We're generating the 19 illustrations for your personalized book with AI. This takes about 5-10 minutes.
+                <strong>You can close this page</strong> and come back later with the link in your email.
+                {% endif %}
+            </p>
+            <p class="text-purple-600 font-medium text-sm italic mt-2 transition-opacity duration-500" id="rotating-phrase-illustrated" style="min-height: 2.5em;"></p>
+            <div class="w-full bg-gray-200 rounded-full h-3 mb-2 mt-4">
+                <div id="gen-progress-bar-illustrated" class="bg-gradient-to-r from-purple-500 to-pink-500 h-3 rounded-full transition-all duration-500" style="width: 5%"></div>
+            </div>
+            <p class="text-sm text-gray-500" id="gen-progress-text-illustrated">
+                {% if lang == 'es' %}Generando ilustraciones...{% else %}Generating illustrations...{% endif %}
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if book_composing and story_data.is_illustrated_book %}
+    <div id="generation-loading-composing" class="bg-white rounded-2xl shadow-lg p-8 mb-6 border border-gray-100">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-16 w-16 border-4 border-green-200 border-t-green-600 mx-auto mb-6"></div>
+            <h3 class="font-display text-xl font-bold text-green-800 mb-3">
+                {% if lang == 'es' %}Preparando tu libro para impresión...{% else %}Preparing your book for printing...{% endif %}
+            </h3>
+            <p class="text-gray-600 mb-4">
+                {% if lang == 'es' %}
+                Estamos componiendo las páginas finales y enviando tu libro a producción. Esto toma unos minutos.
+                {% else %}
+                We're composing the final pages and sending your book to production. This takes a few minutes.
+                {% endif %}
+            </p>
+            <div class="w-full bg-gray-200 rounded-full h-3 mb-2">
+                <div id="gen-progress-bar-composing" class="bg-gradient-to-r from-green-500 to-emerald-500 h-3 rounded-full transition-all duration-500" style="width: 50%"></div>
+            </div>
+            <p class="text-sm text-gray-500" id="gen-progress-text-composing">
+                {% if lang == 'es' %}Componiendo páginas...{% else %}Composing pages...{% endif %}
+            </p>
+            <p class="text-green-600 font-medium text-sm italic mt-3 transition-opacity duration-500" id="rotating-phrase-composing" style="min-height: 2.5em;"></p>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if not email_sent or (story_data.is_illustrated_book and not story_data.pages_composed) %}
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100" {% if (scenes_still_loading or book_composing) and story_data.is_illustrated_book %}style="display:none"{% endif %}>
+        <h3 class="font-display text-lg font-bold text-purple-800 mb-6 text-center">{% if lang == 'es' %}Galería de Ilustraciones{% else %}Illustrations Gallery{% endif %}</h3>
+        {% set interior_count = story_data.images|length %}
+        {% set text_start = 2 %}
+        {% set text_end = interior_count - 3 %}
+        <div class="space-y-6">
+            {% for i in range(story_data.images|length) %}
+            {% set page_num = i + 1 %}
+            {% set text_idx = i - text_start %}
+            {% set can_regenerate = page_num >= 3 and page_num <= 22 and (not email_sent or (story_data.is_illustrated_book and not story_data.pages_composed)) %}
+            {% set regen_count = story_data.page_regenerations[page_num|string]|default(0) if story_data.page_regenerations else 0 %}
+            <div class="flex flex-col md:flex-row gap-4 p-4 bg-gradient-to-br from-purple-50/50 to-pink-50/50 rounded-xl" id="page-container-{{ page_num }}">
+                <div class="md:w-1/3 flex-shrink-0">
+                    <div class="aspect-[3/4] rounded-xl overflow-hidden shadow-md border-4 border-purple-100 hover:border-purple-300 transition-all cursor-pointer" onclick="openImageModal({{ i }})">
+                        <img src="{{ story_data.images[i] }}" alt="{% if lang == 'es' %}Ilustración {{ page_num }}{% else %}Illustration {{ page_num }}{% endif %}" class="w-full h-full object-cover hover:scale-105 transition-transform" id="page-img-{{ page_num }}">
+                    </div>
+                    {% if can_regenerate and regen_count < 2 %}
+                    <button onclick="regeneratePage({{ page_num }})" 
+                            class="mt-2 w-full py-2 px-3 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+                            id="regen-btn-{{ page_num }}">
+                        <span class="text-lg">🔄</span>
+                        <span>{% if lang == 'es' %}Regenerar{% else %}Regenerate{% endif %}</span>
+                        <span class="text-xs bg-orange-600 px-2 py-0.5 rounded-full" id="regen-count-{{ page_num }}">{{ 2 - regen_count }}/2</span>
+                    </button>
+                    {% elif can_regenerate and regen_count >= 2 %}
+                    <div class="mt-2 w-full py-2 px-3 bg-gray-300 text-gray-600 text-sm font-semibold rounded-lg text-center">
+                        {% if lang == 'es' %}Límite alcanzado{% else %}Limit reached{% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="md:w-2/3 flex flex-col justify-center">
+                    <p class="text-sm text-purple-600 font-semibold mb-2">
+                        {% if i == 0 %}
+                        {% if lang == 'es' %}Página 1{% else %}Page 1{% endif %} <span class="text-gray-400 font-normal">({% if lang == 'es' %}Portadilla{% else %}Title Page{% endif %})</span>
+                        {% elif i == 1 %}
+                        {% if lang == 'es' %}Página 2{% else %}Page 2{% endif %} <span class="text-gray-400 font-normal">({% if lang == 'es' %}Dedicatoria{% else %}Dedication{% endif %})</span>
+                        {% elif i == interior_count - 1 %}
+                        {% if lang == 'es' %}Página {{ page_num }}{% else %}Page {{ page_num }}{% endif %} <span class="text-gray-400 font-normal">({% if lang == 'es' %}Créditos{% else %}Credits{% endif %})</span>
+                        {% elif i == interior_count - 2 %}
+                        {% if lang == 'es' %}Página {{ page_num }}{% else %}Page {{ page_num }}{% endif %} <span class="text-gray-400 font-normal">({% if lang == 'es' %}El Fin{% else %}The End{% endif %})</span>
+                        {% elif i == interior_count - 3 %}
+                        {% if lang == 'es' %}Página {{ page_num }}{% else %}Page {{ page_num }}{% endif %} <span class="text-gray-400 font-normal">({% if lang == 'es' %}Cierre{% else %}Closing{% endif %})</span>
+                        {% else %}
+                        {% if lang == 'es' %}Página {{ page_num }}{% else %}Page {{ page_num }}{% endif %}
+                        {% endif %}
+                    </p>
+                    {% if i == 0 %}
+                    <p class="text-gray-400 italic">{% if lang == 'es' %}Portadilla{% else %}Title Page{% endif %}</p>
+                    {% elif i == 1 %}
+                    <p class="text-gray-400 italic">{% if lang == 'es' %}Dedicatoria personalizada{% else %}Personalized dedication{% endif %}</p>
+                    {% elif i >= text_start and i < text_end %}
+                    <p class="text-gray-400 italic text-sm">{% if lang == 'es' %}El texto ya aparece en la ilustración{% else %}Text is shown in the illustration{% endif %}</p>
+                    {% else %}
+                    <p class="text-gray-400 italic">{% if lang == 'es' %}Página ilustrada{% else %}Illustrated page{% endif %}</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <p class="text-center text-sm text-gray-500 mt-4">{% if lang == 'es' %}Haz clic en una imagen para verla en grande{% else %}Click an image to view it larger{% endif %}</p>
+    </div>
+    {% endif %}
+
+    {% if not (scenes_still_loading or book_composing) %}
+    {% if story_data.cover_preview or story_data.original_cover or story_data.cover_image %}
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        <h3 class="font-display text-lg font-bold text-purple-800 mb-4 text-center">{% if lang == 'es' %}Portada del Libro{% else %}Book Cover{% endif %}</h3>
+        <div class="flex justify-center">
+            <div class="w-full max-w-md">
+                <div class="aspect-[3/4] rounded-xl overflow-hidden shadow-lg border-4 border-purple-200">
+                    <img src="{{ story_data.cover_preview or story_data.original_cover or story_data.cover_image }}" alt="{% if lang == 'es' %}Portada{% else %}Cover{% endif %}" class="w-full h-full object-cover" id="illustrated-cover-img">
+                </div>
+            </div>
+        </div>
+        {% if not email_sent and not story_data.pages_composed and is_furry_love %}
+        <div class="flex justify-center mt-3">
+            <button type="button" id="regenerateCoverBtnIllustrated" onclick="regenerateCoverIllustrated('{{ preview_id }}')"
+                class="px-4 py-2 text-sm text-amber-600 border border-amber-200 rounded-full hover:bg-amber-50 transition-colors flex items-center gap-2">
+                <span id="regenCoverIconIllustrated">🔄</span>
+                <span id="regenCoverTextIllustrated">{% if lang == 'es' %}Regenerar Portada{% else %}Regenerate Cover{% endif %}</span>
+            </button>
+        </div>
+        {% endif %}
+        <p class="text-center text-sm text-gray-500 mt-3">{% if lang == 'es' %}Vista previa de la portada{% else %}Cover preview{% endif %}</p>
+    </div>
+    {% endif %}
+
+    {% set back_cover_img = story_data.back_cover_preview or story_data.back_cover_path or '' %}
+    {% if back_cover_img %}
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        <h3 class="font-display text-lg font-bold text-purple-800 mb-4 text-center">{% if lang == 'es' %}Contraportada{% else %}Back Cover{% endif %}</h3>
+        <div class="flex justify-center">
+            <div class="w-full max-w-md">
+                <div class="aspect-[3/4] rounded-xl overflow-hidden shadow-lg border-4 border-purple-100">
+                    <img src="{{ back_cover_img }}" alt="{% if lang == 'es' %}Contraportada{% else %}Back Cover{% endif %}" class="w-full h-full object-cover">
+                </div>
+            </div>
+        </div>
+        <p class="text-center text-sm text-gray-500 mt-3">{% if lang == 'es' %}Contraportada del libro{% else %}Book back cover{% endif %}</p>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    {% if book_scenes_ready and story_data.is_illustrated_book and not story_data.pages_composed %}
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100" {% if scenes_still_loading or book_composing %}style="display:none"{% endif %}>
+        <h3 class="font-display text-lg font-bold text-purple-800 mb-4 text-center">{% if lang == 'es' %}¿Te gustan las ilustraciones?{% else %}Do you like the illustrations?{% endif %}</h3>
+        <div class="text-center">
+            <div class="border-2 border-green-200 rounded-2xl p-5 bg-gradient-to-br from-green-50 to-emerald-50 max-w-md mx-auto">
+                <div class="text-center mb-4">
+                    <div class="text-4xl mb-2">✅</div>
+                    <h4 class="font-display text-lg font-bold text-green-800">{% if lang == 'es' %}Aprobar y crear libro{% else %}Approve and create book{% endif %}</h4>
+                    <p class="text-green-600 text-sm">{% if lang == 'es' %}Se preparará tu cuento y te lo enviaremos por email{% else %}We'll prepare your story and send it to your email{% endif %}</p>
+                </div>
+                <button onclick="approveScenes()" id="approveBtn" class="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors text-center">
+                    {% if lang == 'es' %}Aprobar mi cuento{% else %}Approve my story{% endif %}
+                </button>
+            </div>
+        </div>
+    </div>
+    {% elif not email_sent and not story_data.is_illustrated_book %}
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100" {% if scenes_still_loading %}style="display:none"{% endif %}>
+        <h3 class="font-display text-lg font-bold text-purple-800 mb-4 text-center">{% if lang == 'es' %}¿Qué deseas hacer?{% else %}What would you like to do?{% endif %}</h3>
+        
+        {% if not story_data.regeneration_used %}
+        <div class="grid md:grid-cols-2 gap-4">
+            <div class="border-2 border-green-200 rounded-2xl p-5 bg-gradient-to-br from-green-50 to-emerald-50">
+                <div class="text-center mb-4">
+                    <div class="text-4xl mb-2">✅</div>
+                    <h4 class="font-display text-lg font-bold text-green-800">{% if lang == 'es' %}Me encanta{% else %}I love it{% endif %}</h4>
+                    <p class="text-green-600 text-sm">{% if lang == 'es' %}Se preparará tu cuento y te lo enviaremos por email{% else %}We'll prepare your story and send it to your email{% endif %}</p>
+                </div>
+                <button onclick="confirmAndSend()" id="confirmBtn" class="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors text-center">
+                    {% if lang == 'es' %}Aprobar mi cuento{% else %}Approve my story{% endif %}
+                </button>
+            </div>
+            
+            <div class="border-2 border-orange-200 rounded-2xl p-5 bg-gradient-to-br from-orange-50 to-amber-50">
+                <div class="text-center mb-4">
+                    <div class="text-4xl mb-2">🔄</div>
+                    <h4 class="font-display text-lg font-bold text-orange-800">{% if lang == 'es' %}Quiero otro cuento{% else %}I want another story{% endif %}</h4>
+                    <p class="text-orange-600 text-sm">{% if lang == 'es' %}Elegir historia diferente (1 vez){% else %}Choose a different story (1 time){% endif %}</p>
+                </div>
+                <button onclick="requestDifferentStory()" class="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-colors text-center">
+                    {% if lang == 'es' %}Cambiar Historia{% else %}Change Story{% endif %}
+                </button>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center">
+            <div class="border-2 border-green-200 rounded-2xl p-5 bg-gradient-to-br from-green-50 to-emerald-50 max-w-md mx-auto">
+                <div class="text-center mb-4">
+                    <div class="text-4xl mb-2">✅</div>
+                    <h4 class="font-display text-lg font-bold text-green-800">{% if lang == 'es' %}Este es tu cuento final{% else %}This is your final story{% endif %}</h4>
+                    <p class="text-green-600 text-sm">{% if lang == 'es' %}Se preparará tu cuento y te lo enviaremos por email{% else %}We'll prepare your story and send it to your email{% endif %}</p>
+                </div>
+                <button onclick="confirmAndSend()" id="confirmBtn" class="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors text-center">
+                    {% if lang == 'es' %}Aprobar mi cuento{% else %}Approve my story{% endif %}
+                </button>
+            </div>
+            <p class="text-gray-500 text-sm mt-4">{% if lang == 'es' %}Ya usaste tu oportunidad de cambio{% else %}You already used your change opportunity{% endif %}</p>
+        </div>
+        {% endif %}
+    </div>
+    {% elif email_sent and not story_data.is_illustrated_book %}
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        <div class="bg-green-50 border border-green-200 rounded-xl p-4 mb-6 text-center">
+            <div class="text-2xl mb-2">📬</div>
+            <p class="text-green-800 font-semibold">{% if lang == 'es' %}¡Ya enviamos tu cuento a tu correo!{% else %}We already sent your story to your email!{% endif %}</p>
+            <p class="text-green-600 text-sm">{% if lang == 'es' %}Revisa tu bandeja de entrada (y spam){% else %}Check your inbox (and spam folder){% endif %}</p>
+        </div>
+        
+        <h3 class="font-display text-lg font-bold text-purple-800 mb-2 text-center">{% if lang == 'es' %}Descarga Directa (respaldo){% else %}Direct Download (backup){% endif %}</h3>
+        <p class="text-gray-500 text-sm text-center mb-6">{% if lang == 'es' %}Si no recibes el email, descarga aquí{% else %}If you don't receive the email, download here{% endif %}</p>
+        
+        <div class="max-w-md mx-auto">
+            <div class="border-2 border-blue-200 rounded-2xl p-6 bg-gradient-to-br from-blue-50 to-indigo-50">
+                <div class="text-center mb-4">
+                    <div class="text-5xl mb-3">📖</div>
+                    <h4 class="font-display text-xl font-bold text-blue-800">eBook Digital</h4>
+                    <p class="text-blue-600 text-sm">{% if lang == 'es' %}Tu cuento personalizado{% else %}Your personalized story{% endif %}</p>
+                </div>
+                <a href="{{ story_data.visor_url or '/visor/?id=' ~ preview_id }}" target="_blank" class="block w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-xl transition-all text-center no-underline text-lg shadow-lg">
+                    {% if lang == 'es' %}📖 Ver Cuento Interactivo{% else %}📖 View Interactive Story{% endif %}
+                </a>
+            </div>
+        </div>
+    </div>
+    {% elif story_data.is_illustrated_book and story_data.pages_composed %}
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        {% if email_sent %}
+        <div class="bg-green-50 border border-green-200 rounded-xl p-4 mb-6 text-center">
+            <div class="text-2xl mb-2">📬</div>
+            <p class="text-green-800 font-semibold">{% if lang == 'es' %}¡Tu libro fue enviado a tu correo y a producción!{% else %}Your book was sent to your email and to production!{% endif %}</p>
+            <p class="text-green-600 text-sm">{% if lang == 'es' %}Revisa tu bandeja de entrada (y spam){% else %}Check your inbox (and spam folder){% endif %}</p>
+        </div>
+        {% endif %}
+        
+        <h3 class="font-display text-lg font-bold text-purple-800 mb-2 text-center">{% if lang == 'es' %}Descarga tu eBook{% else %}Download your eBook{% endif %}</h3>
+        
+        <div class="max-w-md mx-auto">
+            <div class="border-2 border-blue-200 rounded-2xl p-6 bg-gradient-to-br from-blue-50 to-indigo-50">
+                <div class="text-center mb-4">
+                    <div class="text-5xl mb-3">📖</div>
+                    <h4 class="font-display text-xl font-bold text-blue-800">eBook Digital</h4>
+                    <p class="text-blue-600 text-sm">{% if lang == 'es' %}Tu libro personalizado{% else %}Your personalized book{% endif %}</p>
+                </div>
+                <a href="{{ story_data.visor_url or '/visor/?id=' ~ preview_id }}" target="_blank" class="block w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-xl transition-all text-center no-underline text-lg shadow-lg mb-3">
+                    {% if lang == 'es' %}📖 Ver Cuento Interactivo{% else %}📖 View Interactive Story{% endif %}
+                </a>
+            </div>
+            
+            {% if story_data.want_print and not story_data.admin_gift %}
+                {% if story_data.lulu_status == 'failed' %}
+                <div class="mt-4 bg-red-50 border-2 border-red-300 rounded-xl p-5 text-center">
+                    <div class="text-3xl mb-2">⚠️</div>
+                    <p class="text-red-800 font-semibold mb-2">
+                        {% if lang == 'es' %}
+                        Hubo un problema al enviar tu libro a impresión
+                        {% else %}
+                        There was a problem sending your book to print
+                        {% endif %}
+                    </p>
+                    <p class="text-red-700 text-sm mb-3">
+                        {% if story_data.lulu_error %}
+                            {% if 'tax' in story_data.lulu_error|lower or 'cuit' in story_data.lulu_error|lower or 'fiscal' in story_data.lulu_error|lower %}
+                                {% if lang == 'es' %}
+                                La identificación fiscal proporcionada no es válida para el país de envío. Por favor contáctanos para corregirla.
+                                {% else %}
+                                The tax ID provided is not valid for the shipping country. Please contact us to correct it.
+                                {% endif %}
+                            {% elif 'address' in story_data.lulu_error|lower or 'street' in story_data.lulu_error|lower %}
+                                {% if lang == 'es' %}
+                                La dirección de envío tiene un problema. Por favor contáctanos para corregirla.
+                                {% else %}
+                                There's an issue with the shipping address. Please contact us to fix it.
+                                {% endif %}
+                            {% else %}
+                                {% if lang == 'es' %}
+                                Ocurrió un error técnico al procesar tu pedido de impresión. Nuestro equipo ya fue notificado y lo resolverá pronto.
+                                {% else %}
+                                A technical error occurred while processing your print order. Our team has been notified and will resolve it soon.
+                                {% endif %}
+                            {% endif %}
+                        {% else %}
+                            {% if lang == 'es' %}
+                            Ocurrió un error al procesar tu pedido de impresión. Nuestro equipo ya fue notificado.
+                            {% else %}
+                            An error occurred processing your print order. Our team has been notified.
+                            {% endif %}
+                        {% endif %}
+                    </p>
+                    <p class="text-red-600 text-xs">
+                        {% if lang == 'es' %}
+                        Tu eBook digital está disponible arriba. Escríbenos a <a href="mailto:info@magicmemoriesbooks.com" class="underline font-semibold">info@magicmemoriesbooks.com</a> para resolver el envío impreso.
+                        {% else %}
+                        Your digital eBook is available above. Email us at <a href="mailto:info@magicmemoriesbooks.com" class="underline font-semibold">info@magicmemoriesbooks.com</a> to resolve the print shipment.
+                        {% endif %}
+                    </p>
+                </div>
+                {% elif story_data.lulu_status == 'sent' %}
+                <div class="mt-4 bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+                    <p class="text-green-800 text-sm">
+                        {% if lang == 'es' %}
+                        <strong>✅ Libro impreso:</strong> Tu libro ya fue enviado a producción. Recibirás un email con el seguimiento.
+                        {% else %}
+                        <strong>✅ Printed book:</strong> Your book has been sent to production. You'll receive a tracking email.
+                        {% endif %}
+                    </p>
+                </div>
+                {% else %}
+                <div class="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+                    <p class="text-amber-800 text-sm">
+                        {% if lang == 'es' %}
+                        <strong>Libro impreso:</strong> Tu libro en tapa dura se enviará a producción automáticamente. Recibirás un email con el seguimiento.
+                        {% else %}
+                        <strong>Printed book:</strong> Your hardcover book will be sent to production automatically. You'll receive a tracking email.
+                        {% endif %}
+                    </p>
+                </div>
+                {% endif %}
+            {% endif %}
+            
+            {% if story_data.admin_gift and story_data.lulu_order_folder %}
+            <div class="mt-4 border-2 border-purple-300 rounded-xl p-4 text-center" style="background: linear-gradient(135deg, #f3e8ff, #fce7f3);">
+                <div class="text-2xl mb-2">🎁</div>
+                <p class="text-purple-800 font-semibold mb-3">Libro Regalo - PDFs listos</p>
+                <a href="/admin/gift-download/{{ preview_id }}" class="inline-block px-6 py-3 text-white font-semibold rounded-lg no-underline" style="background: linear-gradient(135deg, #8B5CF6, #EC4899);">
+                    Descargar PDFs para Lulu
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if not (scenes_still_loading and story_data.is_illustrated_book) and not (book_composing and story_data.is_illustrated_book) %}
+    <div class="text-center">
+        <a href="/" class="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 font-medium">
+            ← {% if lang == 'es' %}Crear otro cuento{% else %}Create another story{% endif %}
+        </a>
+    </div>
+    {% endif %}
+{% endif %}
+</section>
+
+<div id="imageModal" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4" onclick="closeImageModal()">
+    <button class="absolute top-4 right-4 text-white text-4xl hover:text-gray-300">&times;</button>
+    <button class="absolute left-4 top-1/2 -translate-y-1/2 text-white text-4xl hover:text-gray-300 p-2" onclick="event.stopPropagation(); changeImage(-1)">‹</button>
+    <button class="absolute right-4 top-1/2 -translate-y-1/2 text-white text-4xl hover:text-gray-300 p-2" onclick="event.stopPropagation(); changeImage(1)">›</button>
+    <img id="modalImage" src="" alt="Full size" class="max-h-[90vh] max-w-[90vw] object-contain rounded-lg" onclick="event.stopPropagation()">
+</div>
+
+<div id="loadingModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-8 text-center max-w-sm mx-4">
+        <div class="w-14 h-14 mx-auto mb-4">
+            <div class="animate-spin w-full h-full border-4 border-purple-200 border-t-purple-600 rounded-full"></div>
+        </div>
+        <h3 class="font-display text-lg font-bold text-gray-800 mb-2">
+            {% if lang == 'es' %}Preparando tu cuento...{% else %}Preparing your story...{% endif %}
+        </h3>
+        <p class="text-purple-700 font-medium text-sm" id="sendingMessage" style="transition: opacity 0.3s ease;">
+            {% if lang == 'es' %}Generando tu eBook personalizado...{% else %}Generating your personalized eBook...{% endif %}
+        </p>
+        <p class="text-gray-500 text-xs mt-2">
+            {% if lang == 'es' %}Esto puede tomar un momento, por favor no cierres esta ventana.{% else %}This may take a moment, please do not close this window.{% endif %}
+        </p>
+        <div class="mt-4 bg-gray-200 rounded-full h-2">
+            <div class="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-500" style="width: 5%" id="sendProgressBar"></div>
+        </div>
+    </div>
+</div>
+
+<div id="confirmModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-6 max-w-sm mx-4 text-center shadow-xl">
+        <h3 class="font-display text-lg font-bold text-gray-800 mb-2" id="confirmTitle"></h3>
+        <p class="text-gray-600 text-sm mb-5" id="confirmMessage"></p>
+        <div class="flex gap-3 justify-center">
+            <button onclick="closeConfirmModal()" class="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors">
+                {% if lang == 'es' %}Cancelar{% else %}Cancel{% endif %}
+            </button>
+            <button id="confirmOkBtn" class="px-5 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors">
+                {% if lang == 'es' %}Regenerar{% else %}Regenerate{% endif %}
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+const images = {{ story_data.images | tojson }};
+const previewId = '{{ preview_id }}';
+const deliveryEmail = '{{ delivery_email }}';
+let currentImageIndex = 0;
+
+{% if scenes_still_loading or book_composing %}
+(function() {
+    const isEs = '{{ lang }}' === 'es';
+    let pollInterval = null;
+    
+    const isFurryLove = {{ 'true' if is_furry_love else 'false' }};
+    
+    const furryPhrasesEs = [
+        "Estamos creando cada escena de la aventura con tu amor peludo...",
+        "Tu mascota y tu pequeño vivirán momentos mágicos en cada página...",
+        "Ilustrando los primeros pasos juntos, pata a pata...",
+        "Cada escena captura el vínculo especial entre tu hijo y su mascota...",
+        "Los mejores amigos se conocen desde pequeños...",
+        "Tu libro tendrá 19 ilustraciones únicas de esta hermosa amistad...",
+        "Creando el primer encuentro, los primeros juegos, las primeras risas...",
+        "Un libro que celebra el amor incondicional entre tu hijo y su mascota...",
+        "Cada trazo cuenta la historia de una amistad para siempre...",
+        "De bebé a los 2 años: cada momento juntos merece ser recordado...",
+        "Tu amor peludo será el co-protagonista perfecto de esta historia...",
+        "El libro impreso llegará en tapa dura, tamaño A4, a tu puerta...",
+        "Creamos recuerdos mágicos de patitas y risitas...",
+        "Esta historia de amistad peluda es única en el mundo...",
+        "Pronto tendrás en tus manos el cuento más tierno jamás creado..."
+    ];
+    const furryPhrasesEn = [
+        "We're creating each scene of the adventure with your furry love...",
+        "Your pet and your little one will share magical moments on every page...",
+        "Illustrating the first steps together, paw by paw...",
+        "Each scene captures the special bond between your child and their pet...",
+        "Best friends meet when they're little...",
+        "Your book will have 19 unique illustrations of this beautiful friendship...",
+        "Creating the first meeting, first games, first laughs...",
+        "A book that celebrates the unconditional love between your child and pet...",
+        "Every stroke tells the story of a friendship forever...",
+        "From baby to age 2: every moment together deserves to be remembered...",
+        "Your furry love will be the perfect co-star of this story...",
+        "The printed book will arrive in hardcover, A4 size, at your door...",
+        "We create magical memories of little paws and giggles...",
+        "This furry friendship story is one of a kind in the world...",
+        "Soon you'll hold the most tender storybook ever created..."
+    ];
+
+    const defaultPhrasesEs = [
+        "Cada ilustración es única, creada especialmente para tu hijo...",
+        "Nuestros artistas digitales están pintando mundos mágicos...",
+        "En Magic Memories Books, cada página cuenta una historia irrepetible...",
+        "Los colores cobran vida en cada escena de tu libro...",
+        "Tu libro personalizado será un recuerdo para toda la vida...",
+        "La inteligencia artificial está creando arte único para tu familia...",
+        "Cada detalle importa: el pelo, los ojos, la sonrisa de tu personaje...",
+        "Un libro hecho con amor y tecnología, solo para ti...",
+        "Las mejores historias son las que tienen a tu hijo como protagonista...",
+        "Estamos cuidando cada trazo para que sea perfecto...",
+        "Tu libro tendrá 19 ilustraciones a todo color en alta resolución...",
+        "El libro impreso llegará en tapa dura, tamaño A4, a tu puerta...",
+        "Creamos recuerdos mágicos que duran para siempre...",
+        "Cada escena está diseñada para despertar la imaginación...",
+        "Tu hijo será el héroe de esta historia única en el mundo..."
+    ];
+    const defaultPhrasesEn = [
+        "Each illustration is unique, created especially for your child...",
+        "Our digital artists are painting magical worlds...",
+        "At Magic Memories Books, every page tells an unrepeatable story...",
+        "Colors come alive in every scene of your book...",
+        "Your personalized book will be a memory for a lifetime...",
+        "AI is creating unique art for your family...",
+        "Every detail matters: the hair, the eyes, your character's smile...",
+        "A book made with love and technology, just for you...",
+        "The best stories are the ones with your child as the hero...",
+        "We're carefully crafting every detail to make it perfect...",
+        "Your book will have 19 full-color, high-resolution illustrations...",
+        "The printed book will arrive in hardcover, A4 size, at your door...",
+        "We create magical memories that last forever...",
+        "Each scene is designed to spark imagination...",
+        "Your child will be the hero of this one-of-a-kind story..."
+    ];
+    const phrasesEs = isFurryLove ? furryPhrasesEs : defaultPhrasesEs;
+    const phrasesEn = isFurryLove ? furryPhrasesEn : defaultPhrasesEn;
+    const phrases = isEs ? phrasesEs : phrasesEn;
+    let phraseIdx = 0;
+    const phraseEl = document.getElementById('rotating-phrase-illustrated');
+    if (phraseEl) {
+        phraseEl.textContent = phrases[0];
+        setInterval(function() {
+            phraseEl.style.opacity = '0';
+            setTimeout(function() {
+                phraseIdx = (phraseIdx + 1) % phrases.length;
+                phraseEl.textContent = phrases[phraseIdx];
+                phraseEl.style.opacity = '1';
+            }, 400);
+        }, 6000);
+    }
+    
+    const composingPhrasesEs = [
+        "Componiendo las páginas finales de tu libro...",
+        "Cada página se diseña con cuidado para impresión profesional...",
+        "Ajustando márgenes y textos para que todo quede perfecto...",
+        "Tu libro está tomando forma página a página...",
+        "Preparando la portada y contraportada con tu diseño único...",
+        "Generando el libro en alta resolución para impresión...",
+        "Tu libro será impreso en tapa dura, tamaño A4...",
+        "Enviando tu libro a producción en Lulu...",
+        "Cada detalle cuenta: tipografía, colores, márgenes...",
+        "Creando un libro que atesorarás por siempre..."
+    ];
+    const composingPhrasesEn = [
+        "Composing the final pages of your book...",
+        "Each page is carefully designed for professional printing...",
+        "Adjusting margins and text to make everything perfect...",
+        "Your book is taking shape page by page...",
+        "Preparing the front and back cover with your unique design...",
+        "Generating the high-resolution book for printing...",
+        "Your book will be printed in hardcover, A4 size...",
+        "Sending your book to production at Lulu...",
+        "Every detail matters: typography, colors, margins...",
+        "Creating a book you'll treasure forever..."
+    ];
+    const cPhrases = isEs ? composingPhrasesEs : composingPhrasesEn;
+    let cPhraseIdx = 0;
+    const cPhraseEl = document.getElementById('rotating-phrase-composing');
+    if (cPhraseEl) {
+        cPhraseEl.textContent = cPhrases[0];
+        setInterval(function() {
+            cPhraseEl.style.opacity = '0';
+            setTimeout(function() {
+                cPhraseIdx = (cPhraseIdx + 1) % cPhrases.length;
+                cPhraseEl.textContent = cPhrases[cPhraseIdx];
+                cPhraseEl.style.opacity = '1';
+            }, 400);
+        }, 5000);
+    }
+    
+    function updateProgress(generated, expected) {
+        const pct = expected > 0 ? Math.round((generated / expected) * 100) : 0;
+        const bars = document.querySelectorAll('[id^="gen-progress-bar"]');
+        const texts = document.querySelectorAll('[id^="gen-progress-text"]');
+        bars.forEach(b => b.style.width = pct + '%');
+        const msg = isEs 
+            ? `Generando ilustración ${generated} de ${expected}...`
+            : `Generating illustration ${generated} of ${expected}...`;
+        texts.forEach(t => t.textContent = msg);
+    }
+    
+    function pollStatus() {
+        fetch(`/api/generation-status/${previewId}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'complete' || data.status === 'scenes_ready') {
+                    clearInterval(pollInterval);
+                    location.reload();
+                } else if (data.status === 'retrying') {
+                    const texts = document.querySelectorAll('[id^="gen-progress-text"]');
+                    const failedScenes = data.failed_scenes || [];
+                    const retryCount = data.retry_count || 0;
+                    const maxRetries = data.max_retries || 6;
+                    const msg = isEs 
+                        ? `Reintentando ${failedScenes.length} ilustraciones (intento ${retryCount}/${maxRetries})... No cierres esta página.`
+                        : `Retrying ${failedScenes.length} illustrations (attempt ${retryCount}/${maxRetries})... Don't close this page.`;
+                    texts.forEach(t => t.textContent = msg);
+                    const bars = document.querySelectorAll('[id^="gen-progress-bar"]');
+                    bars.forEach(b => b.style.width = '75%');
+                } else if (data.status === 'composing_text') {
+                    const texts = document.querySelectorAll('[id^="gen-progress-text"]');
+                    const msg = isEs 
+                        ? 'Añadiendo texto a las ilustraciones...'
+                        : 'Adding text to illustrations...';
+                    texts.forEach(t => t.textContent = msg);
+                    const bars = document.querySelectorAll('[id^="gen-progress-bar"]');
+                    bars.forEach(b => b.style.width = '95%');
+                } else if (data.status === 'composing') {
+                    const texts = document.querySelectorAll('[id^="gen-progress-text"]');
+                    const msg = isEs 
+                        ? 'Preparando tu libro para impresión...'
+                        : 'Preparing your book for printing...';
+                    texts.forEach(t => t.textContent = msg);
+                    const bars = document.querySelectorAll('[id^="gen-progress-bar"]');
+                    bars.forEach(b => b.style.width = '90%');
+                } else if (data.status === 'failed') {
+                    clearInterval(pollInterval);
+                    const loadings = document.querySelectorAll('[id^="generation-loading"]');
+                    loadings.forEach(el => {
+                        el.innerHTML = `<div class="text-center p-6">
+                            <div class="text-5xl mb-4">⚠️</div>
+                            <h3 class="font-display text-xl font-bold text-red-700 mb-3">
+                                ${isEs ? 'Hubo un problema generando las ilustraciones' : 'There was a problem generating illustrations'}
+                            </h3>
+                            <p class="text-gray-600 mb-4">
+                                ${isEs ? 'Te enviaremos un email con instrucciones para reintentar.' : "We'll send you an email with instructions to retry."}
+                            </p>
+                            <button onclick="location.reload()" class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl">
+                                ${isEs ? 'Reintentar' : 'Retry'}
+                            </button>
+                        </div>`;
+                    });
+                } else {
+                    updateProgress(data.generated || 0, data.expected || 8);
+                }
+            })
+            .catch(() => {});
+    }
+    
+    pollInterval = setInterval(pollStatus, 5000);
+    setTimeout(pollStatus, 1000);
+})();
+{% endif %}
+
+function openImageModal(index) {
+    currentImageIndex = index;
+    document.getElementById('modalImage').src = images[index];
+    document.getElementById('imageModal').classList.remove('hidden');
+}
+
+function closeImageModal() {
+    document.getElementById('imageModal').classList.add('hidden');
+}
+
+function changeImage(delta) {
+    currentImageIndex = (currentImageIndex + delta + images.length) % images.length;
+    document.getElementById('modalImage').src = images[currentImageIndex];
+}
+
+document.addEventListener('keydown', (e) => {
+    if (document.getElementById('imageModal').classList.contains('hidden')) return;
+    if (e.key === 'Escape') closeImageModal();
+    if (e.key === 'ArrowLeft') changeImage(-1);
+    if (e.key === 'ArrowRight') changeImage(1);
+});
+
+let sendingInterval = null;
+function startSendingMessages() {
+    const lang = '{{ lang }}';
+    const messagesEs = [
+        "Generando tu eBook personalizado...",
+        "Cada ilustración es única e irrepetible...",
+        "Preparando la versión digital de tu cuento...",
+        "Preparando las ilustraciones finales...",
+        "Creando un recuerdo mágico para toda la vida...",
+        "Empaquetando tu historia con mucho cariño...",
+        "Enviando tu cuento a tu correo electrónico...",
+        "Casi listo... unos segundos más..."
+    ];
+    const messagesEn = [
+        "Generating your personalized eBook...",
+        "Each illustration is unique and one-of-a-kind...",
+        "Preparing the digital version of your story...",
+        "Preparing the final illustrations...",
+        "Creating a magical memory for a lifetime...",
+        "Wrapping your story with care...",
+        "Sending your story to your email...",
+        "Almost ready... just a few more seconds..."
+    ];
+    const messages = lang === 'es' ? messagesEs : messagesEn;
+    let idx = 0;
+    const msgEl = document.getElementById('sendingMessage');
+    const bar = document.getElementById('sendProgressBar');
+    sendingInterval = setInterval(() => {
+        idx = (idx + 1) % messages.length;
+        msgEl.style.opacity = '0';
+        setTimeout(() => {
+            msgEl.textContent = messages[idx];
+            msgEl.style.opacity = '1';
+        }, 300);
+        const progress = Math.min(90, ((idx + 1) / messages.length) * 90);
+        bar.style.width = progress + '%';
+    }, 3500);
+}
+function stopSendingMessages() {
+    if (sendingInterval) { clearInterval(sendingInterval); sendingInterval = null; }
+}
+
+function approveScenes() {
+    const btn = document.getElementById('approveBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = '{{ "Procesando..." if lang == "es" else "Processing..." }}';
+    }
+    
+    fetch(`/api/approve-scenes/${previewId}`, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.error || 'Error');
+                if (btn) { btn.disabled = false; btn.textContent = '{{ "Aprobar mi cuento" if lang == "es" else "Approve my story" }}'; }
+            }
+        })
+        .catch(err => {
+            alert('Error: ' + err.message);
+            if (btn) { btn.disabled = false; btn.textContent = '{{ "Aprobar mi cuento" if lang == "es" else "Approve my story" }}'; }
+        });
+}
+
+function confirmAndSend() {
+    if (!deliveryEmail) {
+        alert('{% if lang == "es" %}No se encontró el email. Por favor contacta soporte.{% else %}No email found. Please contact support.{% endif %}');
+        return;
+    }
+    const btn = document.getElementById('confirmBtn');
+    btn.disabled = true;
+    btn.textContent = '{% if lang == "es" %}Preparando...{% else %}Preparing...{% endif %}';
+    
+    document.getElementById('loadingModal').classList.remove('hidden');
+    startSendingMessages();
+    
+    fetch('/api/confirm-and-send/' + previewId, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({email: deliveryEmail})
+    })
+    .then(response => response.json())
+    .then(data => {
+        stopSendingMessages();
+        if (data.success) {
+            document.getElementById('sendProgressBar').style.width = '100%';
+            window.location.reload();
+        } else {
+            alert(data.error || '{% if lang == "es" %}Error al enviar. Intenta de nuevo.{% else %}Error sending. Please try again.{% endif %}');
+            btn.disabled = false;
+            btn.textContent = '{% if lang == "es" %}Aprobar mi cuento{% else %}Approve my story{% endif %}';
+            document.getElementById('loadingModal').classList.add('hidden');
+        }
+    })
+    .catch(error => {
+        stopSendingMessages();
+        alert('{% if lang == "es" %}Error de conexión. Intenta de nuevo.{% else %}Connection error. Please try again.{% endif %}');
+        btn.disabled = false;
+        btn.textContent = '{% if lang == "es" %}Aprobar mi cuento{% else %}Approve my story{% endif %}';
+        document.getElementById('loadingModal').classList.add('hidden');
+    });
+}
+
+function requestDifferentStory() {
+    if (confirm('{% if lang == "es" %}¿Estás seguro de que quieres elegir otra historia? Esta es tu ÚNICA oportunidad de cambio. Se generará un cuento completamente nuevo.{% else %}Are you sure you want to choose another story? This is your ONLY change opportunity. A completely new story will be generated.{% endif %}')) {
+        fetch('/api/request-story-change/' + previewId, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = data.redirect_url || '/story-selection';
+            } else {
+                alert(data.error || '{% if lang == "es" %}Error al procesar. Intenta de nuevo.{% else %}Error processing. Please try again.{% endif %}');
+            }
+        })
+        .catch(error => {
+            alert('{% if lang == "es" %}Error de conexión.{% else %}Connection error.{% endif %}');
+        });
+    }
+}
+
+function regeneratePage(pageNum) {
+    const btn = document.getElementById('regen-btn-' + pageNum);
+    const img = document.getElementById('page-img-' + pageNum);
+    const countSpan = document.getElementById('regen-count-' + pageNum);
+    
+    if (!btn) return;
+    
+    showConfirmModal(
+        '{% if lang == "es" %}¿Regenerar esta ilustración?{% else %}Regenerate this illustration?{% endif %}',
+        '{% if lang == "es" %}La imagen actual será reemplazada. Esto puede tomar 10-15 segundos.{% else %}The current image will be replaced. This may take 10-15 seconds.{% endif %}',
+        function() { doRegeneratePage(pageNum, btn, img, countSpan); }
+    );
+}
+
+function doRegeneratePage(pageNum, btn, img, countSpan) {
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="animate-spin">⏳</span> <span>{% if lang == "es" %}Generando...{% else %}Generating...{% endif %}</span>';
+    btn.classList.remove('bg-orange-500', 'hover:bg-orange-600');
+    btn.classList.add('bg-gray-400', 'cursor-not-allowed');
+    
+    fetch('/api/regenerate-page/' + previewId + '/' + pageNum, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            img.src = data.image_path + '?t=' + Date.now();
+            
+            if (data.regenerations_left > 0) {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="text-lg">🔄</span> <span>{% if lang == "es" %}Regenerar{% else %}Regenerate{% endif %}</span> <span class="text-xs bg-orange-600 px-2 py-0.5 rounded-full">' + data.regenerations_left + '/2</span>';
+                btn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                btn.classList.add('bg-orange-500', 'hover:bg-orange-600');
+            } else {
+                btn.outerHTML = '<div class="mt-2 w-full py-2 px-3 bg-gray-300 text-gray-600 text-sm font-semibold rounded-lg text-center">{% if lang == "es" %}Límite alcanzado{% else %}Limit reached{% endif %}</div>';
+            }
+            
+            showToast('{% if lang == "es" %}¡Ilustración regenerada!{% else %}Illustration regenerated!{% endif %}', 'success');
+        } else {
+            showToast(data.error || '{% if lang == "es" %}Error al regenerar{% else %}Error regenerating{% endif %}', 'error');
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            btn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+            btn.classList.add('bg-orange-500', 'hover:bg-orange-600');
+        }
+    })
+    .catch(error => {
+        console.error('Regeneration error:', error);
+        showToast('{% if lang == "es" %}Error de conexión{% else %}Connection error{% endif %}', 'error');
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        btn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+        btn.classList.add('bg-orange-500', 'hover:bg-orange-600');
+    });
+}
+
+function showConfirmModal(title, message, onConfirm) {
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmMessage').textContent = message;
+    const modal = document.getElementById('confirmModal');
+    modal.classList.remove('hidden');
+    const okBtn = document.getElementById('confirmOkBtn');
+    const newBtn = okBtn.cloneNode(true);
+    okBtn.parentNode.replaceChild(newBtn, okBtn);
+    newBtn.id = 'confirmOkBtn';
+    newBtn.addEventListener('click', function() {
+        modal.classList.add('hidden');
+        onConfirm();
+    });
+}
+
+function closeConfirmModal() {
+    document.getElementById('confirmModal').classList.add('hidden');
+}
+
+function showToast(message, type) {
+    const existing = document.getElementById('toast-notification');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.id = 'toast-notification';
+    toast.className = 'fixed top-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl shadow-lg text-white font-medium text-sm transition-all';
+    toast.style.cssText = 'animation: fadeInDown 0.3s ease;';
+    toast.className += type === 'success' ? ' bg-green-500' : ' bg-red-500';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+}
+
+function regenerateCoverIllustrated(previewId) {
+    showConfirmModal(
+        '{% if lang == "es" %}¿Regenerar la portada?{% else %}Regenerate cover?{% endif %}',
+        '{% if lang == "es" %}La portada actual será reemplazada. Esto puede tomar 15-30 segundos.{% else %}The current cover will be replaced. This may take 15-30 seconds.{% endif %}',
+        function() { doRegenerateCoverIllustrated(previewId); }
+    );
+}
+
+function doRegenerateCoverIllustrated(previewId) {
+    const btn = document.getElementById('regenerateCoverBtnIllustrated');
+    const icon = document.getElementById('regenCoverIconIllustrated');
+    const text = document.getElementById('regenCoverTextIllustrated');
+    const img = document.getElementById('illustrated-cover-img');
+    
+    if (btn) {
+        btn.disabled = true;
+        btn.classList.add('opacity-50');
+    }
+    if (icon) icon.innerHTML = '<div class="animate-spin inline-block w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full"></div>';
+    if (text) text.textContent = '{% if lang == "es" %}Regenerando...{% else %}Regenerating...{% endif %}';
+    
+    fetch('/api/regenerate-cover/' + previewId, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (img) img.src = data.cover_image + '?t=' + Date.now();
+            showToast('{% if lang == "es" %}¡Portada regenerada!{% else %}Cover regenerated!{% endif %}', 'success');
+        } else {
+            showToast(data.error || '{% if lang == "es" %}Error al regenerar{% else %}Error regenerating{% endif %}', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Cover regeneration error:', error);
+        showToast('{% if lang == "es" %}Error de conexión{% else %}Connection error{% endif %}', 'error');
+    })
+    .finally(() => {
+        if (btn) {
+            btn.disabled = false;
+            btn.classList.remove('opacity-50');
+        }
+        if (icon) icon.textContent = '🔄';
+        if (text) text.textContent = '{% if lang == "es" %}Regenerar Portada{% else %}Regenerate Cover{% endif %}';
+    });
+}
+
+function regenerateQuickScene(sceneNum) {
+    const btn = document.getElementById('regen-qs-btn-' + sceneNum);
+    const loading = document.getElementById('regen-qs-loading-' + sceneNum);
+    const img = document.getElementById('scene-img-' + sceneNum);
+    const countSpan = document.getElementById('regen-qs-count-' + sceneNum);
+    
+    if (!btn || !img) return;
+    
+    showConfirmModal(
+        '{% if lang == "es" %}¿Regenerar esta ilustración?{% else %}Regenerate this illustration?{% endif %}',
+        '{% if lang == "es" %}La imagen actual será reemplazada. Esto puede tomar 10-15 segundos.{% else %}The current image will be replaced. This may take 10-15 seconds.{% endif %}',
+        function() { doRegenerateQuickScene(sceneNum, btn, loading, img, countSpan); }
+    );
+}
+
+function doRegenerateQuickScene(sceneNum, btn, loading, img, countSpan) {
+    btn.disabled = true;
+    btn.classList.add('opacity-50');
+    if (loading) loading.classList.remove('hidden');
+    
+    fetch('/api/regenerate-quick-scene/' + previewId + '/' + sceneNum, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            img.src = data.image_url + '?t=' + Date.now();
+            
+            if (data.remaining <= 0) {
+                btn.style.display = 'none';
+            } else if (countSpan) {
+                countSpan.textContent = data.remaining + '/2';
+            }
+            
+            showToast('{% if lang == "es" %}¡Ilustración regenerada!{% else %}Illustration regenerated!{% endif %}', 'success');
+        } else {
+            showToast(data.error || '{% if lang == "es" %}Error al regenerar{% else %}Error regenerating{% endif %}', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Quick scene regeneration error:', error);
+        showToast('{% if lang == "es" %}Error de conexión{% else %}Connection error{% endif %}', 'error');
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.classList.remove('opacity-50');
+        if (loading) loading.classList.add('hidden');
+    });
+}
+
+(function() {
+    var warning = document.querySelector('.review-warning-fixed');
+    if (!warning) return;
+    var spacer = warning.nextElementSibling;
+    if (!spacer || !spacer.classList.contains('review-warning-spacer')) return;
+    function updateSpacer() {
+        spacer.style.height = warning.offsetHeight + 'px';
+    }
+    updateSpacer();
+    window.addEventListener('resize', updateSpacer);
+    var obs = new MutationObserver(updateSpacer);
+    obs.observe(warning, { childList: true, subtree: true, attributes: true });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview Leads - Magic Memories Books</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Quicksand', 'Segoe UI', sans-serif; background: #F9F9FB; color: #333; }
+        .header { background: linear-gradient(135deg, #D4AF37, #B8860B); color: #fff; padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 20px; }
+        .header a { color: #fff; text-decoration: none; font-size: 13px; opacity: 0.8; }
+        .container { max-width: 1100px; margin: 24px auto; padding: 0 20px; }
+        .stats { display: flex; gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: #fff; border-radius: 12px; padding: 20px; flex: 1; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .stat-card .number { font-size: 32px; font-weight: 700; color: #B8860B; }
+        .stat-card .label { font-size: 12px; color: #888; margin-top: 4px; }
+        .section { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+        .section h2 { font-size: 16px; color: #B8860B; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; padding: 10px 12px; background: #F9F9FB; color: #888; font-weight: 600; font-size: 11px; text-transform: uppercase; }
+        td { padding: 10px 12px; border-top: 1px solid #f0f0f0; }
+        .btn-csv { background: linear-gradient(135deg, #D4AF37, #B8860B); color: #fff; border: none; padding: 8px 20px; border-radius: 16px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn-csv:hover { opacity: 0.9; }
+        .btn-delete-all { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; border: none; padding: 8px 20px; border-radius: 16px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-block; }
+        .btn-delete-all:hover { opacity: 0.9; }
+        .btn-delete { background: none; border: none; color: #ef4444; cursor: pointer; font-size: 16px; font-weight: 700; padding: 4px 8px; border-radius: 6px; transition: background 0.2s; }
+        .btn-delete:hover { background: #fee2e2; }
+        .email-cell { font-weight: 600; color: #1a1a1a; }
+        .story-badge { background: #f0f4ff; color: #4f46e5; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+        .empty-msg { text-align: center; padding: 40px; color: #888; font-size: 14px; }
+        .header-buttons { display: flex; gap: 8px; align-items: center; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Preview Leads</h1>
+        <a href="{{ url_for('admin_dashboard') }}">&larr; Dashboard</a>
+    </div>
+    <div class="container">
+        <div class="stats">
+            <div class="stat-card">
+                <div class="number">{{ total_leads }}</div>
+                <div class="label">Total Leads</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">{{ unique_emails }}</div>
+                <div class="label">Emails Únicos</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">{{ today_leads }}</div>
+                <div class="label">Hoy</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <h2>Últimos {{ leads|length }} leads</h2>
+                <div class="header-buttons">
+                    <a href="{{ url_for('admin_preview_leads_csv') }}" class="btn-csv">Exportar CSV</a>
+                    {% if leads %}
+                    <form action="{{ url_for('admin_delete_all_preview_leads') }}" method="POST" style="display:inline;" onsubmit="return confirm('¿Eliminar TODOS los leads? Esta acción no se puede deshacer.');">
+                        <button type="submit" class="btn-delete-all">Eliminar todos</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if leads %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>IP</th>
+                        <th>Cuento</th>
+                        <th>Fecha</th>
+                        <th style="width:50px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lead in leads %}
+                    <tr>
+                        <td class="email-cell">{{ lead.email }}</td>
+                        <td>{{ lead.ip_address or '-' }}</td>
+                        <td><span class="story-badge">{{ lead.story_id or '-' }}</span></td>
+                        <td>{{ lead.created_at.strftime('%Y-%m-%d %H:%M') if lead.created_at else '-' }}</td>
+                        <td>
+                            <form action="{{ url_for('admin_delete_preview_lead', lead_id=lead.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('¿Eliminar este lead?');">
+                                <button type="submit" class="btn-delete" title="Eliminar">&times;</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-msg">No hay leads todavía.</div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

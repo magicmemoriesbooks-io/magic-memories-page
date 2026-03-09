@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'es' %}Libros Personalizados{% else %}Personalized Books{% endif %} - {{ translations.site_title }}{% endblock %}
+
+{% block content %}
+<section class="py-6 px-4 max-w-6xl mx-auto">
+    <div class="bg-blue-50 border-2 border-blue-300 rounded-2xl p-5 mb-6 shadow-lg">
+        <div class="flex items-start gap-3">
+            <div class="text-3xl">📖</div>
+            <div>
+                <p class="text-blue-800 font-bold mb-2">
+                    {% if lang == 'es' %}Leer antes de empezar{% else %}Read before starting{% endif %}
+                </p>
+                <p class="text-blue-700 text-sm mb-2">
+                    {% if lang == 'es' %}
+                    Los <strong>Libros Personalizados</strong> son creados con detalle y cariño. Cada ilustración se genera individualmente para tu hijo/a.
+                    {% else %}
+                    <strong>Personalized Books</strong> are created with detail and care. Each illustration is individually generated for your child.
+                    {% endif %}
+                </p>
+                <p class="text-red-600 text-sm font-semibold">
+                    {% if lang == 'es' %}
+                    ⏱️ <strong>Tiempo total: 15-20 minutos</strong> para generar las 20 ilustraciones. No toques la pantalla ni cierres la ventana mientras se generan.
+                    {% else %}
+                    ⏱️ <strong>Total time: 15-20 minutes</strong> to generate all 20 illustrations. Do not touch the screen or close the window while generating.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    {% if is_change_mode %}
+    <div class="bg-amber-50 border-2 border-amber-400 rounded-2xl p-4 mb-6 shadow-lg">
+        <div class="flex items-start gap-3">
+            <div class="text-3xl">⚠️</div>
+            <div>
+                <p class="text-amber-800 font-bold mb-1">
+                    {% if lang == 'es' %}¡ATENCIÓN! Esta es tu ÚNICA oportunidad de cambio{% else %}ATTENTION! This is your ONLY change opportunity{% endif %}
+                </p>
+                <p class="text-amber-700 text-sm">
+                    {% if lang == 'es' %}
+                    Puedes elegir una historia diferente o personalizar de nuevo, pero <strong>después de esto no podrás hacer más cambios</strong>. Elige con cuidado.
+                    {% else %}
+                    You can choose a different story or personalize again, but <strong>after this you cannot make any more changes</strong>. Choose carefully.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="text-center mb-6">
+        <a href="{{ url_for('index') }}" class="text-purple-600 hover:text-purple-700 mb-4 inline-block">
+            ← {% if lang == 'es' %}Volver al inicio{% else %}Back to home{% endif %}
+        </a>
+        <h1 class="font-display text-3xl md:text-4xl font-bold text-emerald-700 mb-2">
+            {% if lang == 'es' %}Libros Personalizados{% else %}Personalized Books{% endif %}
+        </h1>
+        <p class="text-lg text-emerald-600">
+            {% if lang == 'es' %}24 páginas ilustradas con tu hijo/a como protagonista{% else %}24 illustrated pages with your child as the star{% endif %}
+        </p>
+    </div>
+
+    <div class="max-w-md mx-auto mb-8">
+        <div class="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-4">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2 text-center">
+                    {% if lang == 'es' %}¿Cómo se llama el protagonista?{% else %}What's the hero's name?{% endif %}
+                </label>
+                <input type="text" id="childName" 
+                       placeholder="{% if lang == 'es' %}Escribe el nombre...{% else %}Enter name...{% endif %}"
+                       class="w-full px-4 py-3 border-2 border-emerald-200 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 text-lg text-center"
+                       oninput="updateTitle()">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2 text-center">
+                    {% if lang == 'es' %}Género{% else %}Gender{% endif %}
+                </label>
+                <div class="flex justify-center gap-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="childGender" value="female" checked class="text-emerald-600 focus:ring-emerald-500">
+                        <span>{% if lang == 'es' %}Niña{% else %}Girl{% endif %}</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="childGender" value="male" class="text-emerald-600 focus:ring-emerald-500">
+                        <span>{% if lang == 'es' %}Niño{% else %}Boy{% endif %}</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tarjetas horizontales estilo Quick Stories - 2x2 grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+        <!-- Dragon Garden Book Card -->
+        <div class="story-card bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all cursor-pointer" onclick="selectBook('dragon')">
+            <div class="flex">
+                <div class="w-1/3 flex-shrink-0">
+                    <div class="relative aspect-[3/4]">
+                        <img src="/static/images/cover_dragon_garden.jpg" alt="El Jardín del Dragón" class="w-full h-full object-cover">
+                    </div>
+                </div>
+                <div class="w-2/3 p-4 flex flex-col justify-between">
+                    <div>
+                        <h3 id="storyTitle" class="text-lg font-bold text-emerald-700 mb-1">
+                            {% if lang == 'es' %}[Nombre] y el Jardín del Dragón{% else %}[Name] and the Dragon Garden{% endif %}
+                        </h3>
+                        <p class="text-sm text-gray-600 mb-2">
+                            {% if lang == 'es' %}Una aventura mágica en un jardín encantado{% else %}A magical adventure in an enchanted garden{% endif %}
+                        </p>
+                        <div class="flex flex-wrap gap-1">
+                            <span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs">24 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
+                            <span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs">{% if lang == 'es' %}Amistad{% else %}Friendship{% endif %}</span>
+                        </div>
+                    </div>
+                    <button id="personalizeBtn" class="select-btn mt-3 w-full bg-gray-200 text-gray-500 py-2 rounded-lg text-sm font-medium transition-all" disabled>
+                        {% if lang == 'es' %}Escribe el nombre arriba{% else %}Enter name above{% endif %}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Magic Chef Book Card -->
+        <div class="story-card bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all cursor-pointer" onclick="selectBook('magic_chef')">
+            <div class="flex">
+                <div class="w-1/3 flex-shrink-0">
+                    <div class="relative aspect-[3/4]">
+                        <img src="/static/images/cover_magic_chef.jpg" alt="El Chef Mágico" class="w-full h-full object-cover">
+                    </div>
+                </div>
+                <div class="w-2/3 p-4 flex flex-col justify-between">
+                    <div>
+                        <h3 id="storyTitleChef" class="text-lg font-bold text-amber-700 mb-1">
+                            {% if lang == 'es' %}[Nombre] El Chef Mágico{% else %}[Name] The Magic Chef{% endif %}
+                        </h3>
+                        <p class="text-sm text-gray-600 mb-2">
+                            {% if lang == 'es' %}Una aventura culinaria con Dulcín{% else %}A culinary adventure with Sweetie{% endif %}
+                        </p>
+                        <div class="flex flex-wrap gap-1">
+                            <span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-xs">24 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
+                            <span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-xs">{% if lang == 'es' %}Cocina{% else %}Cooking{% endif %}</span>
+                        </div>
+                    </div>
+                    <button id="personalizeBtnChef" class="select-btn mt-3 w-full bg-gray-200 text-gray-500 py-2 rounded-lg text-sm font-medium transition-all" disabled>
+                        {% if lang == 'es' %}Escribe el nombre arriba{% else %}Enter name above{% endif %}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Magic Inventor Book Card -->
+        <div class="story-card bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all cursor-pointer" onclick="selectBook('magic_inventor')">
+            <div class="flex">
+                <div class="w-1/3 flex-shrink-0">
+                    <div class="relative aspect-[3/4]">
+                        <img src="/static/images/cover_magic_inventor.jpg" alt="El Taller del Inventor Mágico" class="w-full h-full object-cover">
+                    </div>
+                </div>
+                <div class="w-2/3 p-4 flex flex-col justify-between">
+                    <div>
+                        <h3 id="storyTitleInventor" class="text-lg font-bold text-cyan-700 mb-1">
+                            {% if lang == 'es' %}[Nombre] y el Taller del Inventor{% else %}[Name] and the Inventor Workshop{% endif %}
+                        </h3>
+                        <p class="text-sm text-gray-600 mb-2">
+                            {% if lang == 'es' %}Una aventura de inventos con BOLT{% else %}An invention adventure with BOLT{% endif %}
+                        </p>
+                        <div class="flex flex-wrap gap-1">
+                            <span class="bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded-full text-xs">24 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
+                            <span class="bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded-full text-xs">{% if lang == 'es' %}Inventos{% else %}Inventions{% endif %}</span>
+                            <span class="bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded-full text-xs">6-8 {% if lang == 'es' %}años{% else %}years{% endif %}</span>
+                        </div>
+                    </div>
+                    <button id="personalizeBtnInventor" class="select-btn mt-3 w-full bg-gray-200 text-gray-500 py-2 rounded-lg text-sm font-medium transition-all" disabled>
+                        {% if lang == 'es' %}Escribe el nombre arriba{% else %}Enter name above{% endif %}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Star Keeper Book Card -->
+        <div class="story-card bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all cursor-pointer" onclick="selectBook('star_keeper')">
+            <div class="flex">
+                <div class="w-1/3 flex-shrink-0">
+                    <div class="relative aspect-[3/4]">
+                        <img src="/static/images/cover_star_keeper.jpg" alt="El Guardián de Estrellas" class="w-full h-full object-cover">
+                    </div>
+                </div>
+                <div class="w-2/3 p-4 flex flex-col justify-between">
+                    <div>
+                        <h3 id="storyTitleStarKeeper" class="text-lg font-bold text-indigo-700 mb-1">
+                            {% if lang == 'es' %}[Nombre] y el Guardián de Estrellas{% else %}[Name] The Star Keeper{% endif %}
+                        </h3>
+                        <p class="text-sm text-gray-600 mb-2">
+                            {% if lang == 'es' %}Una aventura celestial con LUNA{% else %}A celestial adventure with LUNA{% endif %}
+                        </p>
+                        <div class="flex flex-wrap gap-1">
+                            <span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs">24 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
+                            <span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs">{% if lang == 'es' %}Estrellas{% else %}Stars{% endif %}</span>
+                            <span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs">6-7 {% if lang == 'es' %}años{% else %}years{% endif %}</span>
+                        </div>
+                    </div>
+                    <button id="personalizeBtnStarKeeper" class="select-btn mt-3 w-full bg-gray-200 text-gray-500 py-2 rounded-lg text-sm font-medium transition-all" disabled>
+                        {% if lang == 'es' %}Escribe el nombre arriba{% else %}Enter name above{% endif %}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="mt-8 text-center">
+        <p class="text-gray-500 text-sm">
+            {% if lang == 'es' %}¿Buscas algo más rápido? <a href="{{ url_for('story_selection') }}" class="text-purple-600 hover:underline">Ver Cuentos Rápidos ($25)</a>{% else %}Looking for something quicker? <a href="{{ url_for('story_selection') }}" class="text-purple-600 hover:underline">See Quick Stories ($25)</a>{% endif %}
+        </p>
+    </div>
+</section>
+
+<script>
+const lang = '{{ lang }}';
+const isChangeMode = {{ 'true' if is_change_mode else 'false' }};
+const originalPreviewId = '{{ original_preview_id or "" }}';
+const defaultName = lang === 'es' ? '[Nombre]' : '[Name]';
+const titleTemplateDragon = lang === 'es' ? '{name} y el Jardín del Dragón' : '{name} and the Dragon Garden';
+const titleTemplateChef = lang === 'es' ? '{name} El Chef Mágico' : '{name} The Magic Chef';
+const titleTemplateInventor = lang === 'es' ? '{name} y el Taller del Inventor' : '{name} and the Inventor Workshop';
+const titleTemplateStarKeeper = lang === 'es' ? '{name} y el Guardián de Estrellas' : '{name} The Star Keeper';
+
+function updateTitle() {
+    const name = document.getElementById('childName').value.trim();
+    const displayName = name.length >= 2 ? name : defaultName;
+    
+    document.getElementById('storyTitle').textContent = titleTemplateDragon.replace('{name}', displayName);
+    document.getElementById('storyTitleChef').textContent = titleTemplateChef.replace('{name}', displayName);
+    document.getElementById('storyTitleInventor').textContent = titleTemplateInventor.replace('{name}', displayName);
+    document.getElementById('storyTitleStarKeeper').textContent = titleTemplateStarKeeper.replace('{name}', displayName);
+    
+    const btn = document.getElementById('personalizeBtn');
+    const btnChef = document.getElementById('personalizeBtnChef');
+    const btnInventor = document.getElementById('personalizeBtnInventor');
+    const btnStarKeeper = document.getElementById('personalizeBtnStarKeeper');
+    
+    if (name.length >= 2) {
+        [{el: btn, from: 'emerald', to: 'teal'}, {el: btnChef, from: 'amber', to: 'orange'}, {el: btnInventor, from: 'cyan', to: 'blue'}, {el: btnStarKeeper, from: 'indigo', to: 'purple'}].forEach(({el, from, to}) => {
+            el.disabled = false;
+            el.textContent = lang === 'es' ? 'Personalizar →' : 'Personalize →';
+            el.classList.remove('bg-gray-300', 'text-gray-500');
+            el.classList.add('bg-gradient-to-r', `from-${from}-500`, `to-${to}-500`, 'text-white', 'hover:shadow-lg');
+        });
+    } else {
+        [btn, btnChef, btnInventor, btnStarKeeper].forEach(el => {
+            el.disabled = true;
+            el.textContent = lang === 'es' ? 'Escribe nombre' : 'Enter name';
+            el.classList.add('bg-gray-300', 'text-gray-500');
+            el.classList.remove('bg-gradient-to-r', 'text-white', 'hover:shadow-lg');
+        });
+    }
+}
+
+function selectBook(bookType = 'dragon') {
+    const name = document.getElementById('childName').value.trim();
+    const gender = document.querySelector('input[name="childGender"]:checked').value;
+    if (name.length >= 2) {
+        const storyMap = {
+            'magic_chef': 'magic_chef_illustrated',
+            'magic_inventor': 'magic_inventor_illustrated',
+            'star_keeper': 'star_keeper_illustrated',
+            'dragon': 'dragon_garden_illustrated'
+        };
+        const storyId = storyMap[bookType] || 'dragon_garden_illustrated';
+        let url = `/personalize-story?story=${storyId}&name=${encodeURIComponent(name)}&gender=${gender}`;
+        if (isChangeMode && originalPreviewId) {
+            url += `&change=1&original_preview_id=${originalPreviewId}`;
+        }
+        window.location.href = url;
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}{{ translations.terms_title }} - {{ translations.site_title }}{% endblock %}
+
+{% block content %}
+<section class="py-16 px-4 max-w-4xl mx-auto">
+    <a href="{{ url_for('index') }}" class="inline-flex items-center text-sm font-medium text-purple-600 hover:text-purple-800 transition mb-4" style="font-family:'Quicksand',sans-serif;">
+        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        {% if lang == 'es' %}Volver al inicio{% else %}Back to Home{% endif %}
+    </a>
+    <h1 class="font-display text-4xl md:text-5xl font-bold text-purple-800 text-center mb-8">
+        {% if lang == 'es' %}Términos y Condiciones{% else %}Terms of Service{% endif %}
+    </h1>
+    
+    <div class="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg p-8 md:p-12">
+        <p class="text-gray-700 text-lg leading-relaxed mb-8">{{ translations.terms_intro }}</p>
+        
+        <div class="space-y-8">
+            <div class="border-l-4 border-purple-500 pl-6">
+                <h2 class="font-display text-xl font-bold text-purple-800 mb-3">
+                    {% if lang == 'es' %}1. Nuestro Proceso de Venta (Aviso de Paddle){% else %}1. Our Sales Process (Paddle Notice){% endif %}
+                </h2>
+                <p class="text-gray-700 leading-relaxed">
+                    {% if lang == 'es' %}Para su seguridad, el proceso de pedido es gestionado por nuestro revendedor autorizado Paddle.com. Paddle es el Vendedor Oficial (Merchant of Record) de todos nuestros pedidos. Paddle gestiona las consultas de servicio al cliente relacionadas con pagos y devoluciones de impuestos. Sus datos personales serán compartidos con Paddle para procesar el pago y para el cumplimiento fiscal según su <a href="https://www.paddle.com/legal/privacy" target="_blank" class="text-purple-600 hover:underline">Política de Privacidad</a>.{% else %}For your security, the order process is managed by our authorized reseller Paddle.com. Paddle is the Merchant of Record for all our orders. Paddle handles customer service inquiries related to payments and tax refunds. Your personal data will be shared with Paddle to process payment and for tax compliance according to their <a href="https://www.paddle.com/legal/privacy" target="_blank" class="text-purple-600 hover:underline">Privacy Policy</a>.{% endif %}
+                </p>
+            </div>
+
+            <div class="border-l-4 border-green-500 pl-6 bg-green-50 py-4 rounded-r-lg">
+                <h2 class="font-display text-xl font-bold text-green-800 mb-3">
+                    {% if lang == 'es' %}2. Garantía de Validación Previa y Regeneración{% else %}2. Pre-Validation and Regeneration Guarantee{% endif %}
+                </h2>
+                <p class="text-gray-700 leading-relaxed mb-3">
+                    {% if lang == 'es' %}Para garantizar su satisfacción, usted podrá revisar y aprobar el parecido de los personajes y el texto de la historia <strong>antes de realizar el pago</strong>.{% else %}To ensure your satisfaction, you can review and approve the character likeness and story text <strong>before making payment</strong>.{% endif %}
+                </p>
+                <p class="text-gray-700 leading-relaxed mb-3">
+                    {% if lang == 'es' %}Una vez efectuado el pago, el sistema le otorga <strong>una (1) oportunidad adicional</strong> para regenerar el contenido si así lo desea.{% else %}Once payment is made, the system grants you <strong>one (1) additional opportunity</strong> to regenerate the content if you wish.{% endif %}
+                </p>
+                <p class="text-gray-700 leading-relaxed">
+                    {% if lang == 'es' %}Al confirmar el botón "Me encanta, envíamelo", usted da su aprobación final y el producto se considera entregado y aceptado.{% else %}By confirming the "I love it, send it to me" button, you give your final approval and the product is considered delivered and accepted.{% endif %}
+                </p>
+            </div>
+
+            <div class="border-l-4 border-blue-500 pl-6 bg-blue-50 py-4 rounded-r-lg">
+                <h2 class="font-display text-xl font-bold text-blue-800 mb-3">
+                    {% if lang == 'es' %}3. Entrega de Productos Digitales y Físicos{% else %}3. Digital and Physical Product Delivery{% endif %}
+                </h2>
+                <div class="bg-white p-4 rounded-lg mb-3">
+                    <p class="text-gray-700 leading-relaxed mb-2 font-medium">
+                        {% if lang == 'es' %}Formatos de entrega según producto:{% else %}Delivery formats by product:{% endif %}
+                    </p>
+                    <ul class="text-gray-700 space-y-2 ml-4">
+                        <li>{% if lang == 'es' %}• <strong>Cuentos Rápidos ($20 digital / impreso desde $20 + envío):</strong> PDF Digital + opción de libro impreso (12 páginas, saddle stitch, 8.5"×8.5"){% else %}• <strong>Quick Stories ($20 digital / print from $20 + shipping):</strong> Digital PDF + print option (12 pages, saddle stitch, 8.5"×8.5"){% endif %}</li>
+                        <li>{% if lang == 'es' %}• <strong>Libros Personalizados ($35 + envío):</strong> PDF Digital + Libro físico impreso (tapa dura, A4, envío global){% else %}• <strong>Personalized Books ($35 + shipping):</strong> Digital PDF + Printed physical book (hardcover, A4, global shipping){% endif %}</li>
+                        <li>{% if lang == 'es' %}• <strong>Haz tu Historia ($35 + envío):</strong> PDF Digital + Libro físico impreso (tapa dura, A4, envío global){% else %}• <strong>Make Your Story ($35 + shipping):</strong> Digital PDF + Printed physical book (hardcover, A4, global shipping){% endif %}</li>
+                    </ul>
+                </div>
+                <p class="text-gray-700 leading-relaxed mb-3">
+                    {% if lang == 'es' %}Tras el pago exitoso, recibirá un enlace de descarga inmediata en pantalla y una copia en su correo electrónico.{% else %}After successful payment, you will receive an immediate download link on screen and a copy to your email.{% endif %}
+                </p>
+                <p class="text-gray-700 leading-relaxed mb-3">
+                    {% if lang == 'es' %}<strong>Libros impresos:</strong> La impresión se realiza a través de Lulu (imprenta global asociada). Tiempo estimado de entrega: 10-15 días hábiles según ubicación.{% else %}<strong>Printed books:</strong> Printing is done through Lulu (global print partner). Estimated delivery time: 10-15 business days depending on location.{% endif %}
+                </p>
+                <p class="text-gray-700 leading-relaxed mb-3 text-sm">
+                    {% if lang == 'es' %}<strong>Aranceles e impuestos:</strong> El precio de envío no incluye posibles aranceles o impuestos de importación locales que puedan aplicarse en países fuera de la Unión Europea o Estados Unidos, los cuales serán responsabilidad del comprador.{% else %}<strong>Customs and taxes:</strong> The shipping price does not include any customs duties or local import taxes that may apply in countries outside the European Union or the United States, which will be the buyer's responsibility.{% endif %}
+                </p>
+                <p class="text-gray-700 leading-relaxed font-medium">
+                    {% if lang == 'es' %}<strong>Garantía técnica:</strong> Si ocurre un error durante la generación después de haber pagado, nuestro sistema enviará automáticamente un enlace de recuperación a su correo electrónico para que pueda acceder a su cuento sin costo adicional.{% else %}<strong>Technical guarantee:</strong> If an error occurs during generation after payment, our system will automatically send a recovery link to your email so you can access your story at no additional cost.{% endif %}
+                </p>
+            </div>
+
+            <div class="border-l-4 border-purple-500 pl-6">
+                <h2 class="font-display text-xl font-bold text-purple-800 mb-3">
+                    {% if lang == 'es' %}4. Consentimiento, Uso de Fotografías y Privacidad{% else %}4. Consent, Use of Photographs and Privacy{% endif %}
+                </h2>
+                <p class="text-gray-700 leading-relaxed mb-3">
+                    {% if lang == 'es' %}Al subir fotografías, usted confirma que: (a) es el padre, madre o tutor legal del menor que aparece en la foto, o tiene autorización para subirla; (b) autoriza a Magic Memories Books a procesar dichas imágenes mediante Inteligencia Artificial exclusivamente para crear las ilustraciones de su libro personalizado; (c) entiende que las fotos NO se utilizarán para entrenar modelos de IA, marketing ni ningún otro propósito.{% else %}By uploading photographs, you confirm that: (a) you are the parent or legal guardian of the minor in the photo, or have authorization to upload it; (b) you authorize Magic Memories Books to process said images using Artificial Intelligence exclusively to create the illustrations for your personalized book; (c) you understand that photos will NOT be used for AI training, marketing, or any other purpose.{% endif %}
+                </p>
+                <div class="bg-green-50 p-4 rounded-lg mb-3">
+                    <p class="text-gray-700 leading-relaxed mb-2">
+                        {% if lang == 'es' %}<strong>Eliminación Automática de Datos:</strong>{% else %}<strong>Automatic Data Deletion:</strong>{% endif %}
+                    </p>
+                    <ul class="text-gray-700 space-y-2 ml-4">
+                        <li>{% if lang == 'es' %}• <strong>Fotografías originales:</strong> Se eliminan automáticamente en un máximo de <strong>72 horas</strong> tras la subida, permitiendo la resolución de incidencias.{% else %}• <strong>Original photographs:</strong> Automatically deleted within a maximum of <strong>72 hours</strong> after upload, allowing issue resolution.{% endif %}</li>
+                        <li>{% if lang == 'es' %}• <strong>Datos de personalización:</strong> Se eliminan junto con las fotografías en el mismo plazo de <strong>72 horas</strong>.{% else %}• <strong>Personalization data:</strong> Deleted along with photographs within the same <strong>72-hour</strong> timeframe.{% endif %}</li>
+                    </ul>
+                </div>
+                <p class="text-gray-700 leading-relaxed mb-3">
+                    {% if lang == 'es' %}<strong>Archivos Digitales:</strong> Los PDFs generados contienen únicamente ilustraciones artísticas (no fotografías originales) y se conservan para su acceso permanente.{% else %}<strong>Digital Files:</strong> Generated PDFs contain only artistic illustrations (not original photographs) and are kept for your permanent access.{% endif %}
+                </p>
+                <p class="text-gray-700 leading-relaxed">
+                    {% if lang == 'es' %}Para más detalles sobre el tratamiento de datos, consulte nuestra <a href="/privacy" class="text-purple-600 hover:underline font-medium">Política de Privacidad</a> completa.{% else %}For more details on data processing, see our complete <a href="/privacy" class="text-purple-600 hover:underline font-medium">Privacy Policy</a>.{% endif %}
+                </p>
+            </div>
+
+            <div class="border-l-4 border-purple-500 pl-6">
+                <h2 class="font-display text-xl font-bold text-purple-800 mb-3">
+                    {% if lang == 'es' %}5. Propiedad Intelectual{% else %}5. Intellectual Property{% endif %}
+                </h2>
+                <p class="text-gray-700 leading-relaxed">
+                    {% if lang == 'es' %}Usted conserva la propiedad de los cuentos generados para uso personal. Magic Memories Books <strong>no utilizará imágenes de menores ni de sus personajes personalizados</strong> para fines promocionales sin un consentimiento previo, explícito y por escrito.{% else %}You retain ownership of the generated stories for personal use. Magic Memories Books <strong>will not use images of minors or your personalized characters</strong> for promotional purposes without prior, explicit, and written consent.{% endif %}
+                </p>
+            </div>
+
+            <div class="border-l-4 border-red-500 pl-6 bg-red-50 py-4 rounded-r-lg">
+                <h2 class="font-display text-xl font-bold text-red-800 mb-3">
+                    {% if lang == 'es' %}6. Política de No Reembolso{% else %}6. No Refund Policy{% endif %}
+                </h2>
+                <p class="text-gray-700 leading-relaxed mb-3">
+                    {% if lang == 'es' %}Dado que nuestro proceso le permite <strong>revisar y aprobar</strong> tanto el texto como las ilustraciones de su cuento <strong>antes de realizar el pago</strong>, y que tras el pago cuenta con una oportunidad de regeneración, <strong>no se ofrecen reembolsos</strong> en ningún caso.{% else %}Since our process allows you to <strong>review and approve</strong> both the text and illustrations of your story <strong>before making payment</strong>, and you have a regeneration opportunity after payment, <strong>no refunds are offered</strong> under any circumstances.{% endif %}
+                </p>
+                <p class="text-gray-700 leading-relaxed mb-3">
+                    {% if lang == 'es' %}Al confirmar el botón de aprobación, usted acepta el producto final tal como fue previamente revisado. Si después de la regeneración el resultado no es de su agrado, puede crear un nuevo cuento con diferentes opciones de personalización.{% else %}By confirming the approval button, you accept the final product as previously reviewed. If after regeneration the result is not to your liking, you may create a new story with different personalization options.{% endif %}
+                </p>
+                <p class="text-gray-700 leading-relaxed text-sm font-medium">
+                    {% if lang == 'es' %}<strong>Excepción única:</strong> En caso de un fallo técnico, nuestro equipo enviará un enlace de recuperación por correo electrónico. Si el fallo persiste y resulta imposible entregar el producto digital tras agotar todas las vías de recuperación, se procederá al reembolso íntegro del importe.{% else %}<strong>Sole exception:</strong> In the event of a technical failure, our team will send a recovery link via email. If the failure persists and it is impossible to deliver the digital product after exhausting all recovery options, a full refund will be issued.{% endif %}
+                </p>
+            </div>
+
+            <div class="border-l-4 border-purple-500 pl-6">
+                <h2 class="font-display text-xl font-bold text-purple-800 mb-3">
+                    {% if lang == 'es' %}7. Uso de Tecnología de IA{% else %}7. Use of AI Technology{% endif %}
+                </h2>
+                <p class="text-gray-700 leading-relaxed mb-3">
+                    {% if lang == 'es' %}Este servicio utiliza modelos avanzados de IA (como GPT-4 y FLUX). Usted acepta que el estilo artístico y la narrativa son interpretaciones de la IA basadas en sus instrucciones de personalización.{% else %}This service uses advanced AI models (such as GPT-4 and FLUX). You accept that the artistic style and narrative are AI interpretations based on your personalization instructions.{% endif %}
+                </p>
+                <p class="text-gray-700 leading-relaxed mb-3">
+                    {% if lang == 'es' %}<strong>Variaciones en ilustraciones:</strong> Las imágenes generadas por IA pueden presentar pequeñas variaciones entre una ilustración y otra de los personajes, como en la forma del cabello o la ropa. Esto es inherente a la tecnología de generación de imágenes por IA.{% else %}<strong>Illustration variations:</strong> AI-generated images may present slight variations between illustrations of characters, such as in hair shape or clothing. This is inherent to AI image generation technology.{% endif %}
+                </p>
+                <p class="text-gray-700 leading-relaxed">
+                    {% if lang == 'es' %}<strong>Alucinaciones de IA:</strong> Usted acepta que la IA puede generar elementos narrativos o visuales inesperados (conocidos como "alucinaciones"). El texto y la portada se revisan y aprueban antes del pago. Las ilustraciones interiores se generan tras el pago, y usted dispone de <strong>dos (2) oportunidades de regeneración por cada ilustración</strong> para corregir o descartar elementos no deseados antes de la aprobación final.{% else %}<strong>AI Hallucinations:</strong> You accept that AI may generate unexpected narrative or visual elements (known as "hallucinations"). The text and cover are reviewed and approved before payment. Interior illustrations are generated after payment, and you have <strong>two (2) regeneration opportunities per illustration</strong> to correct or discard unwanted elements before final approval.{% endif %}
+                </p>
+            </div>
+
+            <div class="border-l-4 border-purple-500 pl-6">
+                <h2 class="font-display text-xl font-bold text-purple-800 mb-3">
+                    {% if lang == 'es' %}8. Elegibilidad y Uso{% else %}8. Eligibility and Use{% endif %}
+                </h2>
+                <p class="text-gray-700 leading-relaxed mb-3">
+                    {% if lang == 'es' %}Para utilizar nuestros servicios, usted debe ser mayor de 18 años o contar con el consentimiento de un padre o tutor legal. Al usar este servicio, usted declara que tiene autoridad legal para aceptar estos términos.{% else %}To use our services, you must be at least 18 years old or have the consent of a parent or legal guardian. By using this service, you represent that you have the legal authority to accept these terms.{% endif %}
+                </p>
+                <p class="text-gray-700 leading-relaxed">
+                    {% if lang == 'es' %}Usted acepta no utilizar el servicio para crear contenido inapropiado, ofensivo, ilegal o que viole derechos de terceros.{% else %}You agree not to use the service to create inappropriate, offensive, illegal content, or content that violates third-party rights.{% endif %}
+                </p>
+            </div>
+
+            <div class="border-l-4 border-purple-500 pl-6">
+                <h2 class="font-display text-xl font-bold text-purple-800 mb-3">
+                    {% if lang == 'es' %}9. Limitación de Responsabilidad{% else %}9. Limitation of Liability{% endif %}
+                </h2>
+                <p class="text-gray-700 leading-relaxed mb-3">
+                    {% if lang == 'es' %}Magic Memories Books proporciona sus servicios "tal cual". No garantizamos que el servicio sea ininterrumpido, libre de errores o completamente seguro. En la máxima medida permitida por la ley, nuestra responsabilidad total por cualquier reclamación no excederá el importe pagado por el producto en cuestión.{% else %}Magic Memories Books provides its services "as is." We do not guarantee that the service will be uninterrupted, error-free, or completely secure. To the maximum extent permitted by law, our total liability for any claim shall not exceed the amount paid for the product in question.{% endif %}
+                </p>
+            </div>
+
+            <div class="border-l-4 border-purple-500 pl-6">
+                <h2 class="font-display text-xl font-bold text-purple-800 mb-3">
+                    {% if lang == 'es' %}10. Ley Aplicable y Jurisdicción{% else %}10. Governing Law and Jurisdiction{% endif %}
+                </h2>
+                <p class="text-gray-700 leading-relaxed">
+                    {% if lang == 'es' %}Estos términos se regirán e interpretarán de conformidad con las leyes de España. Cualquier disputa derivada de estos términos se someterá a la jurisdicción de los tribunales competentes de Málaga, España. Para usuarios de la Unión Europea, esto no afecta a sus derechos como consumidor bajo la legislación aplicable de su país de residencia.{% else %}These terms shall be governed by and construed in accordance with the laws of Spain. Any dispute arising from these terms shall be subject to the jurisdiction of the competent courts of Málaga, Spain. For European Union users, this does not affect your consumer rights under the applicable legislation of your country of residence.{% endif %}
+                </p>
+            </div>
+
+            <div class="border-l-4 border-purple-500 pl-6">
+                <h2 class="font-display text-xl font-bold text-purple-800 mb-3">
+                    {% if lang == 'es' %}11. Modificaciones{% else %}11. Modifications{% endif %}
+                </h2>
+                <p class="text-gray-700 leading-relaxed">
+                    {% if lang == 'es' %}Nos reservamos el derecho de modificar estos términos en cualquier momento. Los cambios serán publicados en esta página con la fecha de actualización. El uso continuado del servicio después de la publicación de cambios constituye su aceptación de los términos modificados.{% else %}We reserve the right to modify these terms at any time. Changes will be posted on this page with the update date. Continued use of the service after publication of changes constitutes your acceptance of the modified terms.{% endif %}
+                </p>
+            </div>
+
+            <div class="border-l-4 border-purple-500 pl-6">
+                <h2 class="font-display text-xl font-bold text-purple-800 mb-3">
+                    {% if lang == 'es' %}12. Contacto{% else %}12. Contact{% endif %}
+                </h2>
+                <p class="text-gray-700 leading-relaxed mb-2">
+                    {% if lang == 'es' %}Para soporte técnico o consultas generales:{% else %}For technical support or general inquiries:{% endif %}
+                </p>
+                <ul class="text-gray-700 space-y-1">
+                    <li><strong>{% if lang == 'es' %}Soporte general{% else %}General support{% endif %}:</strong> info@magicmemoriesbooks.com</li>
+                    <li><strong>{% if lang == 'es' %}Pagos y facturación{% else %}Payments and billing{% endif %}:</strong> pay@magicmemoriesbooks.com</li>
+                    <li><strong>{% if lang == 'es' %}Privacidad{% else %}Privacy{% endif %}:</strong> privacy@magicmemoriesbooks.com</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="mt-8 pt-8 border-t border-gray-200 text-center text-gray-500 text-sm">
+            <p>{% if lang == 'es' %}Última actualización: Febrero 2026{% else %}Last updated: February 2026{% endif %}</p>
+        </div>
+    </div>
+</section>
+{% endblock %}

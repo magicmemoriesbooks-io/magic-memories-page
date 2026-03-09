@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Libro Personalizado {{ preview_id }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">Libro Personalizado: {{ book.child_name }}</h1>
+                <p class="text-gray-600">ID: {{ preview_id }} | Historia: {{ book.story_id }} | Pagado: {% if book.paid %}Sí{% else %}No{% endif %}</p>
+            </div>
+            <a href="/admin/real-stories" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">← Volver</a>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-4 mb-6">
+            <h2 class="text-lg font-semibold mb-3">Información del Libro</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div><strong>Título:</strong> {{ book.title or book.story_name }}</div>
+                <div><strong>Autor:</strong> {{ book.author_name }}</div>
+                <div><strong>Género:</strong> {{ book.gender }}</div>
+                <div><strong>Dedicatoria:</strong> {{ book.dedication[:50] }}...</div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-4 mb-6">
+            <h2 class="text-lg font-semibold mb-3">Características del Personaje</h2>
+            <div class="flex gap-4 flex-wrap text-sm">
+                {% if book.traits %}
+                <span class="bg-amber-100 px-2 py-1 rounded">Cabello: {{ book.traits.hair_color }} {{ book.traits.hair_type }}</span>
+                <span class="bg-blue-100 px-2 py-1 rounded">Ojos: {{ book.traits.eye_color }}</span>
+                <span class="bg-pink-100 px-2 py-1 rounded">Piel: {{ book.traits.skin_tone }}</span>
+                <span class="bg-green-100 px-2 py-1 rounded">Edad: {{ book.traits.child_age }} años</span>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-4">
+            <h2 class="text-lg font-semibold mb-4">Escenas Generadas ({{ scenes|length }})</h2>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {% for scene in scenes %}
+                <div class="bg-gray-50 rounded-lg overflow-hidden border hover:shadow-lg transition-shadow">
+                    <div class="aspect-[2/3] relative">
+                        {% if scene.scene_path %}
+                        <img src="/{{ scene.scene_path }}?t={{ range(1000000)|random }}" 
+                             alt="Escena {{ loop.index }}" 
+                             class="w-full h-full object-cover cursor-pointer"
+                             onclick="openLightbox('{{ scene.scene_path }}')">
+                        {% else %}
+                        <div class="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">Sin imagen</div>
+                        {% endif %}
+                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                            <p class="text-white text-xs font-semibold">Escena {{ loop.index }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            {% if not scenes %}
+            <p class="text-center text-gray-500 py-8">No hay escenas generadas aún</p>
+            {% endif %}
+        </div>
+        
+        {% if book.front_cover_path %}
+        <div class="bg-white rounded-lg shadow p-4 mt-6">
+            <h2 class="text-lg font-semibold mb-4">Portadas</h2>
+            <div class="flex gap-4">
+                <div class="text-center">
+                    <p class="text-sm text-gray-600 mb-2">Portada</p>
+                    <img src="/{{ book.front_cover_path }}?t={{ range(1000000)|random }}" class="h-48 rounded shadow cursor-pointer" onclick="openLightbox('{{ book.front_cover_path }}')">
+                </div>
+                {% if book.back_cover_path %}
+                <div class="text-center">
+                    <p class="text-sm text-gray-600 mb-2">Contraportada</p>
+                    <img src="/{{ book.back_cover_path }}?t={{ range(1000000)|random }}" class="h-48 rounded shadow cursor-pointer" onclick="openLightbox('{{ book.back_cover_path }}')">
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div id="lightbox" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center" onclick="closeLightbox()">
+        <div class="max-w-4xl max-h-[90vh] relative" onclick="event.stopPropagation()">
+            <img id="lightbox-img" src="" class="max-w-full max-h-[85vh] rounded-lg">
+            <button onclick="closeLightbox()" class="absolute -top-4 -right-4 w-10 h-10 bg-white rounded-full text-2xl">×</button>
+        </div>
+    </div>
+    
+    <script>
+        function openLightbox(path) {
+            document.getElementById('lightbox-img').src = '/' + path + '?t=' + Date.now();
+            document.getElementById('lightbox').classList.remove('hidden');
+        }
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.add('hidden');
+        }
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+    </script>
+</body>
+</html>

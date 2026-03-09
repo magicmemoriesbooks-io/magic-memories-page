@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}{{ translations.nav_about }} - {{ translations.site_title }}{% endblock %}
+
+{% block content %}
+<section class="py-16 px-4 max-w-4xl mx-auto">
+    <a href="{{ url_for('index') }}" class="inline-flex items-center text-sm font-medium text-purple-600 hover:text-purple-800 transition mb-4" style="font-family:'Quicksand',sans-serif;">
+        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        {% if lang == 'es' %}Volver al inicio{% else %}Back to Home{% endif %}
+    </a>
+    <h1 class="font-display text-4xl md:text-5xl font-bold text-purple-800 text-center mb-8">{% if lang == 'es' %}Sobre Nosotros{% else %}About Us{% endif %}</h1>
+    
+    <div class="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg p-8 md:p-12 mb-8">
+        <div class="flex justify-center mb-8">
+            <img src="{{ url_for('static', filename='images/logo_main.jpg') }}" alt="Magic Memories Books" class="w-64 h-64 object-cover rounded-2xl shadow-lg">
+        </div>
+        
+        <h2 class="font-display text-2xl font-bold text-purple-800 mb-4 text-center">Magic Memories Books</h2>
+        <p class="text-xl text-center italic mb-8" style="color:#D4AF37;">{% if lang == 'es' %}Cuentos hechos a tu medida... para crear momentos mágicos{% else %}Stories made to measure... to create magical moments{% endif %}</p>
+        
+        <p class="text-gray-700 text-lg leading-relaxed mb-6">
+            {% if lang == 'es' %}En Magic Memories Books creemos que cada hijo merece ser el protagonista de su propia historia. Combinamos inteligencia artificial de vanguardia con el amor de la personalización para crear libros infantiles donde tu hijo o hija cobra vida en ilustraciones hermosas y narrativas cautivadoras.{% else %}At Magic Memories Books we believe every child deserves to be the hero of their own story. We combine cutting-edge AI with the love of personalization to create children's books where your son or daughter comes to life in beautiful illustrations and captivating narratives.{% endif %}
+        </p>
+        <p class="text-gray-700 text-lg leading-relaxed mb-8">
+            {% if lang == 'es' %}Puedes subir una foto de tu hijo/a y nuestra IA generará un personaje que se parece a ellos, o puedes describir al protagonista y nosotros lo creamos. Cada libro es completamente único, nunca se repite.{% else %}You can upload a photo of your child and our AI will generate a character that looks like them, or you can describe the main character and we'll create it. Every book is completely unique, never repeated.{% endif %}
+        </p>
+        
+        <h2 class="font-display text-2xl font-bold text-purple-800 mb-4">{% if lang == 'es' %}Nuestra Misión{% else %}Our Mission{% endif %}</h2>
+        <p class="text-gray-700 text-lg leading-relaxed mb-8">
+            {% if lang == 'es' %}Crear recuerdos que duren para siempre. Cada libro que producimos es un tesoro familiar que captura la magia de la infancia. Un regalo perfecto para cumpleaños, baby showers, o simplemente porque sí.{% else %}To create memories that last forever. Every book we produce is a family treasure that captures the magic of childhood. A perfect gift for birthdays, baby showers, or just because.{% endif %}
+        </p>
+        
+        <div class="grid md:grid-cols-3 gap-6 mt-10">
+            <div class="text-center bg-purple-50 p-6 rounded-2xl">
+                <div class="text-4xl mb-3">🎨</div>
+                <h3 class="font-semibold text-purple-800 mb-2">{% if lang == 'es' %}Ilustraciones con IA{% else %}AI Illustrations{% endif %}</h3>
+                <p class="text-gray-600 text-sm">{% if lang == 'es' %}Usamos FLUX, la IA más avanzada del mercado, para crear ilustraciones en estilo Disney Pixar 3D. Cada escena es una obra de arte digital única.{% else %}We use FLUX, the most advanced AI on the market, to create Disney Pixar 3D style illustrations. Every scene is a unique digital artwork.{% endif %}</p>
+            </div>
+            <div class="text-center bg-pink-50 p-6 rounded-2xl">
+                <div class="text-4xl mb-3">📝</div>
+                <h3 class="font-semibold text-purple-800 mb-2">{% if lang == 'es' %}Historias Personalizadas{% else %}Personalized Stories{% endif %}</h3>
+                <p class="text-gray-600 text-sm">{% if lang == 'es' %}GPT-4o adapta cada historia al nombre, género y edad del protagonista, creando textos apropiados, tiernos y cautivadores en español e inglés.{% else %}GPT-4o adapts each story to the character's name, gender and age, creating appropriate, tender and captivating texts in Spanish and English.{% endif %}</p>
+            </div>
+            <div class="text-center bg-blue-50 p-6 rounded-2xl">
+                <div class="text-4xl mb-3">📚</div>
+                <h3 class="font-semibold text-purple-800 mb-2">{% if lang == 'es' %}Impresión Premium{% else %}Premium Printing{% endif %}</h3>
+                <p class="text-gray-600 text-sm">{% if lang == 'es' %}Libros impresos con Lulu: tapa dura, papel premium a todo color, encuadernación profesional. Envío a nivel mundial.{% else %}Books printed with Lulu: hardcover, full-color premium paper, professional binding. Worldwide shipping.{% endif %}</p>
+            </div>
+        </div>
+        
+        <div class="mt-10 bg-amber-50/80 p-6 rounded-2xl">
+            <h3 class="font-semibold text-amber-800 mb-4 text-center">{% if lang == 'es' %}Nuestros Productos{% else %}Our Products{% endif %}</h3>
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="flex items-start gap-3 p-3 rounded-xl bg-white/60">
+                    <span class="text-2xl">✨</span>
+                    <div>
+                        <p class="font-bold text-purple-700">{% if lang == 'es' %}Cuentos Mágicos Express{% else %}Magic Express Stories{% endif %}</p>
+                        <p class="text-sm text-gray-600">{% if lang == 'es' %}Desde $7 — Cuentos digitales rápidos para bebés y niños. eBook interactivo con visor online.{% else %}From $7 — Quick digital stories for babies and kids. Interactive eBook with online viewer.{% endif %}</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3 p-3 rounded-xl bg-white/60">
+                    <span class="text-2xl">🏰</span>
+                    <div>
+                        <p class="font-bold text-emerald-700">{% if lang == 'es' %}Aventuras a tu Medida{% else %}Adventures Made for You{% endif %}</p>
+                        <p class="text-sm text-gray-600">{% if lang == 'es' %}Desde $30 — Libros ilustrados personalizados con 19 escenas. Tapa dura + PDF digital.{% else %}From $30 — Personalized illustrated books with 19 scenes. Hardcover + digital PDF.{% endif %}</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3 p-3 rounded-xl bg-white/60">
+                    <span class="text-2xl">🐾</span>
+                    <div>
+                        <p class="font-bold text-orange-700">{% if lang == 'es' %}Tú y tu Amor Peludo{% else %}You & Your Furry Love{% endif %}</p>
+                        <p class="text-sm text-gray-600">{% if lang == 'es' %}Desde $30 — Tu hijo/a y su mascota juntos en una aventura. 4 historias por edades (bebé a adulto).{% else %}From $30 — Your child and their pet together in an adventure. 4 stories by age (baby to adult).{% endif %}</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3 p-3 rounded-xl bg-white/60">
+                    <span class="text-2xl">🎂</span>
+                    <div>
+                        <p class="font-bold text-pink-700">{% if lang == 'es' %}Cuentos de Cumple{% else %}Birthday Tales{% endif %}</p>
+                        <p class="text-sm text-gray-600">{% if lang == 'es' %}Cuentos personalizados de cumpleaños con el nombre y edad del protagonista.{% else %}Personalized birthday stories with the character's name and age.{% endif %}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg p-8 md:p-12 mb-8">
+        <h2 class="font-display text-2xl font-bold text-purple-800 mb-6">{% if lang == 'es' %}Información de la Empresa{% else %}Company Information{% endif %}</h2>
+        <div class="space-y-3 text-gray-700">
+            <p><strong>{% if lang == 'es' %}Nombre comercial{% else %}Trade name{% endif %}:</strong> Magic Memories Books</p>
+            <p><strong>{% if lang == 'es' %}Fundadora{% else %}Founder{% endif %}:</strong> Isabel Ojeda</p>
+            <p><strong>{% if lang == 'es' %}Contacto general{% else %}General contact{% endif %}:</strong> <a href="mailto:info@magicmemoriesbooks.com" class="text-purple-600 hover:underline">info@magicmemoriesbooks.com</a></p>
+            <p><strong>{% if lang == 'es' %}Pagos y facturación{% else %}Payments and billing{% endif %}:</strong> <a href="mailto:pay@magicmemoriesbooks.com" class="text-purple-600 hover:underline">pay@magicmemoriesbooks.com</a></p>
+            <p><strong>{% if lang == 'es' %}Procesador de pagos{% else %}Payment processor{% endif %}:</strong> Paddle.com (Merchant of Record)</p>
+            <p><strong>{% if lang == 'es' %}Imprenta asociada{% else %}Print partner{% endif %}:</strong> Lulu.com ({% if lang == 'es' %}Impresión bajo demanda global{% else %}Global print-on-demand{% endif %})</p>
+        </div>
+    </div>
+
+    <div class="bg-gradient-to-r from-purple-600 to-pink-500 rounded-3xl shadow-lg p-8 md:p-12 text-white text-center">
+        <h2 class="font-display text-2xl font-bold mb-4">{% if lang == 'es' %}¿Listo para crear magia?{% else %}Ready to create magic?{% endif %}</h2>
+        <p class="mb-6 opacity-90">{% if lang == 'es' %}Cuentos hechos a tu medida... para crear momentos mágicos{% else %}Stories made to measure... to create magical moments{% endif %}</p>
+        <a href="{{ url_for('index') }}" class="inline-block bg-white text-purple-600 font-semibold px-8 py-3 rounded-full hover:bg-purple-50 transition">
+            {% if lang == 'es' %}Ver Cuentos{% else %}View Stories{% endif %}
+        </a>
+    </div>
+</section>
+{% endblock %}
