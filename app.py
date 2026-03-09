@@ -7400,12 +7400,6 @@ def _process_personalized_book_post_payment(preview_id, customer_email):
         print(f"[POST-PAYMENT] Assets prepared for {preview_id}, awaiting user approval")
         print(f"[POST-PAYMENT]   Lulu folder: {lulu_folder}")
 
-        try:
-            from services.email_service import send_admin_purchase_notification
-            send_admin_purchase_notification(preview_id, 'personalized', customer_email, story_data)
-        except Exception as notify_err:
-            print(f"[POST-PAYMENT] Admin notification failed (non-fatal): {notify_err}")
-
     except Exception as e:
         print(f"[POST-PAYMENT] ERROR for {preview_id}: {e}")
         import traceback
@@ -7541,13 +7535,7 @@ def _process_ebook_generation(preview_id, customer_email):
             json.dump(story_data, f, ensure_ascii=False, indent=2)
         
         print(f"[EBOOK] Assets ready for {preview_id}, awaiting user approval to send email")
-        
-        try:
-            from services.email_service import send_admin_purchase_notification
-            send_admin_purchase_notification(preview_id, product_type or 'ebook', customer_email, story_data)
-        except Exception as notify_err:
-            print(f"[EBOOK] Admin notification failed (non-fatal): {notify_err}")
-        
+
     except Exception as e:
         import traceback as tb
         tb_text = tb.format_exc()
@@ -7853,7 +7841,16 @@ def paddle_webhook():
                             json.dump(story_data, f, ensure_ascii=False, indent=2)
                         
                         print(f"[PADDLE WEBHOOK] eBook {preview_id} marked as paid (renewal={was_gift})")
-                        
+
+                        try:
+                            from services.email_service import send_admin_purchase_notification
+                            send_admin_purchase_notification(preview_id, 'ebook', customer_email, story_data)
+                            story_data['admin_notified'] = True
+                            with open(preview_file, 'w', encoding='utf-8') as f:
+                                json.dump(story_data, f, ensure_ascii=False, indent=2)
+                        except Exception as _notify_err:
+                            print(f"[PADDLE WEBHOOK] Admin notification failed: {_notify_err}")
+
                         if not story_data.get('visor_uploaded'):
                             t = threading.Thread(
                                 target=_process_ebook_generation,
@@ -7885,7 +7882,16 @@ def paddle_webhook():
                             json.dump(story_data, f, ensure_ascii=False, indent=2)
                         
                         print(f"[PADDLE WEBHOOK] Quick Story {preview_id} marked as paid")
-                        
+
+                        try:
+                            from services.email_service import send_admin_purchase_notification
+                            send_admin_purchase_notification(preview_id, product_type or 'quick_story', customer_email, story_data)
+                            story_data['admin_notified'] = True
+                            with open(preview_file, 'w', encoding='utf-8') as f:
+                                json.dump(story_data, f, ensure_ascii=False, indent=2)
+                        except Exception as _notify_err:
+                            print(f"[PADDLE WEBHOOK] Admin notification failed: {_notify_err}")
+
                         if story_data.get('scenes_pending'):
                             print(f"[PADDLE WEBHOOK] Launching background scene generation")
                             _trigger_background_generation(preview_id)
@@ -7918,9 +7924,17 @@ def paddle_webhook():
                             json.dump(story_data, f, ensure_ascii=False, indent=2)
                         
                         print(f"[PADDLE WEBHOOK] Personalized Book {preview_id} marked as paid")
-                        
+
                         if not already_processed:
                             print(f"[PADDLE WEBHOOK] Personalized Book {preview_id} marked as paid, awaiting user review and approval")
+                            try:
+                                from services.email_service import send_admin_purchase_notification
+                                send_admin_purchase_notification(preview_id, 'personalized_book', customer_email, story_data)
+                                story_data['admin_notified'] = True
+                                with open(preview_file, 'w', encoding='utf-8') as f:
+                                    json.dump(story_data, f, ensure_ascii=False, indent=2)
+                            except Exception as _notify_err:
+                                print(f"[PADDLE WEBHOOK] Admin notification failed: {_notify_err}")
                         else:
                             print(f"[PADDLE WEBHOOK] Already processed for {preview_id}, skipping")
         
