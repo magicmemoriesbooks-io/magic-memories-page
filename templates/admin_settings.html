@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Ajustes Admin - Magic Memories Books{% endblock %}
+
+{% block content %}
+<div style="background: white; min-height: 80vh; padding: 24px; max-width: 500px; margin: 0 auto;">
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h2 style="font-family: 'Quicksand', sans-serif; font-weight: 700; color: #1a1a1a; margin: 0; font-size: 22px;">Ajustes Admin</h2>
+        <a href="{{ url_for('admin_dashboard') }}" style="padding: 6px 14px; border: 1px solid #6366F1; color: #6366F1; background: white; border-radius: 6px; text-decoration: none; font-size: 12px;">Volver al Panel</a>
+    </div>
+
+    <div style="background: #f9fafb; border-radius: 12px; padding: 24px; border: 1px solid #e5e7eb;">
+        <h3 style="font-family: 'Quicksand', sans-serif; font-weight: 700; color: #374151; margin: 0 0 20px 0; font-size: 16px;">Cambiar Contraseña de Admin</h3>
+
+        {% if success %}
+        <div style="background: #d1fae5; border: 1px solid #6ee7b7; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; color: #065f46; font-size: 14px; font-weight: 600;">
+            {{ success }}
+        </div>
+        {% endif %}
+
+        {% if error %}
+        <div style="background: #fee2e2; border: 1px solid #fca5a5; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; color: #991b1b; font-size: 14px; font-weight: 600;">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('admin_settings') }}">
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px;">Contraseña actual</label>
+                <input type="password" name="current_password" required
+                    style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; box-sizing: border-box; outline: none;"
+                    placeholder="Introduce tu contraseña actual">
+            </div>
+
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px;">Nueva contraseña</label>
+                <input type="password" name="new_password" required minlength="8"
+                    style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; box-sizing: border-box; outline: none;"
+                    placeholder="Mínimo 8 caracteres">
+            </div>
+
+            <div style="margin-bottom: 24px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px;">Confirmar nueva contraseña</label>
+                <input type="password" name="confirm_password" required minlength="8"
+                    style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; box-sizing: border-box; outline: none;"
+                    placeholder="Repite la nueva contraseña">
+            </div>
+
+            <button type="submit"
+                style="width: 100%; padding: 12px; background: linear-gradient(135deg, #6366F1, #818CF8); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: 'Quicksand', sans-serif;">
+                Guardar nueva contraseña
+            </button>
+        </form>
+
+        <p style="margin-top: 16px; font-size: 12px; color: #9ca3af; text-align: center;">
+            La nueva contraseña se guarda de forma permanente y sobrevive reinicios del servidor.
+        </p>
+    </div>
+</div>
+{% endblock %}

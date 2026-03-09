@@ -69,3 +69,4 @@ magicmemories_*.zip
 static/temp_*.pdf
 static/test_*.png
 static/test_*.pdf
+admin_config.json

@@ -9,6 +9,7 @@
         <h2 style="font-family: 'Quicksand', sans-serif; font-weight: 700; color: #1a1a1a; margin: 0; font-size: 22px;">Panel de Administración</h2>
         <div style="display: flex; gap: 8px;">
             <button onclick="testLuluConnection()" style="padding: 6px 14px; border: 1px solid #6366F1; color: #6366F1; background: white; border-radius: 6px; cursor: pointer; font-size: 12px;">Probar Lulu API</button>
+            <a href="{{ url_for('admin_settings') }}" style="padding: 6px 14px; border: 1px solid #6B7280; color: #6B7280; background: white; border-radius: 6px; text-decoration: none; font-size: 12px;">Ajustes</a>
             <a href="{{ url_for('admin_logout') }}" style="padding: 6px 14px; border: 1px solid #EF4444; color: #EF4444; background: white; border-radius: 6px; text-decoration: none; font-size: 12px;">Cerrar Sesión</a>
         </div>
     </div>

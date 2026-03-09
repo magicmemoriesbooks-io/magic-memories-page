@@ -5061,7 +5061,34 @@ def newsletter_unsubscribe(token):
     <a href="/" style="color:#B8860B;">Magic Memories Books</a></div></body></html>"""
 
 
-ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'magicadmin2026')
+_ADMIN_CONFIG_FILE = 'admin_config.json'
+
+def _load_admin_password():
+    """Load admin password from config file, then env, then default."""
+    if os.path.exists(_ADMIN_CONFIG_FILE):
+        try:
+            with open(_ADMIN_CONFIG_FILE, 'r') as f:
+                data = json.load(f)
+                if data.get('admin_password'):
+                    return data['admin_password']
+        except Exception:
+            pass
+    return os.environ.get('ADMIN_PASSWORD', 'magicadmin2026')
+
+def _save_admin_password(new_password):
+    """Save admin password to persistent config file."""
+    data = {}
+    if os.path.exists(_ADMIN_CONFIG_FILE):
+        try:
+            with open(_ADMIN_CONFIG_FILE, 'r') as f:
+                data = json.load(f)
+        except Exception:
+            pass
+    data['admin_password'] = new_password
+    with open(_ADMIN_CONFIG_FILE, 'w') as f:
+        json.dump(data, f)
+
+ADMIN_PASSWORD = _load_admin_password()
 
 def check_admin_auth():
     """Check if admin is authenticated via session."""
@@ -5078,7 +5105,7 @@ def admin_login_page():
 def admin_login():
     """Process admin login."""
     password = request.form.get('password', '')
-    if password == ADMIN_PASSWORD:
+    if password == _load_admin_password():
         session['admin_logged_in'] = True
         return redirect(url_for('admin_dashboard'))
     return render_template('admin_login.html', error="Contraseña incorrecta")
@@ -5088,6 +5115,28 @@ def admin_logout():
     """Logout from admin."""
     session.pop('admin_logged_in', None)
     return redirect(url_for('admin_login_page'))
+
+@app.route('/admin/settings', methods=['GET', 'POST'])
+def admin_settings():
+    """Admin settings page — change admin password from the web."""
+    if not check_admin_auth():
+        return redirect(url_for('admin_login_page'))
+    success = None
+    error = None
+    if request.method == 'POST':
+        current = request.form.get('current_password', '')
+        new_pw = request.form.get('new_password', '')
+        confirm_pw = request.form.get('confirm_password', '')
+        if current != _load_admin_password():
+            error = 'La contraseña actual no es correcta.'
+        elif len(new_pw) < 8:
+            error = 'La nueva contraseña debe tener al menos 8 caracteres.'
+        elif new_pw != confirm_pw:
+            error = 'Las contraseñas nuevas no coinciden.'
+        else:
+            _save_admin_password(new_pw)
+            success = 'Contraseña actualizada correctamente.'
+    return render_template('admin_settings.html', success=success, error=error)
 
 @app.route('/admin/dashboard')
 def admin_dashboard():
