@@ -32,7 +32,8 @@ class Config:
     PADDLE_SELLER_ID = os.environ.get('PADDLE_SELLER_ID')
     PADDLE_CLIENT_TOKEN = os.environ.get('PADDLE_CLIENT_TOKEN')
     PADDLE_WEBHOOK_SECRET = os.environ.get('PADDLE_WEBHOOK_SECRET')
-    PADDLE_ENVIRONMENT = os.environ.get('PADDLE_ENVIRONMENT', 'sandbox')
+    _paddle_key = os.environ.get('PADDLE_SERVER_API_KEY') or os.environ.get('PADDLE_API_KEY', '')
+    PADDLE_ENVIRONMENT = os.environ.get('PADDLE_ENVIRONMENT') or ('production' if _paddle_key.startswith('live_') else 'sandbox')
     
     # === PADDLE DYNAMIC PRICING (Feb 2026) ===
     # 

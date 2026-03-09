@@ -4377,9 +4377,11 @@ def request_story_change(preview_id):
     session['child_name'] = story_data.get('child_name', '')
     session['child_gender'] = story_data.get('gender', '')
     
+    is_furry = 'furry_love' in story_data.get('story_id', '')
+    redirect_base = '/furry-love' if is_furry else '/story-selection'
     return jsonify({
         'success': True,
-        'redirect_url': f'/story-selection?change=1&preview_id={preview_id}'
+        'redirect_url': f'{redirect_base}?change=1&preview_id={preview_id}'
     })
 
 @app.route('/generated/<path:filepath>')

@@ -95,6 +95,10 @@
     .flipbook-container { perspective: 1200px; background: transparent !important; padding: 0 !important; }
     #heroFlipbook { background: transparent !important; position: relative; }
     .magic-photos { background: transparent !important; }
+    .photo-cycle-box { position: relative; width: 100px; height: 100px; border-radius: 14px; overflow: hidden; flex-shrink: 0; box-shadow: 0 4px 14px rgba(0,0,0,0.13); }
+    .photo-cycle-box img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.75s ease-in-out; }
+    .photo-cycle-box img.active { opacity: 1; }
+    .cycle-label { font-size: 0.65rem; font-weight: 700; color: #9ca3af; margin-top: 5px; text-align: center; letter-spacing: 0.03em; text-transform: uppercase; }
     .portal-card {
         background: transparent;
         border: none;
@@ -350,19 +354,35 @@
                     <span class="text-gray-700 text-xs font-medium">{% if lang == 'es' %}Tu hijo es el protagonista{% else %}Your child is the protagonist{% endif %}</span>
                 </p>
                 <div class="magic-photos">
-                    <div class="flex items-center justify-center gap-4">
-                        <div class="relative rounded-xl overflow-hidden shadow-lg flex-shrink-0" style="width:100px;height:100px;">
-                            <img src="{{ url_for('static', filename='images/alex_ref.jpg') }}" alt="Alex" class="w-full h-full object-cover photo-layer absolute inset-0">
-                            <img src="{{ url_for('static', filename='images/flipbook_scene_6.jpg') }}" alt="Alex illustrated" class="w-full h-full object-cover illu-layer absolute inset-0">
+                    <div class="flex items-center justify-center gap-3">
+                        <div class="flex flex-col items-center">
+                            <div class="photo-cycle-box" id="cycleBox1">
+                                <img src="{{ url_for('static', filename='images/alex_ref.jpg') }}" alt="Alex" class="active">
+                                <img src="{{ url_for('static', filename='images/bea_ref.jpg') }}" alt="Bea">
+                                <img src="{{ url_for('static', filename='images/julie_ref.jpg') }}" alt="Julie">
+                                <img src="{{ url_for('static', filename='images/coro_ref.jpg') }}" alt="Coro">
+                            </div>
+                            <span class="cycle-label">{% if lang == 'es' %}Tu foto{% else %}Your photo{% endif %}</span>
                         </div>
-                        <svg class="w-5 h-5 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
-                        <div class="relative rounded-xl overflow-hidden shadow-lg flex-shrink-0" style="width:100px;height:100px;">
-                            <img src="{{ url_for('static', filename='images/pug_ref.jpg') }}" alt="Pug" class="w-full h-full object-cover photo-layer absolute inset-0">
-                            <img src="{{ url_for('static', filename='images/pug_illustrated.jpg') }}" alt="Pug illustrated" class="w-full h-full object-cover illu-layer absolute inset-0">
+                        <svg class="w-5 h-5 text-amber-400 flex-shrink-0 mb-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                        <div class="flex flex-col items-center">
+                            <div class="photo-cycle-box" id="cycleBox2">
+                                <img src="{{ url_for('static', filename='images/bea_coro_preview.png') }}" alt="Bea y Coro" class="active">
+                                <img src="{{ url_for('static', filename='images/alex_julie_preview.png') }}" alt="Alex y Julie">
+                            </div>
+                            <span class="cycle-label">{% if lang == 'es' %}Tu personaje{% else %}Your character{% endif %}</span>
                         </div>
-                        <svg class="w-4 h-4 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
-                        <div class="bg-gradient-to-r from-amber-400 to-amber-500 rounded-xl px-3 py-1.5 shadow-md">
-                            <span class="text-white text-sm font-bold">eBook</span>
+                        <svg class="w-4 h-4 text-amber-400 flex-shrink-0 mb-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+                        <div class="flex flex-col items-center">
+                            <div class="photo-cycle-box" id="cycleBox3">
+                                <img src="{{ url_for('static', filename='images/bea_scene_preview.png') }}" alt="Bea scene" class="active">
+                                <img src="{{ url_for('static', filename='images/bea_scene2_preview.png') }}" alt="Bea scene 2">
+                                <img src="{{ url_for('static', filename='images/bea_scene3_preview.png') }}" alt="Bea scene 3">
+                                <img src="{{ url_for('static', filename='images/flipbook_scene_6.jpg') }}" alt="Scene 6">
+                                <img src="{{ url_for('static', filename='images/flipbook_scene_10.jpg') }}" alt="Scene 10">
+                                <img src="{{ url_for('static', filename='images/flipbook_scene_14.jpg') }}" alt="Scene 14">
+                            </div>
+                            <span class="cycle-label">{% if lang == 'es' %}Tu historia{% else %}Your story{% endif %}</span>
                         </div>
                     </div>
                 </div>
@@ -593,6 +613,27 @@
         document.addEventListener('DOMContentLoaded', function() { setTimeout(initFlipbook, 300); });
     } else {
         setTimeout(initFlipbook, 300);
+    }
+
+    function initPhotoCycle() {
+        var boxes = document.querySelectorAll('.photo-cycle-box');
+        boxes.forEach(function(box, boxIdx) {
+            var imgs = box.querySelectorAll('img');
+            if (imgs.length < 2) return;
+            var current = 0;
+            setTimeout(function() {
+                setInterval(function() {
+                    imgs[current].classList.remove('active');
+                    current = (current + 1) % imgs.length;
+                    imgs[current].classList.add('active');
+                }, 2800);
+            }, boxIdx * 950);
+        });
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initPhotoCycle);
+    } else {
+        initPhotoCycle();
     }
 
 

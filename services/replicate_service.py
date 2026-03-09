@@ -9,6 +9,12 @@ import requests
 import time
 import hashlib
 
+# Configurar el token explícitamente al importar el módulo
+_replicate_token = os.environ.get("REPLICATE_API_TOKEN", "")
+if _replicate_token:
+    replicate.Client.api_token = _replicate_token
+    replicate.default_client = replicate.Client(api_token=_replicate_token)
+
 FLUX_DEV_MODEL = "black-forest-labs/flux-dev:6e4a938f85952bdabcc15aa329178c4d681c52bf25a0342403287dc26944661d"
 FLUX_2_DEV_MODEL = "black-forest-labs/flux-2-dev:7bba46bdde863cfd7aaee87649a5aa49f39f368495dbea500998d1fcbb262050"
 FLUX_KONTEXT_MODEL = "black-forest-labs/flux-kontext-pro"
