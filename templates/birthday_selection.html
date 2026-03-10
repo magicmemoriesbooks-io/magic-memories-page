@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 
 {% block title %}{% if lang == 'es' %}Cuentos de Cumpleaños{% else %}Birthday Stories{% endif %} - {{ translations.site_title }}{% endblock %}
+{% block meta_description %}{% if lang == 'es' %}Cuentos de cumpleaños personalizados para niños. Con el nombre, la edad y la foto de tu hijo/a como protagonista. El regalo de cumpleaños más especial, original y único.{% else %}Personalized birthday stories for children. With your child's name, age and photo as the main character. The most special, original and unique birthday gift.{% endif %}{% endblock %}
+{% block og_title %}{% if lang == 'es' %}Cuento de Cumpleaños Personalizado con Fotos — Magic Memories Books{% else %}Personalized Birthday Story with Photos — Magic Memories Books{% endif %}{% endblock %}
+{% block og_description %}{% if lang == 'es' %}El nombre, la edad y la foto real de tu hijo/a como protagonista del cuento. El regalo de cumpleaños más especial y original.{% else %}Your child's name, age and real photo as the story's main character. The most special and original birthday gift.{% endif %}{% endblock %}
+{% block og_image %}{{ url_for('static', filename='images/cover_birthday_celebration.jpg', _external=True) }}{% endblock %}
 
 {% block content %}
 <section class="py-8 px-4 max-w-7xl mx-auto">
