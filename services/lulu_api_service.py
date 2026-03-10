@@ -208,7 +208,7 @@ def create_print_job_with_urls(
             "state_code": normalize_state_code(shipping_address.get("state_code", ""), country),
             "postcode": shipping_address.get("postcode") or shipping_address.get("postal_code", ""),
             "country_code": country,
-            "phone_number": shipping_address.get("phone_number", ""),
+            "phone_number": shipping_address.get("phone_number", "") or "000000000",
             "email": shipping_address.get("email", "")
         }
         
@@ -817,7 +817,7 @@ def validate_shipping_address(shipping_address: dict) -> dict:
         "state_code": normalize_state_code(shipping_address.get("state_code", ""), country),
         "postcode": shipping_address.get("postcode") or shipping_address.get("postal_code", ""),
         "country_code": country,
-        "phone_number": shipping_address.get("phone_number", ""),
+        "phone_number": shipping_address.get("phone_number", "") or "000000000",
         "email": shipping_address.get("email", "")
     }
     tax_id = shipping_address.get("recipient_tax_id", "")
