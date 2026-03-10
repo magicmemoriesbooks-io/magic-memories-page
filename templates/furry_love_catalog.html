@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 
 {% block title %}{% if lang == 'es' %}Tu Amor Peludo{% else %}Your Furry Love{% endif %} - {{ translations.site_title }}{% endblock %}
+{% block meta_description %}{% if lang == 'es' %}Cuentos personalizados con tu mascota como protagonista. Sube la foto de tu perro o gato y conviértelo en el héroe de una historia única generada con IA. El regalo perfecto para amantes de los animales.{% else %}Personalized stories starring your pet. Upload your dog or cat's photo and make them the hero of a unique AI-generated story. The perfect gift for animal lovers.{% endif %}{% endblock %}
+{% block og_title %}{% if lang == 'es' %}Tu Amor Peludo — Cuento Personalizado con tu Mascota{% else %}Furry Love — Personalized Story with Your Pet{% endif %}{% endblock %}
+{% block og_description %}{% if lang == 'es' %}Sube la foto de tu perro o gato y conviértelo en el héroe de un cuento único generado con IA. Diseños personalizados con los rasgos reales de tu mascota.{% else %}Upload your dog or cat's photo and make them the hero of a unique AI-generated story. Personalized designs with your pet's real features.{% endif %}{% endblock %}
+{% block og_image %}{{ url_for('static', filename='images/hero_furry.jpg', _external=True) }}{% endblock %}
 
 {% block content %}
 <section class="py-6 px-4 max-w-6xl mx-auto">
