@@ -16,3 +16,4 @@ requests==2.31.0
 lxml==5.1.0
 paddle-python-sdk
 openpyxl
+paramiko
