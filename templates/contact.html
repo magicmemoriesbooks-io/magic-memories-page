@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 
 {% block title %}{% if lang == 'es' %}Contacto{% else %}Contact{% endif %} - Magic Memories Books{% endblock %}
+{% block meta_description %}{% if lang == 'es' %}Contacta con Magic Memories Books. ¿Tienes dudas sobre tu cuento personalizado con fotos reales? Estamos aquí para ayudarte con tu pedido.{% else %}Contact Magic Memories Books. Have questions about your personalized story with real photos? We're here to help with your order.{% endif %}{% endblock %}
+{% block og_title %}{% if lang == 'es' %}Contacto — Magic Memories Books{% else %}Contact Us — Magic Memories Books{% endif %}{% endblock %}
+{% block og_description %}{% if lang == 'es' %}¿Tienes dudas sobre tu cuento personalizado con fotos reales? Estamos aquí para ayudarte con tu pedido.{% else %}Have questions about your personalized story with real photos? We're here to help with your order.{% endif %}{% endblock %}
 
 {% block content %}
 <div class="max-w-2xl mx-auto px-4 py-12">
