@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 
 {% block title %}{% if lang == 'es' %}Cuentos 0-2 años{% else %}Stories 0-2 years{% endif %} - {{ translations.site_title }}{% endblock %}
+{% block meta_description %}{% if lang == 'es' %}Cuentos dulces para bebés de 0 a 2 años. Historias personalizadas con el nombre de tu bebé y fotos reales. Perfectas para leer antes de dormir y crear un vínculo especial.{% else %}Sweet stories for babies 0-2 years old. Personalized stories with your baby's name and real photos. Perfect for bedtime reading and creating a special bond.{% endif %}{% endblock %}
+{% block og_title %}{% if lang == 'es' %}Cuentos para Bebés de 0 a 2 Años — Personalizados con Fotos Reales{% else %}Baby Stories 0-2 Years — Personalized with Real Photos{% endif %}{% endblock %}
+{% block og_description %}{% if lang == 'es' %}Historias personalizadas con el nombre de tu bebé y fotos reales. Perfectas para leer antes de dormir y crear un vínculo especial.{% else %}Personalized stories with your baby's name and real photos. Perfect for bedtime reading and creating a special bond.{% endif %}{% endblock %}
+{% block og_image %}{{ url_for('static', filename='images/cover_baby_soft_world.jpg', _external=True) }}{% endblock %}
 
 {% block content %}
 <section class="py-6 px-4 max-w-6xl mx-auto">
