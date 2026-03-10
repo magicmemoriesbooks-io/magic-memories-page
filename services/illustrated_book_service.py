@@ -1587,7 +1587,7 @@ def generate_full_book(
         title_font = ImageFont.load_default()
         subtitle_font = title_font
     
-    max_text_width = int(img_size[0] * 0.85)
+    max_text_width = int(img_size[0] * 0.72)
     title_lines = []
     words = book_title.split()
     current_line = ""
