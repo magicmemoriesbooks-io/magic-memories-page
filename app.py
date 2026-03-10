@@ -359,6 +359,49 @@ def contact_submit():
         print(f"[CONTACT] Error sending: {e}")
         return jsonify({'error': 'Failed to send message'}), 500
 
+@app.route('/sitemap.xml')
+def sitemap():
+    from datetime import date
+    today = date.today().isoformat()
+    domain = 'https://magicmemoriesbooks.com'
+    urls = [
+        (f'{domain}/',                    '1.0',  'weekly'),
+        (f'{domain}/story-selection',     '0.9',  'weekly'),
+        (f'{domain}/personalized-books',  '0.9',  'weekly'),
+        (f'{domain}/furry-love',          '0.9',  'weekly'),
+        (f'{domain}/stories-birthday',    '0.8',  'weekly'),
+        (f'{domain}/stories-0-1',         '0.8',  'weekly'),
+        (f'{domain}/stories-3-5',         '0.8',  'weekly'),
+        (f'{domain}/stories-3-8',         '0.8',  'weekly'),
+        (f'{domain}/stories-5-7',         '0.8',  'weekly'),
+        (f'{domain}/faq',                 '0.7',  'monthly'),
+        (f'{domain}/contact',             '0.6',  'monthly'),
+        (f'{domain}/about',               '0.6',  'monthly'),
+        (f'{domain}/terms',               '0.3',  'yearly'),
+        (f'{domain}/privacy',             '0.3',  'yearly'),
+    ]
+    xml_parts = ['<?xml version="1.0" encoding="UTF-8"?>',
+                 '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    for loc, priority, changefreq in urls:
+        xml_parts.append(f'  <url><loc>{loc}</loc><lastmod>{today}</lastmod>'
+                         f'<changefreq>{changefreq}</changefreq><priority>{priority}</priority></url>')
+    xml_parts.append('</urlset>')
+    return '\n'.join(xml_parts), 200, {'Content-Type': 'application/xml; charset=utf-8'}
+
+@app.route('/robots.txt')
+def robots_txt():
+    content = (
+        'User-agent: *\n'
+        'Allow: /\n'
+        'Disallow: /admin\n'
+        'Disallow: /api/\n'
+        'Disallow: /story-preview/\n'
+        'Disallow: /order-complete/\n'
+        '\n'
+        'Sitemap: https://magicmemoriesbooks.com/sitemap.xml\n'
+    )
+    return content, 200, {'Content-Type': 'text/plain; charset=utf-8'}
+
 @app.route('/terms')
 def terms():
     return render_template('terms.html')
