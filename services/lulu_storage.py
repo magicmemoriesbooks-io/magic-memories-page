@@ -1,7 +1,7 @@
 """
 Lulu Orders Storage Service.
 Manages temporary storage of files sent to Lulu for printing.
-Files are automatically cleaned up after 48 hours.
+Files are automatically cleaned up after 72 hours.
 """
 
 import os
@@ -12,7 +12,7 @@ from typing import Optional
 
 
 LULU_ORDERS_DIR = "lulu_orders"
-RETENTION_HOURS = 48
+RETENTION_HOURS = 72
 
 
 def ensure_storage_dir():
