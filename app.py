@@ -5525,9 +5525,49 @@ def admin_retry_lulu_submission(preview_id):
         return jsonify({"error": "No shipping address"}), 400
     
     order_folder = story_data.get('lulu_order_folder')
+    is_illustrated = story_data.get('is_illustrated_book', False)
+
     if not order_folder or not os.path.exists(order_folder):
-        return jsonify({"error": "Lulu order folder not found"}), 400
-    
+        if is_illustrated:
+            return jsonify({"error": "Lulu order folder not found. No se puede regenerar automáticamente para libros ilustrados."}), 400
+        try:
+            from services.quick_stories.pdf_service import generate_quick_story_lulu_pdfs
+            from services.lulu_storage import create_order_folder, save_interior_pdf, save_cover_pdf
+            _regen_child = story_data.get('child_name', 'Unknown')
+            _regen_scenes = story_data.get('original_scene_paths', story_data.get('scene_paths', []))
+            _regen_cover = story_data.get('original_cover', story_data.get('front_cover_path', story_data.get('cover_image', '')))
+            if _regen_cover and _regen_cover.startswith('/'):
+                _regen_cover = _regen_cover[1:]
+            _regen_scenes = [p.lstrip('/') for p in _regen_scenes if p]
+            if not _regen_scenes:
+                return jsonify({"error": "No se encontraron imágenes para regenerar los PDFs"}), 400
+            _back_cover = 'static/images/quick_story_back_cover.png'
+            if not os.path.exists(_back_cover):
+                _back_cover = 'static/images/fixed_pages/back_cover.png'
+            _regen_dir = f'generations/lulu_retry/{preview_id}'
+            os.makedirs(_regen_dir, exist_ok=True)
+            generate_quick_story_lulu_pdfs(
+                story_data=story_data,
+                images=_regen_scenes,
+                front_cover_path=_regen_cover,
+                back_cover_path=_back_cover,
+                interior_output=os.path.join(_regen_dir, 'interior.pdf'),
+                cover_output=os.path.join(_regen_dir, 'cover.pdf'),
+                skip_sanitize=True
+            )
+            _regen_email = story_data.get('customer_email', '')
+            order_folder = create_order_folder(f'qs_retry_{preview_id[:8]}', _regen_child, _regen_email)
+            save_interior_pdf(order_folder, os.path.join(_regen_dir, 'interior.pdf'))
+            save_cover_pdf(order_folder, os.path.join(_regen_dir, 'cover.pdf'))
+            story_data['lulu_order_folder'] = order_folder
+            import shutil as _shutil_regen
+            _shutil_regen.rmtree(_regen_dir, ignore_errors=True)
+            print(f"[RETRY] Regenerated PDFs for {preview_id} → {order_folder}")
+        except Exception as _regen_err:
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": f"Error regenerando PDFs: {_regen_err}"}), 500
+
     try:
         from services.lulu_api_service import submit_print_order
         from services.lulu_storage import update_order_status
@@ -5560,7 +5600,9 @@ def admin_retry_lulu_submission(preview_id):
             story_data['lulu_error'] = None
             story_data['lulu_submitted'] = True
             update_order_status(order_folder, 'sent_to_lulu', lulu_job_id)
-            
+            import shutil as _shutil_retry
+            _shutil_retry.rmtree(order_folder, ignore_errors=True)
+
             with open(preview_file, 'w', encoding='utf-8') as f:
                 json.dump(story_data, f, ensure_ascii=False, indent=2)
             
@@ -7737,10 +7779,13 @@ def _process_quick_story_print(preview_id, customer_email):
         story_data['lulu_interior_url'] = interior_url
         story_data['lulu_cover_url'] = cover_url
         story_data['lulu_needs_refresh'] = False
+        story_data['lulu_order_folder'] = order_folder
         story_data['admin_notified'] = admin_result.get('success', False) or admin_result.get('simulated', False)
-        
+
         if lulu_success:
             story_data['lulu_status'] = 'sent'
+            import shutil as _shutil_qs
+            _shutil_qs.rmtree(lulu_folder, ignore_errors=True)
         elif shipping_address and shipping_address.get('name'):
             story_data['lulu_status'] = 'failed'
             story_data['lulu_error'] = lulu_msg or 'Unknown error'
