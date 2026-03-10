@@ -1168,17 +1168,44 @@ def create_baby_quick_story_pdf(story_data, images, output_path, format_type='di
     
     c.setFillColor(HexColor('#FFFBF5'))
     c.rect(0, 0, page_width, page_height, fill=True)
+    _title_font = fonts.get('dropcap', 'Helvetica')
+    _body_font = fonts.get('body', 'Helvetica')
+    _t_margin = 3 * 28.3465
+    _t_max_w = page_width - (_t_margin * 2)
+    _t_size = 32
+    while c.stringWidth(title, _title_font, _t_size) > _t_max_w and _t_size > 12:
+        _t_size -= 1
+    _t_lines = []
+    if c.stringWidth(title, _title_font, _t_size) > _t_max_w:
+        _words = title.split()
+        _cur = ''
+        for _w in _words:
+            _test = (_cur + ' ' + _w).strip()
+            if c.stringWidth(_test, _title_font, _t_size) <= _t_max_w:
+                _cur = _test
+            else:
+                if _cur:
+                    _t_lines.append(_cur)
+                _cur = _w
+        if _cur:
+            _t_lines.append(_cur)
+    else:
+        _t_lines = [title]
+    _line_h = _t_size * 1.4
+    _start_y = page_height * 0.55 + (len(_t_lines) - 1) * _line_h / 2
     c.setFillColor(HexColor('#8B6914'))
-    c.setFont(fonts.get('dropcap', 'Helvetica'), 32)
-    c.drawCentredString(page_width / 2, page_height * 0.55, title)
+    c.setFont(_title_font, _t_size)
+    for _i, _line in enumerate(_t_lines):
+        c.drawCentredString(page_width / 2, _start_y - _i * _line_h, _line)
+    _mmb_y = _start_y - (len(_t_lines) - 1) * _line_h - _t_size * 2.2
     c.setFillColor(HexColor('#4A3728'))
-    c.setFont(fonts.get('body', 'Helvetica'), 16)
-    c.drawCentredString(page_width / 2, page_height * 0.42, "Magic Memories Books")
+    c.setFont(_body_font, 16)
+    c.drawCentredString(page_width / 2, _mmb_y, "Magic Memories Books")
     c.showPage()
-    
+
     c.setFillColor(HexColor('#FFFBF5'))
     c.rect(0, 0, page_width, page_height, fill=True)
-    
+
     border_margin = page_width * 0.08
     border_width = page_width - (border_margin * 2)
     border_height = page_height - (border_margin * 2)
@@ -1779,7 +1806,7 @@ def create_birthday_pdf(story_data, images, output_path, format_type='digital', 
     c.setFont(font_name, title_font_size)
     
     title_lines = []
-    max_title_width = page_width - 80
+    max_title_width = page_width - 170
     words = title.split()
     current_line = ""
     
