@@ -374,6 +374,7 @@ def sitemap():
         (f'{domain}/stories-3-5',         '0.8',  'weekly'),
         (f'{domain}/stories-3-8',         '0.8',  'weekly'),
         (f'{domain}/stories-5-7',         '0.8',  'weekly'),
+        (f'{domain}/pricing',              '0.8',  'monthly'),
         (f'{domain}/faq',                 '0.7',  'monthly'),
         (f'{domain}/contact',             '0.6',  'monthly'),
         (f'{domain}/about',               '0.6',  'monthly'),
@@ -401,6 +402,10 @@ def robots_txt():
         'Sitemap: https://magicmemoriesbooks.com/sitemap.xml\n'
     )
     return content, 200, {'Content-Type': 'text/plain; charset=utf-8'}
+
+@app.route('/pricing')
+def pricing():
+    return render_template('pricing.html')
 
 @app.route('/terms')
 def terms():
