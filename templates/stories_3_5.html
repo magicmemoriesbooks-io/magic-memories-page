@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 
 {% block title %}{% if lang == 'es' %}Cuentos 3-5 años{% else %}Stories 3-5 years{% endif %} - {{ translations.site_title }}{% endblock %}
+{% block meta_description %}{% if lang == 'es' %}Cuentos personalizados para niños de 3 a 5 años. Tu hijo es el protagonista con su nombre y su imagen real en cada ilustración creada con inteligencia artificial.{% else %}Personalized stories for children 3 to 5 years old. Your child is the hero with their name and real photo in every AI-created illustration.{% endif %}{% endblock %}
+{% block og_title %}{% if lang == 'es' %}Cuentos Personalizados para Niños de 3 a 5 Años — Magic Memories Books{% else %}Personalized Stories for Children 3-5 Years — Magic Memories Books{% endif %}{% endblock %}
+{% block og_description %}{% if lang == 'es' %}Tu hijo es el protagonista con su nombre y su imagen real en cada ilustración creada con inteligencia artificial.{% else %}Your child is the hero with their name and real photo in every AI-created illustration.{% endif %}{% endblock %}
+{% block og_image %}{{ url_for('static', filename='images/age_3_5.jpg', _external=True) }}{% endblock %}
 
 {% block content %}
 <section class="py-6 px-4 max-w-6xl mx-auto">
