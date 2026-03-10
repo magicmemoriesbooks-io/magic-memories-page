@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 
 {% block title %}{{ translations.nav_about }} - {{ translations.site_title }}{% endblock %}
+{% block meta_description %}{% if lang == 'es' %}Conoce Magic Memories Books. Creamos cuentos infantiles personalizados con inteligencia artificial — únicos, mágicos, con la imagen real de tu hijo/a como protagonista en cada página.{% else %}Meet Magic Memories Books. We create personalized children's stories with AI — unique, magical, with your child's real image as the hero on every page.{% endif %}{% endblock %}
+{% block og_title %}{% if lang == 'es' %}Sobre Nosotros — Magic Memories Books{% else %}About Us — Magic Memories Books{% endif %}{% endblock %}
+{% block og_description %}{% if lang == 'es' %}Creamos cuentos infantiles personalizados con inteligencia artificial — únicos, mágicos, con la imagen real de tu hijo/a como protagonista.{% else %}We create personalized children's stories with AI — unique, magical, with your child's real image as the hero.{% endif %}{% endblock %}
 
 {% block content %}
 <section class="py-16 px-4 max-w-4xl mx-auto">
