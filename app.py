@@ -3306,6 +3306,18 @@ def process_payment(preview_id):
         except Exception as e:
             print(f"[PAYMENT] Failed to send confirmation email: {e}")
     
+    try:
+        from services.email_service import send_admin_purchase_notification
+        _admin_pt = product_type
+        if product_type in ('', 'quick_story'):
+            _admin_pt = 'qs_print' if want_print else 'qs_digital'
+        elif product_type == 'personalized_book':
+            _admin_pt = 'personalized'
+        send_admin_purchase_notification(preview_id, _admin_pt, email, story_data)
+        print(f"[PAYMENT] Admin purchase notification sent ({_admin_pt})")
+    except Exception as _adm_err:
+        print(f"[PAYMENT] Admin notification failed: {_adm_err}")
+
     if product_type == 'ebook':
         print(f"[PAYMENT] eBook purchase detected for {preview_id}")
         story_data['ebook_paid'] = True
