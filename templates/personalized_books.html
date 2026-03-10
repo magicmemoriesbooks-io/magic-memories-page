@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 
 {% block title %}{% if lang == 'es' %}Libros Personalizados{% else %}Personalized Books{% endif %} - {{ translations.site_title }}{% endblock %}
+{% block meta_description %}{% if lang == 'es' %}Libros personalizados con inteligencia artificial. Tu hijo es el protagonista: su nombre, su cara y sus rasgos únicos en cada ilustración. Diseños imposibles de encontrar en otro lugar.{% else %}Personalized books powered by AI. Your child is the hero: their name, face and unique features in every illustration. Designs you won't find anywhere else.{% endif %}{% endblock %}
+{% block og_title %}{% if lang == 'es' %}Libros Personalizados con IA — Tu Hijo como Protagonista{% else %}Personalized Books with AI — Your Child as the Hero{% endif %}{% endblock %}
+{% block og_description %}{% if lang == 'es' %}Tu hijo es el protagonista: su nombre, su cara y sus rasgos únicos en cada ilustración generada con IA. Diseños únicos imposibles de encontrar en otro lugar.{% else %}Your child is the hero: their name, face and unique features in every AI-generated illustration. Unique designs you won't find anywhere else.{% endif %}{% endblock %}
+{% block og_image %}{{ url_for('static', filename='images/personalize_result.jpg', _external=True) }}{% endblock %}
 
 {% block content %}
 <section class="py-6 px-4 max-w-6xl mx-auto">
