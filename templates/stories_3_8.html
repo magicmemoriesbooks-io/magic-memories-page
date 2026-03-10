@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 
 {% block title %}{% if lang == 'es' %}Cuentos 3-8 años{% else %}Stories 3-8 years{% endif %} - {{ translations.site_title }}{% endblock %}
+{% block meta_description %}{% if lang == 'es' %}Cuentos infantiles personalizados para niños de 3 a 8 años. Aventuras únicas con fotos reales y el nombre de tu pequeño como protagonista de la historia.{% else %}Personalized children's stories for ages 3-8. Unique adventures with real photos and your child's name as the story's hero.{% endif %}{% endblock %}
+{% block og_title %}{% if lang == 'es' %}Cuentos Personalizados para Niños de 3 a 8 Años — Magic Memories Books{% else %}Personalized Stories for Children 3-8 Years — Magic Memories Books{% endif %}{% endblock %}
+{% block og_description %}{% if lang == 'es' %}Aventuras únicas con fotos reales y el nombre de tu pequeño como protagonista de la historia, diseñadas con IA.{% else %}Unique adventures with real photos and your child's name as the story's hero, designed with AI.{% endif %}{% endblock %}
+{% block og_image %}{{ url_for('static', filename='images/age_3_5.jpg', _external=True) }}{% endblock %}
 
 {% block content %}
 <section class="py-6 px-4 max-w-6xl mx-auto">
