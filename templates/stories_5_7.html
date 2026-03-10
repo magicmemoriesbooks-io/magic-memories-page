@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 
 {% block title %}{% if lang == 'es' %}Cuentos 5-7 años{% else %}Stories 5-7 years{% endif %} - {{ translations.site_title }}{% endblock %}
+{% block meta_description %}{% if lang == 'es' %}Cuentos personalizados para niños de 5 a 7 años. Historias de aventuras con el protagonista diseñado con IA a imagen y semejanza de tu hijo/a, con sus rasgos físicos únicos.{% else %}Personalized stories for children 5-7 years. Adventure stories with a hero designed by AI to look just like your child, with their unique physical features.{% endif %}{% endblock %}
+{% block og_title %}{% if lang == 'es' %}Cuentos Personalizados para Niños de 5 a 7 Años — Magic Memories Books{% else %}Personalized Stories for Children 5-7 Years — Magic Memories Books{% endif %}{% endblock %}
+{% block og_description %}{% if lang == 'es' %}Historias de aventuras con el protagonista diseñado con IA a imagen y semejanza de tu hijo/a, con sus rasgos físicos únicos.{% else %}Adventure stories with a hero designed by AI to look just like your child, with their unique physical features.{% endif %}{% endblock %}
+{% block og_image %}{{ url_for('static', filename='images/age_5_7.jpg', _external=True) }}{% endblock %}
 
 {% block content %}
 <section class="py-6 px-4 max-w-6xl mx-auto">
