@@ -4,6 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ translations.site_title }}{% endblock %}</title>
+
+    <!-- SEO -->
+    <meta name="description" content="{% block meta_description %}{% if lang == 'es' %}Crea cuentos infantiles personalizados con fotos reales de tu hijo/a. Diseños únicos con inteligencia artificial. Disponible como ebook, PDF o libro impreso.{% else %}Create personalized children's books with real photos of your child. Unique AI-generated designs with their name and image. Available as ebook, PDF or printed book.{% endif %}{% endblock %}">
+    <meta name="robots" content="{% if '/admin' in request.path %}noindex, nofollow{% else %}index, follow{% endif %}">
+    <link rel="canonical" href="{{ request.url }}">
+    <link rel="alternate" hreflang="es" href="{{ request.host_url }}{{ request.path[1:] }}?lang=es">
+    <link rel="alternate" hreflang="en" href="{{ request.host_url }}{{ request.path[1:] }}?lang=en">
+
+    <!-- Open Graph (Facebook, WhatsApp, LinkedIn) -->
+    <meta property="og:title" content="{% block og_title %}Magic Memories Books — Cuentos Personalizados con Fotos Reales{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{% if lang == 'es' %}Crea cuentos infantiles personalizados con fotos reales de tu hijo/a. Diseños únicos con inteligencia artificial.{% else %}Create personalized children's books with real photos of your child. Unique AI-generated designs.{% endif %}{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{{ url_for('static', filename='images/logo_main.jpg', _external=True) }}{% endblock %}">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="{{ 'es_ES' if lang == 'es' else 'en_US' }}">
+    <meta property="og:site_name" content="Magic Memories Books">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}Magic Memories Books — Cuentos Personalizados con Fotos Reales{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}{% if lang == 'es' %}Crea cuentos infantiles personalizados con fotos reales de tu hijo/a. Diseños únicos con inteligencia artificial.{% else %}Create personalized children's books with real photos of your child. Unique AI-generated designs.{% endif %}{% endblock %}">
+    <meta name="twitter:image" content="{% block twitter_image %}{{ url_for('static', filename='images/logo_main.jpg', _external=True) }}{% endblock %}">
+
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.png') }}">
     <script src="https://cdn.tailwindcss.com"></script>
