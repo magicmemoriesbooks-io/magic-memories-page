@@ -3,26 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q3P65Z3JRY"></script>
-    <script>
-       window.dataLayer = window.dataLayer || [];
-       function gtag(){dataLayer.push(arguments);}
-       gtag('js', new Date());
-       gtag('config', 'G-Q3P65Z3JRY');
-    </script>
-
     <title>{% block title %}{{ translations.site_title }}{% endblock %}</title>
 
     <!-- SEO -->
-    <meta name="google-site-verification" content="avpExLjaO84GhGilWTm5NTuslPbOltqaj2j4kDYBqoc" />
     <meta name="description" content="{% block meta_description %}{% if lang == 'es' %}Crea cuentos infantiles personalizados con fotos reales de tu hijo/a. Diseños únicos con inteligencia artificial. Disponible como ebook, PDF o libro impreso.{% else %}Create personalized children's books with real photos of your child. Unique AI-generated designs with their name and image. Available as ebook, PDF or printed book.{% endif %}{% endblock %}">
     <meta name="robots" content="{% if '/admin' in request.path %}noindex, nofollow{% else %}index, follow{% endif %}">
-    <meta name="msvalidate.01" content="CE723FC85F3B21BB0DBAE5EBCABCA2ED" />
-    <meta charset="UTF-8">
     <link rel="canonical" href="{{ request.url }}">
     <link rel="alternate" hreflang="es" href="{{ request.host_url }}{{ request.path[1:] }}?lang=es">
     <link rel="alternate" hreflang="en" href="{{ request.host_url }}{{ request.path[1:] }}?lang=en">
@@ -44,7 +29,6 @@
 
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.png') }}">
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q3P65Z3JRY"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -158,6 +142,7 @@
                     <a href="{{ url_for('stories_birthday') }}" class="nav-link-gold hover:text-pink-600 transition relative" style="font-weight:500;font-size:15px;">
                         🎈 {% if lang == 'es' %}Cuentos de Cumple{% else %}Birthday Tales{% endif %} 🎉
                     </a>
+                    <a href="{{ url_for('pricing') }}" class="nav-link-gold hover:text-purple-600 transition" style="font-weight:500;font-size:15px;">{% if lang == 'es' %}Precios{% else %}Pricing{% endif %}</a>
                 </div>
                 <div class="flex items-center space-x-4">
                     <div class="flex items-center border rounded-full overflow-hidden">
@@ -195,6 +180,7 @@
                     </h3>
                     <div style="font-size:13px;color:#333333;line-height:1.8;">
                         <p><a href="{{ url_for('about') }}" class="footer-link-ethereal">{% if lang == 'es' %}Sobre Nosotros{% else %}About Us{% endif %}</a></p>
+                        <p><a href="{{ url_for('pricing') }}" class="footer-link-ethereal">{% if lang == 'es' %}Precios{% else %}Pricing{% endif %}</a></p>
                         <p><a href="{{ url_for('faq') }}" class="footer-link-ethereal">{% if lang == 'es' %}Preguntas Frecuentes{% else %}FAQ{% endif %}</a></p>
                         <p><a href="{{ url_for('contact') }}" class="footer-link-ethereal">{% if lang == 'es' %}Contacto{% else %}Contact{% endif %}</a></p>
                         <p><a href="{{ url_for('terms') }}" class="footer-link-ethereal">{% if lang == 'es' %}Términos{% else %}Terms{% endif %}</a></p>
