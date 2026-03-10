@@ -1,5 +1,13 @@
 {% extends "base.html" %}
 
+{% block meta_description %}{% if lang == 'es' %}Crea cuentos infantiles personalizados con fotos reales de tu hijo/a. Diseños únicos generados con IA, nombre del niño y su imagen en cada página. Disponible como ebook, PDF o libro impreso.{% else %}Create personalized children's books with real photos of your child. Unique AI-generated designs with their name and image on every page. Available as ebook, PDF or printed book.{% endif %}{% endblock %}
+{% block og_title %}{% if lang == 'es' %}Magic Memories Books — Cuentos Personalizados con Fotos Reales{% else %}Magic Memories Books — Personalized Stories with Real Photos{% endif %}{% endblock %}
+{% block og_description %}{% if lang == 'es' %}Crea cuentos infantiles personalizados con fotos reales de tu hijo/a. Diseños únicos generados con IA, nombre del niño y su imagen en cada página.{% else %}Create personalized children's books with real photos of your child. Unique AI-generated designs with their name and image on every page.{% endif %}{% endblock %}
+{% block og_image %}{{ url_for('static', filename='images/hero_adventures.jpg', _external=True) }}{% endblock %}
+{% block twitter_title %}{{ self.og_title() }}{% endblock %}
+{% block twitter_description %}{{ self.og_description() }}{% endblock %}
+{% block twitter_image %}{{ self.og_image() }}{% endblock %}
+
 {% block content %}
 <style>
     @keyframes heroColorShift {
