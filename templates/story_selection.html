@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 
 {% block title %}{% if lang == 'es' %}Escoge tu Historia{% else %}Choose Your Story{% endif %} - {{ translations.site_title }}{% endblock %}
+{% block meta_description %}{% if lang == 'es' %}Elige el cuento perfecto para tu hijo/a. Cuentos personalizables para bebés y niños de 3 a 8 años con el nombre y foto real de tu pequeño como protagonista.{% else %}Choose the perfect personalizable story for your child. Stories for babies and children 3-8 years old with their name and real photo as the hero.{% endif %}{% endblock %}
+{% block og_title %}{% if lang == 'es' %}Elige tu Cuento Personalizado — Magic Memories Books{% else %}Choose Your Personalized Story — Magic Memories Books{% endif %}{% endblock %}
+{% block og_description %}{% if lang == 'es' %}Cuentos personalizables para bebés y niños de 3 a 8 años con el nombre y foto real de tu pequeño como protagonista de la aventura.{% else %}Personalizable stories for babies and children 3-8 years with their name and real photo as the hero of the adventure.{% endif %}{% endblock %}
+{% block og_image %}{{ url_for('static', filename='images/personalize_form.jpg', _external=True) }}{% endblock %}
 
 {% block content %}
 <section class="py-8 px-4 max-w-7xl mx-auto">
