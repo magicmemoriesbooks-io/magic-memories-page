@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 
 {% block title %}{% if lang == 'es' %}Preguntas Frecuentes{% else %}FAQ{% endif %} - Magic Memories Books{% endblock %}
+{% block meta_description %}{% if lang == 'es' %}Preguntas frecuentes sobre Magic Memories Books. Cómo funcionan los cuentos personalizables con fotos reales, tiempos de entrega, formatos disponibles (ebook, PDF, libro impreso) y más.{% else %}Frequently asked questions about Magic Memories Books. How personalized stories with real photos work, delivery times, available formats (ebook, PDF, printed book) and more.{% endif %}{% endblock %}
+{% block og_title %}{% if lang == 'es' %}Preguntas Frecuentes — Magic Memories Books{% else %}Frequently Asked Questions — Magic Memories Books{% endif %}{% endblock %}
+{% block og_description %}{% if lang == 'es' %}Cómo funcionan los cuentos personalizables con fotos reales, tiempos de entrega, formatos disponibles (ebook, PDF, libro impreso) y más.{% else %}How personalized stories with real photos work, delivery times, available formats (ebook, PDF, printed book) and more.{% endif %}{% endblock %}
 
 {% block content %}
 <div class="max-w-4xl mx-auto px-4 py-12">
