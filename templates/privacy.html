@@ -70,7 +70,6 @@
                         <li>{% if lang == 'es' %}• <strong>Nombre del niño/a:</strong> Para personalizar el cuento.{% else %}• <strong>Child's name:</strong> To personalize the story.{% endif %}</li>
                         <li>{% if lang == 'es' %}• <strong>Fotografías:</strong> De la persona y/o mascota para crear ilustraciones con IA.{% else %}• <strong>Photographs:</strong> Of the person and/or pet to create AI illustrations.{% endif %}</li>
                         <li>{% if lang == 'es' %}• <strong>Características del personaje:</strong> Color de pelo, ojos, tono de piel, edad.{% else %}• <strong>Character traits:</strong> Hair color, eyes, skin tone, age.{% endif %}</li>
-                        <li>{% if lang == 'es' %}• <strong>Dirección de envío:</strong> Solo si se solicita libro impreso.{% else %}• <strong>Shipping address:</strong> Only if a printed book is requested.{% endif %}</li>
                         <li>{% if lang == 'es' %}• <strong>Correo electrónico:</strong> Para envío del PDF y comunicaciones del pedido.{% else %}• <strong>Email address:</strong> For PDF delivery and order communications.{% endif %}</li>
                     </ul>
                 </div>
@@ -79,7 +78,7 @@
                     <ul class="text-gray-700 space-y-1 ml-4 text-sm">
                         <li>{% if lang == 'es' %}• No recopilamos datos biométricos permanentes.{% else %}• We do not collect permanent biometric data.{% endif %}</li>
                         <li>{% if lang == 'es' %}• No creamos perfiles de reconocimiento facial.{% else %}• We do not create facial recognition profiles.{% endif %}</li>
-                        <li>{% if lang == 'es' %}• No almacenamos datos de pago (gestionados por Paddle).{% else %}• We do not store payment data (managed by Paddle).{% endif %}</li>
+                        <li>{% if lang == 'es' %}• No almacenamos datos de pago (gestionados por PayPal).{% else %}• We do not store payment data (managed by PayPal).{% endif %}</li>
                     </ul>
                 </div>
             </div>
@@ -132,10 +131,6 @@
                                 <td class="py-2 font-medium">{% if lang == 'es' %}72 horas máximo{% else %}72 hours maximum{% endif %}</td>
                             </tr>
                             <tr class="border-b border-gray-100">
-                                <td class="py-2">{% if lang == 'es' %}Archivos de impresión (Lulu){% else %}Print files (Lulu){% endif %}</td>
-                                <td class="py-2 font-medium">{% if lang == 'es' %}Hasta completar el envío{% else %}Until shipment is complete{% endif %}</td>
-                            </tr>
-                            <tr class="border-b border-gray-100">
                                 <td class="py-2">{% if lang == 'es' %}PDFs artísticos generados{% else %}Generated artistic PDFs{% endif %}</td>
                                 <td class="py-2 font-medium">{% if lang == 'es' %}Acceso permanente (sin fotos originales){% else %}Permanent access (no original photos){% endif %}</td>
                             </tr>
@@ -161,7 +156,7 @@
                 <div class="bg-gray-50 p-4 rounded-lg">
                     <ul class="text-gray-700 space-y-3 text-sm">
                         <li>
-                            <strong>Paddle.com</strong> - {% if lang == 'es' %}Procesamiento de pagos e impuestos. <a href="https://www.paddle.com/legal/privacy" target="_blank" class="text-purple-600 hover:underline">Política de Privacidad de Paddle</a>{% else %}Payment and tax processing. <a href="https://www.paddle.com/legal/privacy" target="_blank" class="text-purple-600 hover:underline">Paddle Privacy Policy</a>{% endif %}
+                            <strong>PayPal</strong> - {% if lang == 'es' %}Procesamiento seguro de pagos. <a href="https://www.paypal.com/es/legalhub/privacy-full" target="_blank" class="text-purple-600 hover:underline">Política de Privacidad de PayPal</a>{% else %}Secure payment processing. <a href="https://www.paypal.com/us/legalhub/privacy-full" target="_blank" class="text-purple-600 hover:underline">PayPal Privacy Policy</a>{% endif %}
                         </li>
                         <li>
                             <strong>Lulu.com</strong> - {% if lang == 'es' %}Impresión y envío de libros físicos. Solo recibe el PDF artístico final (sin fotos originales). <a href="https://www.lulu.com/privacy-policy" target="_blank" class="text-purple-600 hover:underline">Política de Privacidad de Lulu</a>{% else %}Printing and shipping of physical books. Only receives the final artistic PDF (no original photos). <a href="https://www.lulu.com/privacy-policy" target="_blank" class="text-purple-600 hover:underline">Lulu Privacy Policy</a>{% endif %}
@@ -214,16 +209,15 @@
 
             <div class="border-l-4 border-purple-500 pl-6 bg-purple-50 py-4 rounded-r-lg">
                 <h2 class="font-display text-xl font-bold text-purple-800 mb-3">
-                    {% if lang == 'es' %}9. Procesamiento de Pagos (Paddle){% else %}9. Payment Processing (Paddle){% endif %}
+                    {% if lang == 'es' %}9. Procesamiento de Pagos (PayPal){% else %}9. Payment Processing (PayPal){% endif %}
                 </h2>
                 <p class="text-gray-700 leading-relaxed mb-3">
-                    {% if lang == 'es' %}Los pagos son procesados por <strong>Paddle.com</strong>, que actúa como Vendedor Oficial (Merchant of Record) de todos nuestros productos. Paddle gestiona directamente:{% else %}Payments are processed by <strong>Paddle.com</strong>, acting as Merchant of Record for all our products. Paddle directly manages:{% endif %}
+                    {% if lang == 'es' %}Los pagos son procesados de forma segura a través de <strong>PayPal</strong>. PayPal acepta tarjetas de crédito/débito (Visa, Mastercard, American Express) y cuentas PayPal. PayPal gestiona directamente:{% else %}Payments are processed securely through <strong>PayPal</strong>. PayPal accepts credit/debit cards (Visa, Mastercard, American Express) and PayPal accounts. PayPal directly manages:{% endif %}
                 </p>
                 <ul class="text-gray-700 space-y-1 ml-4 text-sm mb-3">
-                    <li>{% if lang == 'es' %}• Procesamiento de tarjetas de crédito/débito, PayPal y otros métodos de pago.{% else %}• Credit/debit card processing, PayPal, and other payment methods.{% endif %}</li>
-                    <li>{% if lang == 'es' %}• Cálculo y gestión de impuestos (IVA/Sales Tax).{% else %}• Tax calculation and management (VAT/Sales Tax).{% endif %}</li>
-                    <li>{% if lang == 'es' %}• Emisión de facturas y recibos.{% else %}• Invoice and receipt issuance.{% endif %}</li>
-                    <li>{% if lang == 'es' %}• Consultas de facturación del cliente.{% else %}• Customer billing inquiries.{% endif %}</li>
+                    <li>{% if lang == 'es' %}• Procesamiento de tarjetas de crédito/débito y cuentas PayPal.{% else %}• Credit/debit card processing and PayPal accounts.{% endif %}</li>
+                    <li>{% if lang == 'es' %}• Seguridad y encriptación de datos de pago.{% else %}• Payment data security and encryption.{% endif %}</li>
+                    <li>{% if lang == 'es' %}• Emisión de recibos de pago.{% else %}• Payment receipt issuance.{% endif %}</li>
                 </ul>
                 <div class="bg-white p-4 rounded-lg mb-3">
                     <p class="font-medium text-gray-800 mb-2">{% if lang == 'es' %}Datos compartidos con Paddle:{% else %}Data shared with Paddle:{% endif %}</p>
@@ -234,7 +228,7 @@
                     </ul>
                 </div>
                 <p class="text-gray-700 leading-relaxed text-sm">
-                    {% if lang == 'es' %}<strong>No almacenamos</strong> datos de tarjetas de crédito ni información financiera en nuestros servidores. Para más información, consulte la <a href="https://www.paddle.com/legal/privacy" target="_blank" class="text-purple-600 hover:underline">Política de Privacidad de Paddle</a> y los <a href="https://www.paddle.com/legal/terms" target="_blank" class="text-purple-600 hover:underline">Términos de Paddle</a>.{% else %}<strong>We do not store</strong> credit card data or financial information on our servers. For more information, see <a href="https://www.paddle.com/legal/privacy" target="_blank" class="text-purple-600 hover:underline">Paddle's Privacy Policy</a> and <a href="https://www.paddle.com/legal/terms" target="_blank" class="text-purple-600 hover:underline">Paddle's Terms</a>.{% endif %}
+                    {% if lang == 'es' %}<strong>No almacenamos</strong> datos de tarjetas de crédito ni información financiera en nuestros servidores. Para más información, consulte la <a href="https://www.paypal.com/es/legalhub/privacy-full" target="_blank" class="text-purple-600 hover:underline">Política de Privacidad de PayPal</a>.{% else %}<strong>We do not store</strong> credit card data or financial information on our servers. For more information, see <a href="https://www.paypal.com/us/legalhub/privacy-full" target="_blank" class="text-purple-600 hover:underline">PayPal's Privacy Policy</a>.{% endif %}
                 </p>
             </div>
 

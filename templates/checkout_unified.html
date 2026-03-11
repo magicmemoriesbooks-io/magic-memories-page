@@ -288,7 +288,7 @@
     <div class="bg-blue-50 border border-blue-300 rounded-xl p-4 mb-6">
         <div class="flex items-center gap-2 text-blue-800">
             <span class="text-xl">🔒</span>
-            <p class="font-medium">{% if lang == 'es' %}PAGO SEGURO CON PADDLE{% else %}SECURE PAYMENT WITH PADDLE{% endif %}</p>
+            <p class="font-medium">{% if lang == 'es' %}PAGO SEGURO CON PAYPAL{% else %}SECURE PAYMENT WITH PAYPAL{% endif %}</p>
         </div>
         <p class="text-blue-700 text-sm mt-1">
             {% if lang == 'es' %}Procesamos tu pago de forma segura.{% else %}We process your payment securely.{% endif %}
@@ -321,7 +321,7 @@
                         ${{ checkout_config.print_base_price }}+ USD
                     {% endif %}
                 </span>
-                <span class="text-gray-400 text-xs block" id="totalTaxNote">+ tax</span>
+                
             </div>
         </div>
         <p class="text-xs text-gray-600 mt-1" id="totalBreakdown">
@@ -334,20 +334,12 @@
     </div>
     
     <div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-        <button type="submit" id="payButton"
-            class="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white font-bold rounded-xl text-lg transition-all flex items-center justify-center gap-2">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <span id="payButtonText">
-                {% if checkout_config.allow_digital %}
-                    {% if lang == 'es' %}Pagar ${{ checkout_config.digital_base_price }} USD{% else %}Pay ${{ checkout_config.digital_base_price }} USD{% endif %}
-                {% else %}
-                    {% if lang == 'es' %}Selecciona país para ver precio{% else %}Select country to see price{% endif %}
-                {% endif %}
-            </span>
-        </button>
         </form>
+        <p class="text-xs text-gray-500 text-center mb-3">
+            {% if lang == 'es' %}Paga con tu cuenta PayPal o con tarjeta de crédito/débito{% else %}Pay with your PayPal account or credit/debit card{% endif %}
+        </p>
+        <div id="paypal-button-container" class="min-h-[50px]"></div>
+        <p class="text-xs text-red-500 mt-2 hidden text-center" id="paypalError"></p>
     </div>
     
     <p class="text-center text-gray-500 text-sm mt-6">
@@ -413,7 +405,7 @@
     </div>
 </div>
 
-<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+<script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=USD" data-namespace="paypal_sdk"></script>
 <script>
 const CFG = {
     previewId: '{{ preview_id }}',
@@ -424,683 +416,286 @@ const CFG = {
     digitalBasePrice: {{ checkout_config.digital_base_price|default(0) }},
     printBasePrice: {{ checkout_config.print_base_price|default(0) }},
     ebookBasePrice: {{ checkout_config.ebook_base_price|default(7) }},
-    digitalPriceId: '{{ checkout_config.digital_price_id|default("") }}',
-    ebookPriceId: '{{ checkout_config.ebook_price_id|default("") }}',
     printProductType: '{{ checkout_config.print_product_type|default("personalized") }}',
     digitalProductType: '{{ checkout_config.digital_product_type|default("qs_digital") }}',
-    ebookProductType: '{{ checkout_config.ebook_product_type|default("ebook") }}',
-    productType: '{{ checkout_config.product_type }}'
 };
 
-let selectedFormats = [];
-if (CFG.allowDigital) selectedFormats.push('digital');
-let selectedShippingMethod = 'MAIL';
-let dynamicPricingData = null;
-let currentTotalCents = 0;
-let currentTotal = CFG.allowDigital ? CFG.digitalBasePrice : 0;
-let suggestedAddress = null;
-let pendingCheckoutData = null;
+let currentTotal = CFG.allowDigital ? CFG.digitalBasePrice : (CFG.allowEbook ? CFG.ebookBasePrice : CFG.printBasePrice);
+let selectedFormats = CFG.allowDigital ? ['digital'] : (CFG.allowEbook ? ['ebook'] : []);
+let selectedShippingMethod = null;
+let selectedShippingCost = 0;
+let checkoutDataGlobal = null;
 
-Paddle.Environment.set("sandbox");
-Paddle.Initialize({
-    token: "{{ paddle_client_token }}",
-    eventCallback: function(event) {
-        console.log("[PADDLE EVENT]", event.name, event);
-        if (event.name === "checkout.error") {
-            console.error("[PADDLE ERROR]", event.data);
-            alert("Paddle Error: " + (event.data?.error?.message || JSON.stringify(event.data)));
-        }
-        if (event.name === "checkout.completed") {
-            console.log("[PADDLE] Payment completed!", event.data);
-            try { Paddle.Checkout.close(); } catch(e) {}
-            handlePaddleSuccess(event.data?.transaction_id || event.data?.id || '');
-        }
-    }
-});
-
-const TAX_ID_COUNTRIES = {
-    'MX': {
-        label: CFG.lang === 'es' ? 'RFC (Registro Federal de Contribuyentes)' : 'RFC (Tax ID)',
-        placeholder: 'XAXX010101000',
-        help: CFG.lang === 'es' ? 'Requerido por la aduana mexicana para recibir envíos internacionales (13 caracteres)' : 'Required by Mexican customs for international shipments (13 characters)',
-        validate: function(val) {
-            const clean = val.replace(/[\s-]/g, '').toUpperCase();
-            if (clean.length !== 12 && clean.length !== 13) return CFG.lang === 'es' ? 'El RFC debe tener 12 o 13 caracteres' : 'RFC must be 12 or 13 characters';
-            if (!/^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/.test(clean)) return CFG.lang === 'es' ? 'Formato de RFC inválido. Ejemplo: XAXX010101000' : 'Invalid RFC format. Example: XAXX010101000';
-            return null;
-        }
-    },
-    'BR': {
-        label: 'CPF / CNPJ',
-        placeholder: '000.000.000-00',
-        help: CFG.lang === 'es' ? 'Requerido por la aduana brasileña para envíos internacionales' : 'Required by Brazilian customs for international shipments',
-        validate: function(val) {
-            const clean = val.replace(/[\s.\-\/]/g, '');
-            if (clean.length !== 11 && clean.length !== 14) return CFG.lang === 'es' ? 'CPF debe tener 11 dígitos o CNPJ 14 dígitos' : 'CPF must have 11 digits or CNPJ 14 digits';
-            if (!/^\d+$/.test(clean)) return CFG.lang === 'es' ? 'Solo se permiten números' : 'Only numbers allowed';
-            return null;
-        }
-    },
-    'CL': {
-        label: 'RUT',
-        placeholder: '11.111.111-1',
-        help: CFG.lang === 'es' ? 'Requerido por la aduana chilena para envíos internacionales' : 'Required by Chilean customs for international shipments',
-        validate: function(val) {
-            const clean = val.replace(/[\s.\-]/g, '').toUpperCase();
-            if (clean.length < 8 || clean.length > 9) return CFG.lang === 'es' ? 'El RUT debe tener 8-9 caracteres' : 'RUT must be 8-9 characters';
-            if (!/^\d{7,8}[0-9K]$/.test(clean)) return CFG.lang === 'es' ? 'Formato de RUT inválido. Ejemplo: 11111111-1' : 'Invalid RUT format. Example: 11111111-1';
-            return null;
-        }
-    },
-    'AR': {
-        label: 'CUIT / CUIL',
-        placeholder: '20-12345678-9',
-        help: CFG.lang === 'es' ? 'Requerido por la aduana argentina. Formato: XX-XXXXXXXX-X (11 dígitos)' : 'Required by Argentine customs. Format: XX-XXXXXXXX-X (11 digits)',
-        validate: function(val) {
-            const clean = val.replace(/[\s\-]/g, '');
-            if (clean.length !== 11) return CFG.lang === 'es' ? 'El CUIT/CUIL debe tener 11 dígitos' : 'CUIT/CUIL must have 11 digits';
-            if (!/^\d{11}$/.test(clean)) return CFG.lang === 'es' ? 'Solo se permiten números' : 'Only numbers allowed';
-            const prefix = clean.substring(0, 2);
-            const validPrefixes = ['20', '23', '24', '25', '26', '27', '30', '33', '34'];
-            if (!validPrefixes.includes(prefix)) return CFG.lang === 'es' ? 'CUIT/CUIL inválido: debe comenzar con 20, 23-27, 30, 33 o 34' : 'Invalid CUIT/CUIL: must start with 20, 23-27, 30, 33 or 34';
-            const multipliers = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
-            let sum = 0;
-            for (let i = 0; i < 10; i++) sum += parseInt(clean[i]) * multipliers[i];
-            const checkDigit = 11 - (sum % 11);
-            const expected = checkDigit === 11 ? 0 : checkDigit === 10 ? 9 : checkDigit;
-            if (parseInt(clean[10]) !== expected) return CFG.lang === 'es' ? 'CUIT/CUIL inválido: el dígito verificador no es correcto' : 'Invalid CUIT/CUIL: check digit is incorrect';
-            return null;
-        }
-    },
-    'PE': {
-        label: 'DNI / RUC',
-        placeholder: '10000000001',
-        help: CFG.lang === 'es' ? 'Requerido por la aduana peruana para envíos internacionales' : 'Required by Peruvian customs for international shipments',
-        validate: function(val) {
-            const clean = val.replace(/[\s\-]/g, '');
-            if (clean.length !== 8 && clean.length !== 11) return CFG.lang === 'es' ? 'DNI debe tener 8 dígitos o RUC 11 dígitos' : 'DNI must have 8 digits or RUC 11 digits';
-            if (!/^\d+$/.test(clean)) return CFG.lang === 'es' ? 'Solo se permiten números' : 'Only numbers allowed';
-            return null;
-        }
-    }
-};
-
-function updateTaxIdField(countryCode) {
-    const container = document.getElementById('taxIdContainer');
-    const label = document.getElementById('taxIdLabel');
-    const input = document.getElementById('shippingTaxId');
-    const help = document.getElementById('taxIdHelp');
-    
-    if (TAX_ID_COUNTRIES[countryCode]) {
-        const config = TAX_ID_COUNTRIES[countryCode];
-        label.textContent = config.label;
-        input.placeholder = config.placeholder;
-        help.textContent = config.help;
-        container.classList.remove('hidden');
-    } else {
-        container.classList.add('hidden');
-        input.value = '';
-    }
-}
-
-function validateTaxIdInline() {
-    const cc = document.getElementById('shippingCountry').value;
-    const input = document.getElementById('shippingTaxId');
-    const errorEl = document.getElementById('taxIdError');
-    if (!TAX_ID_COUNTRIES[cc] || !input.value.trim()) {
-        errorEl.classList.add('hidden');
-        input.classList.remove('border-red-500');
-        input.classList.add('border-gray-300');
-        return true;
-    }
-    if (TAX_ID_COUNTRIES[cc].validate) {
-        const err = TAX_ID_COUNTRIES[cc].validate(input.value.trim());
-        if (err) {
-            errorEl.textContent = err;
-            errorEl.classList.remove('hidden');
-            input.classList.remove('border-gray-300');
-            input.classList.add('border-red-500');
-            return false;
-        }
-    }
-    errorEl.classList.add('hidden');
-    input.classList.remove('border-red-500');
-    input.classList.add('border-gray-300');
-    return true;
-}
-
-const countrySelect = document.getElementById('shippingCountry');
-if (countrySelect) {
-    countrySelect.addEventListener('change', function() {
-        updateTaxIdField(this.value);
-        if (this.value && selectedFormats.includes('print')) {
-            loadDynamicPricing(this.value);
-        }
-    });
-}
-
+// ── format toggles ──────────────────────────────────────────────────────────
 function toggleFormat() {
     const checkboxes = document.querySelectorAll('input[name="formatOption"]');
-    selectedFormats = [];
-    checkboxes.forEach(cb => { if (cb.checked) selectedFormats.push(cb.value); });
+    selectedFormats = Array.from(checkboxes).filter(c => c.checked).map(c => c.value);
     
-    const optDigital = document.getElementById('optionDigital');
-    const optPrint = document.getElementById('optionPrint');
-    const optEbook = document.getElementById('optionEbook');
-    const shipSection = document.getElementById('shippingSection');
-    const shipMethodSection = document.getElementById('shippingMethodSection');
-    const formatError = document.getElementById('formatError');
-    
-    if (formatError) formatError.classList.toggle('hidden', selectedFormats.length > 0);
-    
-    if (optDigital) {
-        if (selectedFormats.includes('digital')) {
-            optDigital.classList.remove('border-gray-200', 'bg-white');
-            optDigital.classList.add('border-purple-500', 'bg-purple-50');
-        } else {
-            optDigital.classList.remove('border-purple-500', 'bg-purple-50');
-            optDigital.classList.add('border-gray-200', 'bg-white');
-        }
-    }
-    if (optPrint) {
-        if (selectedFormats.includes('print')) {
-            optPrint.classList.remove('border-gray-200', 'bg-white');
-            optPrint.classList.add('border-amber-500', 'bg-amber-50');
-        } else {
-            optPrint.classList.remove('border-amber-500', 'bg-amber-50');
-            optPrint.classList.add('border-gray-200', 'bg-white');
-        }
-    }
-    if (optEbook) {
-        if (selectedFormats.includes('ebook')) {
-            optEbook.classList.remove('border-gray-200', 'bg-white');
-            optEbook.classList.add('border-purple-500', 'bg-purple-50');
-        } else {
-            optEbook.classList.remove('border-purple-500', 'bg-purple-50');
-            optEbook.classList.add('border-gray-200', 'bg-white');
-        }
-    }
-    
-    const hasPrint = selectedFormats.includes('print');
-    const hasEbook = selectedFormats.includes('ebook');
-    
-    if (hasPrint) {
-        shipSection.classList.remove('hidden');
-        const cc = document.getElementById('shippingCountry').value;
-        if (cc) loadDynamicPricing(cc);
-    } else {
-        shipSection.classList.add('hidden');
-        if (shipMethodSection) shipMethodSection.classList.add('hidden');
-        dynamicPricingData = null;
-        currentTotalCents = 0;
-    }
-    
-    const digitalGift = document.getElementById('digitalEbookGift');
-    const printGift = document.getElementById('printEbookGift');
-    if (hasEbook) {
-        if (digitalGift) digitalGift.classList.add('hidden');
-        if (printGift) printGift.classList.add('hidden');
-    } else {
-        if (digitalGift) digitalGift.classList.remove('hidden');
-        if (printGift) printGift.classList.remove('hidden');
-    }
-    
-    updatePriceDisplay();
-}
-
-async function loadDynamicPricing(countryCode) {
-    const section = document.getElementById('shippingMethodSection');
-    const loading = document.getElementById('shippingLoading');
-    const options = document.getElementById('shippingOptions');
-    
-    section.classList.remove('hidden');
-    loading.classList.remove('hidden');
-    options.classList.add('hidden');
-    
-    try {
-        const response = await fetch('/api/calculate-dynamic-price', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                product_type: CFG.printProductType,
-                country_code: countryCode 
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (result.error) {
-            options.innerHTML = `<p class="text-red-500">${result.error}</p>`;
-        } else {
-            dynamicPricingData = result.options;
-            renderShippingOptions(dynamicPricingData);
-        }
-        
-        loading.classList.add('hidden');
-        options.classList.remove('hidden');
-    } catch (error) {
-        loading.classList.add('hidden');
-        options.innerHTML = `<p class="text-red-500">${CFG.lang === 'es' ? 'Error al cargar opciones' : 'Error loading options'}</p>`;
-        options.classList.remove('hidden');
-    }
-}
-
-function renderShippingOptions(pricingOptions) {
-    const container = document.getElementById('shippingOptions');
-    container.innerHTML = '';
-    
-    const sortOrder = ['MAIL', 'PRIORITY_MAIL', 'GROUND', 'EXPEDITED', 'EXPRESS'];
-    const sorted = Object.entries(pricingOptions).sort((a, b) => sortOrder.indexOf(a[0]) - sortOrder.indexOf(b[0]));
-    
-    let isFirst = true;
-    sorted.forEach(([method, data]) => {
-        const name = CFG.lang === 'es' ? data.name_es : data.name_en;
-        const luluCost = data.lulu_cost;
-        
-        const div = document.createElement('div');
-        div.className = `p-4 border-2 rounded-xl cursor-pointer transition-all ${isFirst ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:border-purple-300'}`;
-        div.innerHTML = `
-            <label class="flex items-center justify-between cursor-pointer">
-                <div class="flex items-center gap-3">
-                    <input type="radio" name="shippingMethod" value="${method}" ${isFirst ? 'checked' : ''} 
-                        class="w-5 h-5 text-purple-600">
-                    <div>
-                        <span class="font-semibold text-gray-800">${name}</span>
-                        <span class="text-gray-500 text-sm ml-2">(${data.days} ${CFG.lang === 'es' ? 'días' : 'days'})</span>
-                    </div>
-                </div>
-                <div class="text-right">
-                    <span class="text-purple-700 font-bold">$${luluCost.toFixed(2)}</span>
-                </div>
-            </label>
-        `;
-        
-        div.addEventListener('click', () => {
-            document.querySelector(`input[name="shippingMethod"][value="${method}"]`).checked = true;
-            selectShipping(method);
-        });
-        div.querySelector('input[type="radio"]').addEventListener('change', () => selectShipping(method));
-        container.appendChild(div);
-        
-        if (isFirst) { selectShipping(method); isFirst = false; }
-    });
-}
-
-function selectShipping(method) {
-    selectedShippingMethod = method;
-    const data = dynamicPricingData ? dynamicPricingData[method] : null;
-    if (!data) return;
-    
-    currentTotal = data.customer_total;
-    currentTotalCents = data.customer_total_cents;
-    
-    document.querySelectorAll('#shippingOptions > div').forEach(div => {
-        div.classList.remove('border-purple-500', 'bg-purple-50');
-        div.classList.add('border-gray-200');
-    });
-    const sel = document.querySelector(`input[name="shippingMethod"][value="${method}"]`)?.closest('div.p-4');
-    if (sel) { sel.classList.remove('border-gray-200'); sel.classList.add('border-purple-500', 'bg-purple-50'); }
-    
+    const wantPrint = selectedFormats.includes('print');
+    const shippingSection = document.getElementById('shippingSection');
+    const shippingMethodSection = document.getElementById('shippingMethodSection');
+    if (shippingSection) shippingSection.classList.toggle('hidden', !wantPrint);
+    if (shippingMethodSection) shippingMethodSection.classList.toggle('hidden', !wantPrint || !selectedShippingMethod);
     updatePriceDisplay();
 }
 
 function updatePriceDisplay() {
-    const totalAmount = document.getElementById('totalAmount');
-    const payButtonText = document.getElementById('payButtonText');
-    const totalBreakdown = document.getElementById('totalBreakdown');
-    const printLabel = document.getElementById('printPriceLabel');
-    const basePriceDisplay = document.getElementById('basePriceDisplay');
-    const shippingCostLine = document.getElementById('shippingCostLine');
-    const shippingCostDisplay = document.getElementById('shippingCostDisplay');
-    const shippingCostLabel = document.getElementById('shippingCostLabel');
-    
-    if (selectedFormats.length === 0) {
-        totalAmount.textContent = '$0 USD';
-        payButtonText.textContent = CFG.lang === 'es' ? 'Selecciona un formato' : 'Select a format';
-        totalBreakdown.textContent = '';
-        if (basePriceDisplay) basePriceDisplay.textContent = '$0 USD';
-        if (shippingCostLine) shippingCostLine.classList.add('hidden');
-        return;
-    }
-    
+    const wantPrint = selectedFormats.includes('print');
     const hasEbook = selectedFormats.includes('ebook');
     const hasDigital = selectedFormats.includes('digital');
-    const hasPrint = selectedFormats.includes('print');
     
-    let baseTotal = 0;
-    let parts = [];
+    let base = 0;
+    if (hasDigital) base += CFG.digitalBasePrice;
+    if (hasEbook && !hasDigital) base += CFG.ebookBasePrice;
+    if (wantPrint) base += CFG.printBasePrice;
     
-    if (hasEbook) {
-        baseTotal += CFG.ebookBasePrice;
-        parts.push(CFG.lang === 'es' ? `eBook $${CFG.ebookBasePrice}` : `eBook $${CFG.ebookBasePrice}`);
-    }
-    if (hasDigital) {
-        baseTotal += CFG.digitalBasePrice;
-        parts.push(CFG.lang === 'es' ? `PDF Digital $${CFG.digitalBasePrice}` : `Digital PDF $${CFG.digitalBasePrice}`);
-    }
-    if (hasPrint) {
-        baseTotal += CFG.printBasePrice;
-    }
+    let shipping = wantPrint ? selectedShippingCost : 0;
+    currentTotal = base + shipping;
     
-    if (hasPrint && dynamicPricingData && dynamicPricingData[selectedShippingMethod]) {
-        const data = dynamicPricingData[selectedShippingMethod];
-        const shipName = CFG.lang === 'es' ? data.name_es : data.name_en;
-        const shippingCost = data.lulu_cost;
-        const printTotal = CFG.printBasePrice + shippingCost;
-        const grandTotal = baseTotal - CFG.printBasePrice + printTotal;
-        
-        if (basePriceDisplay) basePriceDisplay.textContent = `$${baseTotal} USD`;
-        if (shippingCostLine) shippingCostLine.classList.remove('hidden');
-        if (shippingCostLabel) shippingCostLabel.textContent = CFG.lang === 'es'
-            ? `Impresión + envío (${shipName}):`
-            : `Printing + shipping (${shipName}):`;
-        if (shippingCostDisplay) shippingCostDisplay.textContent = `$${shippingCost.toFixed(2)} USD`;
-        
-        parts.push(CFG.lang === 'es' 
-            ? `Impreso $${CFG.printBasePrice} + envío $${shippingCost.toFixed(2)}`
-            : `Print $${CFG.printBasePrice} + shipping $${shippingCost.toFixed(2)}`);
-        
-        currentTotal = grandTotal;
-        totalAmount.textContent = `$${grandTotal.toFixed(2)} USD`;
-        payButtonText.textContent = CFG.lang === 'es' ? `Pagar $${grandTotal.toFixed(2)} USD` : `Pay $${grandTotal.toFixed(2)} USD`;
-        if (printLabel) printLabel.textContent = `$${printTotal.toFixed(2)} USD`;
-    } else if (hasPrint) {
-        if (basePriceDisplay) basePriceDisplay.textContent = `$${baseTotal} USD`;
-        if (shippingCostLine) shippingCostLine.classList.remove('hidden');
-        if (shippingCostDisplay) shippingCostDisplay.textContent = CFG.lang === 'es' ? 'Pendiente' : 'Pending';
-        if (shippingCostLabel) shippingCostLabel.textContent = CFG.lang === 'es' ? 'Impresión + envío:' : 'Printing + shipping:';
-        
-        totalAmount.textContent = `$${baseTotal}+ USD`;
-        payButtonText.textContent = CFG.lang === 'es' ? 'Selecciona país para ver precio' : 'Select country to see price';
-        totalBreakdown.textContent = CFG.lang === 'es'
-            ? 'Selecciona tu país para calcular el envío'
-            : 'Select your country to calculate shipping';
-        return;
-    } else {
-        if (basePriceDisplay) basePriceDisplay.textContent = `$${baseTotal} USD`;
-        if (shippingCostLine) shippingCostLine.classList.add('hidden');
-        
-        currentTotal = baseTotal;
-        totalAmount.textContent = `$${baseTotal} USD`;
-        payButtonText.textContent = CFG.lang === 'es' ? `Pagar $${baseTotal} USD` : `Pay $${baseTotal} USD`;
-    }
+    const totalEl = document.getElementById('totalAmount');
+    if (totalEl) totalEl.textContent = '$' + currentTotal.toFixed(2) + ' USD';
     
-    let ebookNote = '';
-    if (!hasEbook && (hasDigital || hasPrint)) {
-        ebookNote = CFG.lang === 'es' ? ' + eBook de regalo (6 meses)' : ' + Gift eBook (6 months)';
+    const basePriceEl = document.getElementById('basePriceDisplay');
+    if (basePriceEl) basePriceEl.textContent = '$' + base.toFixed(2) + ' USD';
+    
+    const shippingLine = document.getElementById('shippingCostLine');
+    if (shippingLine) shippingLine.classList.toggle('hidden', !wantPrint);
+    const shippingDisplay = document.getElementById('shippingCostDisplay');
+    if (shippingDisplay && wantPrint) {
+        shippingDisplay.textContent = selectedShippingCost > 0 ? '$' + selectedShippingCost.toFixed(2) + ' USD' : (CFG.lang === 'es' ? 'Pendiente' : 'Pending');
     }
-    totalBreakdown.textContent = parts.join(' + ') + ebookNote + ' (+ tax)';
 }
 
-function validateShipping() {
-    if (!selectedFormats.includes('print')) return true;
-    const fields = [
-        { id: 'shippingName', label: CFG.lang === 'es' ? 'Nombre' : 'Name' },
-        { id: 'shippingStreet', label: CFG.lang === 'es' ? 'Dirección' : 'Address' },
-        { id: 'shippingCity', label: CFG.lang === 'es' ? 'Ciudad' : 'City' },
-        { id: 'shippingPostal', label: CFG.lang === 'es' ? 'Código postal' : 'Postal code' },
-        { id: 'shippingCountry', label: CFG.lang === 'es' ? 'País' : 'Country' }
-    ];
-    for (const f of fields) {
-        if (!document.getElementById(f.id).value.trim()) {
-            alert(CFG.lang === 'es' ? `Por favor completa: ${f.label}` : `Please fill in: ${f.label}`);
-            document.getElementById(f.id).focus();
-            return false;
+// ── address validation ──────────────────────────────────────────────────────
+function getShippingAddress() {
+    return {
+        name: document.getElementById('shippingName')?.value || '',
+        street1: document.getElementById('shippingStreet')?.value || '',
+        street2: document.getElementById('shippingStreet2')?.value || '',
+        city: document.getElementById('shippingCity')?.value || '',
+        state_code: document.getElementById('shippingState')?.value || '',
+        postcode: document.getElementById('shippingPostal')?.value || '',
+        country_code: document.getElementById('shippingCountry')?.value || '',
+        phone: document.getElementById('shippingPhone')?.value || '',
+    };
+}
+
+async function fetchShippingRates() {
+    const country = document.getElementById('shippingCountry')?.value;
+    if (!country) return;
+    const shippingMethodSection = document.getElementById('shippingMethodSection');
+    const shippingLoading = document.getElementById('shippingLoading');
+    const shippingOptions = document.getElementById('shippingOptions');
+    if (shippingMethodSection) shippingMethodSection.classList.remove('hidden');
+    if (shippingLoading) shippingLoading.classList.remove('hidden');
+    if (shippingOptions) shippingOptions.classList.add('hidden');
+    
+    try {
+        const resp = await fetch('/api/calculate-dynamic-price', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                product_type: CFG.printProductType,
+                country_code: country
+            })
+        });
+        const data = await resp.json();
+        if (data.options) {
+            renderShippingOptions(data.options);
         }
+    } catch(e) {
+        console.error('Shipping calc error:', e);
     }
-    if (!dynamicPricingData || Object.keys(dynamicPricingData).length === 0) {
-        alert(CFG.lang === 'es' ? 'Selecciona tu país para calcular costos de envío' : 'Select your country to calculate shipping costs');
+    if (shippingLoading) shippingLoading.classList.add('hidden');
+}
+
+function renderShippingOptions(options) {
+    const container = document.getElementById('shippingOptions');
+    if (!container) return;
+    container.innerHTML = '';
+    Object.entries(options).forEach(([method, opt], idx) => {
+        const price = opt.customer_total.toFixed(2);
+        const name = CFG.lang === 'es' ? opt.name_es : opt.name_en;
+        const div = document.createElement('label');
+        div.className = 'flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-purple-300 transition-all';
+        div.innerHTML = `
+            <input type="radio" name="shippingMethod" value="${method}" data-cost="${opt.lulu_cost}" data-total="${opt.customer_total}" class="w-5 h-5 text-purple-600" ${idx===0?'checked':''}>
+            <div class="flex-1">
+                <span class="font-medium text-gray-800">${name}</span>
+                <span class="text-xs text-gray-500 ml-2">${opt.days}</span>
+            </div>
+            <span class="font-bold text-purple-700">$${price} USD</span>
+        `;
+        container.appendChild(div);
+        if (idx === 0) {
+            selectedShippingMethod = method;
+            selectedShippingCost = parseFloat(opt.lulu_cost);
+            updatePriceDisplay();
+        }
+    });
+    container.querySelectorAll('input[name="shippingMethod"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            selectedShippingMethod = radio.value;
+            selectedShippingCost = parseFloat(radio.dataset.cost);
+            updatePriceDisplay();
+        });
+    });
+    container.classList.remove('hidden');
+}
+
+// ── country change ──────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    updatePriceDisplay();
+    const countrySelect = document.getElementById('shippingCountry');
+    if (countrySelect) {
+        countrySelect.addEventListener('change', () => {
+            if (selectedFormats.includes('print')) fetchShippingRates();
+            updateTaxIdForCountry(countrySelect.value);
+        });
+    }
+});
+
+// ── validate form ───────────────────────────────────────────────────────────
+function validateCheckoutForm() {
+    const email = document.getElementById('email')?.value?.trim();
+    if (!email) {
+        showPaypalError(CFG.lang === 'es' ? 'Por favor introduce tu email.' : 'Please enter your email.');
         return false;
     }
-    const cc = document.getElementById('shippingCountry').value;
-    if (TAX_ID_COUNTRIES[cc]) {
-        const taxVal = document.getElementById('shippingTaxId').value.trim();
-        if (!taxVal) {
-            const taxLabel = TAX_ID_COUNTRIES[cc].label;
-            alert(CFG.lang === 'es' ? `Por favor completa: ${taxLabel}` : `Please fill in: ${taxLabel}`);
-            document.getElementById('shippingTaxId').focus();
+    const formatError = document.getElementById('formatError');
+    if (selectedFormats.length === 0) {
+        if (formatError) formatError.classList.remove('hidden');
+        showPaypalError(CFG.lang === 'es' ? 'Selecciona al menos un formato.' : 'Select at least one format.');
+        return false;
+    }
+    if (formatError) formatError.classList.add('hidden');
+    if (selectedFormats.includes('print')) {
+        const name = document.getElementById('shippingName')?.value?.trim();
+        const street = document.getElementById('shippingStreet')?.value?.trim();
+        const city = document.getElementById('shippingCity')?.value?.trim();
+        const postal = document.getElementById('shippingPostal')?.value?.trim();
+        const country = document.getElementById('shippingCountry')?.value;
+        if (!name || !street || !city || !postal || !country) {
+            showPaypalError(CFG.lang === 'es' ? 'Completa todos los campos de dirección.' : 'Fill in all address fields.');
             return false;
         }
-        if (TAX_ID_COUNTRIES[cc].validate) {
-            const validationError = TAX_ID_COUNTRIES[cc].validate(taxVal);
-            if (validationError) {
-                alert(validationError);
-                document.getElementById('shippingTaxId').focus();
-                return false;
-            }
+        if (!selectedShippingMethod) {
+            showPaypalError(CFG.lang === 'es' ? 'Selecciona un método de envío.' : 'Select a shipping method.');
+            return false;
         }
     }
+    clearPaypalError();
     return true;
 }
 
-function getShippingAddress() {
-    if (!selectedFormats.includes('print')) return null;
-    const addr = {
-        name: document.getElementById('shippingName').value.trim(),
-        street1: document.getElementById('shippingStreet').value.trim(),
-        street2: document.getElementById('shippingStreet2').value.trim(),
-        city: document.getElementById('shippingCity').value.trim(),
-        state_code: document.getElementById('shippingState').value.trim(),
-        postcode: document.getElementById('shippingPostal').value.trim(),
-        country_code: document.getElementById('shippingCountry').value,
-        phone_number: document.getElementById('shippingPhone').value.trim(),
-        email: document.getElementById('email').value
-    };
-    const taxId = document.getElementById('shippingTaxId')?.value?.trim();
-    if (taxId) addr.recipient_tax_id = taxId;
-    return addr;
+function showPaypalError(msg) {
+    const el = document.getElementById('paypalError');
+    if (el) { el.textContent = msg; el.classList.remove('hidden'); }
+}
+function clearPaypalError() {
+    const el = document.getElementById('paypalError');
+    if (el) el.classList.add('hidden');
 }
 
-function formatAddressForDisplay(addr) {
-    let lines = [];
-    if (addr.street1) lines.push(addr.street1);
-    if (addr.street2) lines.push(addr.street2);
-    let cl = '';
-    if (addr.city) cl += addr.city;
-    if (addr.state_code) cl += ', ' + addr.state_code;
-    if (addr.postcode) cl += ' ' + addr.postcode;
-    if (cl) lines.push(cl);
-    if (addr.country_code) lines.push(addr.country_code);
-    return lines.join('<br>');
-}
-
-function useOriginalAddress() {
-    document.getElementById('addressConfirmModal').classList.add('hidden');
-    if (pendingCheckoutData) proceedWithPayment(pendingCheckoutData);
-}
-
-function useSuggestedAddress() {
-    if (suggestedAddress && pendingCheckoutData) {
-        document.getElementById('shippingStreet').value = suggestedAddress.street1 || '';
-        document.getElementById('shippingStreet2').value = suggestedAddress.street2 || '';
-        document.getElementById('shippingCity').value = suggestedAddress.city || '';
-        document.getElementById('shippingState').value = suggestedAddress.state_code || '';
-        document.getElementById('shippingPostal').value = suggestedAddress.postcode || '';
-        pendingCheckoutData.shipping_address = {
-            ...pendingCheckoutData.shipping_address,
-            street1: suggestedAddress.street1 || pendingCheckoutData.shipping_address.street1,
-            street2: suggestedAddress.street2 || '',
-            city: suggestedAddress.city || pendingCheckoutData.shipping_address.city,
-            state_code: suggestedAddress.state_code || pendingCheckoutData.shipping_address.state_code,
-            postcode: suggestedAddress.postcode || pendingCheckoutData.shipping_address.postcode
-        };
-    }
-    document.getElementById('addressConfirmModal').classList.add('hidden');
-    if (pendingCheckoutData) proceedWithPayment(pendingCheckoutData);
-}
-
-async function startCheckout() {
-    const email = document.getElementById('email').value;
-    if (!email) {
-        alert(CFG.lang === 'es' ? 'Por favor ingresa tu email' : 'Please enter your email');
-        return;
-    }
-    if (selectedFormats.length === 0) {
-        const formatError = document.getElementById('formatError');
-        if (formatError) formatError.classList.remove('hidden');
-        alert(CFG.lang === 'es' ? 'Selecciona al menos un formato' : 'Select at least one format');
-        return;
-    }
-    if (!validateShipping()) return;
-
+async function buildCheckoutData() {
+    const email = document.getElementById('email')?.value?.trim();
     const wantPrint = selectedFormats.includes('print');
-    const shippingAddress = wantPrint ? getShippingAddress() : null;
-
-    const checkoutData = {
+    return {
         email: email,
         want_print: wantPrint,
+        formats: selectedFormats,
         shipping_method: wantPrint ? selectedShippingMethod : null,
-        shipping_address: shippingAddress
+        shipping_address: wantPrint ? getShippingAddress() : null,
+        phone: document.getElementById('shippingPhone')?.value || '',
     };
-
-    if (wantPrint && shippingAddress) {
-        const payButton = document.getElementById('payButton');
-        payButton.disabled = true;
-        document.getElementById('payButtonText').textContent = CFG.lang === 'es' ? 'Validando dirección...' : 'Validating address...';
-
-        try {
-            const response = await fetch('/api/validate-address', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(shippingAddress)
-            });
-            const data = await response.json();
-
-            payButton.disabled = false;
-            updatePriceDisplay();
-
-            if (data.country_not_supported) {
-                alert(data.message);
-            } else if (data.tax_id_error) {
-                alert(data.message);
-                document.getElementById('shippingTaxId').focus();
-                const errorEl = document.getElementById('taxIdError');
-                if (errorEl) {
-                    errorEl.textContent = data.message;
-                    errorEl.classList.remove('hidden');
-                }
-                const input = document.getElementById('shippingTaxId');
-                if (input) {
-                    input.classList.remove('border-gray-300');
-                    input.classList.add('border-red-500');
-                }
-            } else if (data.auto_corrected && data.suggested_address) {
-                checkoutData.shipping_address = data.suggested_address;
-                proceedWithPayment(checkoutData);
-            } else if (data.suggested_address && !data.valid) {
-                suggestedAddress = data.suggested_address;
-                pendingCheckoutData = checkoutData;
-                document.getElementById('originalAddressDisplay').innerHTML = formatAddressForDisplay(shippingAddress);
-                document.getElementById('suggestedAddressDisplay').innerHTML = formatAddressForDisplay(data.suggested_address);
-                document.getElementById('addressConfirmModal').classList.remove('hidden');
-            } else {
-                proceedWithPayment(checkoutData);
-            }
-        } catch (error) {
-            payButton.disabled = false;
-            updatePriceDisplay();
-            proceedWithPayment(checkoutData);
-        }
-    } else {
-        proceedWithPayment(checkoutData);
-    }
 }
 
-async function proceedWithPayment(checkoutData) {
-    checkoutData.formats = selectedFormats;
-    
+async function saveCheckoutData(checkoutData) {
     try {
         await fetch(`/api/save-checkout-data/${CFG.previewId}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(checkoutData)
         });
-    } catch (err) {
-        console.warn("[CHECKOUT] Could not save data:", err);
-    }
-
-    {% if test_mode %}
-    console.log("TEST MODE: Bypassing Paddle");
-    handlePaddleSuccess('TEST_' + Date.now());
-    return;
-    {% endif %}
-
-    const wantPrint = checkoutData.want_print;
-    const onlyDigitalNoPrint = !wantPrint && selectedFormats.includes('digital') && !selectedFormats.includes('ebook');
-
-    if (onlyDigitalNoPrint) {
-        try {
-            Paddle.Checkout.open({
-                items: [{ priceId: CFG.digitalPriceId, quantity: 1 }],
-                customer: { email: checkoutData.email },
-                customData: {
-                    preview_id: CFG.previewId,
-                    product_type: CFG.digitalProductType,
-                    want_print: "false",
-                    shipping_method: "none",
-                    formats: selectedFormats.join(',')
-                },
-                settings: { displayMode: "overlay", theme: "light", locale: CFG.lang }
-            });
-        } catch (error) {
-            alert("Error: " + error.message);
-        }
-        return;
-    }
-
-    const payButton = document.getElementById('payButton');
-    payButton.disabled = true;
-    document.getElementById('payButtonText').textContent = CFG.lang === 'es' ? 'Creando transacción...' : 'Creating transaction...';
-
-    try {
-        const txnResp = await fetch('/api/create-paddle-transaction', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                formats: selectedFormats,
-                email: checkoutData.email,
-                preview_id: CFG.previewId,
-                shipping_method: wantPrint ? selectedShippingMethod : null,
-                country_code: wantPrint ? document.getElementById('shippingCountry').value : null,
-                postal_code: wantPrint ? (document.getElementById('shippingPostal')?.value || '') : null,
-                want_print: wantPrint
-            })
-        });
-        
-        const txnResult = await txnResp.json();
-        
-        if (!txnResult.success || !txnResult.transaction_id) {
-            payButton.disabled = false;
-            updatePriceDisplay();
-            alert('Error: ' + (txnResult.error || 'Could not create transaction'));
-            return;
-        }
-        
-        const checkoutOpts = {
-            transactionId: txnResult.transaction_id,
-            customer: { email: checkoutData.email },
-            settings: { displayMode: "overlay", theme: "light", locale: CFG.lang }
-        };
-        if (wantPrint) {
-            checkoutOpts.customer.address = {
-                countryCode: document.getElementById('shippingCountry').value,
-                postalCode: document.getElementById('shippingPostal')?.value || ''
-            };
-        }
-        Paddle.Checkout.open(checkoutOpts);
-        
-        payButton.disabled = false;
-        updatePriceDisplay();
-        
-    } catch (error) {
-        payButton.disabled = false;
-        updatePriceDisplay();
-        alert("Error: " + error.message);
-    }
+    } catch(e) { console.warn('[CHECKOUT] Could not save data:', e); }
 }
 
-function handlePaddleSuccess(transactionId) {
-    const email = document.getElementById('email').value;
+// ── PayPal integration ──────────────────────────────────────────────────────
+{% if test_mode %}
+document.addEventListener('DOMContentLoaded', () => {
+    const container = document.getElementById('paypal-button-container');
+    if (container) {
+        const btn = document.createElement('button');
+        btn.textContent = 'TEST: Simulate Payment';
+        btn.className = 'w-full py-3 bg-blue-600 text-white font-bold rounded-xl';
+        btn.onclick = async () => {
+            if (!validateCheckoutForm()) return;
+            const checkoutData = await buildCheckoutData();
+            await saveCheckoutData(checkoutData);
+            handlePayPalSuccess('TEST_' + Date.now(), checkoutData.email, checkoutData);
+        };
+        container.appendChild(btn);
+    }
+});
+{% else %}
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof paypal_sdk === 'undefined') {
+        console.error('[PAYPAL] SDK not loaded');
+        return;
+    }
+    paypal_sdk.Buttons({
+        style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'pay' },
+        onClick: async function(data, actions) {
+            if (!validateCheckoutForm()) return actions.reject();
+            return actions.resolve();
+        },
+        createOrder: async function(data, actions) {
+            const checkoutData = await buildCheckoutData();
+            checkoutDataGlobal = checkoutData;
+            await saveCheckoutData(checkoutData);
+            const amount = currentTotal > 0 ? currentTotal : CFG.digitalBasePrice;
+            const resp = await fetch('/api/paypal/create-order', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({amount_usd: amount})
+            });
+            const order = await resp.json();
+            if (order.error) throw new Error(order.error);
+            return order.id;
+        },
+        onApprove: async function(data, actions) {
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+            startRotatingMessages();
+            try {
+                const captureResp = await fetch('/api/paypal/capture-order', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({orderID: data.orderID})
+                });
+                const captureResult = await captureResp.json();
+                if (!captureResult.success) {
+                    stopRotatingMessages();
+                    document.getElementById('loadingOverlay').classList.add('hidden');
+                    showPaypalError('Payment error: ' + (captureResult.error || 'Unknown error'));
+                    return;
+                }
+                const email = document.getElementById('email')?.value?.trim() || captureResult.payer_email || '';
+                handlePayPalSuccess(data.orderID, email, checkoutDataGlobal);
+            } catch(e) {
+                stopRotatingMessages();
+                document.getElementById('loadingOverlay').classList.add('hidden');
+                showPaypalError('Error: ' + e.message);
+            }
+        },
+        onError: function(err) {
+            console.error('[PAYPAL] Error:', err);
+            showPaypalError(CFG.lang === 'es' ? 'Error de PayPal. Inténtalo de nuevo.' : 'PayPal error. Please try again.');
+        }
+    }).render('#paypal-button-container');
+});
+{% endif %}
+
+function handlePayPalSuccess(orderID, email, checkoutData) {
     const wantPrint = selectedFormats.includes('print');
     const hasEbook = selectedFormats.includes('ebook');
     const hasDigital = selectedFormats.includes('digital');
@@ -1108,36 +703,34 @@ function handlePaddleSuccess(transactionId) {
     if (hasEbook && !hasDigital && !wantPrint) productType = 'ebook';
     else if (wantPrint) productType = CFG.printProductType;
     
-    document.getElementById('loadingOverlay').classList.remove('hidden');
-    startRotatingMessages();
+    const payData = checkoutData || {};
     
     fetch(`/api/process-payment/${CFG.previewId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
-            email: email,
-            paddle_transaction_id: transactionId,
-            phone: document.getElementById('shippingPhone')?.value || '',
+            email: email || payData.email || '',
+            paypal_order_id: orderID,
+            phone: payData.phone || document.getElementById('shippingPhone')?.value || '',
             shipping_method: wantPrint ? selectedShippingMethod : null,
-            shipping_address: getShippingAddress(),
+            shipping_address: wantPrint ? getShippingAddress() : null,
             want_print: wantPrint,
             product_type: productType,
             formats: selectedFormats
         })
     })
-    .then(response => response.json())
+    .then(r => r.json())
     .then(result => {
         if (result.success) {
-            window.location.href = result.redirect_url || `/order-complete/${CFG.previewId}?transaction_id=${transactionId}&email=${encodeURIComponent(email)}`;
+            window.location.href = result.redirect_url || `/order-complete/${CFG.previewId}?paypal_order_id=${orderID}&email=${encodeURIComponent(email)}`;
         } else {
             stopRotatingMessages();
             document.getElementById('loadingOverlay').classList.add('hidden');
-            alert(result.error || 'Error processing order');
+            showPaypalError(result.error || 'Error processing order');
         }
     })
-    .catch(error => {
-        console.error('Error:', error);
-        window.location.href = `/order-complete/${CFG.previewId}?transaction_id=${transactionId}`;
+    .catch(() => {
+        window.location.href = `/order-complete/${CFG.previewId}?paypal_order_id=${orderID}`;
     });
 }
 
@@ -1151,13 +744,20 @@ function startRotatingMessages() {
     const bar = document.getElementById('progressBar');
     rotatingInterval = setInterval(() => {
         idx = (idx + 1) % msgs.length;
-        msgEl.style.opacity = '0';
-        setTimeout(() => { msgEl.textContent = msgs[idx]; msgEl.style.opacity = '1'; }, 300);
-        bar.style.width = Math.min(85, (idx + 1) * 5) + '%';
+        if (msgEl) { msgEl.style.opacity = '0'; setTimeout(() => { msgEl.textContent = msgs[idx]; msgEl.style.opacity = '1'; }, 300); }
+        if (bar) bar.style.width = Math.min(85, (idx + 1) * 5) + '%';
     }, 8000);
 }
 function stopRotatingMessages() {
     if (rotatingInterval) { clearInterval(rotatingInterval); rotatingInterval = null; }
+}
+
+function validateTaxIdInline() {}
+function updateTaxIdForCountry(country) {
+    const container = document.getElementById('taxIdContainer');
+    if (!container) return;
+    const taxCountries = ['MX', 'BR', 'CL', 'CO', 'PE', 'AR'];
+    container.classList.toggle('hidden', !taxCountries.includes(country));
 }
 </script>
 

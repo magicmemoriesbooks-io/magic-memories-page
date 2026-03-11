@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'es' %}Libro Impreso — Magic Memories Books{% else %}Printed Book — Magic Memories Books{% endif %}{% endblock %}
+
+{% block content %}
+<section class="py-8 px-4 max-w-2xl mx-auto">
+
+    <div class="text-center mb-8">
+        <h1 class="font-display text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent mb-3">
+            {% if lang == 'es' %}Tu Libro Impreso en Papel{% else %}Your Printed Book{% endif %}
+        </h1>
+        <p class="text-gray-600">
+            {% if lang == 'es' %}
+            Recibe el cuento de <strong>{{ child_name }}</strong> en un libro de calidad profesional, impreso y enviado a tu domicilio.
+            {% else %}
+            Receive <strong>{{ child_name }}</strong>'s story as a professional-quality book, printed and delivered to your door.
+            {% endif %}
+        </p>
+    </div>
+
+    <!-- Proceso de impresión -->
+    <div class="bg-purple-50 border border-purple-100 rounded-2xl p-5 mb-6">
+        <h3 class="font-display font-bold text-purple-800 mb-3 text-center">
+            {% if lang == 'es' %}¿Cómo funciona?{% else %}How does it work?{% endif %}
+        </h3>
+        <div class="space-y-3">
+            <div class="flex items-start gap-3">
+                <span class="w-7 h-7 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">1</span>
+                <p class="text-sm text-gray-700">{% if lang == 'es' %}Introduce tu dirección y calcula el precio de envío real.{% else %}Enter your address and calculate the real shipping cost.{% endif %}</p>
+            </div>
+            <div class="flex items-start gap-3">
+                <span class="w-7 h-7 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">2</span>
+                <p class="text-sm text-gray-700">{% if lang == 'es' %}Paga de forma segura con PayPal o tarjeta.{% else %}Pay securely with PayPal or credit card.{% endif %}</p>
+            </div>
+            <div class="flex items-start gap-3">
+                <span class="w-7 h-7 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">3</span>
+                <p class="text-sm text-gray-700">{% if lang == 'es' %}Imprimimos tu libro con Lulu Press (imprenta global) y te lo enviamos.{% else %}We print your book with Lulu Press (global printer) and ship it to you.{% endif %}</p>
+            </div>
+            <div class="flex items-start gap-3">
+                <span class="w-7 h-7 bg-green-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">4</span>
+                <p class="text-sm text-gray-700">{% if lang == 'es' %}Recibes el libro en 7-15 días. Garantía de devolución en 30 días si no llega.{% else %}You receive the book in 7-15 days. 30-day money-back guarantee if it doesn't arrive.{% endif %}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumen del producto -->
+    <div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6">
+        <h3 class="font-display text-lg font-bold text-gray-800 mb-4">{% if lang == 'es' %}Producto{% else %}Product{% endif %}</h3>
+        <div class="flex justify-between items-center py-2 border-b border-gray-100 mb-4">
+            <div>
+                <p class="font-medium text-gray-800">{% if lang == 'es' %}Libro Impreso Tapa Dura{% else %}Hardcover Printed Book{% endif %}</p>
+                <p class="text-sm text-gray-500">{{ child_name }} — {% if lang == 'es' %}24 páginas, A4, tapa dura, impresión a color{% else %}24 pages, A4, hardcover, full-color printing{% endif %}</p>
+                <p class="text-xs text-gray-400 mt-1">{% if lang == 'es' %}Impreso por Lulu Press{% else %}Printed by Lulu Press{% endif %}</p>
+            </div>
+            <span class="font-bold text-gray-800">${{ base_price }} USD</span>
+        </div>
+
+        <!-- Dirección de envío -->
+        <h4 class="font-medium text-gray-700 mb-3">{% if lang == 'es' %}Dirección de envío{% else %}Shipping address{% endif %}</h4>
+        <div class="grid grid-cols-1 gap-3 mb-3">
+            <input type="text" id="shippingName" placeholder="{% if lang == 'es' %}Nombre completo{% else %}Full name{% endif %}"
+                class="w-full p-3 border border-gray-300 rounded-lg text-sm">
+            <input type="text" id="shippingStreet" placeholder="{% if lang == 'es' %}Dirección (calle y número){% else %}Address (street and number){% endif %}"
+                class="w-full p-3 border border-gray-300 rounded-lg text-sm">
+            <div class="grid grid-cols-2 gap-3">
+                <input type="text" id="shippingCity" placeholder="{% if lang == 'es' %}Ciudad{% else %}City{% endif %}"
+                    class="p-3 border border-gray-300 rounded-lg text-sm">
+                <input type="text" id="shippingPostal" placeholder="{% if lang == 'es' %}Código postal{% else %}Postal code{% endif %}"
+                    class="p-3 border border-gray-300 rounded-lg text-sm">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <input type="text" id="shippingState" placeholder="{% if lang == 'es' %}Estado/Provincia{% else %}State/Province{% endif %}"
+                    class="p-3 border border-gray-300 rounded-lg text-sm">
+                <select id="shippingCountry" class="p-3 border border-gray-300 rounded-lg text-sm bg-white">
+                    <option value="">{% if lang == 'es' %}País{% else %}Country{% endif %}</option>
+                    <option value="ES">España</option>
+                    <option value="US">United States</option>
+                    <option value="MX">México</option>
+                    <option value="AR">Argentina</option>
+                    <option value="CO">Colombia</option>
+                    <option value="CL">Chile</option>
+                    <option value="PE">Perú</option>
+                    <option value="VE">Venezuela</option>
+                    <option value="GB">United Kingdom</option>
+                    <option value="DE">Germany</option>
+                    <option value="FR">France</option>
+                    <option value="IT">Italy</option>
+                    <option value="PT">Portugal</option>
+                    <option value="BR">Brasil</option>
+                    <option value="CA">Canada</option>
+                    <option value="AU">Australia</option>
+                </select>
+            </div>
+            <input type="email" id="customerEmail" placeholder="{% if lang == 'es' %}Tu email (para confirmación){% else %}Your email (for confirmation){% endif %}"
+                class="w-full p-3 border border-gray-300 rounded-lg text-sm" value="{{ email }}">
+            <input type="tel" id="customerPhone" placeholder="{% if lang == 'es' %}Teléfono (opcional, para mensajería){% else %}Phone (optional, for courier){% endif %}"
+                class="w-full p-3 border border-gray-300 rounded-lg text-sm">
+        </div>
+
+        <button onclick="calculateShipping()" id="calcBtn"
+            class="w-full py-3 bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold rounded-xl transition-colors text-sm">
+            📦 {% if lang == 'es' %}Calcular precio de envío{% else %}Calculate shipping price{% endif %}
+        </button>
+    </div>
+
+    <!-- Opciones de envío (ocultas hasta calcular) -->
+    <div id="shippingOptions" class="hidden bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6">
+        <h3 class="font-display text-lg font-bold text-gray-800 mb-4">{% if lang == 'es' %}Método de envío{% else %}Shipping method{% endif %}</h3>
+        <div id="shippingMethodsContainer" class="space-y-3 mb-6"></div>
+
+        <div class="border-t pt-4">
+            <div class="flex justify-between items-center mb-1">
+                <span class="text-gray-600">{% if lang == 'es' %}Libro impreso:{% else %}Printed book:{% endif %}</span>
+                <span id="basePriceShow">${{ base_price }} USD</span>
+            </div>
+            <div class="flex justify-between items-center mb-1">
+                <span class="text-gray-600">{% if lang == 'es' %}Envío:{% else %}Shipping:{% endif %}</span>
+                <span id="shippingCostShow">—</span>
+            </div>
+            <div class="flex justify-between items-center pt-2 border-t text-xl font-bold">
+                <span>Total:</span>
+                <span id="totalAmountShow" class="text-purple-700">—</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- PayPal (oculto hasta que se calcule envío) -->
+    <div id="paymentSection" class="hidden bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6">
+        <h3 class="font-display text-lg font-bold text-gray-800 mb-2">{% if lang == 'es' %}Pago Seguro{% else %}Secure Payment{% endif %}</h3>
+        <p class="text-sm text-gray-500 mb-4">{% if lang == 'es' %}PayPal acepta tarjeta de crédito sin necesidad de cuenta PayPal.{% else %}PayPal accepts credit cards without a PayPal account.{% endif %}</p>
+        <div id="paypal-button-container"></div>
+        <p class="text-xs text-red-500 mt-2 hidden text-center" id="paypalError"></p>
+    </div>
+
+    <p class="text-center text-xs text-gray-400 mb-8">
+        {% if lang == 'es' %}Al pagar aceptas nuestros <a href="/terms" class="text-purple-500 underline">términos y condiciones</a>{% else %}By paying you accept our <a href="/terms" class="text-purple-500 underline">terms and conditions</a>{% endif %}
+    </p>
+</section>
+
+<script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=USD" data-namespace="paypal_sdk"></script>
+<script>
+const PREVIEW_ID = '{{ preview_id }}';
+const BASE_PRICE = {{ base_price }};
+const LANG = '{{ lang }}';
+let selectedShippingMethod = null;
+let selectedShippingCost = 0;
+let totalAmount = BASE_PRICE;
+let paypalButtonsRendered = false;
+
+async function calculateShipping() {
+    const country = document.getElementById('shippingCountry').value;
+    if (!country) {
+        alert(LANG === 'es' ? 'Selecciona un país.' : 'Select a country.');
+        return;
+    }
+    const btn = document.getElementById('calcBtn');
+    btn.textContent = LANG === 'es' ? 'Calculando...' : 'Calculating...';
+    btn.disabled = true;
+
+    try {
+        const resp = await fetch('/api/calculate-dynamic-price', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({product_type: 'personalized', country_code: country})
+        });
+        const data = await resp.json();
+        if (data.options) {
+            renderShippingMethods(data.options);
+            document.getElementById('shippingOptions').classList.remove('hidden');
+            document.getElementById('paymentSection').classList.remove('hidden');
+            if (!paypalButtonsRendered) renderPayPalButtons();
+        } else {
+            alert(data.error || 'Error calculating shipping');
+        }
+    } catch(e) {
+        alert('Connection error: ' + e.message);
+    }
+    btn.textContent = LANG === 'es' ? '🔄 Recalcular envío' : '🔄 Recalculate shipping';
+    btn.disabled = false;
+}
+
+function renderShippingMethods(options) {
+    const container = document.getElementById('shippingMethodsContainer');
+    container.innerHTML = '';
+    let first = true;
+    Object.entries(options).forEach(([method, opt]) => {
+        const name = LANG === 'es' ? opt.name_es : opt.name_en;
+        const price = parseFloat(opt.customer_total).toFixed(2);
+        const div = document.createElement('label');
+        div.className = 'flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-purple-400 transition-all';
+        div.innerHTML = `
+            <input type="radio" name="shippingMethod" value="${method}" data-cost="${opt.lulu_cost}" data-total="${opt.customer_total}" class="w-5 h-5 text-purple-600" ${first ? 'checked' : ''}>
+            <div class="flex-1">
+                <span class="font-medium text-gray-800">${name}</span>
+                <span class="text-xs text-gray-500 ml-2">${opt.days || ''}</span>
+            </div>
+            <span class="font-bold text-purple-700">$${price} USD</span>`;
+        container.appendChild(div);
+        if (first) {
+            selectedShippingMethod = method;
+            selectedShippingCost = parseFloat(opt.lulu_cost);
+            totalAmount = BASE_PRICE + parseFloat(opt.customer_total);
+            updateTotalDisplay(opt.customer_total);
+            first = false;
+        }
+    });
+    container.querySelectorAll('input[name="shippingMethod"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            selectedShippingMethod = radio.value;
+            selectedShippingCost = parseFloat(radio.dataset.cost);
+            totalAmount = BASE_PRICE + parseFloat(radio.dataset.total);
+            updateTotalDisplay(radio.dataset.total);
+        });
+    });
+}
+
+function updateTotalDisplay(shippingAmt) {
+    document.getElementById('shippingCostShow').textContent = '$' + parseFloat(shippingAmt).toFixed(2) + ' USD';
+    document.getElementById('totalAmountShow').textContent = '$' + totalAmount.toFixed(2) + ' USD';
+}
+
+function validateForm() {
+    const fields = ['shippingName', 'shippingStreet', 'shippingCity', 'shippingPostal', 'shippingCountry', 'customerEmail'];
+    for (const f of fields) {
+        if (!document.getElementById(f)?.value?.trim()) {
+            showError(LANG === 'es' ? 'Completa todos los campos obligatorios.' : 'Fill in all required fields.');
+            return false;
+        }
+    }
+    if (!selectedShippingMethod) {
+        showError(LANG === 'es' ? 'Selecciona un método de envío.' : 'Select a shipping method.');
+        return false;
+    }
+    clearError();
+    return true;
+}
+
+function showError(msg) {
+    const el = document.getElementById('paypalError');
+    if (el) { el.textContent = msg; el.classList.remove('hidden'); }
+}
+function clearError() {
+    const el = document.getElementById('paypalError');
+    if (el) el.classList.add('hidden');
+}
+
+function getOrderData() {
+    return {
+        preview_id: PREVIEW_ID,
+        email: document.getElementById('customerEmail')?.value || '',
+        phone: document.getElementById('customerPhone')?.value || '',
+        shipping_name: document.getElementById('shippingName')?.value || '',
+        shipping_street: document.getElementById('shippingStreet')?.value || '',
+        shipping_city: document.getElementById('shippingCity')?.value || '',
+        shipping_state: document.getElementById('shippingState')?.value || '',
+        shipping_postal: document.getElementById('shippingPostal')?.value || '',
+        shipping_country: document.getElementById('shippingCountry')?.value || '',
+        shipping_method: selectedShippingMethod,
+        shipping_cost: selectedShippingCost,
+        total_amount: totalAmount,
+        base_price: BASE_PRICE
+    };
+}
+
+function renderPayPalButtons() {
+    if (typeof paypal_sdk === 'undefined') return;
+    paypal_sdk.Buttons({
+        style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'pay' },
+        onClick: function(data, actions) {
+            return validateForm() ? actions.resolve() : actions.reject();
+        },
+        createOrder: async function() {
+            const resp = await fetch('/api/paypal/create-print-order', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({amount_usd: totalAmount, preview_id: PREVIEW_ID})
+            });
+            const order = await resp.json();
+            if (order.error) throw new Error(order.error);
+            return order.id;
+        },
+        onApprove: async function(data, actions) {
+            showError(LANG === 'es' ? 'Procesando pago...' : 'Processing payment...');
+            const captureResp = await fetch('/api/paypal/capture-print-order', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({orderID: data.orderID, ...getOrderData()})
+            });
+            const result = await captureResp.json();
+            if (result.success) {
+                window.location.href = result.redirect_url || '/print-order-success';
+            } else {
+                showError('Error: ' + (result.error || 'Unknown error'));
+            }
+        },
+        onError: function(err) {
+            console.error('[PAYPAL]', err);
+            showError(LANG === 'es' ? 'Error de PayPal. Inténtalo de nuevo.' : 'PayPal error. Please try again.');
+        }
+    }).render('#paypal-button-container');
+    paypalButtonsRendered = true;
+}
+</script>
+{% endblock %}

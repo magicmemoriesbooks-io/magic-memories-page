@@ -18,10 +18,10 @@
         <div class="space-y-8">
             <div class="border-l-4 border-purple-500 pl-6">
                 <h2 class="font-display text-xl font-bold text-purple-800 mb-3">
-                    {% if lang == 'es' %}1. Nuestro Proceso de Venta (Aviso de Paddle){% else %}1. Our Sales Process (Paddle Notice){% endif %}
+                    {% if lang == 'es' %}1. Nuestro Proceso de Venta{% else %}1. Our Sales Process{% endif %}
                 </h2>
                 <p class="text-gray-700 leading-relaxed">
-                    {% if lang == 'es' %}Para su seguridad, el proceso de pedido es gestionado por nuestro revendedor autorizado Paddle.com. Paddle es el Vendedor Oficial (Merchant of Record) de todos nuestros pedidos. Paddle gestiona las consultas de servicio al cliente relacionadas con pagos y devoluciones de impuestos. Sus datos personales serán compartidos con Paddle para procesar el pago y para el cumplimiento fiscal según su <a href="https://www.paddle.com/legal/privacy" target="_blank" class="text-purple-600 hover:underline">Política de Privacidad</a>.{% else %}For your security, the order process is managed by our authorized reseller Paddle.com. Paddle is the Merchant of Record for all our orders. Paddle handles customer service inquiries related to payments and tax refunds. Your personal data will be shared with Paddle to process payment and for tax compliance according to their <a href="https://www.paddle.com/legal/privacy" target="_blank" class="text-purple-600 hover:underline">Privacy Policy</a>.{% endif %}
+                    {% if lang == 'es' %}Para su seguridad, los pagos son procesados de forma segura a través de PayPal. Aceptamos PayPal y todas las tarjetas principales (Visa, Mastercard, American Express). No almacenamos datos de tarjetas de crédito en nuestros servidores.{% else %}For your security, payments are processed securely through PayPal. We accept PayPal and all major credit cards (Visa, Mastercard, American Express). We do not store credit card data on our servers.{% endif %}
                 </p>
             </div>
 
@@ -49,19 +49,13 @@
                         {% if lang == 'es' %}Formatos de entrega según producto:{% else %}Delivery formats by product:{% endif %}
                     </p>
                     <ul class="text-gray-700 space-y-2 ml-4">
-                        <li>{% if lang == 'es' %}• <strong>Cuentos Rápidos ($20 digital / impreso desde $20 + envío):</strong> PDF Digital + opción de libro impreso (12 páginas, saddle stitch, 8.5"×8.5"){% else %}• <strong>Quick Stories ($20 digital / print from $20 + shipping):</strong> Digital PDF + print option (12 pages, saddle stitch, 8.5"×8.5"){% endif %}</li>
-                        <li>{% if lang == 'es' %}• <strong>Libros Personalizados ($35 + envío):</strong> PDF Digital + Libro físico impreso (tapa dura, A4, envío global){% else %}• <strong>Personalized Books ($35 + shipping):</strong> Digital PDF + Printed physical book (hardcover, A4, global shipping){% endif %}</li>
-                        <li>{% if lang == 'es' %}• <strong>Haz tu Historia ($35 + envío):</strong> PDF Digital + Libro físico impreso (tapa dura, A4, envío global){% else %}• <strong>Make Your Story ($35 + shipping):</strong> Digital PDF + Printed physical book (hardcover, A4, global shipping){% endif %}</li>
+                        <li>{% if lang == 'es' %}• <strong>Cuentos Rápidos ($20):</strong> PDF Digital + PDF imprimible, entrega inmediata por email.{% else %}• <strong>Quick Stories ($20):</strong> Digital PDF + printable PDF, immediate email delivery.{% endif %}</li>
+                        <li>{% if lang == 'es' %}• <strong>Libros Personalizados ($30):</strong> PDF Digital personalizado con ilustraciones únicas, entrega inmediata.{% else %}• <strong>Personalized Books ($30):</strong> Personalized digital PDF with unique illustrations, immediate delivery.{% endif %}</li>
+                        <li>{% if lang == 'es' %}• <strong>eBook Interactivo ($7):</strong> Visor flipbook con narración y música, acceso permanente.{% else %}• <strong>Interactive eBook ($7):</strong> Flipbook viewer with narration and music, permanent access.{% endif %}</li>
                     </ul>
                 </div>
                 <p class="text-gray-700 leading-relaxed mb-3">
                     {% if lang == 'es' %}Tras el pago exitoso, recibirá un enlace de descarga inmediata en pantalla y una copia en su correo electrónico.{% else %}After successful payment, you will receive an immediate download link on screen and a copy to your email.{% endif %}
-                </p>
-                <p class="text-gray-700 leading-relaxed mb-3">
-                    {% if lang == 'es' %}<strong>Libros impresos:</strong> La impresión se realiza a través de Lulu (imprenta global asociada). Tiempo estimado de entrega: 10-15 días hábiles según ubicación.{% else %}<strong>Printed books:</strong> Printing is done through Lulu (global print partner). Estimated delivery time: 10-15 business days depending on location.{% endif %}
-                </p>
-                <p class="text-gray-700 leading-relaxed mb-3 text-sm">
-                    {% if lang == 'es' %}<strong>Aranceles e impuestos:</strong> El precio de envío no incluye posibles aranceles o impuestos de importación locales que puedan aplicarse en países fuera de la Unión Europea o Estados Unidos, los cuales serán responsabilidad del comprador.{% else %}<strong>Customs and taxes:</strong> The shipping price does not include any customs duties or local import taxes that may apply in countries outside the European Union or the United States, which will be the buyer's responsibility.{% endif %}
                 </p>
                 <p class="text-gray-700 leading-relaxed font-medium">
                     {% if lang == 'es' %}<strong>Garantía técnica:</strong> Si ocurre un error durante la generación después de haber pagado, nuestro sistema enviará automáticamente un enlace de recuperación a su correo electrónico para que pueda acceder a su cuento sin costo adicional.{% else %}<strong>Technical guarantee:</strong> If an error occurs during generation after payment, our system will automatically send a recovery link to your email so you can access your story at no additional cost.{% endif %}

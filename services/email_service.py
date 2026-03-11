@@ -1340,3 +1340,80 @@ def send_admin_error_email(process_name: str, preview_id: str, error_message: st
     except Exception as e:
         print(f"[ADMIN-ERROR] No se pudo enviar email de error: {e}")
         return {'success': False, 'error': str(e)}
+
+
+def send_admin_notification_email(subject: str, body: str) -> dict:
+    """Send a plain text notification email to the admin."""
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
+        msg['To'] = FROM_EMAIL
+        html = f"""<html><body style="font-family:sans-serif;padding:20px;">
+            <pre style="background:#f3f4f6;padding:16px;border-radius:8px;white-space:pre-wrap;">{body}</pre>
+        </body></html>"""
+        msg.attach(MIMEText(html, 'html', 'utf-8'))
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.sendmail(FROM_EMAIL, FROM_EMAIL, msg.as_string())
+        return {'success': True}
+    except Exception as e:
+        print(f"[EMAIL] Admin notification error: {e}")
+        return {'success': False, 'error': str(e)}
+
+
+def send_tracking_email(to_email: str, tracking_number: str, customer_name: str, lang: str = 'es') -> dict:
+    """Send tracking number email to customer for their printed book."""
+    try:
+        if lang == 'es':
+            subject = "📦 Tu libro impreso está en camino — Magic Memories Books"
+            body_html = f"""
+            <div style="text-align:center;padding:32px 0;">
+                <p style="font-size:48px;">📦</p>
+                <h1 style="color:#7c3aed;font-family:Georgia,serif;">¡Tu libro está en camino!</h1>
+                <p style="color:#4b5563;font-size:16px;">Hola {customer_name},</p>
+                <p style="color:#4b5563;">Tu libro impreso personalizado ha sido enviado y está en camino hacia ti.</p>
+                <div style="background:#f5f3ff;border-radius:12px;padding:20px;margin:24px 0;display:inline-block;">
+                    <p style="color:#6b7280;font-size:14px;margin:0;">Número de seguimiento</p>
+                    <p style="color:#7c3aed;font-size:24px;font-weight:bold;margin:8px 0;">{tracking_number}</p>
+                </div>
+                <p style="color:#4b5563;font-size:14px;">Tiempo estimado de entrega: 5-15 días hábiles según tu ubicación.</p>
+                <p style="color:#6b7280;font-size:12px;margin-top:24px;">¿Preguntas? <a href="mailto:pay@magicmemoriesbooks.com" style="color:#7c3aed;">pay@magicmemoriesbooks.com</a></p>
+            </div>"""
+        else:
+            subject = "📦 Your printed book is on its way — Magic Memories Books"
+            body_html = f"""
+            <div style="text-align:center;padding:32px 0;">
+                <p style="font-size:48px;">📦</p>
+                <h1 style="color:#7c3aed;font-family:Georgia,serif;">Your book is on its way!</h1>
+                <p style="color:#4b5563;font-size:16px;">Hello {customer_name},</p>
+                <p style="color:#4b5563;">Your personalized printed book has been shipped and is on its way to you.</p>
+                <div style="background:#f5f3ff;border-radius:12px;padding:20px;margin:24px 0;display:inline-block;">
+                    <p style="color:#6b7280;font-size:14px;margin:0;">Tracking number</p>
+                    <p style="color:#7c3aed;font-size:24px;font-weight:bold;margin:8px 0;">{tracking_number}</p>
+                </div>
+                <p style="color:#4b5563;font-size:14px;">Estimated delivery: 5-15 business days depending on your location.</p>
+                <p style="color:#6b7280;font-size:12px;margin-top:24px;">Questions? <a href="mailto:pay@magicmemoriesbooks.com" style="color:#7c3aed;">pay@magicmemoriesbooks.com</a></p>
+            </div>"""
+
+        full_html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+        <body style="font-family:'Segoe UI',sans-serif;background:#f8f5ff;margin:0;padding:20px;">
+        <div style="max-width:600px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;padding:32px;">
+        {body_html}
+        </div></body></html>"""
+
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
+        msg['To'] = to_email
+        msg.attach(MIMEText(full_html, 'html', 'utf-8'))
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.sendmail(FROM_EMAIL, [to_email], msg.as_string())
+        print(f"[EMAIL] Tracking email sent to {to_email}")
+        return {'success': True}
+    except Exception as e:
+        print(f"[EMAIL] Tracking email error: {e}")
+        return {'success': False, 'error': str(e)}

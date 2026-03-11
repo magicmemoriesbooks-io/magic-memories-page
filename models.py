@@ -240,3 +240,32 @@ class PreviewLead(db.Model):
 
     def __repr__(self):
         return f'<PreviewLead {self.email}>'
+
+
+class PrintOrderRequest(db.Model):
+    __tablename__ = 'print_order_requests'
+
+    id = db.Column(db.Integer, primary_key=True)
+    preview_id = db.Column(db.String(100), nullable=False)
+    child_name = db.Column(db.String(100), nullable=True)
+    customer_email = db.Column(db.String(255), nullable=False)
+    paypal_order_id = db.Column(db.String(100), nullable=True)
+    amount_paid = db.Column(db.Float, nullable=True)
+    shipping_name = db.Column(db.String(200), nullable=True)
+    shipping_street = db.Column(db.String(300), nullable=True)
+    shipping_city = db.Column(db.String(100), nullable=True)
+    shipping_state = db.Column(db.String(100), nullable=True)
+    shipping_postal = db.Column(db.String(20), nullable=True)
+    shipping_country = db.Column(db.String(10), nullable=True)
+    shipping_phone = db.Column(db.String(50), nullable=True)
+    shipping_method = db.Column(db.String(50), nullable=True)
+    shipping_cost = db.Column(db.Float, nullable=True)
+    status = db.Column(db.String(30), default='payment_confirmed')
+    lulu_print_job_id = db.Column(db.String(100), nullable=True)
+    tracking_number = db.Column(db.String(100), nullable=True)
+    tracking_email_sent = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<PrintOrderRequest {self.id} {self.customer_email}>'

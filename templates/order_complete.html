@@ -106,6 +106,21 @@
         </div>
         {% endif %}
 
+        {% if not story_data.want_print %}
+        <div class="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-6 text-center">
+            <p class="text-2xl mb-2">📚</p>
+            <h4 class="font-semibold text-amber-800 mb-1">
+                {% if lang == 'es' %}¿Quieres el libro impreso en papel?{% else %}Want the book printed on paper?{% endif %}
+            </h4>
+            <p class="text-amber-700 text-sm mb-3">
+                {% if lang == 'es' %}Recibe el cuento de {{ story_data.child_name }} como un libro físico de calidad profesional, enviado a tu domicilio.{% else %}Receive {{ story_data.child_name }}'s story as a professional-quality physical book, shipped to your door.{% endif %}
+            </p>
+            <a href="/print-order/{{ preview_id }}" class="inline-block px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-colors text-sm">
+                {% if lang == 'es' %}Ver opciones de libro impreso →{% else %}See printed book options →{% endif %}
+            </a>
+        </div>
+        {% endif %}
+
         <div class="text-center">
             <a href="/" class="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 font-medium text-lg">
                 ← {% if lang == 'es' %}Crear otro cuento{% else %}Create another story{% endif %}

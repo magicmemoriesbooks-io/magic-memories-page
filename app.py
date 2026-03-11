@@ -9,7 +9,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 import logging
 from werkzeug.utils import secure_filename
 from config import Config
-from models import db, Order, StoryTemplate, RealStoryOrder, RealStoryCharacter, RealStoryPet, NewsletterSubscriber, PreviewLead
+from models import db, Order, StoryTemplate, RealStoryOrder, RealStoryCharacter, RealStoryPet, NewsletterSubscriber, PreviewLead, PrintOrderRequest
 from translations import TRANSLATIONS, STORY_TEMPLATES, get_translation
 from apscheduler.schedulers.background import BackgroundScheduler
 from services.task_queue import task_queue, production_logger, get_or_create_tracker
@@ -1196,8 +1196,7 @@ def haz_tu_historia_payment():
                           translations=TRANSLATIONS.get(lang, TRANSLATIONS['es']),
                           story_data=story_data,
                           shipping_data=shipping_data,
-                          paddle_client_token=Config.PADDLE_CLIENT_TOKEN,
-                          paddle_personalized_product_id=Config.PADDLE_PERSONALIZED_PRODUCT_ID,
+                          paypal_client_id=Config.PAYPAL_CLIENT_ID,
                           personalized_base_price=Config.PERSONALIZED_BASE_PRICE / 100.0)
 
 @app.route('/haz-tu-historia/success')
@@ -2535,8 +2534,6 @@ def story_checkout(preview_id):
     ebook_config = {
         'allow_ebook': True,
         'ebook_base_price': Config.EBOOK_BASE_PRICE / 100.0,
-        'ebook_price_id': Config.PADDLE_EBOOK_PRICE_ID,
-        'ebook_product_id': Config.PADDLE_EBOOK_PRODUCT_ID,
         'ebook_product_type': 'ebook',
     }
     
@@ -2544,10 +2541,9 @@ def story_checkout(preview_id):
         checkout_config = {
             'product_type': 'quick_story',
             'allow_digital': True,
-            'allow_print': True,
+            'allow_print': False,
             'digital_base_price': Config.QS_DIGITAL_BASE_PRICE / 100.0,
             'print_base_price': Config.QS_PRINT_BASE_PRICE / 100.0,
-            'digital_price_id': Config.PADDLE_QS_DIGITAL_PRICE_ID,
             'digital_product_type': 'qs_digital',
             'print_product_type': 'qs_print',
             'product_description': 'PDF digital + PDF imprimible' if lang == 'es' else 'Digital PDF + printable PDF',
@@ -2558,14 +2554,13 @@ def story_checkout(preview_id):
     elif story_id in PERSONALIZED_BOOK_IDS:
         checkout_config = {
             'product_type': 'personalized',
-            'allow_digital': False,
-            'allow_print': True,
-            'digital_base_price': 0,
+            'allow_digital': True,
+            'allow_print': False,
+            'digital_base_price': Config.PERSONALIZED_BASE_PRICE / 100.0,
             'print_base_price': Config.PERSONALIZED_BASE_PRICE / 100.0,
-            'digital_price_id': '',
-            'digital_product_type': '',
+            'digital_product_type': 'personalized',
             'print_product_type': 'personalized',
-            'product_description': '24 páginas, 19 ilustraciones, PDF + Libro impreso' if lang == 'es' else '24 pages, 19 illustrations, PDF + Printed book',
+            'product_description': '24 páginas, 19 ilustraciones, PDF digital' if lang == 'es' else '24 pages, 19 illustrations, digital PDF',
             'print_description_es': 'Libro tapa dura A4',
             'print_description_en': 'A4 hardcover book',
             **ebook_config,
@@ -2573,14 +2568,13 @@ def story_checkout(preview_id):
     else:
         checkout_config = {
             'product_type': 'personalized',
-            'allow_digital': False,
-            'allow_print': True,
-            'digital_base_price': 0,
+            'allow_digital': True,
+            'allow_print': False,
+            'digital_base_price': Config.PERSONALIZED_BASE_PRICE / 100.0,
             'print_base_price': Config.PERSONALIZED_BASE_PRICE / 100.0,
-            'digital_price_id': '',
-            'digital_product_type': '',
+            'digital_product_type': 'personalized',
             'print_product_type': 'personalized',
-            'product_description': 'PDF + Libro impreso' if lang == 'es' else 'PDF + Printed book',
+            'product_description': 'PDF digital' if lang == 'es' else 'Digital PDF',
             'print_description_es': 'Libro tapa dura',
             'print_description_en': 'Hardcover book',
             **ebook_config,
@@ -2589,7 +2583,7 @@ def story_checkout(preview_id):
     return render_template('checkout_unified.html',
                           preview_id=preview_id,
                           story_data=story_data,
-                          paddle_client_token=Config.PADDLE_CLIENT_TOKEN,
+                          paypal_client_id=Config.PAYPAL_CLIENT_ID,
                           checkout_config=checkout_config,
                           test_mode=test_mode)
 
@@ -2741,8 +2735,7 @@ def calculate_dynamic_price():
         customer_total = round(base_price_dollars + lulu_total, 2)
         customer_total_cents = int(customer_total * 100)
         
-        paddle_fee = round(customer_total * 0.05 + 0.50, 2)
-        net_profit = round(base_price_dollars - paddle_fee, 2)
+        net_profit = round(customer_total - base_price_dollars, 2)
         
         pricing_options[method] = {
             'name_es': cost_data.get('name_es', method),
@@ -2754,7 +2747,7 @@ def calculate_dynamic_price():
             'customer_total': customer_total,
             'customer_total_cents': customer_total_cents,
             'net_profit': net_profit,
-            'paddle_fee_estimate': paddle_fee
+
         }
     
     print(f"[DYNAMIC PRICE] {product_type} to {country_code}: {len(pricing_options)} options calculated")
@@ -2767,445 +2760,78 @@ def calculate_dynamic_price():
     })
 
 
-def _create_ebook_transaction(data, preview_id, customer_email):
+def _get_paypal_access_token():
     import requests as req
-    
-    paddle_product_id = Config.PADDLE_EBOOK_PRODUCT_ID
-    paddle_price_id = Config.PADDLE_EBOOK_PRICE_ID
-    total_cents = Config.EBOOK_BASE_PRICE
-    
-    if not paddle_product_id or not paddle_price_id:
-        return jsonify({'error': 'eBook product not configured'}), 500
-    
-    paddle_env = Config.PADDLE_ENVIRONMENT or 'sandbox'
-    api_base = 'https://sandbox-api.paddle.com' if paddle_env == 'sandbox' else 'https://api.paddle.com'
-    
-    headers = {
-        'Authorization': f'Bearer {Config.PADDLE_API_KEY}',
-        'Content-Type': 'application/json'
-    }
-    
-    transaction_payload = {
-        'items': [{
-            'quantity': 1,
-            'price_id': paddle_price_id
-        }],
-        'custom_data': {
-            'preview_id': preview_id,
-            'product_type': 'ebook',
-            'want_print': 'false',
-            'shipping_method': 'none'
-        }
-    }
-    
-    if customer_email:
-        try:
-            cust_resp = req.post(f'{api_base}/customers', headers=headers, json={'email': customer_email}, timeout=15)
-            if cust_resp.status_code in [200, 201]:
-                cust_id = cust_resp.json().get('data', {}).get('id', '')
-                if cust_id:
-                    transaction_payload['customer_id'] = cust_id
-            elif cust_resp.status_code == 409:
-                search_resp = req.get(f'{api_base}/customers?email={customer_email}', headers=headers, timeout=15)
-                if search_resp.status_code == 200:
-                    customers = search_resp.json().get('data', [])
-                    if customers:
-                        transaction_payload['customer_id'] = customers[0].get('id', '')
-        except Exception as ce:
-            print(f"[PADDLE API] eBook customer setup warning: {ce}")
-    
+    import base64
+    credentials = base64.b64encode(f"{Config.PAYPAL_CLIENT_ID}:{Config.PAYPAL_CLIENT_SECRET}".encode()).decode()
+    resp = req.post(
+        f"{Config.PAYPAL_API_BASE}/v1/oauth2/token",
+        headers={"Authorization": f"Basic {credentials}", "Content-Type": "application/x-www-form-urlencoded"},
+        data="grant_type=client_credentials",
+        timeout=15
+    )
+    resp.raise_for_status()
+    return resp.json()["access_token"]
+
+
+@app.route('/api/paypal/create-order', methods=['POST'])
+def paypal_create_order():
+    import requests as req
+    data = request.get_json() or {}
+    amount_usd = data.get('amount_usd')
+    if not amount_usd:
+        return jsonify({'error': 'amount_usd required'}), 400
     try:
-        print(f"[PADDLE API] Creating eBook transaction: ${total_cents/100:.2f}")
-        resp = req.post(f'{api_base}/transactions', headers=headers, json=transaction_payload, timeout=30)
-        
-        if resp.status_code in [200, 201]:
-            txn_data = resp.json().get('data', {})
-            txn_id = txn_data.get('id', '')
-            print(f"[PADDLE API] eBook transaction created: {txn_id}")
-            return jsonify({
-                'success': True,
-                'transaction_id': txn_id,
-                'total_cents': total_cents
-            })
-        else:
-            error_msg = resp.text[:500]
-            print(f"[PADDLE API] eBook error: {resp.status_code} - {error_msg}")
-            return jsonify({'error': f'Paddle API error: {resp.status_code}', 'details': error_msg}), 500
+        token = _get_paypal_access_token()
+        resp = req.post(
+            f"{Config.PAYPAL_API_BASE}/v2/checkout/orders",
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+            json={
+                "intent": "CAPTURE",
+                "purchase_units": [{
+                    "amount": {"currency_code": "USD", "value": str(round(float(amount_usd), 2))},
+                    "description": "Magic Memories Books"
+                }]
+            },
+            timeout=15
+        )
+        resp.raise_for_status()
+        return jsonify({'id': resp.json()['id']})
     except Exception as e:
-        print(f"[PADDLE API] eBook exception: {e}")
+        print(f"[PAYPAL] create-order error: {e}")
         return jsonify({'error': str(e)}), 500
 
 
-def _create_multi_format_transaction(data, formats, preview_id, customer_email):
-    """Create a Paddle transaction for multiple format selections (ebook + digital + print)."""
+@app.route('/api/paypal/capture-order', methods=['POST'])
+def paypal_capture_order():
     import requests as req
-    from services.lulu_api_service import get_all_shipping_costs
-    
-    want_print = data.get('want_print', False)
-    shipping_method = data.get('shipping_method', 'MAIL')
-    country_code = data.get('country_code', '')
-    
-    total_cents = 0
-    price_parts = []
-    
-    if 'ebook' in formats:
-        ebook_cents = Config.EBOOK_BASE_PRICE
-        total_cents += ebook_cents
-        price_parts.append(f"eBook ${ebook_cents/100:.0f}")
-    
-    if 'digital' in formats:
-        digital_cents = getattr(Config, 'QS_DIGITAL_BASE_PRICE', 2000)
-        total_cents += digital_cents
-        price_parts.append(f"PDF ${digital_cents/100:.0f}")
-    
-    lulu_total = 0
-    if 'print' in formats and want_print:
-        preview_file = f'story_previews/{preview_id}.json'
-        story_data_tmp = {}
-        if os.path.exists(preview_file):
-            with open(preview_file, 'r', encoding='utf-8') as f:
-                story_data_tmp = json.load(f)
-        
-        story_id = story_data_tmp.get('story_id', '')
-        from services.personalized_books.generation import is_personalized_book as check_pb
-        is_pb = check_pb(story_id)
-        
-        if is_pb:
-            print_base_cents = Config.PERSONALIZED_BASE_PRICE
-            paddle_product_id = Config.PADDLE_PERSONALIZED_PRODUCT_ID
-            pod_package_id = '0827X1169FCPRECW080CW444GXX'
-            page_count = 24
-        else:
-            print_base_cents = Config.QS_PRINT_BASE_PRICE
-            paddle_product_id = Config.PADDLE_QS_PRINT_PRODUCT_ID
-            pod_package_id = '0850X0850FCPRESS080CW444GXX'
-            page_count = 10
-        
-        total_cents += print_base_cents
-        price_parts.append(f"Print ${print_base_cents/100:.0f}")
-        
-        if not country_code:
-            return jsonify({'error': 'Country code required for print orders'}), 400
-        
-        VALID_SHIPPING = ['MAIL', 'PRIORITY_MAIL', 'GROUND', 'EXPEDITED', 'EXPRESS']
-        if shipping_method not in VALID_SHIPPING:
-            return jsonify({'error': f'Invalid shipping method: {shipping_method}'}), 400
-        
-        lulu_costs = get_all_shipping_costs(country_code, page_count=page_count, pod_package_id=pod_package_id)
-        if isinstance(lulu_costs, dict) and lulu_costs.get('error'):
-            return jsonify({'error': f'Could not get shipping costs: {lulu_costs["error"]}'}), 500
-        
-        if shipping_method not in lulu_costs:
-            available = list(lulu_costs.keys())
-            return jsonify({'error': f'Shipping method {shipping_method} not available. Available: {available}'}), 400
-        
-        lulu_total = lulu_costs[shipping_method].get('total_cost', 0)
-        lulu_cents = int(round(lulu_total * 100))
-        total_cents += lulu_cents
-        price_parts.append(f"Shipping ${lulu_total:.2f}")
-    
-    if total_cents <= 0:
-        return jsonify({'error': 'No formats selected'}), 400
-    
-    paddle_product_id_for_txn = None
-    if 'print' in formats:
-        from services.personalized_books.generation import is_personalized_book as check_pb2
-        preview_file = f'story_previews/{preview_id}.json'
-        if os.path.exists(preview_file):
-            with open(preview_file, 'r', encoding='utf-8') as f:
-                sd = json.load(f)
-            if check_pb2(sd.get('story_id', '')):
-                paddle_product_id_for_txn = Config.PADDLE_PERSONALIZED_PRODUCT_ID
-            else:
-                paddle_product_id_for_txn = Config.PADDLE_QS_PRINT_PRODUCT_ID
-    elif 'digital' in formats:
-        paddle_product_id_for_txn = getattr(Config, 'PADDLE_QS_DIGITAL_PRODUCT_ID', Config.PADDLE_EBOOK_PRODUCT_ID)
-    else:
-        paddle_product_id_for_txn = Config.PADDLE_EBOOK_PRODUCT_ID
-    
-    if not paddle_product_id_for_txn:
-        return jsonify({'error': 'Product ID not configured'}), 500
-    
-    price_name = ' + '.join(price_parts)
-    primary_product_type = 'print' if 'print' in formats else ('digital' if 'digital' in formats else 'ebook')
-    
-    print(f"[PADDLE API] Multi-format transaction: {formats} = ${total_cents/100:.2f} ({price_name})")
-    
-    paddle_env = Config.PADDLE_ENVIRONMENT or 'sandbox'
-    api_base = 'https://sandbox-api.paddle.com' if paddle_env == 'sandbox' else 'https://api.paddle.com'
-    
-    headers = {
-        'Authorization': f'Bearer {Config.PADDLE_API_KEY}',
-        'Content-Type': 'application/json'
-    }
-    
-    transaction_payload = {
-        'items': [{
-            'quantity': 1,
-            'price': {
-                'product_id': paddle_product_id_for_txn,
-                'name': price_name,
-                'description': f'Magic Memories Book ({", ".join(formats)})',
-                'unit_price': {
-                    'amount': str(total_cents),
-                    'currency_code': 'USD'
-                },
-                'tax_mode': 'account_setting'
-            }
-        }],
-        'custom_data': {
-            'preview_id': preview_id,
-            'product_type': primary_product_type,
-            'want_print': 'true' if want_print else 'false',
-            'shipping_method': shipping_method if want_print else 'none',
-            'formats': ','.join(formats)
-        }
-    }
-    
-    if customer_email:
-        try:
-            cust_resp = req.post(f'{api_base}/customers', headers=headers, json={'email': customer_email}, timeout=15)
-            if cust_resp.status_code in [200, 201]:
-                cust_id = cust_resp.json().get('data', {}).get('id', '')
-                if cust_id:
-                    transaction_payload['customer_id'] = cust_id
-                    if country_code:
-                        postal_code = data.get('postal_code', '')
-                        addr_body = {'country_code': country_code}
-                        if postal_code:
-                            addr_body['postal_code'] = postal_code
-                        addr_resp = req.post(f'{api_base}/customers/{cust_id}/addresses', headers=headers, json=addr_body, timeout=15)
-                        if addr_resp.status_code in [200, 201]:
-                            addr_id = addr_resp.json().get('data', {}).get('id', '')
-                            if addr_id:
-                                transaction_payload['address_id'] = addr_id
-            elif cust_resp.status_code == 409:
-                search_resp = req.get(f'{api_base}/customers?email={customer_email}', headers=headers, timeout=15)
-                if search_resp.status_code == 200:
-                    customers = search_resp.json().get('data', [])
-                    if customers:
-                        cust_id = customers[0].get('id', '')
-                        transaction_payload['customer_id'] = cust_id
-                        if country_code:
-                            postal_code = data.get('postal_code', '')
-                            addr_body = {'country_code': country_code}
-                            if postal_code:
-                                addr_body['postal_code'] = postal_code
-                            addr_resp = req.post(f'{api_base}/customers/{cust_id}/addresses', headers=headers, json=addr_body, timeout=15)
-                            if addr_resp.status_code in [200, 201]:
-                                addr_id = addr_resp.json().get('data', {}).get('id', '')
-                                if addr_id:
-                                    transaction_payload['address_id'] = addr_id
-        except Exception as ce:
-            print(f"[PADDLE API] Multi-format customer setup warning: {ce}")
-    
+    data = request.get_json() or {}
+    order_id = data.get('orderID')
+    if not order_id:
+        return jsonify({'error': 'orderID required'}), 400
     try:
-        resp = req.post(f'{api_base}/transactions', headers=headers, json=transaction_payload, timeout=30)
-        
-        if resp.status_code in [200, 201]:
-            txn_data = resp.json().get('data', {})
-            txn_id = txn_data.get('id', '')
-            print(f"[PADDLE API] Multi-format transaction created: {txn_id}")
-            return jsonify({
-                'success': True,
-                'transaction_id': txn_id,
-                'total_cents': total_cents,
-                'formats': formats
-            })
-        else:
-            error_msg = resp.text[:500]
-            print(f"[PADDLE API] Multi-format error: {resp.status_code} - {error_msg}")
-            return jsonify({'error': f'Paddle API error: {resp.status_code}', 'details': error_msg}), 500
+        token = _get_paypal_access_token()
+        resp = req.post(
+            f"{Config.PAYPAL_API_BASE}/v2/checkout/orders/{order_id}/capture",
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+            timeout=15
+        )
+        resp.raise_for_status()
+        capture_data = resp.json()
+        status = capture_data.get('status')
+        if status != 'COMPLETED':
+            return jsonify({'error': f'Payment not completed: {status}'}), 400
+        payer_email = capture_data.get('payer', {}).get('email_address', '')
+        print(f"[PAYPAL] Order {order_id} captured. Payer: {payer_email}")
+        return jsonify({'success': True, 'orderID': order_id, 'payer_email': payer_email, 'status': status})
     except Exception as e:
-        print(f"[PADDLE API] Multi-format exception: {e}")
-        return jsonify({'error': str(e)}), 500
-
-
-@app.route('/api/create-paddle-transaction', methods=['POST'])
-def create_paddle_transaction():
-    """Create a Paddle transaction with server-side price computation.
-    Price is ALWAYS recomputed from Lulu API + base price to prevent tampering.
-    """
-    import requests as req
-    from services.lulu_api_service import get_all_shipping_costs
-    
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'No data provided'}), 400
-    
-    product_type = data.get('product_type', 'personalized')
-    customer_email = data.get('email', '')
-    preview_id = data.get('preview_id', '')
-    shipping_method = data.get('shipping_method', 'MAIL')
-    want_print = data.get('want_print', True)
-    country_code = data.get('country_code', '')
-    formats = data.get('formats', [])
-    
-    if product_type == 'ebook' and not formats:
-        return _create_ebook_transaction(data, preview_id, customer_email)
-    
-    if formats:
-        return _create_multi_format_transaction(data, formats, preview_id, customer_email)
-    
-    if not preview_id:
-        preview = session.get('current_preview', {})
-        if preview.get('shipping_address'):
-            country_code = country_code or preview['shipping_address'].get('country_code', 'US')
-    
-    if not country_code:
-        shipping_data = session.get(f'shipping_data_{preview_id}', {})
-        if shipping_data and shipping_data.get('shipping_address'):
-            country_code = shipping_data['shipping_address'].get('country_code', 'US')
-    
-    if not country_code:
-        return jsonify({'error': 'Country code required for price calculation'}), 400
-    
-    VALID_SHIPPING = ['MAIL', 'PRIORITY_MAIL', 'GROUND', 'EXPEDITED', 'EXPRESS']
-    if shipping_method not in VALID_SHIPPING:
-        return jsonify({'error': f'Invalid shipping method: {shipping_method}'}), 400
-    
-    if product_type == 'qs_print':
-        base_price_cents = Config.QS_PRINT_BASE_PRICE
-        paddle_product_id = Config.PADDLE_QS_PRINT_PRODUCT_ID
-        price_name = 'Quick Story Printed Book + Shipping'
-        pod_package_id = '0850X0850FCPRESS080CW444GXX'
-        page_count = 10
-    elif product_type == 'personalized':
-        base_price_cents = Config.PERSONALIZED_BASE_PRICE
-        paddle_product_id = Config.PADDLE_PERSONALIZED_PRODUCT_ID
-        price_name = 'Personalized Book + Shipping'
-        pod_package_id = '0827X1169FCPRECW080CW444GXX'
-        page_count = 24
-    else:
-        return jsonify({'error': f'Invalid product_type for dynamic pricing: {product_type}'}), 400
-    
-    if not paddle_product_id:
-        return jsonify({'error': f'Product ID not configured for {product_type}'}), 500
-    
-    lulu_costs = get_all_shipping_costs(country_code, page_count=page_count, pod_package_id=pod_package_id)
-    if isinstance(lulu_costs, dict) and lulu_costs.get('error'):
-        return jsonify({'error': f'Could not get shipping costs: {lulu_costs["error"]}'}), 500
-    
-    if shipping_method not in lulu_costs:
-        available = list(lulu_costs.keys())
-        return jsonify({'error': f'Shipping method {shipping_method} not available for {country_code}. Available: {available}'}), 400
-    
-    lulu_total = lulu_costs[shipping_method].get('total_cost', 0)
-    base_price_dollars = base_price_cents / 100.0
-    customer_total = round(base_price_dollars + lulu_total, 2)
-    total_cents = int(customer_total * 100)
-    
-    print(f"[PADDLE API] Server-side price: base=${base_price_dollars} + lulu=${lulu_total} = ${customer_total} ({total_cents} cents) for {shipping_method} to {country_code}")
-    
-    paddle_env = Config.PADDLE_ENVIRONMENT or 'sandbox'
-    api_base = 'https://sandbox-api.paddle.com' if paddle_env == 'sandbox' else 'https://api.paddle.com'
-    
-    transaction_payload = {
-        'items': [{
-            'quantity': 1,
-            'price': {
-                'product_id': paddle_product_id,
-                'name': price_name,
-                'description': f'{price_name} ({shipping_method})',
-                'unit_price': {
-                    'amount': str(total_cents),
-                    'currency_code': 'USD'
-                },
-                'tax_mode': 'account_setting'
-            }
-        }],
-        'custom_data': {
-            'preview_id': preview_id,
-            'product_type': product_type,
-            'want_print': 'true' if want_print else 'false',
-            'shipping_method': shipping_method
-        }
-    }
-    
-    headers = {
-        'Authorization': f'Bearer {Config.PADDLE_API_KEY}',
-        'Content-Type': 'application/json'
-    }
-    
-    postal_code = data.get('postal_code', '')
-    if customer_email and country_code:
-        try:
-            print(f"[PADDLE API] Creating customer+address for {customer_email}, {country_code}")
-            cust_resp = req.post(f'{api_base}/customers', headers=headers, json={'email': customer_email}, timeout=15)
-            if cust_resp.status_code in [200, 201]:
-                cust_id = cust_resp.json().get('data', {}).get('id', '')
-                if cust_id:
-                    addr_body = {'country_code': country_code}
-                    if postal_code:
-                        addr_body['postal_code'] = postal_code
-                    addr_resp = req.post(f'{api_base}/customers/{cust_id}/addresses', headers=headers, json=addr_body, timeout=15)
-                    if addr_resp.status_code in [200, 201]:
-                        addr_id = addr_resp.json().get('data', {}).get('id', '')
-                        if addr_id:
-                            transaction_payload['customer_id'] = cust_id
-                            transaction_payload['address_id'] = addr_id
-                            print(f"[PADDLE API] Customer {cust_id} + Address {addr_id} ({country_code}) attached")
-                    else:
-                        print(f"[PADDLE API] Address creation failed: {addr_resp.status_code} {addr_resp.text[:200]}")
-            elif cust_resp.status_code == 409:
-                conflict_data = cust_resp.json()
-                existing_id = ''
-                if 'error' in conflict_data and 'detail' in conflict_data['error']:
-                    existing_id = conflict_data['error'].get('detail', '')
-                if not existing_id:
-                    err_meta = conflict_data.get('error', {}).get('errors', [])
-                    for e in err_meta:
-                        if 'existing' in str(e).lower():
-                            existing_id = e.get('detail', '')
-                search_resp = req.get(f'{api_base}/customers?email={customer_email}', headers=headers, timeout=15)
-                if search_resp.status_code == 200:
-                    customers = search_resp.json().get('data', [])
-                    if customers:
-                        cust_id = customers[0].get('id', '')
-                        if cust_id:
-                            addr_body = {'country_code': country_code}
-                            if postal_code:
-                                addr_body['postal_code'] = postal_code
-                            addr_resp = req.post(f'{api_base}/customers/{cust_id}/addresses', headers=headers, json=addr_body, timeout=15)
-                            if addr_resp.status_code in [200, 201]:
-                                addr_id = addr_resp.json().get('data', {}).get('id', '')
-                                if addr_id:
-                                    transaction_payload['customer_id'] = cust_id
-                                    transaction_payload['address_id'] = addr_id
-                                    print(f"[PADDLE API] Existing customer {cust_id} + new Address {addr_id} ({country_code}) attached")
-                            else:
-                                print(f"[PADDLE API] Address for existing customer failed: {addr_resp.status_code} {addr_resp.text[:200]}")
-            else:
-                print(f"[PADDLE API] Customer creation failed: {cust_resp.status_code} {cust_resp.text[:200]}")
-        except Exception as ce:
-            print(f"[PADDLE API] Customer/address setup warning (continuing without): {ce}")
-    
-    try:
-        print(f"[PADDLE API] Creating transaction: {product_type}, ${total_cents/100:.2f}, {shipping_method}")
-        resp = req.post(f'{api_base}/transactions', headers=headers, json=transaction_payload, timeout=30)
-        
-        if resp.status_code in [200, 201]:
-            txn_data = resp.json().get('data', {})
-            txn_id = txn_data.get('id', '')
-            print(f"[PADDLE API] Transaction created: {txn_id}")
-            return jsonify({
-                'success': True,
-                'transaction_id': txn_id,
-                'total_cents': total_cents
-            })
-        else:
-            error_msg = resp.text[:500]
-            print(f"[PADDLE API] Error creating transaction: {resp.status_code} - {error_msg}")
-            return jsonify({'error': f'Paddle API error: {resp.status_code}', 'details': error_msg}), 500
-            
-    except Exception as e:
-        print(f"[PADDLE API] Exception creating transaction: {e}")
+        print(f"[PAYPAL] capture-order error: {e}")
         return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/save-checkout-data/<preview_id>', methods=['POST'])
 def save_checkout_data(preview_id):
-    """Save want_print, email and shipping data BEFORE Paddle checkout opens"""
+    """Save want_print, email and shipping data before PayPal checkout"""
     preview_file = f'story_previews/{preview_id}.json'
     if not os.path.exists(preview_file):
         return jsonify({'success': False, 'error': 'Story not found'}), 404
@@ -3300,7 +2926,7 @@ def process_payment(preview_id):
         return jsonify({'success': False, 'error': 'Story not found'}), 404
     
     data = request.get_json()
-    paddle_transaction_id = data.get('paddle_transaction_id')
+    paypal_order_id = data.get('paypal_order_id') or data.get('paddle_transaction_id', '')
     customer_email_from_paddle = data.get('customer_email', '') or data.get('email', '')
     want_print = data.get('want_print', False)
     shipping_address = data.get('shipping_address')
@@ -3310,7 +2936,7 @@ def process_payment(preview_id):
         story_data = json.load(f)
     
     story_data['paid'] = True
-    story_data['paddle_transaction_id'] = paddle_transaction_id
+    story_data['paypal_order_id'] = paypal_order_id
     story_data['payment_date'] = datetime.now().isoformat()
     story_data['generation_complete'] = True
     story_data['payment_status'] = 'completed'
@@ -4576,10 +4202,7 @@ def renew_ebook(preview_id):
         child_name=story_data.get('child_name', ''),
         story_name=story_data.get('story_name', ''),
         lang=lang,
-        paddle_client_token=Config.PADDLE_CLIENT_TOKEN,
-        paddle_seller_id=Config.PADDLE_SELLER_ID,
-        paddle_environment=Config.PADDLE_ENVIRONMENT,
-        paddle_price_id=Config.PADDLE_EBOOK_PRICE_ID,
+        paypal_client_id=Config.PAYPAL_CLIENT_ID,
     )
 
 
@@ -8116,6 +7739,202 @@ def paddle_webhook():
         print(f"[PADDLE WEBHOOK] Error: {str(e)}")
         import traceback
         traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+# ── Print Order Routes ────────────────────────────────────────────────────────
+
+@app.route('/print-order/<preview_id>')
+def print_order_page(preview_id):
+    lang = session.get('lang', 'es')
+    translations = get_translation(lang)
+    preview_file = f'story_previews/{preview_id}.json'
+    child_name = 'tu hijo/a'
+    email = ''
+    if os.path.exists(preview_file):
+        with open(preview_file, 'r', encoding='utf-8') as f:
+            story_data = json.load(f)
+        child_name = story_data.get('child_name', child_name)
+        email = story_data.get('customer_email', '')
+    from config import Config as C
+    base_price = round(C.PERSONALIZED_BASE_PRICE / 100.0, 2)
+    return render_template('print_order.html',
+        lang=lang,
+        translations=translations,
+        preview_id=preview_id,
+        child_name=child_name,
+        email=email,
+        base_price=base_price,
+        paypal_client_id=Config.PAYPAL_CLIENT_ID
+    )
+
+@app.route('/print-order-success')
+def print_order_success():
+    lang = session.get('lang', 'es')
+    translations = get_translation(lang)
+    email = request.args.get('email', '')
+    return render_template('print_order_success.html', lang=lang, translations=translations, email=email)
+
+@app.route('/api/paypal/create-print-order', methods=['POST'])
+def paypal_create_print_order():
+    try:
+        data = request.get_json()
+        amount = round(float(data.get('amount_usd', 0)), 2)
+        if amount <= 0:
+            return jsonify({'error': 'Invalid amount'}), 400
+        token = _get_paypal_access_token()
+        import requests as req_lib
+        resp = req_lib.post(
+            f"{Config.PAYPAL_API_BASE}/v2/checkout/orders",
+            headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
+            json={
+                'intent': 'CAPTURE',
+                'purchase_units': [{'amount': {'currency_code': 'USD', 'value': f'{amount:.2f}'}, 'description': 'Libro Impreso - Magic Memories Books'}],
+                'application_context': {'brand_name': 'Magic Memories Books', 'shipping_preference': 'NO_SHIPPING'}
+            },
+            timeout=15
+        )
+        order = resp.json()
+        if 'id' not in order:
+            return jsonify({'error': order.get('message', 'PayPal error')}), 400
+        return jsonify({'id': order['id']})
+    except Exception as e:
+        print(f"[PAYPAL] create-print-order error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/paypal/capture-print-order', methods=['POST'])
+def paypal_capture_print_order():
+    try:
+        data = request.get_json()
+        order_id = data.get('orderID')
+        if not order_id:
+            return jsonify({'error': 'Missing orderID'}), 400
+        token = _get_paypal_access_token()
+        import requests as req_lib
+        resp = req_lib.post(
+            f"{Config.PAYPAL_API_BASE}/v2/checkout/orders/{order_id}/capture",
+            headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
+            timeout=15
+        )
+        result = resp.json()
+        status = result.get('status', '')
+        if status != 'COMPLETED':
+            return jsonify({'error': f'Payment not completed: {status}'}), 400
+
+        capture = result.get('purchase_units', [{}])[0].get('payments', {}).get('captures', [{}])[0]
+        amount_paid = float(capture.get('amount', {}).get('value', 0))
+        payer_email = result.get('payer', {}).get('email_address', data.get('email', ''))
+
+        from datetime import datetime
+        pr = PrintOrderRequest(
+            preview_id=data.get('preview_id', ''),
+            child_name=data.get('child_name', ''),
+            customer_email=data.get('email', payer_email),
+            paypal_order_id=order_id,
+            amount_paid=amount_paid,
+            shipping_name=data.get('shipping_name', ''),
+            shipping_street=data.get('shipping_street', ''),
+            shipping_city=data.get('shipping_city', ''),
+            shipping_state=data.get('shipping_state', ''),
+            shipping_postal=data.get('shipping_postal', ''),
+            shipping_country=data.get('shipping_country', ''),
+            shipping_phone=data.get('phone', ''),
+            shipping_method=data.get('shipping_method', ''),
+            shipping_cost=float(data.get('shipping_cost', 0)),
+            status='payment_confirmed'
+        )
+        db.session.add(pr)
+        db.session.commit()
+
+        try:
+            from services.email_service import send_admin_notification_email
+            send_admin_notification_email(
+                subject=f'[PRINT ORDER] Nuevo pedido #{pr.id} — {pr.customer_email}',
+                body=(f'Pedido #{pr.id}\nEmail: {pr.customer_email}\nPayPal: {order_id}\n'
+                      f'Total: ${amount_paid:.2f} USD\nEnvío: {pr.shipping_method}\n'
+                      f'Dirección: {pr.shipping_name}, {pr.shipping_street}, {pr.shipping_city}, {pr.shipping_country}')
+            )
+        except Exception as mail_err:
+            print(f"[PRINT ORDER] Admin email error: {mail_err}")
+
+        customer_email = data.get('email', payer_email)
+        redirect_url = f'/print-order-success?email={customer_email}'
+        return jsonify({'success': True, 'orderID': order_id, 'redirect_url': redirect_url})
+    except Exception as e:
+        print(f"[PAYPAL] capture-print-order error: {e}")
+        import traceback; traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+# ── Admin Print Requests ───────────────────────────────────────────────────────
+
+@app.route('/admin/print-requests')
+def admin_print_requests():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login_page'))
+    requests_list = PrintOrderRequest.query.order_by(PrintOrderRequest.created_at.desc()).all()
+    return render_template('admin_print_requests.html', requests=requests_list)
+
+@app.route('/api/admin/send-to-lulu/<int:req_id>', methods=['POST'])
+def admin_send_to_lulu(req_id):
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    pr = PrintOrderRequest.query.get_or_404(req_id)
+    try:
+        from services.lulu_api_service import submit_print_order
+        preview_file = f'story_previews/{pr.preview_id}.json'
+        if not os.path.exists(preview_file):
+            return jsonify({'error': 'Story preview not found'}), 404
+        with open(preview_file, 'r', encoding='utf-8') as f:
+            story_data = json.load(f)
+        shipping_address = {
+            'name': pr.shipping_name,
+            'street1': pr.shipping_street,
+            'city': pr.shipping_city,
+            'state_code': pr.shipping_state,
+            'postcode': pr.shipping_postal,
+            'country_code': pr.shipping_country,
+            'phone_number': pr.shipping_phone or '',
+            'email': pr.customer_email
+        }
+        lulu_result = submit_print_order(story_data, shipping_address, pr.shipping_method)
+        lulu_job_id = lulu_result.get('id') or lulu_result.get('print_job_id')
+        pr.lulu_print_job_id = str(lulu_job_id) if lulu_job_id else None
+        pr.status = 'sent_to_lulu'
+        db.session.commit()
+        try:
+            from services.email_service import send_admin_notification_email
+            send_admin_notification_email(
+                subject=f'[PRINT ORDER #{pr.id}] Enviado a Lulu — Job {lulu_job_id}',
+                body=f'Pedido #{pr.id} enviado a Lulu. Job ID: {lulu_job_id}'
+            )
+        except Exception:
+            pass
+        return jsonify({'success': True, 'lulu_job_id': lulu_job_id})
+    except Exception as e:
+        print(f"[ADMIN] send-to-lulu error: {e}")
+        import traceback; traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/send-tracking/<int:req_id>', methods=['POST'])
+def admin_send_tracking(req_id):
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    pr = PrintOrderRequest.query.get_or_404(req_id)
+    data = request.get_json()
+    tracking_number = data.get('tracking_number', '').strip()
+    if not tracking_number:
+        return jsonify({'error': 'Missing tracking number'}), 400
+    try:
+        from services.email_service import send_tracking_email
+        send_tracking_email(pr.customer_email, tracking_number, pr.shipping_name, session.get('lang', 'es'))
+        pr.tracking_number = tracking_number
+        pr.tracking_email_sent = True
+        pr.status = 'shipped'
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"[ADMIN] send-tracking error: {e}")
         return jsonify({'error': str(e)}), 500
 
 
