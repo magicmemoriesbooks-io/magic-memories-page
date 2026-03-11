@@ -6,7 +6,6 @@
     <title>{% if lang == 'es' %}Renovar acceso eBook{% else %}Renew eBook Access{% endif %} — Magic Memories Books</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #f5f3ff 0%, #fdf2f8 100%); min-height: 100vh; }
         @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
@@ -47,18 +46,16 @@
         </div>
 
         <div class="text-4xl font-black text-purple-700 mb-2">$7 <span class="text-lg font-normal text-gray-400">USD</span></div>
-        <p class="text-xs text-gray-400 mb-6">{% if lang == 'es' %}Pago único — acceso para siempre{% else %}One-time payment — access forever{% endif %}</p>
+        <p class="text-xs text-gray-400 mb-4">{% if lang == 'es' %}Pago único — acceso para siempre{% else %}One-time payment — access forever{% endif %}</p>
 
-        <button id="buyBtn" onclick="openCheckout()"
-            class="w-full py-4 px-8 rounded-full text-white font-bold text-lg bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 active:scale-95">
-            ✨ {% if lang == 'es' %}Comprar acceso permanente{% else %}Buy permanent access{% endif %}
-        </button>
+        <div id="paypal-button-container" class="mb-4"></div>
+        <p class="text-xs text-red-500 mb-2 hidden" id="paypalError"></p>
 
-        <p class="mt-4 text-xs text-gray-400">
+        <p class="mt-2 text-xs text-gray-400">
             {% if lang == 'es' %}
-            Pago seguro con Paddle. Recibirás un email con el link actualizado cuando se complete el pago.
+            Pago seguro con PayPal. Recibirás un email con el link actualizado cuando se complete el pago.
             {% else %}
-            Secure payment via Paddle. You'll receive an email with the updated link when payment is complete.
+            Secure payment via PayPal. You'll receive an email with the updated link when payment is complete.
             {% endif %}
         </p>
 
@@ -69,33 +66,66 @@
         </div>
     </div>
 
+    <script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=USD" data-namespace="paypal_sdk"></script>
     <script>
-        {% if paddle_environment == 'sandbox' %}
-        Paddle.Environment.set("sandbox");
-        {% endif %}
-        Paddle.Initialize({
-            token: "{{ paddle_client_token }}",
-            eventCallback: function(event) {
-                if (event.name === "checkout.completed") {
-                    document.getElementById('buyBtn').disabled = true;
-                    document.getElementById('buyBtn').textContent = '{% if lang == "es" %}¡Pago exitoso! Revisando...{% else %}Payment successful! Processing...{% endif %}';
-                    setTimeout(function() {
-                        window.location.href = '/order-complete/{{ preview_id }}';
-                    }, 2500);
-                }
-            }
-        });
+    const PREVIEW_ID = '{{ preview_id }}';
+    const LANG = '{{ lang }}';
 
-        function openCheckout() {
-            Paddle.Checkout.open({
-                items: [{ priceId: "{{ paddle_price_id }}", quantity: 1 }],
-                customData: {
-                    preview_id: "{{ preview_id }}",
-                    product_type: "ebook",
-                    is_renewal: true
+    function showError(msg) {
+        const el = document.getElementById('paypalError');
+        if (el) { el.textContent = msg; el.classList.remove('hidden'); }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof paypal_sdk === 'undefined') return;
+        paypal_sdk.Buttons({
+            style: { layout: 'vertical', color: 'gold', shape: 'pill', label: 'pay' },
+            createOrder: async function() {
+                const resp = await fetch('/api/paypal/create-order', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({amount_usd: 7.00, product_type: 'ebook'})
+                });
+                const order = await resp.json();
+                if (order.error) throw new Error(order.error);
+                return order.id;
+            },
+            onApprove: async function(data, actions) {
+                const captureResp = await fetch('/api/paypal/capture-order', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({orderID: data.orderID})
+                });
+                const result = await captureResp.json();
+                if (!result.success) {
+                    showError('Payment error: ' + (result.error || 'Unknown'));
+                    return;
                 }
-            });
-        }
+                const processResp = await fetch('/api/process-payment/' + PREVIEW_ID, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        paypal_order_id: data.orderID,
+                        email: result.payer_email || '',
+                        product_type: 'ebook',
+                        is_renewal: true,
+                        want_print: false,
+                        formats: ['ebook']
+                    })
+                });
+                const processResult = await processResp.json();
+                if (processResult.success) {
+                    window.location.href = processResult.redirect_url || '/order-complete/' + PREVIEW_ID;
+                } else {
+                    showError(processResult.error || 'Error processing');
+                }
+            },
+            onError: function(err) {
+                console.error('[PAYPAL]', err);
+                showError(LANG === 'es' ? 'Error de PayPal. Inténtalo de nuevo.' : 'PayPal error. Please try again.');
+            }
+        }).render('#paypal-button-container');
+    });
     </script>
 </body>
 </html>
