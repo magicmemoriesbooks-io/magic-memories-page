@@ -8,7 +8,7 @@ Magic Memories Books is a bilingual web application that uses AI to generate per
 - **Language**: Spanish preferred for communication. SIEMPRE documentar procesos en español.
 - **Legal Compliance**: Páginas legales separadas: `/terms` (Términos) y `/privacy` (Política de Privacidad). Cumplimiento COPPA/GDPR para fotos de menores. **NO HAY REEMBOLSO** - el usuario revisa y aprueba antes de pagar, y tiene 1 oportunidad de regeneración post-pago. Fotos se eliminan automáticamente en 72h (scheduler cada 6h + cleanup al iniciar). Admin: `/admin/uploaded-photos` para gestionar fotos. Consent checkbox obligatorio antes de subir fotos (client + server-side validation). Upload endpoint requiere `consent=true`.
 - **Fixed Pages Documentation**: Ver `docs/fixed_pages/` para especificaciones de páginas fijas (créditos, dedicatoria, contraportadas, estructura PDF, reglas de generación de imágenes, especificaciones Lulu)
-- **Flujo Unificado**: El pago (Paddle) y la impresión (Lulu) son IDÉNTICOS para todos los libros personalizados. Solo cambia la contraportada. Ver `docs/templates/libros_personalizados.md` sección 11.
+- **Flujo Unificado**: El pago (PayPal) y la impresión (Lulu) están separados. Primero pago digital → luego opcionalmente libro impreso via /print-order/<preview_id>.
 - **Tu Amor Peludo Documentation**: Ver `docs/templates/tu_amor_peludo.md` para documentación completa del producto furry_love (formulario, prompts, flujo dual-referencia, checklist para replicar).
 - **FLUX Dev Prompt Guidelines (CRITICAL - Read Every Session)**: Aplica a TODOS los productos que usen FLUX Dev (Quick Stories, Personalized Books).
   - **Guidance**: SIEMPRE 3.5. NUNCA subir a 7.0 (causa alucinaciones: colas rojas, elementos inventados). Si falta detalle, subir steps a 25-30, NO guidance.
@@ -45,9 +45,9 @@ The application is a Flask-based web application with a modular architecture sup
 
 **Modular Architecture (Core Products):**
 - **Cuentos Mágicos Express / Magic Express Stories**: Digital stories for babies and toddlers.
-- **Aventuras a tu Medida / Adventures Made for You**: Illustrated books with Lulu printing and Paddle payments, including "Mi Mejor Amigo Peludo / My Furry Best Friend" with 4 age-range stories.
+- **Aventuras a tu Medida / Adventures Made for You**: Illustrated books with Lulu printing and PayPal payments, including "Mi Mejor Amigo Peludo / My Furry Best Friend" with 4 age-range stories.
 - **Cuentos de Cumple / Birthday Tales**: Personalized birthday stories.
-- **Haz tu Historia (Make Your Story)**: Custom AI stories with Paddle payment and Lulu printing.
+- **Haz tu Historia (Make Your Story)**: Custom AI stories with PayPal payment. Libro impreso: flujo separado /print-order.
 
 **UI/UX and Technical Implementations:**
 - **Homepage Design**: Interactive hero section with flipbook, DALL-E 3 background, and animations. Features sections for "How It Works", "Products", "Gallery marquee", "Social Proof", "Delivery Formats comparison", and a final CTA. Glassmorphism footer with newsletter, social media, and payment icons.
@@ -58,7 +58,7 @@ The application is a Flask-based web application with a modular architecture sup
 - **Print Specifications**: Adheres to Lulu's casewrap hardcover for Personalized Books and saddle stitch for Quick Stories.
 - **User Flow**: Consistent flow from story selection, personalization, AI generation, preview, shipping, payment, to order confirmation.
 - **Cover Design**: Dynamic and fixed back covers, spine text for hardcover books.
-- **Pricing Models**: Differentiated for digital-only vs. print+digital.
+- **Pricing Models**: Digital: eBook $7, PDF $20, Personalizado $30. Libro impreso: flujo separado /print-order con calculadora Lulu real + PayPal (precio base + envío real).
 - **Email Service**: Unified email template system (`services/email_service.py`) for customer and admin communications with distinct styling.
 - **Background Generation**: Post-payment scene generation runs in a TaskQueue.
 - **Background Book Composition (Personalized Books)**: Post-payment process for page composition, cover generation, Lulu PDF creation, submission, and customer email.
@@ -76,7 +76,7 @@ The application is a Flask-based web application with a modular architecture sup
 ## External Dependencies
 - **OpenAI API**: GPT-4o for story text generation.
 - **Replicate**: FLUX (FLUX Dev, FLUX 2 Pro) for image generation; Ideogram Character for baby story scenes.
-- **Paddle**: Payment processing and webhook integration.
+- **PayPal**: Payment processing via REST API (sandbox: PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_MODE=sandbox). Rutas: /api/paypal/create-order, /api/paypal/capture-order, /api/paypal/create-print-order, /api/paypal/capture-print-order. Flujo libros impresos separado en /print-order/<preview_id>, panel admin en /admin/print-requests.
 - **Lulu**: Physical book printing and order submission API.
 - **SQLite/MySQL**: Database.
 - **SMTP**: Email delivery services.
