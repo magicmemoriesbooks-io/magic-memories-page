@@ -9,7 +9,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 import logging
 from werkzeug.utils import secure_filename
 from config import Config
-from models import db, Order, StoryTemplate, RealStoryOrder, RealStoryCharacter, RealStoryPet, NewsletterSubscriber, PreviewLead, PrintOrderRequest
+from models import db, Order, StoryTemplate, RealStoryOrder, RealStoryCharacter, RealStoryPet, NewsletterSubscriber, PreviewLead, PrintOrderRequest, StoryBackup
 from translations import TRANSLATIONS, STORY_TEMPLATES, get_translation
 from apscheduler.schedulers.background import BackgroundScheduler
 from services.task_queue import task_queue, production_logger, get_or_create_tracker
@@ -21,6 +21,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 preview_rate_limits = {}
 PREVIEW_RATE_MAX = 4
+_generation_progress = {}
 PREVIEW_RATE_WINDOW = 3 * 60 * 60
 
 def get_client_ip():
@@ -230,11 +231,172 @@ def scheduled_ebook_expiry_check():
         print(f"[EXPIRY-CHECK] Failed: {e}")
 
 
+def restore_stories_from_backup():
+    """On startup: restore any story_previews/*.json that are missing but exist in PostgreSQL backup."""
+    try:
+        with app.app_context():
+            os.makedirs('story_previews', exist_ok=True)
+            backups = StoryBackup.query.all()
+            restored = 0
+            for backup in backups:
+                path = f'story_previews/{backup.preview_id}.json'
+                if not os.path.exists(path):
+                    with open(path, 'w', encoding='utf-8') as f:
+                        f.write(backup.data)
+                    restored += 1
+            if restored > 0:
+                print(f"[STORY-BACKUP] Restored {restored} story preview(s) from database after restart")
+            else:
+                print(f"[STORY-BACKUP] All {len(backups)} story previews already on disk — no restore needed")
+    except Exception as e:
+        print(f"[STORY-BACKUP] Restore failed: {e}")
+
+
+def scheduled_story_backup():
+    """Every 5 min: sync story_previews/*.json to PostgreSQL and remove orphaned DB records."""
+    try:
+        with app.app_context():
+            os.makedirs('story_previews', exist_ok=True)
+            saved = 0
+            disk_ids = set()
+            for fname in os.listdir('story_previews'):
+                if not fname.endswith('.json'):
+                    continue
+                preview_id = fname[:-5]
+                disk_ids.add(preview_id)
+                path = f'story_previews/{preview_id}.json'
+                try:
+                    with open(path, 'r', encoding='utf-8') as f:
+                        raw = f.read()
+                    backup = StoryBackup.query.filter_by(preview_id=preview_id).first()
+                    if backup:
+                        if backup.data != raw:
+                            backup.data = raw
+                            backup.updated_at = datetime.utcnow()
+                            db.session.commit()
+                            saved += 1
+                    else:
+                        db.session.add(StoryBackup(preview_id=preview_id, data=raw))
+                        db.session.commit()
+                        saved += 1
+                except Exception as e:
+                    print(f"[STORY-BACKUP] Error backing up {preview_id}: {e}")
+            orphans_removed = 0
+            for backup in StoryBackup.query.all():
+                if backup.preview_id not in disk_ids:
+                    db.session.delete(backup)
+                    orphans_removed += 1
+            if orphans_removed > 0:
+                db.session.commit()
+                print(f"[STORY-BACKUP] Removed {orphans_removed} orphaned DB record(s)")
+            if saved > 0:
+                print(f"[STORY-BACKUP] Backed up {saved} story preview(s) to database")
+    except Exception as e:
+        print(f"[STORY-BACKUP] Scheduled backup failed: {e}")
+
+
+def _get_protected_preview_ids():
+    """Read admin_config.json to get demo preview IDs that must never be auto-purged."""
+    protected = set()
+    try:
+        with open('admin_config.json', 'r') as f:
+            cfg = json.load(f)
+        for key in ('demo_preview_id', 'demo_preview_id_b'):
+            val = cfg.get(key, '')
+            if val:
+                protected.add(val)
+    except Exception:
+        pass
+    return protected
+
+
+def _purge_story_files(preview_id, story_data, include_lulu=False):
+    """Delete all files associated with a story (scenes, visor pages, generated images, user photos)."""
+    import shutil
+    scenes_dir = f'story_previews/{preview_id}'
+    if os.path.exists(scenes_dir):
+        shutil.rmtree(scenes_dir)
+    if include_lulu:
+        lulu_folder = story_data.get('lulu_order_folder', '')
+        if lulu_folder and os.path.exists(lulu_folder):
+            shutil.rmtree(lulu_folder)
+    for visor_type in ('visor_qs', 'visor_pb'):
+        visor_dir = f'generations/{visor_type}/{preview_id}'
+        if os.path.exists(visor_dir):
+            shutil.rmtree(visor_dir)
+    output_dir = story_data.get('output_dir', '') or story_data.get('image_dir', '')
+    if output_dir and os.path.exists(output_dir):
+        shutil.rmtree(output_dir)
+    character_preview = story_data.get('character_preview', '')
+    if character_preview:
+        cp_path = character_preview.lstrip('/')
+        if os.path.exists(cp_path):
+            try:
+                os.remove(cp_path)
+            except Exception:
+                pass
+    upload_prefix = 'generated/uploads/furry_photos/'
+    for photo_key in ('human_photo_path', 'pet_photo_path'):
+        photo_path = story_data.get('traits', {}).get(photo_key, '') or story_data.get(photo_key, '')
+        if photo_path and photo_path.startswith(upload_prefix) and os.path.exists(photo_path):
+            try:
+                os.remove(photo_path)
+            except Exception:
+                pass
+
+
+def auto_purge_old_stories():
+    """Every hour: delete stories older than 72h. Protects demo stories from admin_config.json."""
+    try:
+        with app.app_context():
+            protected = _get_protected_preview_ids()
+            os.makedirs('story_previews', exist_ok=True)
+            purged = 0
+            now = datetime.utcnow()
+            cutoff = now - timedelta(hours=72)
+            for fname in os.listdir('story_previews'):
+                if not fname.endswith('.json'):
+                    continue
+                preview_id = fname[:-5]
+                if preview_id in protected:
+                    continue
+                path = f'story_previews/{preview_id}.json'
+                try:
+                    with open(path, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    payment_date_str = data.get('payment_date', '')
+                    if not payment_date_str:
+                        continue
+                    try:
+                        story_date = datetime.fromisoformat(payment_date_str.replace('Z', '+00:00').replace('+00:00', ''))
+                    except Exception:
+                        continue
+                    if story_date > cutoff:
+                        continue
+                    _purge_story_files(preview_id, data)
+                    os.remove(path)
+                    try:
+                        StoryBackup.query.filter_by(preview_id=preview_id).delete()
+                        db.session.commit()
+                    except Exception:
+                        db.session.rollback()
+                    purged += 1
+                    print(f"[AUTO-PURGE] Purged story {preview_id}")
+                except Exception as e:
+                    print(f"[AUTO-PURGE] Error purging {preview_id}: {e}")
+            if purged > 0:
+                print(f"[AUTO-PURGE] Purged {purged} story/stories older than 72h")
+    except Exception as e:
+        print(f"[AUTO-PURGE] Failed: {e}")
+
+
 scheduler = BackgroundScheduler()
 scheduler.add_job(func=scheduled_photo_cleanup, trigger="interval", hours=6, id='photo_cleanup')
 scheduler.add_job(func=scheduled_temp_file_cleanup, trigger="interval", hours=12, id='temp_cleanup')
 scheduler.add_job(func=scheduled_log_rotation, trigger="interval", hours=6, id='log_rotation')
 scheduler.add_job(func=scheduled_ebook_expiry_check, trigger="interval", hours=24, id='ebook_expiry_check')
+scheduler.add_job(func=scheduled_story_backup, trigger="interval", minutes=5, id='story_backup')
+scheduler.add_job(func=auto_purge_old_stories, trigger="interval", hours=1, id='auto_purge_stories')
 scheduler.start()
 
 atexit.register(lambda: scheduler.shutdown())
@@ -246,6 +408,9 @@ os.makedirs('logs', exist_ok=True)
 os.makedirs('generated/uploads/furry_photos', exist_ok=True)
 
 scheduled_photo_cleanup()
+restore_stories_from_backup()
+scheduled_story_backup()
+auto_purge_old_stories()
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
@@ -304,7 +469,9 @@ def set_language(lang):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    demo_visor_url = _get_demo_visor_url()
+    demo_visor_url_b = _get_demo_visor_url_b()
+    return render_template('index.html', demo_visor_url=demo_visor_url, demo_visor_url_b=demo_visor_url_b)
 
 @app.route('/about')
 def about():
@@ -1183,7 +1350,7 @@ def haz_tu_historia_checkout():
 
 @app.route('/haz-tu-historia/payment')
 def haz_tu_historia_payment():
-    """Payment page with Paddle"""
+    """Payment page with PayPal"""
     if 'haz_tu_historia' not in session or 'haz_tu_historia_shipping' not in session:
         return redirect(url_for('haz_tu_historia_form'))
     
@@ -2541,7 +2708,7 @@ def story_checkout(preview_id):
         checkout_config = {
             'product_type': 'quick_story',
             'allow_digital': True,
-            'allow_print': False,
+            'allow_print': True,
             'digital_base_price': Config.QS_DIGITAL_BASE_PRICE / 100.0,
             'print_base_price': Config.QS_PRINT_BASE_PRICE / 100.0,
             'digital_product_type': 'qs_digital',
@@ -2555,7 +2722,7 @@ def story_checkout(preview_id):
         checkout_config = {
             'product_type': 'personalized',
             'allow_digital': True,
-            'allow_print': False,
+            'allow_print': True,
             'digital_base_price': Config.PERSONALIZED_BASE_PRICE / 100.0,
             'print_base_price': Config.PERSONALIZED_BASE_PRICE / 100.0,
             'digital_product_type': 'personalized',
@@ -2569,7 +2736,7 @@ def story_checkout(preview_id):
         checkout_config = {
             'product_type': 'personalized',
             'allow_digital': True,
-            'allow_print': False,
+            'allow_print': True,
             'digital_base_price': Config.PERSONALIZED_BASE_PRICE / 100.0,
             'print_base_price': Config.PERSONALIZED_BASE_PRICE / 100.0,
             'digital_product_type': 'personalized',
@@ -2783,20 +2950,32 @@ def paypal_create_order():
         return jsonify({'error': 'amount_usd required'}), 400
     try:
         token = _get_paypal_access_token()
+
+        purchase_unit = {
+            "amount": {"currency_code": "USD", "value": str(round(float(amount_usd), 2))},
+            "description": "Magic Memories Books"
+        }
+
+        order_payload = {
+            "intent": "CAPTURE",
+            "purchase_units": [purchase_unit],
+            "application_context": {
+                "brand_name": "Magic Memories Books",
+                "shipping_preference": "NO_SHIPPING"
+            }
+        }
+
         resp = req.post(
             f"{Config.PAYPAL_API_BASE}/v2/checkout/orders",
             headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-            json={
-                "intent": "CAPTURE",
-                "purchase_units": [{
-                    "amount": {"currency_code": "USD", "value": str(round(float(amount_usd), 2))},
-                    "description": "Magic Memories Books"
-                }]
-            },
+            json=order_payload,
             timeout=15
         )
+        resp_data = resp.json()
+        print(f"[PAYPAL] create-order payload: {order_payload}")
+        print(f"[PAYPAL] create-order response ({resp.status_code}): {resp_data}")
         resp.raise_for_status()
-        return jsonify({'id': resp.json()['id']})
+        return jsonify({'id': resp_data['id']})
     except Exception as e:
         print(f"[PAYPAL] create-order error: {e}")
         return jsonify({'error': str(e)}), 500
@@ -2875,7 +3054,7 @@ def save_checkout_data(preview_id):
 
 @app.route('/api/save-shipping-data/<preview_id>', methods=['POST'])
 def save_shipping_data(preview_id):
-    """Save shipping data before Paddle checkout"""
+    """Save shipping data before checkout"""
     preview_file = f'story_previews/{preview_id}.json'
     if not os.path.exists(preview_file):
         return jsonify({'success': False, 'error': 'Story not found'}), 404
@@ -2918,7 +3097,7 @@ def save_shipping_data(preview_id):
 
 @app.route('/api/process-payment/<preview_id>', methods=['POST'])
 def process_payment(preview_id):
-    """Process payment after Paddle confirmation.
+    """Process payment after PayPal confirmation.
     Triggers post-payment processing for personalized books (Lulu PDFs + admin email).
     """
     preview_file = f'story_previews/{preview_id}.json'
@@ -2926,8 +3105,8 @@ def process_payment(preview_id):
         return jsonify({'success': False, 'error': 'Story not found'}), 404
     
     data = request.get_json()
-    paypal_order_id = data.get('paypal_order_id') or data.get('paddle_transaction_id', '')
-    customer_email_from_paddle = data.get('customer_email', '') or data.get('email', '')
+    paypal_order_id = data.get('paypal_order_id', '')
+    customer_email = data.get('customer_email', '') or data.get('email', '')
     want_print = data.get('want_print', False)
     shipping_address = data.get('shipping_address')
     product_type = data.get('product_type', '')
@@ -2955,15 +3134,29 @@ def process_payment(preview_id):
     if want_print and shipping_address:
         story_data['shipping_address'] = shipping_address
     
-    if customer_email_from_paddle:
-        story_data['customer_email'] = customer_email_from_paddle
+    if customer_email:
+        story_data['customer_email'] = customer_email
     
     email = story_data.get('customer_email', '')
     story_id = story_data.get('story_id', '')
     
-    print(f"[PAYMENT] Paddle transaction: {paddle_transaction_id}")
+    print(f"[PAYMENT] PayPal order: {paypal_order_id}")
     print(f"[PAYMENT] Story ID: {story_id}")
     print(f"[PAYMENT] Email: {email}")
+    
+    if paypal_order_id:
+        try:
+            real_order = RealStoryOrder.query.filter_by(order_number=preview_id).first()
+            if real_order:
+                real_order.paypal_order_id = paypal_order_id
+                real_order.amount_paid = int(float(data.get('amount_usd', 0)) * 100) if data.get('amount_usd') else None
+                real_order.paid_at = datetime.utcnow()
+                real_order.status = 'PAID'
+                db.session.commit()
+                print(f"[PAYMENT] Updated RealStoryOrder {preview_id} with paypal_order_id={paypal_order_id}")
+        except Exception as db_err:
+            print(f"[PAYMENT] DB update for RealStoryOrder failed (non-blocking): {db_err}")
+            db.session.rollback()
     
     with open(preview_file, 'w', encoding='utf-8') as f:
         json.dump(story_data, f, ensure_ascii=False, indent=2)
@@ -2975,7 +3168,42 @@ def process_payment(preview_id):
             child_name = story_data.get('child_name', 'tu hijo/a')
             base_url = os.environ.get('SITE_DOMAIN', os.environ.get('REPLIT_DEV_DOMAIN', 'magicmemoriesbooks.com'))
             recovery_url = f"https://{base_url}/order-complete/{preview_id}"
-            send_payment_confirmation_email(email, child_name, recovery_url, lang)
+
+            _formats = data.get('formats', [])
+            _shipping_cost = float(data.get('shipping_cost', 0))
+            _total = float(data.get('amount_usd', 0))
+            _fp = data.get('format_prices', {})
+
+            _is_qs = product_type in ('', 'quick_story', 'qs_digital', 'qs_print')
+            _digital_price = float(_fp.get('digital', 0)) or (Config.QS_DIGITAL_BASE_PRICE if _is_qs else Config.PERSONALIZED_BASE_PRICE) / 100.0
+            _print_price = float(_fp.get('print', 0)) or (Config.QS_PRINT_BASE_PRICE if _is_qs else Config.PERSONALIZED_BASE_PRICE) / 100.0
+            _ebook_price = float(_fp.get('ebook', 0)) or Config.EBOOK_BASE_PRICE / 100.0
+
+            _format_labels = {
+                'digital': (('Cuento Digital (PDF)', 'Digital Story (PDF)'), _digital_price),
+                'ebook': (('eBook Interactivo', 'Interactive eBook'), _ebook_price),
+                'print': (('Libro Impreso', 'Printed Book'), _print_price),
+            }
+            _line_items = []
+            for fmt in _formats:
+                info = _format_labels.get(fmt)
+                if info:
+                    label = info[0][0] if lang == 'es' else info[0][1]
+                    _line_items.append({'label': label, 'price': info[1]})
+
+            if not _line_items and _total > 0:
+                _fallback_label = ('Cuento Personalizado', 'Personalized Story')
+                _line_items = [{'label': _fallback_label[0] if lang == 'es' else _fallback_label[1], 'price': _total - _shipping_cost}]
+
+            if _total <= 0 and _line_items:
+                _total = sum(item['price'] for item in _line_items) + _shipping_cost
+
+            send_payment_confirmation_email(
+                email, child_name, recovery_url, lang,
+                line_items=_line_items if _line_items else None,
+                shipping_cost=_shipping_cost,
+                total_usd=_total
+            )
             print(f"[PAYMENT] Confirmation email sent to {email}")
         except Exception as e:
             print(f"[PAYMENT] Failed to send confirmation email: {e}")
@@ -3231,10 +3459,11 @@ def api_generation_status(preview_id):
                 'scene_paths': [],
                 'error': story_data.get('generation_error', 'Scene generation failed')
             })
+        prog = _generation_progress.get(preview_id, {})
         return jsonify({
             'status': 'generating',
-            'generated': 0,
-            'expected': 1,
+            'generated': prog.get('generated', 0),
+            'expected': prog.get('total', 1),
             'scene_paths': [],
             'error': ''
         })
@@ -3953,7 +4182,11 @@ def confirm_and_send(preview_id):
             if needs_lulu and story_data.get('pages_composed', False):
                 lulu_order_folder = story_data.get('lulu_order_folder', '')
                 if lulu_order_folder and os.path.exists(lulu_order_folder):
-                    shipping_address = story_data.get('shipping_address', {})
+                    shipping_address = dict(story_data.get('shipping_address', {}))
+                    if not shipping_address.get('email'):
+                        shipping_address['email'] = story_data.get('customer_email', email)
+                    if not shipping_address.get('phone_number') and shipping_address.get('phone'):
+                        shipping_address['phone_number'] = shipping_address['phone']
                     if shipping_address and shipping_address.get('name') and shipping_address.get('street1'):
                         try:
                             from services.lulu_api_service import submit_print_order
@@ -3982,7 +4215,7 @@ def confirm_and_send(preview_id):
                                 print(f"[CONFIRM-SEND] Lulu order submitted: {lulu_job_id}")
                                 
                                 try:
-                                    from services.email_service import send_lulu_order_notification
+                                    from services.email_service import send_lulu_order_notification, send_lulu_customer_notification
                                     base_url = os.environ.get('SITE_DOMAIN', os.environ.get('REPLIT_DEV_DOMAIN', 'magicmemoriesbooks.com'))
                                     folder_name = os.path.basename(lulu_order_folder)
                                     interior_url = f"https://{base_url}/lulu-files/{folder_name}/interior.pdf"
@@ -3996,9 +4229,18 @@ def confirm_and_send(preview_id):
                                         interior_url=interior_url,
                                         cover_url=cover_url
                                     )
-                                    print(f"[CONFIRM-SEND] Admin notification sent")
+                                    if email:
+                                        send_lulu_customer_notification(
+                                            to_email=email,
+                                            child_name=child_name,
+                                            book_title=book_title,
+                                            shipping_address=shipping_address,
+                                            shipping_method=shipping_level,
+                                            lang=pb_lang
+                                        )
+                                    print(f"[CONFIRM-SEND] Admin + customer notifications sent")
                                 except Exception as notif_err:
-                                    print(f"[CONFIRM-SEND] Admin notification failed: {notif_err}")
+                                    print(f"[CONFIRM-SEND] Notifications failed: {notif_err}")
                             else:
                                 story_data['lulu_status'] = 'failed'
                                 story_data['lulu_error'] = message
@@ -4746,6 +4988,31 @@ def newsletter_unsubscribe(token):
 
 _ADMIN_CONFIG_FILE = 'admin_config.json'
 
+def _load_admin_config():
+    """Load full admin config dict."""
+    if os.path.exists(_ADMIN_CONFIG_FILE):
+        try:
+            with open(_ADMIN_CONFIG_FILE, 'r') as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+def _save_admin_config(data):
+    """Save full admin config dict."""
+    existing = _load_admin_config()
+    existing.update(data)
+    with open(_ADMIN_CONFIG_FILE, 'w') as f:
+        json.dump(existing, f, ensure_ascii=False, indent=2)
+
+def _get_demo_visor_url():
+    """Get the homepage demo visor URL from config."""
+    return _load_admin_config().get('demo_visor_url', '')
+
+def _get_demo_visor_url_b():
+    """Get the homepage demo visor URL for Portal B (dragon/no-photo) from config."""
+    return _load_admin_config().get('demo_visor_url_b', '')
+
 def _load_admin_password():
     """Load admin password from config file, then env, then default."""
     if os.path.exists(_ADMIN_CONFIG_FILE):
@@ -4870,13 +5137,86 @@ def admin_dashboard():
     real_stories_count = RealStoryOrder.query.count()
     preview_leads_count = PreviewLead.query.count()
     
+    current_demo_url = _get_demo_visor_url()
+    current_demo_url_b = _get_demo_visor_url_b()
+    for p in story_previews:
+        try:
+            pf = f"story_previews/{p['preview_id']}.json"
+            with open(pf, 'r') as f:
+                sd = json.load(f)
+            p['visor_url'] = sd.get('visor_url', '')
+            p['is_demo'] = bool(p['visor_url'] and p['visor_url'] == current_demo_url)
+            p['paid'] = sd.get('paid', False)
+        except Exception:
+            p['visor_url'] = ''
+            p['is_demo'] = False
+            p['paid'] = False
+
     return render_template('admin_dashboard.html', 
                           lulu_orders=lulu_orders, 
                           lulu_summary=lulu_summary,
                           story_previews=story_previews,
                           failed_orders=failed_orders,
                           real_stories_count=real_stories_count,
-                          preview_leads_count=preview_leads_count)
+                          preview_leads_count=preview_leads_count,
+                          current_demo_url=current_demo_url,
+                          current_demo_url_b=current_demo_url_b)
+
+@app.route('/admin/set-demo/<preview_id>', methods=['POST'])
+def admin_set_demo(preview_id):
+    """Set a story as the homepage demo."""
+    if not check_admin_auth():
+        return jsonify({'error': 'Not authorized'}), 403
+    preview_file = f'story_previews/{preview_id}.json'
+    if not os.path.exists(preview_file):
+        return jsonify({'error': 'Story not found'}), 404
+    with open(preview_file, 'r') as f:
+        sd = json.load(f)
+    visor_url = sd.get('visor_url', '')
+    if not visor_url:
+        return jsonify({'error': 'This story has no visor URL yet. Generate the ebook first.'}), 400
+    _save_admin_config({'demo_visor_url': visor_url, 'demo_preview_id': preview_id})
+    return jsonify({'success': True, 'visor_url': visor_url})
+
+@app.route('/admin/reset-rate-limits', methods=['POST'])
+def admin_reset_rate_limits():
+    """Clear all preview rate limits (useful for testing)."""
+    if not check_admin_auth():
+        return jsonify({'error': 'Not authorized'}), 403
+    preview_rate_limits.clear()
+    return jsonify({'success': True, 'message': 'Rate limits cleared'})
+
+@app.route('/admin/clear-demo', methods=['POST'])
+def admin_clear_demo():
+    """Remove the homepage demo."""
+    if not check_admin_auth():
+        return jsonify({'error': 'Not authorized'}), 403
+    _save_admin_config({'demo_visor_url': '', 'demo_preview_id': ''})
+    return jsonify({'success': True})
+
+@app.route('/admin/set-demo-b/<preview_id>', methods=['POST'])
+def admin_set_demo_b(preview_id):
+    """Set a story as the Portal B homepage demo (dragon/no-photo)."""
+    if not check_admin_auth():
+        return jsonify({'error': 'Not authorized'}), 403
+    preview_file = f'story_previews/{preview_id}.json'
+    if not os.path.exists(preview_file):
+        return jsonify({'error': 'Story not found'}), 404
+    with open(preview_file, 'r') as f:
+        sd = json.load(f)
+    visor_url = sd.get('visor_url', '')
+    if not visor_url:
+        return jsonify({'error': 'This story has no visor URL yet. Generate the ebook first.'}), 400
+    _save_admin_config({'demo_visor_url_b': visor_url, 'demo_preview_id_b': preview_id})
+    return jsonify({'success': True, 'visor_url': visor_url})
+
+@app.route('/admin/clear-demo-b', methods=['POST'])
+def admin_clear_demo_b():
+    """Remove the Portal B homepage demo."""
+    if not check_admin_auth():
+        return jsonify({'error': 'Not authorized'}), 403
+    _save_admin_config({'demo_visor_url_b': '', 'demo_preview_id_b': ''})
+    return jsonify({'success': True})
 
 @app.route('/admin/lulu-orders')
 def admin_lulu_orders():
@@ -5269,6 +5609,11 @@ def admin_retry_lulu_submission(preview_id):
             story_name = story_data.get('story_name', story_data.get('title', 'Quick Story'))
             book_title = f"{story_name} - {child_name}"
         
+        shipping_address = dict(shipping_address)
+        if not shipping_address.get('email'):
+            shipping_address['email'] = story_data.get('customer_email', '')
+        if not shipping_address.get('phone_number') and shipping_address.get('phone'):
+            shipping_address['phone_number'] = shipping_address['phone']
         shipping_level = story_data.get('shipping_method', 'MAIL')
         success, message, lulu_job_id = submit_print_order(
             order_folder=order_folder,
@@ -5290,13 +5635,25 @@ def admin_retry_lulu_submission(preview_id):
                 json.dump(story_data, f, ensure_ascii=False, indent=2)
             
             try:
-                from services.email_service import send_lulu_order_notification
+                from services.email_service import send_lulu_order_notification, send_lulu_customer_notification
+                folder_name = os.path.basename(order_folder) if order_folder else preview_id
                 send_lulu_order_notification(
+                    order_folder=folder_name,
                     lulu_job_id=lulu_job_id,
                     title=book_title,
                     customer_email=story_data.get('customer_email', ''),
                     shipping_address=shipping_address
                 )
+                cust_email = story_data.get('customer_email', '')
+                if cust_email:
+                    send_lulu_customer_notification(
+                        to_email=cust_email,
+                        child_name=child_name,
+                        book_title=book_title,
+                        shipping_address=shipping_address,
+                        shipping_method=shipping_level,
+                        lang=lang
+                    )
             except Exception:
                 pass
             
@@ -5316,6 +5673,78 @@ def admin_retry_lulu_submission(preview_id):
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/admin/send-lulu-resolved/<preview_id>', methods=['POST'])
+def admin_send_lulu_resolved(preview_id):
+    if not check_admin_auth():
+        return jsonify({"error": "Unauthorized"}), 401
+
+    preview_file = os.path.join('story_previews', f'{preview_id}.json')
+    if not os.path.exists(preview_file):
+        return jsonify({"error": "Preview not found"}), 404
+
+    with open(preview_file, 'r', encoding='utf-8') as f:
+        story_data = json.load(f)
+
+    customer_email = story_data.get('customer_email', '')
+    child_name = story_data.get('child_name', 'Unknown')
+    lang = story_data.get('lang', 'es')
+    lulu_job_id = story_data.get('lulu_job_id', '')
+
+    if not customer_email:
+        return jsonify({"error": "No customer email found"}), 400
+    if not lulu_job_id:
+        return jsonify({"error": "No Lulu job ID found"}), 400
+
+    results = {}
+
+    try:
+        from services.email_service import send_lulu_resolved_email
+        ok = send_lulu_resolved_email(customer_email, child_name, str(lulu_job_id), lang)
+        results['customer_email'] = 'sent' if ok else 'failed'
+    except Exception as e:
+        results['customer_email'] = f'error: {e}'
+
+    try:
+        from services.email_service import send_lulu_order_notification, send_lulu_customer_notification
+        shipping_address = story_data.get('shipping_address', {})
+        story_id = story_data.get('story_id', '')
+        is_illustrated = story_data.get('is_illustrated_book', False)
+        if is_illustrated:
+            from services.personalized_books.generation import get_personalized_book_id, get_lulu_title
+            book_id = get_personalized_book_id(story_id)
+            pet_name_lulu = story_data.get('traits', {}).get('pet_name', '') if story_data.get('traits') else story_data.get('pet_name', '')
+            book_title = get_lulu_title(book_id, child_name, lang, pet_name=pet_name_lulu)
+        else:
+            story_name = story_data.get('story_name', story_data.get('title', 'Quick Story'))
+            book_title = f"{story_name} - {child_name}"
+        send_lulu_order_notification(
+            order_folder=preview_id,
+            lulu_job_id=str(lulu_job_id),
+            title=book_title,
+            customer_email=customer_email,
+            shipping_address=shipping_address
+        )
+        results['admin_email'] = 'sent'
+        shipping_method = story_data.get('shipping_method', 'MAIL')
+        send_lulu_customer_notification(
+            to_email=customer_email,
+            child_name=child_name,
+            book_title=book_title,
+            shipping_address=shipping_address,
+            shipping_method=shipping_method,
+            lang=lang
+        )
+        results['customer_print_email'] = 'sent'
+    except Exception as e:
+        results['admin_email'] = f'error: {e}'
+
+    story_data['lulu_resolved_email_sent'] = True
+    with open(preview_file, 'w', encoding='utf-8') as f:
+        json.dump(story_data, f, ensure_ascii=False, indent=2)
+
+    return jsonify({"success": True, "results": results})
 
 
 # ============================================================
@@ -5611,16 +6040,15 @@ def admin_delete_preview(preview_id):
         with open(preview_file, 'r') as f:
             data = json.load(f)
         
-        scenes_dir = f'story_previews/{preview_id}'
-        if os.path.exists(scenes_dir):
-            import shutil
-            shutil.rmtree(scenes_dir)
+        try:
+            StoryBackup.query.filter_by(preview_id=preview_id).delete()
+            db.session.commit()
+            print(f"[ADMIN-DELETE] Removed {preview_id} from story_backups DB")
+        except Exception as db_err:
+            db.session.rollback()
+            print(f"[ADMIN-DELETE] DB cleanup failed for {preview_id}: {db_err}")
         
-        lulu_folder = data.get('lulu_order_folder', '')
-        if lulu_folder and os.path.exists(lulu_folder):
-            import shutil
-            shutil.rmtree(lulu_folder)
-        
+        _purge_story_files(preview_id, data, include_lulu=True)
         os.remove(preview_file)
         
         return jsonify({'success': True})
@@ -5946,6 +6374,14 @@ def _generate_scenes_background(preview_id, **kwargs):
             dedication = story_data.get('dedication', '')
             author_name = story_data.get('author_name', 'Magic Memories Books')
             
+            from services.illustrated_book_service import load_book_config as _load_bcfg
+            _bcfg = _load_bcfg(book_id) or {}
+            _total_scenes = len(_bcfg.get('scenes', [])) or 1
+            _generation_progress[preview_id] = {'generated': 0, 'total': _total_scenes}
+            
+            def _scene_progress_cb(done, total):
+                _generation_progress[preview_id] = {'generated': done, 'total': total}
+            
             pages, failed_scene_indices = generate_full_book(
                 book_id=book_id,
                 child_name=child_name,
@@ -5956,7 +6392,8 @@ def _generate_scenes_background(preview_id, **kwargs):
                 for_print=True,
                 author_name=author_name,
                 reference_image_path=ref_path,
-                reference_image_path_2=ref_path_2
+                reference_image_path_2=ref_path_2,
+                progress_callback=_scene_progress_cb
             )
             
             if len(pages) < 10:
@@ -6091,7 +6528,7 @@ def _generate_scenes_background(preview_id, **kwargs):
         lang = story_data.get('lang', story_data.get('language', 'es'))
         is_birthday_story = story_cfg.get('is_birthday', False)
         
-        if scene_paths and pages_data and not is_birthday_story:
+        if scene_paths and pages_data:
             from services.quick_stories.image_composer import compose_baby_text_on_image, compose_kids_text_on_image
             from PIL import Image as PILImage
             
@@ -6181,6 +6618,7 @@ def _generate_scenes_background(preview_id, **kwargs):
         with open(preview_file, 'w', encoding='utf-8') as f:
             json.dump(story_data, f, ensure_ascii=False, indent=2)
         
+        _generation_progress.pop(preview_id, None)
         production_logger.info(f"[BG-GEN] {preview_id} completed: {len(scene_paths)} scenes, closing={bool(closing_image)}")
         
         is_digital_only = story_data.get('paid', False) and not story_data.get('want_print', False) and not story_data.get('visor_uploaded', False)
@@ -6205,6 +6643,7 @@ def _generate_scenes_background(preview_id, **kwargs):
         with open(preview_file, 'w', encoding='utf-8') as f:
             json.dump(story_data, f, ensure_ascii=False, indent=2)
         
+        _generation_progress.pop(preview_id, None)
         is_final_attempt = task_result is None or task_result.retries >= task_result.max_retries - 1
 
         customer_email = story_data.get('customer_email')
@@ -6869,6 +7308,10 @@ def _compose_personalized_book_background(preview_id, **kwargs):
         else:
             shipping_address = story_data.get('shipping_address')
             if shipping_address and shipping_address.get('name') and shipping_address.get('street1'):
+                if not shipping_address.get('email'):
+                    shipping_address['email'] = customer_email or story_data.get('customer_email', '')
+                if not shipping_address.get('phone_number') and shipping_address.get('phone'):
+                    shipping_address['phone_number'] = shipping_address['phone']
                 production_logger.info(f"[BG-COMPOSE] Sending to Lulu for printing...")
                 from services.lulu_api_service import submit_print_order
                 from services.personalized_books.generation import get_lulu_title
@@ -6891,7 +7334,7 @@ def _compose_personalized_book_background(preview_id, **kwargs):
                     story_data['lulu_status'] = 'sent'
                     
                     try:
-                        from services.email_service import send_lulu_order_notification
+                        from services.email_service import send_lulu_order_notification, send_lulu_customer_notification
                         base_url = os.environ.get('SITE_DOMAIN', os.environ.get('REPLIT_DEV_DOMAIN', 'magicmemoriesbooks.com'))
                         folder_name = os.path.basename(order_folder)
                         interior_url = f"https://{base_url}/lulu-files/{folder_name}/interior.pdf"
@@ -6906,8 +7349,17 @@ def _compose_personalized_book_background(preview_id, **kwargs):
                             interior_url=interior_url,
                             cover_url=cover_url
                         )
+                        if customer_email:
+                            send_lulu_customer_notification(
+                                to_email=customer_email,
+                                child_name=child_name,
+                                book_title=book_title,
+                                shipping_address=shipping_address,
+                                shipping_method=shipping_level,
+                                lang=lang
+                            )
                     except Exception as notif_error:
-                        production_logger.error(f"[BG-COMPOSE] Admin notification failed: {notif_error}")
+                        production_logger.error(f"[BG-COMPOSE] Notifications failed: {notif_error}")
                 else:
                     production_logger.error(f"[BG-COMPOSE] Lulu submission failed: {message}")
                     update_order_status(order_folder, 'failed')
@@ -7044,7 +7496,7 @@ _ebook_processing_lock = threading.Lock()
 def _process_personalized_book_post_payment(preview_id, customer_email):
     """
     Background thread: generate Lulu PDFs (300 DPI) + send email after payment.
-    Called from process_payment (client-side) and/or Paddle webhook.
+    Called from process_payment (client-side) after PayPal confirmation.
     Uses lock to prevent duplicate concurrent processing.
     """
     with _post_payment_lock:
@@ -7442,16 +7894,27 @@ def _process_quick_story_print(preview_id, customer_email):
         else:
             print(f"[QS-PRINT] WARNING: No valid shipping address, skipping Lulu submission")
 
-        from services.email_service import send_lulu_order_notification
+        from services.email_service import send_lulu_order_notification, send_lulu_customer_notification
+        qs_book_title = f"{story_name} - {child_name} (Quick Story Print)"
         admin_result = send_lulu_order_notification(
             order_folder=lulu_folder_name,
-            lulu_job_id=lulu_job_id or story_data.get('paddle_transaction_id', 'N/A'),
-            title=f"{story_name} - {child_name} (Quick Story Print)",
+            lulu_job_id=lulu_job_id or 'N/A',
+            title=qs_book_title,
             customer_email=customer_email,
             shipping_address=shipping_address,
             interior_url=interior_url or '',
             cover_url=cover_url or ''
         )
+        if customer_email and lulu_success:
+            qs_lang = story_data.get('lang', 'es')
+            send_lulu_customer_notification(
+                to_email=customer_email,
+                child_name=child_name,
+                book_title=qs_book_title,
+                shipping_address=shipping_address,
+                shipping_method=shipping_level,
+                lang=qs_lang
+            )
 
         with open(preview_file, 'r', encoding='utf-8') as f:
             story_data = json.load(f)
@@ -7524,222 +7987,6 @@ def _process_quick_story_print(preview_id, customer_email):
             pass
 
 
-# =====================
-# PADDLE WEBHOOK
-# =====================
-@app.route('/api/paddle-webhook', methods=['POST'])
-def paddle_webhook():
-    """
-    Handle Paddle webhook events.
-    Processes transaction.completed events for both Quick Stories and Personalized Books.
-    """
-    import hmac
-    import hashlib
-    
-    try:
-        payload = request.get_data()
-        signature = request.headers.get('Paddle-Signature', '')
-        
-        # Verify webhook signature if secret is configured
-        webhook_secret = Config.PADDLE_WEBHOOK_SECRET
-        if webhook_secret and signature:
-            # Parse signature header
-            parts = dict(part.split('=') for part in signature.split(';'))
-            ts = parts.get('ts', '')
-            h1 = parts.get('h1', '')
-            
-            # Create signed payload
-            signed_payload = f"{ts}:{payload.decode('utf-8')}"
-            
-            # Compute expected signature
-            expected_sig = hmac.new(
-                webhook_secret.encode('utf-8'),
-                signed_payload.encode('utf-8'),
-                hashlib.sha256
-            ).hexdigest()
-            
-            if not hmac.compare_digest(expected_sig, h1):
-                print("[PADDLE WEBHOOK] Invalid signature")
-                return jsonify({'error': 'Invalid signature'}), 401
-        
-        data = request.get_json()
-        event_type = data.get('event_type', '')
-        event_data = data.get('data', {})
-        
-        print(f"[PADDLE WEBHOOK] Event: {event_type}")
-        
-        if event_type == 'transaction.completed':
-            transaction_id = event_data.get('id', '')
-            custom_data = event_data.get('custom_data', {})
-            preview_id = custom_data.get('preview_id', '')
-            product_type = custom_data.get('product_type', 'personalized_book')
-            shipping_method = custom_data.get('shipping_method', 'MAIL')
-            
-            customer = event_data.get('customer', {})
-            customer_email = customer.get('email', '')
-            
-            # Get price ID to determine product
-            items = event_data.get('items', [])
-            price_id = items[0].get('price_id', '') if items else ''
-            
-            print(f"[PADDLE WEBHOOK] Transaction: {transaction_id}")
-            print(f"[PADDLE WEBHOOK] Preview ID: {preview_id}")
-            print(f"[PADDLE WEBHOOK] Product Type: {product_type}")
-            print(f"[PADDLE WEBHOOK] Email: {customer_email}")
-            print(f"[PADDLE WEBHOOK] Price ID: {price_id}")
-            
-            want_print = custom_data.get('want_print', 'false') == 'true'
-            formats_str = custom_data.get('formats', '')
-            webhook_formats = formats_str.split(',') if formats_str else []
-            
-            if product_type == 'ebook':
-                print(f"[PADDLE WEBHOOK] Processing eBook purchase")
-                if preview_id:
-                    preview_file = f'story_previews/{preview_id}.json'
-                    if os.path.exists(preview_file):
-                        with open(preview_file, 'r', encoding='utf-8') as f:
-                            story_data = json.load(f)
-                        
-                        was_gift = story_data.get('ebook_is_gift', False)
-                        story_data['paddle_transaction_id'] = transaction_id
-                        story_data['customer_email'] = customer_email
-                        story_data['payment_status'] = 'completed'
-                        story_data['product_type'] = 'ebook'
-                        story_data['ebook_paid'] = True
-                        story_data['ebook_expires_at'] = None
-                        story_data['ebook_is_gift'] = False
-                        story_data['want_print'] = False
-                        if was_gift:
-                            story_data['visor_uploaded'] = False
-                        if webhook_formats:
-                            story_data['formats'] = webhook_formats
-                        
-                        with open(preview_file, 'w', encoding='utf-8') as f:
-                            json.dump(story_data, f, ensure_ascii=False, indent=2)
-                        
-                        print(f"[PADDLE WEBHOOK] eBook {preview_id} marked as paid (renewal={was_gift})")
-
-                        try:
-                            from services.email_service import send_admin_purchase_notification
-                            send_admin_purchase_notification(preview_id, 'ebook', customer_email, story_data)
-                            story_data['admin_notified'] = True
-                            with open(preview_file, 'w', encoding='utf-8') as f:
-                                json.dump(story_data, f, ensure_ascii=False, indent=2)
-                        except Exception as _notify_err:
-                            print(f"[PADDLE WEBHOOK] Admin notification failed: {_notify_err}")
-
-                        if not story_data.get('visor_uploaded'):
-                            t = threading.Thread(
-                                target=_process_ebook_generation,
-                                args=(preview_id, customer_email),
-                                daemon=True
-                            )
-                            t.start()
-            
-            elif product_type in ('quick_story', 'qs_digital', 'qs_print'):
-                print(f"[PADDLE WEBHOOK] Processing Quick Story (want_print={want_print})")
-                if preview_id:
-                    preview_file = f'story_previews/{preview_id}.json'
-                    if os.path.exists(preview_file):
-                        with open(preview_file, 'r', encoding='utf-8') as f:
-                            story_data = json.load(f)
-                        
-                        story_data['paddle_transaction_id'] = transaction_id
-                        story_data['customer_email'] = customer_email
-                        story_data['payment_status'] = 'completed'
-                        story_data['product_type'] = 'quick_story'
-                        story_data['want_print'] = want_print
-                        if webhook_formats:
-                            story_data['formats'] = webhook_formats
-                        shipping_method = custom_data.get('shipping_method', 'MAIL')
-                        if shipping_method and shipping_method != 'none':
-                            story_data['shipping_method'] = shipping_method
-                        
-                        with open(preview_file, 'w', encoding='utf-8') as f:
-                            json.dump(story_data, f, ensure_ascii=False, indent=2)
-                        
-                        print(f"[PADDLE WEBHOOK] Quick Story {preview_id} marked as paid")
-
-                        try:
-                            from services.email_service import send_admin_purchase_notification
-                            send_admin_purchase_notification(preview_id, product_type or 'quick_story', customer_email, story_data)
-                            story_data['admin_notified'] = True
-                            with open(preview_file, 'w', encoding='utf-8') as f:
-                                json.dump(story_data, f, ensure_ascii=False, indent=2)
-                        except Exception as _notify_err:
-                            print(f"[PADDLE WEBHOOK] Admin notification failed: {_notify_err}")
-
-                        if story_data.get('scenes_pending'):
-                            print(f"[PADDLE WEBHOOK] Launching background scene generation")
-                            _trigger_background_generation(preview_id)
-                        elif want_print and not story_data.get('lulu_submitted'):
-                            print(f"[PADDLE WEBHOOK] Starting Quick Story print processing...")
-                            t = threading.Thread(
-                                target=_process_quick_story_print,
-                                args=(preview_id, customer_email),
-                                daemon=True
-                            )
-                            t.start()
-            
-            else:
-                print(f"[PADDLE WEBHOOK] Processing Personalized Book - PDF + Lulu")
-                if preview_id:
-                    preview_file = f'story_previews/{preview_id}.json'
-                    if os.path.exists(preview_file):
-                        with open(preview_file, 'r', encoding='utf-8') as f:
-                            story_data = json.load(f)
-                        
-                        already_processed = story_data.get('admin_notified', False)
-                        
-                        story_data['paddle_transaction_id'] = transaction_id
-                        story_data['customer_email'] = customer_email
-                        story_data['payment_status'] = 'completed'
-                        story_data['product_type'] = 'personalized_book'
-                        story_data['shipping_method'] = shipping_method
-                        
-                        with open(preview_file, 'w', encoding='utf-8') as f:
-                            json.dump(story_data, f, ensure_ascii=False, indent=2)
-                        
-                        print(f"[PADDLE WEBHOOK] Personalized Book {preview_id} marked as paid")
-
-                        if not already_processed:
-                            print(f"[PADDLE WEBHOOK] Personalized Book {preview_id} marked as paid, awaiting user review and approval")
-                            try:
-                                from services.email_service import send_admin_purchase_notification
-                                send_admin_purchase_notification(preview_id, 'personalized_book', customer_email, story_data)
-                                story_data['admin_notified'] = True
-                                with open(preview_file, 'w', encoding='utf-8') as f:
-                                    json.dump(story_data, f, ensure_ascii=False, indent=2)
-                            except Exception as _notify_err:
-                                print(f"[PADDLE WEBHOOK] Admin notification failed: {_notify_err}")
-                        else:
-                            print(f"[PADDLE WEBHOOK] Already processed for {preview_id}, skipping")
-        
-        elif event_type == 'transaction.payment_failed':
-            print(f"[PADDLE WEBHOOK] Payment failed")
-            transaction_id = event_data.get('id', '')
-            custom_data = event_data.get('custom_data', {})
-            preview_id = custom_data.get('preview_id', '')
-            
-            if preview_id:
-                preview_file = f'story_previews/{preview_id}.json'
-                if os.path.exists(preview_file):
-                    with open(preview_file, 'r', encoding='utf-8') as f:
-                        story_data = json.load(f)
-                    
-                    story_data['payment_status'] = 'failed'
-                    story_data['paddle_transaction_id'] = transaction_id
-                    
-                    with open(preview_file, 'w', encoding='utf-8') as f:
-                        json.dump(story_data, f, ensure_ascii=False, indent=2)
-        
-        return jsonify({'success': True}), 200
-        
-    except Exception as e:
-        print(f"[PADDLE WEBHOOK] Error: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
 
 
 # ── Print Order Routes ────────────────────────────────────────────────────────
@@ -7784,14 +8031,18 @@ def paypal_create_print_order():
             return jsonify({'error': 'Invalid amount'}), 400
         token = _get_paypal_access_token()
         import requests as req_lib
+        order_payload = {
+            'intent': 'CAPTURE',
+            'purchase_units': [{'amount': {'currency_code': 'USD', 'value': f'{amount:.2f}'}, 'description': 'Libro Impreso - Magic Memories Books'}],
+            'application_context': {
+                'brand_name': 'Magic Memories Books',
+                'shipping_preference': 'NO_SHIPPING'
+            }
+        }
         resp = req_lib.post(
             f"{Config.PAYPAL_API_BASE}/v2/checkout/orders",
             headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
-            json={
-                'intent': 'CAPTURE',
-                'purchase_units': [{'amount': {'currency_code': 'USD', 'value': f'{amount:.2f}'}, 'description': 'Libro Impreso - Magic Memories Books'}],
-                'application_context': {'brand_name': 'Magic Memories Books', 'shipping_preference': 'NO_SHIPPING'}
-            },
+            json=order_payload,
             timeout=15
         )
         order = resp.json()
@@ -7820,12 +8071,9 @@ def paypal_capture_print_order():
         status = result.get('status', '')
         if status != 'COMPLETED':
             return jsonify({'error': f'Payment not completed: {status}'}), 400
-
         capture = result.get('purchase_units', [{}])[0].get('payments', {}).get('captures', [{}])[0]
         amount_paid = float(capture.get('amount', {}).get('value', 0))
         payer_email = result.get('payer', {}).get('email_address', data.get('email', ''))
-
-        from datetime import datetime
         pr = PrintOrderRequest(
             preview_id=data.get('preview_id', ''),
             child_name=data.get('child_name', ''),
@@ -7837,41 +8085,32 @@ def paypal_capture_print_order():
             shipping_city=data.get('shipping_city', ''),
             shipping_state=data.get('shipping_state', ''),
             shipping_postal=data.get('shipping_postal', ''),
-            shipping_country=data.get('shipping_country', ''),
-            shipping_phone=data.get('phone', ''),
-            shipping_method=data.get('shipping_method', ''),
-            shipping_cost=float(data.get('shipping_cost', 0)),
+            shipping_country=data.get('shipping_country', 'ES'),
+            shipping_phone=data.get('shipping_phone', ''),
+            shipping_method=data.get('shipping_method', 'MAIL'),
+            shipping_cost=round(float(data.get('shipping_cost', 0)), 2),
             status='payment_confirmed'
         )
         db.session.add(pr)
         db.session.commit()
-
         try:
             from services.email_service import send_admin_notification_email
             send_admin_notification_email(
-                subject=f'[PRINT ORDER] Nuevo pedido #{pr.id} — {pr.customer_email}',
-                body=(f'Pedido #{pr.id}\nEmail: {pr.customer_email}\nPayPal: {order_id}\n'
-                      f'Total: ${amount_paid:.2f} USD\nEnvío: {pr.shipping_method}\n'
-                      f'Dirección: {pr.shipping_name}, {pr.shipping_street}, {pr.shipping_city}, {pr.shipping_country}')
+                subject=f'[NUEVO PEDIDO IMPRESO] {pr.child_name} — {pr.customer_email}',
+                body=f'Nuevo pedido de libro impreso.\nPedido ID: {pr.id}\nCliente: {pr.customer_email}\nNiño/a: {pr.child_name}\nImporte: ${pr.amount_paid}\nDirección: {pr.shipping_street}, {pr.shipping_city}, {pr.shipping_country}\nPreview ID: {pr.preview_id}'
             )
-        except Exception as mail_err:
-            print(f"[PRINT ORDER] Admin email error: {mail_err}")
-
-        customer_email = data.get('email', payer_email)
-        redirect_url = f'/print-order-success?email={customer_email}'
-        return jsonify({'success': True, 'orderID': order_id, 'redirect_url': redirect_url})
+        except Exception:
+            pass
+        redirect_url = f'/print-order-success?email={payer_email}'
+        return jsonify({'success': True, 'redirect': redirect_url})
     except Exception as e:
         print(f"[PAYPAL] capture-print-order error: {e}")
-        import traceback; traceback.print_exc()
         return jsonify({'error': str(e)}), 500
-
-
-# ── Admin Print Requests ───────────────────────────────────────────────────────
 
 @app.route('/admin/print-requests')
 def admin_print_requests():
     if not session.get('admin_logged_in'):
-        return redirect(url_for('admin_login_page'))
+        return redirect('/admin')
     requests_list = PrintOrderRequest.query.order_by(PrintOrderRequest.created_at.desc()).all()
     return render_template('admin_print_requests.html', requests=requests_list)
 
@@ -7881,12 +8120,11 @@ def admin_send_to_lulu(req_id):
         return jsonify({'error': 'Unauthorized'}), 401
     pr = PrintOrderRequest.query.get_or_404(req_id)
     try:
-        from services.lulu_api_service import submit_print_order
         preview_file = f'story_previews/{pr.preview_id}.json'
-        if not os.path.exists(preview_file):
-            return jsonify({'error': 'Story preview not found'}), 404
-        with open(preview_file, 'r', encoding='utf-8') as f:
-            story_data = json.load(f)
+        story_data = {}
+        if os.path.exists(preview_file):
+            with open(preview_file, 'r', encoding='utf-8') as f:
+                story_data = json.load(f)
         shipping_address = {
             'name': pr.shipping_name,
             'street1': pr.shipping_street,
@@ -7897,6 +8135,7 @@ def admin_send_to_lulu(req_id):
             'phone_number': pr.shipping_phone or '',
             'email': pr.customer_email
         }
+        from services.lulu_api_service import submit_print_order
         lulu_result = submit_print_order(story_data, shipping_address, pr.shipping_method)
         lulu_job_id = lulu_result.get('id') or lulu_result.get('print_job_id')
         pr.lulu_print_job_id = str(lulu_job_id) if lulu_job_id else None
@@ -7936,7 +8175,6 @@ def admin_send_tracking(req_id):
     except Exception as e:
         print(f"[ADMIN] send-tracking error: {e}")
         return jsonify({'error': str(e)}), 500
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
