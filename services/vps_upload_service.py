@@ -454,9 +454,6 @@ def upload_to_vps(book_uuid, local_dir):
 
 
 def _get_visor_base_url(visor_type='visor'):
-    replit_domain = os.environ.get('REPLIT_DEV_DOMAIN', '')
-    if replit_domain:
-        return f'https://{replit_domain}/{visor_type}'
     site_domain = os.environ.get('SITE_DOMAIN', 'magicmemoriesbooks.com')
     return f'https://{site_domain}/{visor_type}'
 
