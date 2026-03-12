@@ -4,10 +4,15 @@
 Magic Memories Books is a bilingual web application that uses AI to generate personalized children's storybooks with custom text and illustrations. It supports both digital and print formats, aiming to create unique, age-appropriate narratives with dynamic character personalization to foster imagination and create cherished family memories. The project targets a global market with ambitions for high-quality, personalized children's literature.
 
 ## REGLA CRÍTICA — GitHub Sync Obligatorio
-**SIEMPRE, después de cualquier cambio en el código**, subir los archivos modificados al repositorio GitHub (`magicmemoriesbooks-io/magic-memories-page`) usando la API de GitHub (token en la URL del remote). El flujo es:
-1. Verificar qué archivos cambiaron (comparar contenido local vs remote via API)
-2. Subir SOLO los archivos que tienen cambios reales
-3. Confirmar que todos quedaron en sync
+**ANTES de hacer cualquier cambio**, hacer fetch a GitHub y comprobar si hay commits nuevos en la rama remota. Si hay cambios, OBLIGATORIAMENTE descargar esos archivos (pull) aplicando el contenido remoto en local antes de editar. Solo después hacer los cambios propios.
+
+**DESPUÉS de cualquier cambio en el código**, subir los archivos modificados al repositorio GitHub (`magicmemoriesbooks-io/magic-memories-page`) usando la API de GitHub (token en la URL del remote). El flujo completo es:
+1. **FETCH primero**: comparar SHA del HEAD remoto con el local
+2. **Si hay cambios remotos**: descargar los archivos modificados en el remote y aplicarlos localmente
+3. Hacer los cambios de código necesarios
+4. Verificar qué archivos cambiaron (comparar contenido local vs remote via API)
+5. Subir SOLO los archivos que tienen cambios reales
+6. Confirmar que todos quedaron en sync
 
 El push normal por git falla (dos historias divergentes + binarios grandes). Usar siempre la API de GitHub directamente con `PUT /repos/{owner}/{repo}/contents/{path}`.
 
