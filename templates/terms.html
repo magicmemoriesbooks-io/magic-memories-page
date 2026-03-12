@@ -20,8 +20,11 @@
                 <h2 class="font-display text-xl font-bold text-purple-800 mb-3">
                     {% if lang == 'es' %}1. Nuestro Proceso de Venta{% else %}1. Our Sales Process{% endif %}
                 </h2>
-                <p class="text-gray-700 leading-relaxed">
-                    {% if lang == 'es' %}Para su seguridad, los pagos son procesados de forma segura a través de PayPal. Aceptamos PayPal y todas las tarjetas principales (Visa, Mastercard, American Express). No almacenamos datos de tarjetas de crédito en nuestros servidores.{% else %}For your security, payments are processed securely through PayPal. We accept PayPal and all major credit cards (Visa, Mastercard, American Express). We do not store credit card data on our servers.{% endif %}
+                <p class="text-gray-700 leading-relaxed mb-3">
+                    {% if lang == 'es' %}Para su seguridad, los pagos son procesados de forma segura a través de <strong>PayPal</strong>, plataforma de pago global con certificación PCI-DSS nivel 1. Aceptamos tarjetas de crédito/débito principales (Visa, Mastercard, American Express) y saldos de cuenta PayPal. <strong>No almacenamos datos de tarjetas de crédito en nuestros servidores</strong>; todos los datos financieros son gestionados íntegramente por PayPal.{% else %}For your security, payments are processed securely through <strong>PayPal</strong>, a global payment platform with Level 1 PCI-DSS certification. We accept all major credit/debit cards (Visa, Mastercard, American Express) and PayPal account balances. <strong>We do not store credit card data on our servers</strong>; all financial data is managed entirely by PayPal.{% endif %}
+                </p>
+                <p class="text-gray-700 leading-relaxed text-sm">
+                    {% if lang == 'es' %}Al realizar un pago, usted acepta también los <a href="https://www.paypal.com/webapps/mpp/ua/useragreement-full" target="_blank" class="text-purple-600 hover:underline">Términos de Uso de PayPal</a> y su <a href="https://www.paypal.com/webapps/mpp/ua/privacy-full" target="_blank" class="text-purple-600 hover:underline">Política de Privacidad</a>.{% else %}By making a payment, you also agree to <a href="https://www.paypal.com/webapps/mpp/ua/useragreement-full" target="_blank" class="text-purple-600 hover:underline">PayPal's User Agreement</a> and their <a href="https://www.paypal.com/webapps/mpp/ua/privacy-full" target="_blank" class="text-purple-600 hover:underline">Privacy Policy</a>.{% endif %}
                 </p>
             </div>
 
@@ -42,7 +45,7 @@
 
             <div class="border-l-4 border-blue-500 pl-6 bg-blue-50 py-4 rounded-r-lg">
                 <h2 class="font-display text-xl font-bold text-blue-800 mb-3">
-                    {% if lang == 'es' %}3. Entrega de Productos Digitales y Físicos{% else %}3. Digital and Physical Product Delivery{% endif %}
+                    {% if lang == 'es' %}3. Entrega de Productos Digitales{% else %}3. Digital Product Delivery{% endif %}
                 </h2>
                 <div class="bg-white p-4 rounded-lg mb-3">
                     <p class="text-gray-700 leading-relaxed mb-2 font-medium">
@@ -50,7 +53,7 @@
                     </p>
                     <ul class="text-gray-700 space-y-2 ml-4">
                         <li>{% if lang == 'es' %}• <strong>Cuentos Rápidos ($20):</strong> PDF Digital + PDF imprimible, entrega inmediata por email.{% else %}• <strong>Quick Stories ($20):</strong> Digital PDF + printable PDF, immediate email delivery.{% endif %}</li>
-                        <li>{% if lang == 'es' %}• <strong>Libros Personalizados ($30):</strong> PDF Digital personalizado con ilustraciones únicas, entrega inmediata.{% else %}• <strong>Personalized Books ($30):</strong> Personalized digital PDF with unique illustrations, immediate delivery.{% endif %}</li>
+                        <li>{% if lang == 'es' %}• <strong>Cuento Personalizado ($30):</strong> PDF Digital personalizado con ilustraciones únicas, entrega inmediata.{% else %}• <strong>Personalized Story ($30):</strong> Personalized digital PDF with unique illustrations, immediate delivery.{% endif %}</li>
                         <li>{% if lang == 'es' %}• <strong>eBook Interactivo ($7):</strong> Visor flipbook con narración y música, acceso permanente.{% else %}• <strong>Interactive eBook ($7):</strong> Flipbook viewer with narration and music, permanent access.{% endif %}</li>
                     </ul>
                 </div>
@@ -180,7 +183,7 @@
         </div>
 
         <div class="mt-8 pt-8 border-t border-gray-200 text-center text-gray-500 text-sm">
-            <p>{% if lang == 'es' %}Última actualización: Febrero 2026{% else %}Last updated: February 2026{% endif %}</p>
+            <p>{% if lang == 'es' %}Última actualización: Marzo 2026{% else %}Last updated: March 2026{% endif %}</p>
         </div>
     </div>
 </section>
