@@ -1,0 +1,473 @@
+{
+  "story_id": "furry_love_adventure_illustrated",
+  "title": "The Adventures of Coro and Alex",
+  "story_name": "The Adventures of Coro and Alex",
+  "child_name": "Alex",
+  "gender": "male",
+  "author_name": "Your family",
+  "dedication": "For Alex and Coro, with all our love.",
+  "traits": {
+    "hair_color": "light_brown",
+    "hair_type": "straight",
+    "hair_length": "short",
+    "eye_color": "green",
+    "skin_tone": "light",
+    "child_age": "3",
+    "gender": "male",
+    "pet_name": "Coro",
+    "pet_desc": "a small Domestic Shorthair cat with golden fur, friendly expression, warm brown eyes",
+    "facial_hair": "none",
+    "glasses": "none",
+    "body_build": "average",
+    "human_desc": "a boy (3 year old), light brown short cropped straight boy haircut, trimmed above ears and neatly tapered, bright green eyes, fair light pink skin with soft rosy undertones, clearly light-skinned Caucasian skin"
+  },
+  "pages": [
+    {
+      "page_num": 1,
+      "text": "One Saturday morning, Alex opened their eyes and felt something warm and soft curled up at their feet. It was Coro, who had been awake for a while, patiently waiting for their best friend to wake up.",
+      "text_above": "One Saturday morning, Alex opened their eyes and felt something warm and soft curled up at their feet.",
+      "text_below": "It was Coro, who had been awake for a while, patiently waiting for their best friend to wake up.",
+      "scene_prompt": null
+    },
+    {
+      "page_num": 2,
+      "text": "\"Today we're going on an adventure!\" said Alex, jumping out of bed. After breakfast, they grabbed the leash and Coro was already waiting by the door, spinning with excitement. The park was calling.",
+      "text_above": "\"Today we're going on an adventure!\" said Alex, jumping out of bed. After breakfast, they grabbed the leash and Coro was already waiting by the door, spinning with excitement.",
+      "text_below": "The park was calling.",
+      "scene_prompt": null
+    },
+    {
+      "page_num": 3,
+      "text": "Coro pulled hard, sniffing every corner of the path. Suddenly, they stopped dead. Their nose pointed at the ground, where strange tracks marked the dirt path. They were big, round, and sparkled with golden dust.",
+      "text_above": "Coro pulled hard, sniffing every corner of the path. Suddenly, they stopped dead. Their nose pointed at the ground, where strange tracks marked the dirt path.",
+      "text_below": "They were big, round, and sparkled with golden dust.",
+      "scene_prompt": null
+    },
+    {
+      "page_num": 4,
+      "text": "\"What could that be?\" whispered Alex, bending down for a closer look. Coro sniffed the tracks carefully and then looked at Alex, as if saying: \"Should we follow them?\" The golden tracks led them to a huge bush that was trembling.",
+      "text_above": "\"What could that be?\" whispered Alex, bending down for a closer look. Coro sniffed the tracks carefully and then looked at Alex, as if saying: \"Should we follow them?\"",
+      "text_below": "The golden tracks led them to a huge bush that was trembling.",
+      "scene_prompt": null
+    },
+    {
+      "page_num": 5,
+      "text": "The two friends looked at each other bravely. Alex carefully parted the branches... It was an enormous butterfly, the size of a plate! Its wings shimmered with every color of the rainbow and left a trail of golden dust.",
+      "text_above": "The two friends looked at each other bravely. Alex carefully parted the branches...",
+      "text_below": "It was an enormous butterfly, the size of a plate! Its wings shimmered with every color of the rainbow and left a trail of golden dust.",
+      "scene_prompt": null
+    },
+    {
+      "page_num": 6,
+      "text": "Coro leaped trying to catch it, spinning in the air like a clumsy acrobat. Alex fell to the ground laughing. The butterfly guided them to a huge puddle glistening under the sun. Coro jumped straight into the water with a tremendous SPLASH!",
+      "text_above": "Coro leaped trying to catch it, spinning in the air like a clumsy acrobat. Alex fell to the ground laughing.",
+      "text_below": "The butterfly guided them to a huge puddle glistening under the sun. Coro jumped straight into the water with a tremendous SPLASH!",
+      "scene_prompt": null
+    },
+    {
+      "page_num": 7,
+      "text": "Water splashed everywhere, soaking Alex from head to toe. On the other side of the park, an old wooden fence was hiding something Alex had never seen. The golden butterfly flew over it, inviting them to follow.",
+      "text_above": "Water splashed everywhere, soaking Alex from head to toe. On the other side of the park, an old wooden fence was hiding something Alex had never seen.",
+      "text_below": "The golden butterfly flew over it, inviting them to follow.",
+      "scene_prompt": null
+    },
+    {
+      "page_num": 8,
+      "text": "Alex looked at Coro. Coro looked at Alex. Without a word, they both ducked under the fence. What they found on the other side left them speechless: a secret garden with enormous flowers of every color.",
+      "text_above": "Alex looked at Coro. Coro looked at Alex. Without a word, they both ducked under the fence.",
+      "text_below": "What they found on the other side left them speechless: a secret garden with enormous flowers of every color.",
+      "scene_prompt": null
+    },
+    {
+      "page_num": 9,
+      "text": "Coro stuck their nose in a purple flower and sneezed, launching a cloud of shimmering pollen. Alex picked up a petal that fit in both hands. Under the biggest tree in the garden, the roots formed a hideaway. And there, peeking out, was an old chest.",
+      "text_above": "Coro stuck their nose in a purple flower and sneezed, launching a cloud of shimmering pollen. Alex picked up a petal that fit in both hands.",
+      "text_below": "Under the biggest tree in the garden, the roots formed a hideaway. And there, peeking out, was an old chest.",
+      "scene_prompt": null
+    },
+    {
+      "page_num": 10,
+      "text": "With hands trembling with excitement, Alex opened the rusty lid. Inside was an old map, hand-drawn with blue and red ink. A big X marked a spot at the end of a trail. \"It's a treasure map, Coro!\" exclaimed Alex with shining eyes.",
+      "text_above": "With hands trembling with excitement, Alex opened the rusty lid. Inside was an old map, hand-drawn with blue and red ink. A big X marked a spot at the end of a trail.",
+      "text_below": "\"It's a treasure map, Coro!\" exclaimed Alex with shining eyes.",
+      "scene_prompt": null
+    },
+    {
+      "page_num": 11,
+      "text": "Coro sniffed the map and barked once, as if saying: \"What are we waiting for?\" The map led them down a narrow path between the trees, where branches formed a green tunnel overhead. The golden butterfly flew ahead, showing them the way.",
+      "text_above": "Coro sniffed the map and barked once, as if saying: \"What are we waiting for?\" The map led them down a narrow path between the trees, where branches formed a green tunnel overhead.",
+      "text_below": "The golden butterfly flew ahead, showing them the way.",
+      "scene_prompt": null
+    },
+    {
+      "page_num": 12,
+      "text": "Alex walked ahead with the map and Coro stayed close to their legs. The trail ended at a small wooden bridge crossing a crystal-clear stream. The bridge creaked in the wind. Coro put one paw on it and backed away, scared.",
+      "text_above": "Alex walked ahead with the map and Coro stayed close to their legs. The trail ended at a small wooden bridge crossing a crystal-clear stream.",
+      "text_below": "The bridge creaked in the wind. Coro put one paw on it and backed away, scared.",
+      "scene_prompt": null
+    },
+    {
+      "page_num": 13,
+      "text": "Alex gently stroked Coro's head. \"Don't be afraid, I'm with you,\" they whispered. Then Alex carefully picked up Coro and started crossing the bridge step by step. Coro nestled against their chest, closing their eyes with trust.",
+      "text_above": "Alex gently stroked Coro's head. \"Don't be afraid, I'm with you,\" they whispered.",
+      "text_below": "Then Alex carefully picked up Coro and started crossing the bridge step by step. Coro nestled against their chest, closing their eyes with trust.",
+      "scene_prompt": null
+    },
+    {
+      "page_num": 14,
+      "text": "When they reached the other side, Coro licked Alex's face as if saying \"thank you.\" The X on the map pointed to a small cave in a hillside. The entrance was decorated with stones that sparkled like diamonds.",
+      "text_above": "When they reached the other side, Coro licked Alex's face as if saying \"thank you.\" The X on the map pointed to a small cave in a hillside.",
+      "text_below": "The entrance was decorated with stones that sparkled like diamonds.",
+      "scene_prompt": null
+    },
+    {
+      "page_num": 15,
+      "text": "Coro went in first, braver than ever. Inside, the walls sparkled with crystals of every color. At the back, carved into a smooth shining stone, was a message: \"For the bravest explorer and their best companion.\"",
+      "text_above": "Coro went in first, braver than ever. Inside, the walls sparkled with crystals of every color.",
+      "text_below": "At the back, carved into a smooth shining stone, was a message: \"For the bravest explorer and their best companion.\"",
+      "scene_prompt": null
+    },
+    {
+      "page_num": 16,
+      "text": "Alex smiled and hugged Coro. \"That's us,\" they said proudly. Behind the stone, hidden in a hollow, was a golden box. Inside was a star-shaped medallion and a little bag of special treats for Coro.",
+      "text_above": "Alex smiled and hugged Coro. \"That's us,\" they said proudly. Behind the stone, hidden in a hollow, was a golden box.",
+      "text_below": "Inside was a star-shaped medallion and a little bag of special treats for Coro.",
+      "scene_prompt": null
+    },
+    {
+      "page_num": 17,
+      "text": "Alex put the medallion around their neck. On the medallion were carved two words: \"Best Friends.\" The sun was starting to set when Alex and Coro took the path back home. The sky turned orange, pink, and purple.",
+      "text_above": "Alex put the medallion around their neck. On the medallion were carved two words: \"Best Friends.\"",
+      "text_below": "The sun was starting to set when Alex and Coro took the path back home. The sky turned orange, pink, and purple.",
+      "scene_prompt": null
+    },
+    {
+      "page_num": 18,
+      "text": "When they opened the front door, mom stared at them with wide eyes. Alex was covered in mud, leaves, and golden dust. Coro had twigs in their fur and paws full of dirt.",
+      "text_above": "When they opened the front door, mom stared at them with wide eyes. Alex was covered in mud, leaves, and golden dust.",
+      "text_below": "Coro had twigs in their fur and paws full of dirt.",
+      "scene_prompt": null
+    },
+    {
+      "page_num": 19,
+      "text": "\"What happened to you two!\" exclaimed mom. \"We just went for a walk in the park,\" said Alex with a mischievous smile. After a good bath, Alex curled up on the couch with Coro beside them. \"Tomorrow we'll find another adventure,\" whispered Alex as their eyes closed with sleep. And so, the two best friends fell asleep, dreaming of their next great adventure.",
+      "text_above": "\"What happened to you two!\" exclaimed mom. \"We just went for a walk in the park,\" said Alex with a mischievous smile. After a good bath, Alex curled up on the couch with Coro beside them.",
+      "text_below": "\"Tomorrow we'll find another adventure,\" whispered Alex as their eyes closed with sleep. And so, the two best friends fell asleep, dreaming of their next great adventure.",
+      "scene_prompt": null
+    }
+  ],
+  "story_texts": [
+    {
+      "text_above": "One Saturday morning, Alex opened their eyes and felt something warm and soft curled up at their feet.",
+      "text_below": "It was Coro, who had been awake for a while, patiently waiting for their best friend to wake up.",
+      "text": "One Saturday morning, Alex opened their eyes and felt something warm and soft curled up at their feet. It was Coro, who had been awake for a while, patiently waiting for their best friend to wake up."
+    },
+    {
+      "text_above": "\"Today we're going on an adventure!\" said Alex, jumping out of bed. After breakfast, they grabbed the leash and Coro was already waiting by the door, spinning with excitement.",
+      "text_below": "The park was calling.",
+      "text": "\"Today we're going on an adventure!\" said Alex, jumping out of bed. After breakfast, they grabbed the leash and Coro was already waiting by the door, spinning with excitement. The park was calling."
+    },
+    {
+      "text_above": "Coro pulled hard, sniffing every corner of the path. Suddenly, they stopped dead. Their nose pointed at the ground, where strange tracks marked the dirt path.",
+      "text_below": "They were big, round, and sparkled with golden dust.",
+      "text": "Coro pulled hard, sniffing every corner of the path. Suddenly, they stopped dead. Their nose pointed at the ground, where strange tracks marked the dirt path. They were big, round, and sparkled with golden dust."
+    },
+    {
+      "text_above": "\"What could that be?\" whispered Alex, bending down for a closer look. Coro sniffed the tracks carefully and then looked at Alex, as if saying: \"Should we follow them?\"",
+      "text_below": "The golden tracks led them to a huge bush that was trembling.",
+      "text": "\"What could that be?\" whispered Alex, bending down for a closer look. Coro sniffed the tracks carefully and then looked at Alex, as if saying: \"Should we follow them?\" The golden tracks led them to a huge bush that was trembling."
+    },
+    {
+      "text_above": "The two friends looked at each other bravely. Alex carefully parted the branches...",
+      "text_below": "It was an enormous butterfly, the size of a plate! Its wings shimmered with every color of the rainbow and left a trail of golden dust.",
+      "text": "The two friends looked at each other bravely. Alex carefully parted the branches... It was an enormous butterfly, the size of a plate! Its wings shimmered with every color of the rainbow and left a trail of golden dust."
+    },
+    {
+      "text_above": "Coro leaped trying to catch it, spinning in the air like a clumsy acrobat. Alex fell to the ground laughing.",
+      "text_below": "The butterfly guided them to a huge puddle glistening under the sun. Coro jumped straight into the water with a tremendous SPLASH!",
+      "text": "Coro leaped trying to catch it, spinning in the air like a clumsy acrobat. Alex fell to the ground laughing. The butterfly guided them to a huge puddle glistening under the sun. Coro jumped straight into the water with a tremendous SPLASH!"
+    },
+    {
+      "text_above": "Water splashed everywhere, soaking Alex from head to toe. On the other side of the park, an old wooden fence was hiding something Alex had never seen.",
+      "text_below": "The golden butterfly flew over it, inviting them to follow.",
+      "text": "Water splashed everywhere, soaking Alex from head to toe. On the other side of the park, an old wooden fence was hiding something Alex had never seen. The golden butterfly flew over it, inviting them to follow."
+    },
+    {
+      "text_above": "Alex looked at Coro. Coro looked at Alex. Without a word, they both ducked under the fence.",
+      "text_below": "What they found on the other side left them speechless: a secret garden with enormous flowers of every color.",
+      "text": "Alex looked at Coro. Coro looked at Alex. Without a word, they both ducked under the fence. What they found on the other side left them speechless: a secret garden with enormous flowers of every color."
+    },
+    {
+      "text_above": "Coro stuck their nose in a purple flower and sneezed, launching a cloud of shimmering pollen. Alex picked up a petal that fit in both hands.",
+      "text_below": "Under the biggest tree in the garden, the roots formed a hideaway. And there, peeking out, was an old chest.",
+      "text": "Coro stuck their nose in a purple flower and sneezed, launching a cloud of shimmering pollen. Alex picked up a petal that fit in both hands. Under the biggest tree in the garden, the roots formed a hideaway. And there, peeking out, was an old chest."
+    },
+    {
+      "text_above": "With hands trembling with excitement, Alex opened the rusty lid. Inside was an old map, hand-drawn with blue and red ink. A big X marked a spot at the end of a trail.",
+      "text_below": "\"It's a treasure map, Coro!\" exclaimed Alex with shining eyes.",
+      "text": "With hands trembling with excitement, Alex opened the rusty lid. Inside was an old map, hand-drawn with blue and red ink. A big X marked a spot at the end of a trail. \"It's a treasure map, Coro!\" exclaimed Alex with shining eyes."
+    },
+    {
+      "text_above": "Coro sniffed the map and barked once, as if saying: \"What are we waiting for?\" The map led them down a narrow path between the trees, where branches formed a green tunnel overhead.",
+      "text_below": "The golden butterfly flew ahead, showing them the way.",
+      "text": "Coro sniffed the map and barked once, as if saying: \"What are we waiting for?\" The map led them down a narrow path between the trees, where branches formed a green tunnel overhead. The golden butterfly flew ahead, showing them the way."
+    },
+    {
+      "text_above": "Alex walked ahead with the map and Coro stayed close to their legs. The trail ended at a small wooden bridge crossing a crystal-clear stream.",
+      "text_below": "The bridge creaked in the wind. Coro put one paw on it and backed away, scared.",
+      "text": "Alex walked ahead with the map and Coro stayed close to their legs. The trail ended at a small wooden bridge crossing a crystal-clear stream. The bridge creaked in the wind. Coro put one paw on it and backed away, scared."
+    },
+    {
+      "text_above": "Alex gently stroked Coro's head. \"Don't be afraid, I'm with you,\" they whispered.",
+      "text_below": "Then Alex carefully picked up Coro and started crossing the bridge step by step. Coro nestled against their chest, closing their eyes with trust.",
+      "text": "Alex gently stroked Coro's head. \"Don't be afraid, I'm with you,\" they whispered. Then Alex carefully picked up Coro and started crossing the bridge step by step. Coro nestled against their chest, closing their eyes with trust."
+    },
+    {
+      "text_above": "When they reached the other side, Coro licked Alex's face as if saying \"thank you.\" The X on the map pointed to a small cave in a hillside.",
+      "text_below": "The entrance was decorated with stones that sparkled like diamonds.",
+      "text": "When they reached the other side, Coro licked Alex's face as if saying \"thank you.\" The X on the map pointed to a small cave in a hillside. The entrance was decorated with stones that sparkled like diamonds."
+    },
+    {
+      "text_above": "Coro went in first, braver than ever. Inside, the walls sparkled with crystals of every color.",
+      "text_below": "At the back, carved into a smooth shining stone, was a message: \"For the bravest explorer and their best companion.\"",
+      "text": "Coro went in first, braver than ever. Inside, the walls sparkled with crystals of every color. At the back, carved into a smooth shining stone, was a message: \"For the bravest explorer and their best companion.\""
+    },
+    {
+      "text_above": "Alex smiled and hugged Coro. \"That's us,\" they said proudly. Behind the stone, hidden in a hollow, was a golden box.",
+      "text_below": "Inside was a star-shaped medallion and a little bag of special treats for Coro.",
+      "text": "Alex smiled and hugged Coro. \"That's us,\" they said proudly. Behind the stone, hidden in a hollow, was a golden box. Inside was a star-shaped medallion and a little bag of special treats for Coro."
+    },
+    {
+      "text_above": "Alex put the medallion around their neck. On the medallion were carved two words: \"Best Friends.\"",
+      "text_below": "The sun was starting to set when Alex and Coro took the path back home. The sky turned orange, pink, and purple.",
+      "text": "Alex put the medallion around their neck. On the medallion were carved two words: \"Best Friends.\" The sun was starting to set when Alex and Coro took the path back home. The sky turned orange, pink, and purple."
+    },
+    {
+      "text_above": "When they opened the front door, mom stared at them with wide eyes. Alex was covered in mud, leaves, and golden dust.",
+      "text_below": "Coro had twigs in their fur and paws full of dirt.",
+      "text": "When they opened the front door, mom stared at them with wide eyes. Alex was covered in mud, leaves, and golden dust. Coro had twigs in their fur and paws full of dirt."
+    },
+    {
+      "text_above": "\"What happened to you two!\" exclaimed mom. \"We just went for a walk in the park,\" said Alex with a mischievous smile. After a good bath, Alex curled up on the couch with Coro beside them.",
+      "text_below": "\"Tomorrow we'll find another adventure,\" whispered Alex as their eyes closed with sleep. And so, the two best friends fell asleep, dreaming of their next great adventure.",
+      "text": "\"What happened to you two!\" exclaimed mom. \"We just went for a walk in the park,\" said Alex with a mischievous smile. After a good bath, Alex curled up on the couch with Coro beside them. \"Tomorrow we'll find another adventure,\" whispered Alex as their eyes closed with sleep. And so, the two best friends fell asleep, dreaming of their next great adventure."
+    }
+  ],
+  "scene_paths": [
+    "/generated/composed_0a7fd7f0bb88/page_03.png",
+    "/generated/composed_0a7fd7f0bb88/page_04.png",
+    "/generated/composed_0a7fd7f0bb88/page_05.png",
+    "/generated/composed_0a7fd7f0bb88/page_06.png",
+    "/generated/composed_0a7fd7f0bb88/page_07.png",
+    "/generated/personalized_c1a366dd/page_08.png",
+    "/generated/composed_0a7fd7f0bb88/page_09.png",
+    "/generated/composed_0a7fd7f0bb88/page_10.png",
+    "/generated/composed_0a7fd7f0bb88/page_11.png",
+    "/generated/composed_0a7fd7f0bb88/page_12.png",
+    "/generated/composed_0a7fd7f0bb88/page_13.png",
+    "/generated/composed_0a7fd7f0bb88/page_14.png",
+    "/generated/composed_0a7fd7f0bb88/page_15.png",
+    "/generated/composed_0a7fd7f0bb88/page_16.png",
+    "/generated/composed_0a7fd7f0bb88/page_17.png",
+    "/generated/composed_0a7fd7f0bb88/page_18.png",
+    "/generated/composed_0a7fd7f0bb88/page_19.png",
+    "/generated/composed_0a7fd7f0bb88/page_20.png",
+    "/generated/composed_0a7fd7f0bb88/page_21.png",
+    "/generated/composed_0a7fd7f0bb88/page_22.png"
+  ],
+  "images": [
+    "/generated/composed_0a7fd7f0bb88/page_03_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_04_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_05_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_06_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_07_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_08_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_09_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_10_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_11_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_12_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_13_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_14_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_15_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_16_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_17_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_18_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_19_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_20_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_21_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_22_preview.png"
+  ],
+  "original_scene_paths": [
+    "/generated/composed_0a7fd7f0bb88/page_01.png",
+    "/generated/composed_0a7fd7f0bb88/page_02.png",
+    "/generated/composed_0a7fd7f0bb88/page_03.png",
+    "/generated/composed_0a7fd7f0bb88/page_04.png",
+    "/generated/composed_0a7fd7f0bb88/page_05.png",
+    "/generated/composed_0a7fd7f0bb88/page_06.png",
+    "/generated/composed_0a7fd7f0bb88/page_07.png",
+    "/generated/personalized_c1a366dd/page_08.png",
+    "/generated/composed_0a7fd7f0bb88/page_09.png",
+    "/generated/composed_0a7fd7f0bb88/page_10.png",
+    "/generated/composed_0a7fd7f0bb88/page_11.png",
+    "/generated/composed_0a7fd7f0bb88/page_12.png",
+    "/generated/composed_0a7fd7f0bb88/page_13.png",
+    "/generated/composed_0a7fd7f0bb88/page_14.png",
+    "/generated/composed_0a7fd7f0bb88/page_15.png",
+    "/generated/composed_0a7fd7f0bb88/page_16.png",
+    "/generated/composed_0a7fd7f0bb88/page_17.png",
+    "/generated/composed_0a7fd7f0bb88/page_18.png",
+    "/generated/composed_0a7fd7f0bb88/page_19.png",
+    "/generated/composed_0a7fd7f0bb88/page_20.png",
+    "/generated/composed_0a7fd7f0bb88/page_21.png",
+    "/generated/composed_0a7fd7f0bb88/page_22.png",
+    "/generated/composed_0a7fd7f0bb88/page_23.png",
+    "/generated/composed_0a7fd7f0bb88/page_24.png"
+  ],
+  "original_images": [
+    "/generated/composed_0a7fd7f0bb88/page_03.png",
+    "/generated/composed_0a7fd7f0bb88/page_04.png",
+    "/generated/composed_0a7fd7f0bb88/page_05.png",
+    "/generated/composed_0a7fd7f0bb88/page_06.png",
+    "/generated/composed_0a7fd7f0bb88/page_07.png",
+    "/generated/personalized_c1a366dd/page_08.png",
+    "/generated/composed_0a7fd7f0bb88/page_09.png",
+    "/generated/composed_0a7fd7f0bb88/page_10.png",
+    "/generated/composed_0a7fd7f0bb88/page_11.png",
+    "/generated/composed_0a7fd7f0bb88/page_12.png",
+    "/generated/composed_0a7fd7f0bb88/page_13.png",
+    "/generated/composed_0a7fd7f0bb88/page_14.png",
+    "/generated/composed_0a7fd7f0bb88/page_15.png",
+    "/generated/composed_0a7fd7f0bb88/page_16.png",
+    "/generated/composed_0a7fd7f0bb88/page_17.png",
+    "/generated/composed_0a7fd7f0bb88/page_18.png",
+    "/generated/composed_0a7fd7f0bb88/page_19.png",
+    "/generated/composed_0a7fd7f0bb88/page_20.png",
+    "/generated/composed_0a7fd7f0bb88/page_21.png",
+    "/generated/composed_0a7fd7f0bb88/page_22.png"
+  ],
+  "cover_image": "/generated/composed_0a7fd7f0bb88/front_cover.png",
+  "original_cover": "/generated/personalized_c1a366dd/cover.png",
+  "output_dir": "generated/personalized_c1a366dd",
+  "image_dir": "generated/personalized_c1a366dd",
+  "age_range": "3-8",
+  "lang": "en",
+  "scenes_pending": false,
+  "is_illustrated_book": true,
+  "scenes_dir": "generated",
+  "character_preview": "generated/previews/preview_human_7f015904.png",
+  "closing_image": "",
+  "text_layout": "split",
+  "closing_message": "",
+  "is_furry_love": true,
+  "pet_name": "Coro",
+  "pet_desc": "a small Domestic Shorthair cat with golden fur, friendly expression, warm brown eyes",
+  "human_desc": "a boy (3 year old), light brown short cropped straight boy haircut, trimmed above ears and neatly tapered, bright green eyes, fair light pink skin with soft rosy undertones, clearly light-skinned Caucasian skin",
+  "cover_raw_path": "generated/personalized_c1a366dd/cover_raw.png",
+  "human_preview_path": "generated/previews/preview_human_7f015904.png",
+  "pet_preview_path": "generated/previews/preview_pet_694e12ac.png",
+  "pet_preview": "/generated/previews/preview_pet_694e12ac.png",
+  "human_photo_path": "generated/uploads/furry_photos/human_badaf9e7.jpg",
+  "pet_photo_path": "generated/uploads/furry_photos/pet_f21a8fbb.jpg",
+  "want_print": true,
+  "customer_email": "contacto@magicmemoriesbooks.com",
+  "shipping_method": "MAIL",
+  "shipping_address": {
+    "name": "Isabel Ojeda",
+    "street1": "5701 sw 107 ave",
+    "street2": "suite 203 ",
+    "city": "Miami",
+    "state_code": "FL",
+    "postcode": "33173",
+    "country_code": "US",
+    "phone": "+34627873551"
+  },
+  "paid": true,
+  "paypal_order_id": "072055713D408524F",
+  "payment_date": "2026-03-11T22:51:02.797474",
+  "generation_complete": true,
+  "payment_status": "completed",
+  "formats": [
+    "ebook",
+    "print"
+  ],
+  "scenes_generating": false,
+  "cover_spread_path": "generated/composed_0a7fd7f0bb88/cover_spread.png",
+  "generation_failed": false,
+  "pages_composed": true,
+  "book_scenes_ready": true,
+  "page_regenerations": {
+    "8": 1
+  },
+  "visor_uploaded": true,
+  "visor_url": "https://22fbbab4-81cf-47c9-99b6-465de19972b2-00-1jx2j7742a9h0.janeway.replit.dev/visor_pb/?id=0a7fd7f0bb88",
+  "pdf_printable_path": "",
+  "book_composing": false,
+  "all_pages_original": [
+    "/generated/composed_0a7fd7f0bb88/page_01.png",
+    "/generated/composed_0a7fd7f0bb88/page_02.png",
+    "/generated/composed_0a7fd7f0bb88/page_03.png",
+    "/generated/composed_0a7fd7f0bb88/page_04.png",
+    "/generated/composed_0a7fd7f0bb88/page_05.png",
+    "/generated/composed_0a7fd7f0bb88/page_06.png",
+    "/generated/composed_0a7fd7f0bb88/page_07.png",
+    "/generated/personalized_c1a366dd/page_08.png",
+    "/generated/composed_0a7fd7f0bb88/page_09.png",
+    "/generated/composed_0a7fd7f0bb88/page_10.png",
+    "/generated/composed_0a7fd7f0bb88/page_11.png",
+    "/generated/composed_0a7fd7f0bb88/page_12.png",
+    "/generated/composed_0a7fd7f0bb88/page_13.png",
+    "/generated/composed_0a7fd7f0bb88/page_14.png",
+    "/generated/composed_0a7fd7f0bb88/page_15.png",
+    "/generated/composed_0a7fd7f0bb88/page_16.png",
+    "/generated/composed_0a7fd7f0bb88/page_17.png",
+    "/generated/composed_0a7fd7f0bb88/page_18.png",
+    "/generated/composed_0a7fd7f0bb88/page_19.png",
+    "/generated/composed_0a7fd7f0bb88/page_20.png",
+    "/generated/composed_0a7fd7f0bb88/page_21.png",
+    "/generated/composed_0a7fd7f0bb88/page_22.png",
+    "/generated/composed_0a7fd7f0bb88/page_23.png",
+    "/generated/composed_0a7fd7f0bb88/page_24.png"
+  ],
+  "all_pages_preview": [
+    "/generated/composed_0a7fd7f0bb88/page_01_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_02_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_03_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_04_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_05_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_06_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_07_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_08_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_09_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_10_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_11_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_12_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_13_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_14_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_15_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_16_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_17_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_18_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_19_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_20_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_21_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_22_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_23_preview.png",
+    "/generated/composed_0a7fd7f0bb88/page_24_preview.png"
+  ],
+  "composed_pages_dir": "generated/composed_0a7fd7f0bb88",
+  "front_cover_path": "/generated/composed_0a7fd7f0bb88/front_cover.png",
+  "back_cover_path": "/generated/composed_0a7fd7f0bb88/back_cover.png",
+  "cover_preview": "/generated/composed_0a7fd7f0bb88/cover_preview.png",
+  "back_cover_preview": "/generated/composed_0a7fd7f0bb88/back_cover_preview.png",
+  "lulu_order_folder": "lulu_orders/Alex_20260311_230007",
+  "lulu_status": "sent",
+  "lulu_error": null,
+  "visor_uuid": "0a7fd7f0bb88",
+  "ebook_is_gift": true,
+  "email_sent": true,
+  "email_sent_date": "2026-03-11T23:00:37.917577",
+  "admin_notified": true,
+  "lulu_job_id": 284306,
+  "lulu_submitted": true,
+  "lulu_resolved_email_sent": true
+}
