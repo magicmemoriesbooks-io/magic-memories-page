@@ -31,7 +31,7 @@ class Order(db.Model):
     customer_email = db.Column(db.String(120), nullable=False)
     customer_name = db.Column(db.String(100))
     
-    paddle_transaction_id = db.Column(db.String(100))
+    paypal_order_id = db.Column(db.String(100))
     amount_paid = db.Column(db.Integer)
     
     digital_pdf_path = db.Column(db.String(255))
@@ -90,7 +90,7 @@ class RealStoryOrder(db.Model):
     customer_email = db.Column(db.String(120), nullable=False)
     customer_name = db.Column(db.String(100))
     
-    paddle_transaction_id = db.Column(db.String(100))
+    paypal_order_id = db.Column(db.String(100))
     amount_paid = db.Column(db.Integer)
     
     digital_pdf_path = db.Column(db.String(255))
@@ -269,3 +269,17 @@ class PrintOrderRequest(db.Model):
 
     def __repr__(self):
         return f'<PrintOrderRequest {self.id} {self.customer_email}>'
+
+
+class StoryBackup(db.Model):
+    """Backup of story_previews/*.json files in PostgreSQL so they survive container rebuilds."""
+    __tablename__ = 'story_backups'
+
+    id = db.Column(db.Integer, primary_key=True)
+    preview_id = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    data = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<StoryBackup {self.preview_id}>'
