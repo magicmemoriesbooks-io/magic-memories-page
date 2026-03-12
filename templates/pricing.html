@@ -22,8 +22,8 @@
         </p>
     </div>
 
-    <!-- Grid de productos digitales -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12 max-w-3xl mx-auto">
+    <!-- Grid de productos -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12 max-w-5xl mx-auto">
 
         <!-- 1. eBook Interactivo -->
         <div class="bg-white rounded-3xl shadow-lg overflow-hidden flex flex-col border border-purple-100 hover:shadow-xl transition-shadow duration-300">
@@ -86,6 +86,39 @@
             </div>
         </div>
 
+        <!-- 3. Libro Impreso -->
+        <div class="bg-white rounded-3xl shadow-lg overflow-hidden flex flex-col border border-amber-100 hover:shadow-xl transition-shadow duration-300">
+            <div class="relative">
+                <img src="{{ url_for('static', filename='images/personalize_result.jpg') }}" alt="Libro impreso en papel" class="w-full h-48 object-cover">
+                <div class="absolute top-3 right-3 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                    {% if lang == 'es' %}REGALO ESPECIAL{% else %}SPECIAL GIFT{% endif %}
+                </div>
+            </div>
+            <div class="p-6 flex flex-col flex-grow">
+                <div class="text-4xl mb-1">📖</div>
+                <h2 class="font-display text-2xl font-bold text-purple-800 mb-1">
+                    {% if lang == 'es' %}Libro Impreso{% else %}Printed Book{% endif %}
+                </h2>
+                <p class="text-xs text-gray-400 mb-2">{% if lang == 'es' %}Tapa dura, 24 páginas a color{% else %}Hardcover, 24 full-color pages{% endif %}</p>
+                <div class="flex items-baseline gap-1 mb-3">
+                    <span class="text-2xl font-bold text-amber-600">{% if lang == 'es' %}Desde{% else %}From{% endif %}</span>
+                    <span class="text-4xl font-bold text-amber-600">$30</span>
+                    <span class="text-gray-400 text-sm">USD</span>
+                </div>
+                <p class="text-xs text-gray-500 mb-3">{% if lang == 'es' %}+ envío según destino (sin impuestos){% else %}+ shipping by destination (no taxes){% endif %}</p>
+                <ul class="text-sm text-gray-600 space-y-2 mb-6 flex-grow">
+                    <li class="flex items-start gap-2"><span class="text-amber-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Tapa dura de calidad profesional{% else %}Professional quality hardcover{% endif %}</li>
+                    <li class="flex items-start gap-2"><span class="text-amber-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Impresión a color de alta resolución{% else %}High-resolution full-color printing{% endif %}</li>
+                    <li class="flex items-start gap-2"><span class="text-amber-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Enviado a tu domicilio en 7-15 días{% else %}Delivered to your door in 7-15 days{% endif %}</li>
+                    <li class="flex items-start gap-2"><span class="text-amber-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Disponible tras compra del cuento digital{% else %}Available after digital story purchase{% endif %}</li>
+                    <li class="flex items-start gap-2"><span class="text-amber-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Impreso por Lulu Press (imprenta global){% else %}Printed by Lulu Press (global printer){% endif %}</li>
+                </ul>
+                <a href="{{ url_for('story_selection') }}" class="block text-center bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-2xl transition-colors">
+                    {% if lang == 'es' %}Crear mi cuento{% else %}Create my story{% endif %}
+                </a>
+            </div>
+        </div>
+
     </div>
 
     <!-- Pago seguro -->
@@ -143,9 +176,9 @@
                 </h3>
                 <p class="text-gray-600 text-sm">
                     {% if lang == 'es' %}
-                        Sí, después de tu compra digital puedes solicitar el libro impreso. El precio varía según el destino de envío. Contáctanos en pay@magicmemoriesbooks.com.
+                        Sí. Después de tu compra digital, aparecerá un botón para pedir el libro impreso. Tapa dura de calidad profesional, desde $30 (sin impuestos) + gastos de envío según destino. Entrega en 7-15 días.
                     {% else %}
-                        Yes, after your digital purchase you can request the printed book. Price varies by shipping destination. Contact us at pay@magicmemoriesbooks.com.
+                        Yes. After your digital purchase, a button will appear to order the printed book. Professional hardcover from $30 (no taxes) + shipping by destination. Delivered in 7-15 days.
                     {% endif %}
                 </p>
             </div>
