@@ -1537,7 +1537,8 @@ def generate_full_book(
     for_print: bool = False,
     author_name: str = "Magic Memories Books",
     reference_image_path: str = None,
-    reference_image_path_2: str = None
+    reference_image_path_2: str = None,
+    progress_callback=None
 ) -> list:
     """
     Generate all pages for the illustrated book (Lulu print structure).
@@ -1679,6 +1680,11 @@ def generate_full_book(
         )
         
         pages.append(final_page)
+        if progress_callback:
+            try:
+                progress_callback(i + 1, total_scenes)
+            except Exception:
+                pass
     
     if failed_scene_indices:
         print(f"[BOOK] WARNING: {len(failed_scene_indices)} scenes failed: {[i+1 for i in failed_scene_indices]}")
