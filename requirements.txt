@@ -14,6 +14,5 @@ ebooklib==0.18
 APScheduler==3.10.4
 requests==2.31.0
 lxml==5.1.0
-paddle-python-sdk
 openpyxl
 paramiko
