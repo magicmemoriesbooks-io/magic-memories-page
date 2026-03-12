@@ -416,9 +416,6 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
 def get_visor_base_url(visor_type='visor'):
-    replit_domain = os.environ.get('REPLIT_DEV_DOMAIN', '')
-    if replit_domain:
-        return f'https://{replit_domain}/{visor_type}'
     site_domain = os.environ.get('SITE_DOMAIN', 'magicmemoriesbooks.com')
     return f'https://{site_domain}/{visor_type}'
 
@@ -5033,12 +5030,20 @@ def _save_admin_config(data):
         json.dump(existing, f, ensure_ascii=False, indent=2)
 
 def _get_demo_visor_url():
-    """Get the homepage demo visor URL from config."""
-    return _load_admin_config().get('demo_visor_url', '')
+    """Get the homepage demo visor URL — uses relative path so it works on any server."""
+    config = _load_admin_config()
+    preview_id = config.get('demo_preview_id', '')
+    if preview_id:
+        return f'/visor_pb/?id={preview_id}'
+    return ''
 
 def _get_demo_visor_url_b():
-    """Get the homepage demo visor URL for Portal B (dragon/no-photo) from config."""
-    return _load_admin_config().get('demo_visor_url_b', '')
+    """Get the homepage demo visor URL for Portal B — uses relative path so it works on any server."""
+    config = _load_admin_config()
+    preview_id = config.get('demo_preview_id_b', '')
+    if preview_id:
+        return f'/visor_qs/?id={preview_id}'
+    return ''
 
 def _load_admin_password():
     """Load admin password from config file, then env, then default."""
@@ -5166,13 +5171,17 @@ def admin_dashboard():
     
     current_demo_url = _get_demo_visor_url()
     current_demo_url_b = _get_demo_visor_url_b()
+    _admin_cfg = _load_admin_config()
+    current_demo_id = _admin_cfg.get('demo_preview_id', '')
+    current_demo_id_b = _admin_cfg.get('demo_preview_id_b', '')
     for p in story_previews:
         try:
             pf = f"story_previews/{p['preview_id']}.json"
             with open(pf, 'r') as f:
                 sd = json.load(f)
             p['visor_url'] = sd.get('visor_url', '')
-            p['is_demo'] = bool(p['visor_url'] and p['visor_url'] == current_demo_url)
+            pid = p.get('preview_id', '')
+            p['is_demo'] = bool(pid and (pid == current_demo_id or pid == current_demo_id_b))
             p['paid'] = sd.get('paid', False)
         except Exception:
             p['visor_url'] = ''
