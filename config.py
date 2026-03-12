@@ -31,8 +31,8 @@ class Config:
     # === PAYPAL (Mar 2026) ===
     PAYPAL_CLIENT_ID = os.environ.get('PAYPAL_CLIENT_ID', '')
     PAYPAL_CLIENT_SECRET = os.environ.get('PAYPAL_CLIENT_SECRET', '')
-    PAYPAL_MODE = os.environ.get('PAYPAL_MODE', 'sandbox')
-    PAYPAL_API_BASE = 'https://api-m.sandbox.paypal.com' if os.environ.get('PAYPAL_MODE', 'sandbox') == 'sandbox' else 'https://api-m.paypal.com'
+    PAYPAL_MODE = os.environ.get('PAYPAL_MODE', 'live')
+    PAYPAL_API_BASE = 'https://api-m.sandbox.paypal.com' if os.environ.get('PAYPAL_MODE', 'live') == 'sandbox' else 'https://api-m.paypal.com'
 
     # === PRODUCT PRICING ===
     # Product 1: Quick Stories Digital + PDF ($20)
