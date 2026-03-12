@@ -127,7 +127,15 @@
     <!-- PayPal (oculto hasta que se calcule envío) -->
     <div id="paymentSection" class="hidden bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6">
         <h3 class="font-display text-lg font-bold text-gray-800 mb-2">{% if lang == 'es' %}Pago Seguro{% else %}Secure Payment{% endif %}</h3>
-        <p class="text-sm text-gray-500 mb-4">{% if lang == 'es' %}PayPal acepta tarjeta de crédito sin necesidad de cuenta PayPal.{% else %}PayPal accepts credit cards without a PayPal account.{% endif %}</p>
+        <p class="text-sm text-gray-500 mb-3">{% if lang == 'es' %}PayPal acepta tarjeta de crédito sin necesidad de cuenta PayPal.{% else %}PayPal accepts credit cards without a PayPal account.{% endif %}</p>
+        <div class="flex flex-wrap justify-center items-center gap-2 mb-4">
+            <span class="inline-flex items-center justify-center px-2 py-1 rounded border border-gray-200 bg-white text-xs font-extrabold tracking-wide" style="color:#1A1F71;min-width:44px">VISA</span>
+            <span class="inline-flex items-center justify-center px-2 py-1 rounded border border-gray-200 bg-white text-xs font-bold" style="min-width:44px"><span style="color:#EB001B">Master</span><span style="color:#F79E1B">card</span></span>
+            <span class="inline-flex items-center justify-center px-2 py-1 rounded border border-gray-200 text-white text-xs font-bold" style="background:#2557D6;min-width:44px">AMEX</span>
+            <span class="inline-flex items-center justify-center px-2 py-1 rounded border border-gray-200 bg-white text-xs font-bold" style="color:#FF6600;min-width:44px">Discover</span>
+            <span class="inline-flex items-center justify-center px-2 py-1 rounded border border-gray-200 bg-white text-xs font-bold text-gray-600" style="min-width:44px">Diners</span>
+            <span class="inline-flex items-center justify-center px-2 py-1 rounded border border-gray-200 bg-white text-xs font-bold" style="min-width:44px"><span style="color:#EB001B">Mae</span><span style="color:#0066CC">stro</span></span>
+        </div>
         <div id="paypal-button-container"></div>
         <p class="text-xs text-red-500 mt-2 hidden text-center" id="paypalError"></p>
     </div>
@@ -137,7 +145,7 @@
     </p>
 </section>
 
-<script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=USD" data-namespace="paypal_sdk"></script>
+<script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=USD&intent=capture" data-namespace="paypal_sdk"></script>
 <script>
 const PREVIEW_ID = '{{ preview_id }}';
 const BASE_PRICE = {{ base_price }};
@@ -183,9 +191,10 @@ function renderShippingMethods(options) {
     const container = document.getElementById('shippingMethodsContainer');
     container.innerHTML = '';
     let first = true;
-    Object.entries(options).forEach(([method, opt]) => {
+    const sorted = Object.entries(options).sort((a, b) => a[1].customer_total - b[1].customer_total);
+    sorted.forEach(([method, opt]) => {
         const name = LANG === 'es' ? opt.name_es : opt.name_en;
-        const price = parseFloat(opt.customer_total).toFixed(2);
+        const price = parseFloat(opt.lulu_cost).toFixed(2);
         const div = document.createElement('label');
         div.className = 'flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-purple-400 transition-all';
         div.innerHTML = `
@@ -199,8 +208,8 @@ function renderShippingMethods(options) {
         if (first) {
             selectedShippingMethod = method;
             selectedShippingCost = parseFloat(opt.lulu_cost);
-            totalAmount = BASE_PRICE + parseFloat(opt.customer_total);
-            updateTotalDisplay(opt.customer_total);
+            totalAmount = parseFloat(opt.customer_total);
+            updateTotalDisplay(opt.lulu_cost);
             first = false;
         }
     });
@@ -208,8 +217,8 @@ function renderShippingMethods(options) {
         radio.addEventListener('change', () => {
             selectedShippingMethod = radio.value;
             selectedShippingCost = parseFloat(radio.dataset.cost);
-            totalAmount = BASE_PRICE + parseFloat(radio.dataset.total);
-            updateTotalDisplay(radio.dataset.total);
+            totalAmount = parseFloat(radio.dataset.total);
+            updateTotalDisplay(radio.dataset.cost);
         });
     });
 }
@@ -270,10 +279,18 @@ function renderPayPalButtons() {
             return validateForm() ? actions.resolve() : actions.reject();
         },
         createOrder: async function() {
+            const payer_address = {
+                name: document.getElementById('shippingName')?.value || '',
+                street1: document.getElementById('shippingStreet')?.value || '',
+                city: document.getElementById('shippingCity')?.value || '',
+                state_code: document.getElementById('shippingState')?.value || '',
+                postcode: document.getElementById('shippingPostal')?.value || '',
+                country_code: document.getElementById('shippingCountry')?.value || ''
+            };
             const resp = await fetch('/api/paypal/create-print-order', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({amount_usd: totalAmount, preview_id: PREVIEW_ID})
+                body: JSON.stringify({amount_usd: totalAmount, preview_id: PREVIEW_ID, payer_address})
             });
             const order = await resp.json();
             if (order.error) throw new Error(order.error);
@@ -295,7 +312,10 @@ function renderPayPalButtons() {
         },
         onError: function(err) {
             console.error('[PAYPAL]', err);
-            showError(LANG === 'es' ? 'Error de PayPal. Inténtalo de nuevo.' : 'PayPal error. Please try again.');
+            const msg = LANG === 'es'
+                ? 'El pago con tarjeta no está disponible en este momento. Por favor, usa tu cuenta de PayPal para completar la compra.'
+                : 'Card payment is not available right now. Please use your PayPal account to complete the purchase.';
+            showError(msg);
         }
     }).render('#paypal-button-container');
     paypalButtonsRendered = true;
