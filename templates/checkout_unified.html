@@ -338,6 +338,14 @@
         <p class="text-xs text-gray-500 text-center mb-3">
             {% if lang == 'es' %}Paga con tu cuenta PayPal o con tarjeta de crédito/débito{% else %}Pay with your PayPal account or credit/debit card{% endif %}
         </p>
+        <div class="flex flex-wrap justify-center items-center gap-2 mb-4">
+            <span class="inline-flex items-center justify-center px-2 py-1 rounded border border-gray-200 bg-white text-xs font-extrabold tracking-wide" style="color:#1A1F71;min-width:44px">VISA</span>
+            <span class="inline-flex items-center justify-center px-2 py-1 rounded border border-gray-200 bg-white text-xs font-bold" style="min-width:44px"><span style="color:#EB001B">Master</span><span style="color:#F79E1B">card</span></span>
+            <span class="inline-flex items-center justify-center px-2 py-1 rounded border border-gray-200 text-white text-xs font-bold" style="background:#2557D6;min-width:44px">AMEX</span>
+            <span class="inline-flex items-center justify-center px-2 py-1 rounded border border-gray-200 bg-white text-xs font-bold" style="color:#FF6600;min-width:44px">Discover</span>
+            <span class="inline-flex items-center justify-center px-2 py-1 rounded border border-gray-200 bg-white text-xs font-bold text-gray-600" style="min-width:44px">Diners</span>
+            <span class="inline-flex items-center justify-center px-2 py-1 rounded border border-gray-200 bg-white text-xs font-bold" style="min-width:44px"><span style="color:#EB001B">Mae</span><span style="color:#0066CC">stro</span></span>
+        </div>
         <div id="paypal-button-container" class="min-h-[50px]"></div>
         <p class="text-xs text-red-500 mt-2 hidden text-center" id="paypalError"></p>
     </div>
@@ -405,7 +413,7 @@
     </div>
 </div>
 
-<script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=USD" data-namespace="paypal_sdk"></script>
+<script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=USD&intent=capture" data-namespace="paypal_sdk"></script>
 <script>
 const CFG = {
     previewId: '{{ preview_id }}',
@@ -425,6 +433,9 @@ let selectedFormats = CFG.allowDigital ? ['digital'] : (CFG.allowEbook ? ['ebook
 let selectedShippingMethod = null;
 let selectedShippingCost = 0;
 let checkoutDataGlobal = null;
+let addressValidated = false;
+let validatedAddress = null;
+let addressValidationResolve = null;
 
 // ── format toggles ──────────────────────────────────────────────────────────
 function toggleFormat() {
@@ -476,8 +487,93 @@ function getShippingAddress() {
         state_code: document.getElementById('shippingState')?.value || '',
         postcode: document.getElementById('shippingPostal')?.value || '',
         country_code: document.getElementById('shippingCountry')?.value || '',
-        phone: document.getElementById('shippingPhone')?.value || '',
+        phone_number: document.getElementById('shippingPhone')?.value || '',
+        email: document.getElementById('email')?.value?.trim() || '',
     };
+}
+
+async function validateShippingWithLulu() {
+    const addr = getShippingAddress();
+    try {
+        const resp = await fetch('/api/validate-address', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(addr)
+        });
+        const result = await resp.json();
+
+        if (result.auto_corrected && result.suggested_address) {
+            applySuggestedAddress(result.suggested_address);
+            addressValidated = true;
+            validatedAddress = result.suggested_address;
+            return true;
+        }
+
+        if (!result.valid && result.suggested_address) {
+            showAddressConfirmModal(addr, result.suggested_address);
+            return new Promise(resolve => { addressValidationResolve = resolve; });
+        }
+
+        if (!result.valid && !result.suggested_address) {
+            showPaypalError(result.message || (CFG.lang === 'es' ? 'Dirección no válida.' : 'Invalid address.'));
+            return false;
+        }
+
+        addressValidated = true;
+        validatedAddress = addr;
+        return true;
+    } catch(e) {
+        console.warn('[ADDRESS] Validation request failed, proceeding:', e);
+        addressValidated = true;
+        validatedAddress = addr;
+        return true;
+    }
+}
+
+function showAddressConfirmModal(original, suggested) {
+    const origEl = document.getElementById('originalAddressDisplay');
+    const suggEl = document.getElementById('suggestedAddressDisplay');
+    if (origEl) origEl.innerHTML = formatAddress(original);
+    if (suggEl) suggEl.innerHTML = formatAddress(suggested);
+    validatedAddress = suggested;
+    document.getElementById('addressConfirmModal').classList.remove('hidden');
+}
+
+function formatAddress(a) {
+    let lines = [a.name || ''];
+    if (a.street1) lines.push(a.street1);
+    if (a.street2) lines.push(a.street2);
+    lines.push([a.city, a.state_code, a.postcode].filter(Boolean).join(', '));
+    if (a.country_code) lines.push(a.country_code);
+    return lines.filter(Boolean).join('<br>');
+}
+
+function useOriginalAddress() {
+    document.getElementById('addressConfirmModal').classList.add('hidden');
+    addressValidated = true;
+    validatedAddress = getShippingAddress();
+    if (addressValidationResolve) { addressValidationResolve(true); addressValidationResolve = null; }
+}
+
+function useSuggestedAddress() {
+    document.getElementById('addressConfirmModal').classList.add('hidden');
+    applySuggestedAddress(validatedAddress);
+    addressValidated = true;
+    if (addressValidationResolve) { addressValidationResolve(true); addressValidationResolve = null; }
+}
+
+function applySuggestedAddress(addr) {
+    if (addr.street1) { const el = document.getElementById('shippingStreet'); if (el) el.value = addr.street1; }
+    if (addr.street2 !== undefined) { const el = document.getElementById('shippingStreet2'); if (el) el.value = addr.street2; }
+    if (addr.city) { const el = document.getElementById('shippingCity'); if (el) el.value = addr.city; }
+    if (addr.state_code) { const el = document.getElementById('shippingState'); if (el) el.value = addr.state_code; }
+    if (addr.postcode) { const el = document.getElementById('shippingPostal'); if (el) el.value = addr.postcode; }
+    if (addr.country_code) { const el = document.getElementById('shippingCountry'); if (el) el.value = addr.country_code; }
+}
+
+function resetAddressValidation() {
+    addressValidated = false;
+    validatedAddress = null;
 }
 
 async function fetchShippingRates() {
@@ -513,8 +609,9 @@ function renderShippingOptions(options) {
     const container = document.getElementById('shippingOptions');
     if (!container) return;
     container.innerHTML = '';
-    Object.entries(options).forEach(([method, opt], idx) => {
-        const price = opt.customer_total.toFixed(2);
+    const sorted = Object.entries(options).sort((a, b) => a[1].customer_total - b[1].customer_total);
+    sorted.forEach(([method, opt], idx) => {
+        const price = opt.lulu_cost.toFixed(2);
         const name = CFG.lang === 'es' ? opt.name_es : opt.name_en;
         const div = document.createElement('label');
         div.className = 'flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-purple-300 transition-all';
@@ -538,9 +635,24 @@ function renderShippingOptions(options) {
             selectedShippingMethod = radio.value;
             selectedShippingCost = parseFloat(radio.dataset.cost);
             updatePriceDisplay();
+            autoValidateAddress();
         });
     });
     container.classList.remove('hidden');
+    autoValidateAddress();
+}
+
+async function autoValidateAddress() {
+    if (addressValidated) return;
+    if (!selectedFormats.includes('print')) return;
+    const name = document.getElementById('shippingName')?.value?.trim();
+    const street = document.getElementById('shippingStreet')?.value?.trim();
+    const city = document.getElementById('shippingCity')?.value?.trim();
+    const postal = document.getElementById('shippingPostal')?.value?.trim();
+    const country = document.getElementById('shippingCountry')?.value;
+    if (!name || !street || !city || !postal || !country) return;
+    if (!selectedShippingMethod) return;
+    await validateShippingWithLulu();
 }
 
 // ── country change ──────────────────────────────────────────────────────────
@@ -549,10 +661,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const countrySelect = document.getElementById('shippingCountry');
     if (countrySelect) {
         countrySelect.addEventListener('change', () => {
+            resetAddressValidation();
             if (selectedFormats.includes('print')) fetchShippingRates();
             updateTaxIdForCountry(countrySelect.value);
         });
     }
+    ['shippingName','shippingStreet','shippingStreet2','shippingCity','shippingState','shippingPostal','shippingPhone'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', resetAddressValidation);
+    });
+    const postalEl = document.getElementById('shippingPostal');
+    if (postalEl) postalEl.addEventListener('blur', () => autoValidateAddress());
+    const countryEl = document.getElementById('shippingCountry');
+    if (countryEl) countryEl.addEventListener('blur', () => autoValidateAddress());
 });
 
 // ── validate form ───────────────────────────────────────────────────────────
@@ -630,6 +751,10 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.className = 'w-full py-3 bg-blue-600 text-white font-bold rounded-xl';
         btn.onclick = async () => {
             if (!validateCheckoutForm()) return;
+            if (selectedFormats.includes('print') && !addressValidated) {
+                const valid = await validateShippingWithLulu();
+                if (!valid) return;
+            }
             const checkoutData = await buildCheckoutData();
             await saveCheckoutData(checkoutData);
             handlePayPalSuccess('TEST_' + Date.now(), checkoutData.email, checkoutData);
@@ -647,6 +772,10 @@ document.addEventListener('DOMContentLoaded', () => {
         style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'pay' },
         onClick: async function(data, actions) {
             if (!validateCheckoutForm()) return actions.reject();
+            if (selectedFormats.includes('print') && !addressValidated) {
+                const valid = await validateShippingWithLulu();
+                if (!valid) return actions.reject();
+            }
             return actions.resolve();
         },
         createOrder: async function(data, actions) {
@@ -657,7 +786,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const resp = await fetch('/api/paypal/create-order', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({amount_usd: amount})
+                body: JSON.stringify({amount_usd: amount, preview_id: CFG.previewId})
             });
             const order = await resp.json();
             if (order.error) throw new Error(order.error);
@@ -689,7 +818,10 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         onError: function(err) {
             console.error('[PAYPAL] Error:', err);
-            showPaypalError(CFG.lang === 'es' ? 'Error de PayPal. Inténtalo de nuevo.' : 'PayPal error. Please try again.');
+            const msg = CFG.lang === 'es'
+                ? 'El pago con tarjeta no está disponible en este momento. Por favor, usa tu cuenta de PayPal para completar la compra.'
+                : 'Card payment is not available right now. Please use your PayPal account to complete the purchase.';
+            showPaypalError(msg);
         }
     }).render('#paypal-button-container');
 });
@@ -716,7 +848,10 @@ function handlePayPalSuccess(orderID, email, checkoutData) {
             shipping_address: wantPrint ? getShippingAddress() : null,
             want_print: wantPrint,
             product_type: productType,
-            formats: selectedFormats
+            formats: selectedFormats,
+            amount_usd: currentTotal,
+            shipping_cost: wantPrint ? selectedShippingCost : 0,
+            format_prices: {digital: CFG.digitalBasePrice, print: CFG.printBasePrice, ebook: CFG.ebookBasePrice}
         })
     })
     .then(r => r.json())
