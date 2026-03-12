@@ -60,13 +60,22 @@
             <h3 class="font-display text-lg font-bold text-blue-800">{% if lang == 'es' %}Pago Seguro{% else %}Secure Payment{% endif %}</h3>
         </div>
         
-        <p class="text-blue-700 text-sm mb-4">
+        <p class="text-blue-700 text-sm mb-3">
             {% if lang == 'es' %}
             Tu pago sera procesado de forma segura por PayPal. Aceptamos PayPal y todas las tarjetas principales.
             {% else %}
             Your payment will be processed securely by PayPal. We accept PayPal and all major cards.
             {% endif %}
         </p>
+
+        <div class="flex flex-wrap justify-center items-center gap-2 mb-4">
+            <span class="inline-flex items-center justify-center px-2 py-1 rounded border border-gray-200 bg-white text-xs font-extrabold tracking-wide" style="color:#1A1F71;min-width:44px">VISA</span>
+            <span class="inline-flex items-center justify-center px-2 py-1 rounded border border-gray-200 bg-white text-xs font-bold" style="min-width:44px"><span style="color:#EB001B">Master</span><span style="color:#F79E1B">card</span></span>
+            <span class="inline-flex items-center justify-center px-2 py-1 rounded border border-gray-200 text-white text-xs font-bold" style="background:#2557D6;min-width:44px">AMEX</span>
+            <span class="inline-flex items-center justify-center px-2 py-1 rounded border border-gray-200 bg-white text-xs font-bold" style="color:#FF6600;min-width:44px">Discover</span>
+            <span class="inline-flex items-center justify-center px-2 py-1 rounded border border-gray-200 bg-white text-xs font-bold text-gray-600" style="min-width:44px">Diners</span>
+            <span class="inline-flex items-center justify-center px-2 py-1 rounded border border-gray-200 bg-white text-xs font-bold" style="min-width:44px"><span style="color:#EB001B">Mae</span><span style="color:#0066CC">stro</span></span>
+        </div>
         
         <div id="paypal-button-container" class="min-h-[50px]"></div>
         <p class="text-xs text-red-500 mt-2 hidden text-center" id="paypalError"></p>
@@ -93,7 +102,7 @@
     <p id="loadingMessage" class="text-gray-500 text-center max-w-sm transition-opacity duration-300">{% if lang == 'es' %}Preparando tu cuento personalizado...{% else %}Preparing your personalized story...{% endif %}</p>
 </div>
 
-<script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=USD" data-namespace="paypal_sdk"></script>
+<script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=USD&intent=capture" data-namespace="paypal_sdk"></script>
 <script>
 const AMOUNT = {{ personalized_base_price }};
 const STORY_DATA = {{ story_data | tojson }};
