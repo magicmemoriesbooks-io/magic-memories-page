@@ -135,17 +135,9 @@ Se abrira un editor de texto. Recorre el archivo y cambia cada linea con tus dat
 | `SESSION_SECRET` | Una cadena aleatoria larga | Genera una con el comando que dice en el archivo |
 | `OPENAI_API_KEY` | Tu clave de OpenAI | `sk-proj-abc123...` |
 | `REPLICATE_API_TOKEN` | Tu token de Replicate | `r8_abc123...` |
-| `PADDLE_ENVIRONMENT` | `sandbox` para pruebas, `production` para cobrar de verdad | `production` |
-| `PADDLE_API_KEY` | Tu API key de Paddle | `pdl_abc123...` |
-| `PADDLE_SELLER_ID` | Tu Seller ID de Paddle | El numero que te da Paddle |
-| `PADDLE_CLIENT_TOKEN` | Tu Client Token de Paddle | `ctok_abc123...` |
-| `PADDLE_WEBHOOK_SECRET` | Tu Webhook Secret de Paddle | `pdl_ntfset_abc123...` |
-| `PADDLE_QS_DIGITAL_PRICE_ID` | ID del precio Quick Stories Digital | `pri_abc123...` |
-| `PADDLE_QS_DIGITAL_PRODUCT_ID` | ID del producto Quick Stories Digital | `pro_abc123...` |
-| `PADDLE_QS_PRINT_PRODUCT_ID` | ID del producto Quick Stories Impreso | `pro_abc123...` |
-| `PADDLE_PERSONALIZED_PRODUCT_ID` | ID del producto Libros Personalizados | `pro_abc123...` |
-| `PADDLE_EBOOK_PRODUCT_ID` | ID del producto eBook | `pro_abc123...` |
-| `PADDLE_EBOOK_PRICE_ID` | ID del precio eBook | `pri_abc123...` |
+| `PAYPAL_CLIENT_ID` | Tu Client ID de PayPal | `AX...` |
+| `PAYPAL_CLIENT_SECRET` | Tu Client Secret de PayPal | `EL...` |
+| `PAYPAL_MODE` | `sandbox` para pruebas, `live` para cobrar de verdad | `live` |
 | `LULU_USE_SANDBOX` | `true` para pruebas, `false` para impresion real | `false` |
 | `LULU_CLIENT_KEY` | Tu Client Key de Lulu (produccion) | La que te dio Lulu |
 | `LULU_CLIENT_SECRET` | Tu Client Secret de Lulu (produccion) | La que te dio Lulu |
@@ -217,12 +209,12 @@ Abre tu navegador y visita:
 Cuando hayas probado que todo funciona y quieras empezar a cobrar de verdad:
 
 1. Edita el archivo .env: `sudo nano /var/www/magic-memories/.env`
-2. Cambia estas dos lineas:
+2. Cambia estas lineas:
    ```
-   PADDLE_ENVIRONMENT=production
+   PAYPAL_MODE=live
    LULU_USE_SANDBOX=false
    ```
-3. Asegurate de que los IDs de productos/precios de Paddle son los de PRODUCCION (no los de sandbox)
+3. Asegurate de que `PAYPAL_CLIENT_ID` y `PAYPAL_CLIENT_SECRET` son los de PRODUCCION (no los de sandbox)
 4. Asegurate de que `LULU_CLIENT_KEY` y `LULU_CLIENT_SECRET` son las credenciales de produccion
 5. Guarda y reinicia: `sudo systemctl restart magicmemories`
 
@@ -260,10 +252,9 @@ sudo systemctl start magicmemories
 (Cambia FECHA por la fecha del backup, la puedes ver con `ls /var/www/`)
 
 ### Los pagos no funcionan
-- Verifica que `PADDLE_ENVIRONMENT` es `production` (no `sandbox`)
-- Verifica que todos los IDs de productos y precios (`pro_...`, `pri_...`) son los de produccion
-- Verifica que el `PADDLE_WEBHOOK_SECRET` es correcto
-- En el panel de Paddle, verifica que la URL del webhook apunta a `https://www.magicmemoriesbooks.com/webhook/paddle`
+- Verifica que `PAYPAL_MODE` es `live` (no `sandbox`)
+- Verifica que `PAYPAL_CLIENT_ID` y `PAYPAL_CLIENT_SECRET` son los de produccion
+- Verifica que tu cuenta de PayPal Business esta configurada correctamente
 
 ### Las imagenes no se generan
 - Verifica que `REPLICATE_API_TOKEN` es correcto
