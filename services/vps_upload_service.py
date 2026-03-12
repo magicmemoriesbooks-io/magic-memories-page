@@ -102,10 +102,31 @@ def _generate_text_page(output_path, size, bg_color, title_text, title_color,
         )
 
     if title_text:
-        bbox = draw.textbbox((0, 0), title_text, font=title_font)
-        tw = bbox[2] - bbox[0]
-        title_y = int(h * 0.35) if not body_text else int(h * 0.25)
-        draw.text(((w - tw) / 2, title_y), title_text, fill=title_color, font=title_font)
+        margin_x = int(w * 0.15)
+        max_title_width = w - 2 * margin_x
+        words = title_text.split()
+        title_lines = []
+        current_line = ""
+        for word in words:
+            test_line = (current_line + " " + word).strip()
+            bbox = draw.textbbox((0, 0), test_line, font=title_font)
+            if bbox[2] - bbox[0] <= max_title_width:
+                current_line = test_line
+            else:
+                if current_line:
+                    title_lines.append(current_line)
+                current_line = word
+        if current_line:
+            title_lines.append(current_line)
+        line_h = int(h * 0.065)
+        total_title_h = len(title_lines) * line_h
+        base_y = int(h * 0.35) if not body_text else int(h * 0.25)
+        title_y_start = base_y - total_title_h // 2
+        for idx, line in enumerate(title_lines):
+            bbox = draw.textbbox((0, 0), line, font=title_font)
+            tw = bbox[2] - bbox[0]
+            x = max(margin_x, (w - tw) / 2)
+            draw.text((x, title_y_start + idx * line_h), line, fill=title_color, font=title_font)
 
     if body_text:
         import textwrap
