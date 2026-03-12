@@ -4187,7 +4187,8 @@ def confirm_and_send(preview_id):
                         shipping_address['email'] = story_data.get('customer_email', email)
                     if not shipping_address.get('phone_number') and shipping_address.get('phone'):
                         shipping_address['phone_number'] = shipping_address['phone']
-                    if shipping_address and shipping_address.get('name') and shipping_address.get('street1'):
+                    is_admin_gift = story_data.get('admin_gift', False)
+                    if shipping_address and shipping_address.get('name') and shipping_address.get('street1') and not is_admin_gift:
                         try:
                             from services.lulu_api_service import submit_print_order
                             from services.personalized_books.generation import get_lulu_title
@@ -4253,6 +4254,32 @@ def confirm_and_send(preview_id):
                             print(f"[CONFIRM-SEND] Personalized book Lulu processing failed: {lulu_err}")
                             import traceback
                             traceback.print_exc()
+                    elif is_admin_gift:
+                        try:
+                            from services.personalized_books.generation import get_lulu_title
+                            pb_book_id = story_data.get('story_id', '')
+                            pb_traits = story_data.get('traits', {})
+                            pet_name_lulu = pb_traits.get('pet_name', '') if pb_traits else ''
+                            pb_lang = story_data.get('lang', story_data.get('language', 'es'))
+                            book_title = get_lulu_title(pb_book_id, child_name, pb_lang, pet_name=pet_name_lulu)
+                            base_url = os.environ.get('SITE_DOMAIN', os.environ.get('REPLIT_DEV_DOMAIN', 'magicmemoriesbooks.com'))
+                            folder_name = os.path.basename(lulu_order_folder)
+                            interior_url = f"https://{base_url}/lulu-files/{folder_name}/interior.pdf"
+                            cover_url = f"https://{base_url}/lulu-files/{folder_name}/cover.pdf"
+                            from services.email_service import send_lulu_order_notification
+                            send_lulu_order_notification(
+                                order_folder=folder_name,
+                                lulu_job_id='ADMIN-GIFT (pedido manual)',
+                                title=book_title,
+                                customer_email=email,
+                                shipping_address={'name': child_name, 'street1': 'Pedido manual — sin dirección'},
+                                interior_url=interior_url,
+                                cover_url=cover_url
+                            )
+                            print(f"[CONFIRM-SEND] Admin gift: PDF links sent to admin, no Lulu submit")
+                            lulu_result = {'id': 'admin_gift', 'success': True}
+                        except Exception as gift_err:
+                            print(f"[CONFIRM-SEND] Admin gift PDF notification failed: {gift_err}")
             elif story_data.get('lulu_job_id'):
                 lulu_result = {'id': story_data.get('lulu_job_id'), 'success': True}
         
@@ -7866,7 +7893,8 @@ def _process_quick_story_print(preview_id, customer_email):
         
         lulu_job_id = None
         lulu_success = False
-        if shipping_address and shipping_address.get('name') and shipping_address.get('street1'):
+        is_admin_gift_qs = story_data.get('admin_gift', False)
+        if shipping_address and shipping_address.get('name') and shipping_address.get('street1') and not is_admin_gift_qs:
             from services.lulu_api_service import submit_print_order
             
             lulu_shipping = {
@@ -7891,6 +7919,9 @@ def _process_quick_story_print(preview_id, customer_email):
                 pod_package_id=QS_POD_PACKAGE_ID
             )
             print(f"[QS-PRINT] Lulu submit result: success={lulu_success}, msg={lulu_msg}, job_id={lulu_job_id}")
+        elif is_admin_gift_qs:
+            print(f"[QS-PRINT] Admin gift order — skipping Lulu submission, PDFs will be emailed to admin")
+            lulu_job_id = 'ADMIN-GIFT (pedido manual)'
         else:
             print(f"[QS-PRINT] WARNING: No valid shipping address, skipping Lulu submission")
 
