@@ -957,7 +957,8 @@ def generate_cover_only(story_id: str, gender: str, traits: dict,
 
 def generate_scenes_only(story_id: str, gender: str, traits: dict,
                          output_dir: str, cover_path: str,
-                         child_name: str = "the child", use_flux_dev: bool = False) -> dict:
+                         child_name: str = "the child", use_flux_dev: bool = False,
+                         progress_callback=None) -> dict:
     """
     Generate ONLY the scene illustrations (Phase 2 - after payment).
     Uses the cover image as reference for consistency.
@@ -1016,6 +1017,11 @@ def generate_scenes_only(story_id: str, gender: str, traits: dict,
             else:
                 scene_path = generate_scene_with_kontext(prompt, cover_path, i, scene_aspect, output_dir, gender=gender, age_range=age_range, additional_references=additional_refs, hair_length=hair_length, child_age=child_age)
             scene_paths.append(scene_path)
+            if progress_callback:
+                try:
+                    progress_callback(i, total)
+                except Exception:
+                    pass
             
             if i < total:
                 wait_time = 3 if use_ideogram else 5
@@ -1025,6 +1031,11 @@ def generate_scenes_only(story_id: str, gender: str, traits: dict,
         except Exception as e:
             print(f"Error generating scene {i}: {e}")
             scene_paths.append(None)
+            if progress_callback:
+                try:
+                    progress_callback(len(scene_paths), total)
+                except Exception:
+                    pass
     
     closing_path = None
     closing_prompt = get_closing_prompt(story_id, child_name, gender, traits)
