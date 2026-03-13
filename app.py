@@ -5182,8 +5182,18 @@ def admin_dashboard():
             pass
     
     from models import RealStoryOrder
-    real_stories_count = RealStoryOrder.query.count()
-    preview_leads_count = PreviewLead.query.count()
+    try:
+        db.session.rollback()
+        real_stories_count = RealStoryOrder.query.count()
+        preview_leads_count = PreviewLead.query.count()
+    except Exception as db_err:
+        production_logger.error(f"[ADMIN] DB query failed: {db_err}")
+        real_stories_count = 0
+        preview_leads_count = 0
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
     
     current_demo_url = _get_demo_visor_url()
     current_demo_url_b = _get_demo_visor_url_b()
