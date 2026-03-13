@@ -4532,11 +4532,6 @@ def ebook(preview_id):
     """Redirect old ebook view to visor"""
     return redirect(url_for('ebook_preview', preview_id=preview_id))
 
-@app.route('/baby-ebook/<preview_id>')
-def baby_ebook(preview_id):
-    """Redirect old baby ebook view to visor"""
-    return redirect(url_for('ebook_preview', preview_id=preview_id))
-
 @app.route('/api/generate-pdf/<preview_id>')
 def generate_pdf(preview_id):
     format_type = request.args.get('format', 'digital')
@@ -4689,74 +4684,6 @@ def generate_baby_pdf(preview_id):
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return response
 
-@app.route('/api/generate-kids-pdf/<preview_id>')
-def generate_kids_pdf(preview_id):
-    """Generate PDF for kids story (3-5 years) with alternating illustration/text pages"""
-    format_type = request.args.get('format', 'digital')
-    if format_type not in ('digital', 'print', 'lulu'):
-        format_type = 'digital'
-    force_download = request.args.get('download', '0') == '1'
-    skip_sanitize = True
-    preview_file = f'story_previews/{preview_id}.json'
-    
-    if not os.path.exists(preview_file):
-        return jsonify({'success': False, 'error': 'Preview not found'}), 404
-    
-    with open(preview_file, 'r', encoding='utf-8') as f:
-        story_data = json.load(f)
-    
-    os.makedirs('generations/pdfs', exist_ok=True)
-    
-    child_name_safe = "".join(c for c in story_data.get('child_name', 'story') if c.isalnum() or c in ' _-').strip()
-    story_name_safe = "".join(c for c in story_data.get('story_name', 'story') if c.isalnum() or c in ' _-').strip()
-    
-    story_id = story_data.get('story_id', '')
-    is_birthday = story_id.startswith('birthday_')
-    is_illustrated_book = story_data.get('is_illustrated_book', False)
-    
-    filename = f"{child_name_safe}_{story_name_safe}_{format_type}.pdf"
-    output_path = f'generations/pdfs/{preview_id}_{format_type}.pdf'
-    
-    if is_illustrated_book:
-        from services.pdf_service import create_illustrated_book_pdf
-        
-        scenes_dir = story_data.get('scenes_dir', 'static/assets/dragon_garden_scenes')
-        scene_paths = story_data.get('scene_paths', [])
-        
-        if not scene_paths:
-            from services.fixed_stories import STORIES
-            story_config = STORIES.get(story_id, {})
-            content_pages = story_config.get('content_pages', [])
-            scene_paths = [f"/{scenes_dir}/{p['fixed_scene']}" for p in content_pages if 'fixed_scene' in p]
-        
-        create_illustrated_book_pdf(story_data, scene_paths, output_path, format_type, skip_sanitize=skip_sanitize)
-    else:
-        from services.pdf_service import create_kids_quick_story_pdf
-        
-        images = story_data.get('original_images', story_data.get('images', []))
-        if not images:
-            image_dir = story_data.get('image_dir', story_data.get('output_dir', ''))
-            images = [f"{image_dir}/scene_{i+1}.png" for i in range(len(story_data.get('pages', [])))]
-        images = [p.lstrip('/') if p.startswith('/') else p for p in images]
-        images = [p.replace('_preview.png', '.png') for p in images]
-        
-        create_kids_quick_story_pdf(story_data, images, output_path, format_type, skip_sanitize=skip_sanitize)
-    
-    as_attachment = format_type == 'print' or force_download
-    response = send_file(
-        output_path,
-        as_attachment=as_attachment,
-        download_name=filename,
-        mimetype='application/pdf'
-    )
-    if as_attachment:
-        response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
-    else:
-        response.headers['Content-Disposition'] = f'inline; filename="{filename}"'
-    response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    return response
-
 @app.route('/api/generate-baby-printable/<preview_id>')
 def generate_baby_printable(preview_id):
     """Generate printable PDF for baby story or birthday story (216mm x 216mm with 3mm bleed)"""
@@ -4785,47 +4712,6 @@ def generate_baby_printable(preview_id):
     output_path = f'generations/pdfs/{preview_id}_printable.pdf'
     
     create_baby_quick_story_pdf(story_data, images, output_path, format_type='print', skip_sanitize=True)
-    
-    response = send_file(
-        output_path,
-        as_attachment=True,
-        download_name=filename,
-        mimetype='application/pdf'
-    )
-    response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
-    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    return response
-
-@app.route('/api/generate-kids-printable/<preview_id>')
-def generate_kids_printable(preview_id):
-    """Generate printable PDF for kids story - 8.5x8.5 square or A4 depending on story type"""
-    preview_file = f'story_previews/{preview_id}.json'
-    
-    if not os.path.exists(preview_file):
-        return jsonify({'success': False, 'error': 'Preview not found'}), 404
-    
-    with open(preview_file, 'r', encoding='utf-8') as f:
-        story_data = json.load(f)
-    
-    from services.pdf_service import create_kids_quick_story_pdf
-    
-    os.makedirs('generations/pdfs', exist_ok=True)
-    
-    child_name_safe = "".join(c for c in story_data.get('child_name', 'story') if c.isalnum() or c in ' _-').strip()
-    story_name_safe = "".join(c for c in story_data.get('story_name', 'story') if c.isalnum() or c in ' _-').strip()
-    
-    images = story_data.get('original_images', story_data.get('images', []))
-    if not images:
-        image_dir = story_data.get('image_dir', story_data.get('output_dir', ''))
-        if image_dir:
-            images = [f"{image_dir}/scene_{i+1}.png" for i in range(len(story_data.get('pages', [])))]
-    images = [p.lstrip('/') if p.startswith('/') else p for p in images]
-    images = [p.replace('_preview.png', '.png') for p in images]
-    
-    filename = f"{child_name_safe}_{story_name_safe}_imprimible_8.5x8.5.pdf"
-    output_path = f'generations/pdfs/{preview_id}_kids_printable.pdf'
-    
-    create_kids_quick_story_pdf(story_data, images, output_path, format_type='print', skip_sanitize=True)
     
     response = send_file(
         output_path,
@@ -4912,12 +4798,6 @@ def download_epub(preview_id):
     except Exception as e:
         logging.error(f"Error generating ePub: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/kids-ebook/<preview_id>')
-def kids_ebook(preview_id):
-    """Redirect old kids ebook view to visor"""
-    return redirect(url_for('ebook_preview', preview_id=preview_id))
-
 
 @app.route('/visor/')
 @app.route('/visor_qs/')
@@ -6617,7 +6497,7 @@ def _generate_scenes_background(preview_id, **kwargs):
         production_logger.info(f"[BG-GEN] Starting scene generation for {preview_id} (story={story_id}, flux_dev={use_flux_dev})")
         
         from services.fixed_stories import STORIES as _FS_TOTAL
-        _qs_total = len(_FS_TOTAL.get(story_id, {}).get('scenes', [])) or len(story_data.get('pages', [])) or 8
+        _qs_total = len(story_data.get('pages', [])) or len(_FS_TOTAL.get(story_id, {}).get('pages', [])) or 8
         _generation_progress[preview_id] = {'generated': 0, 'total': _qs_total}
 
         def _qs_progress_cb(done, total):
