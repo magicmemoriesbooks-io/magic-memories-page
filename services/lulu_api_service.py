@@ -135,11 +135,8 @@ def get_public_file_url(order_folder: str, filename: str) -> Optional[str]:
     Note: In production, you might need to host files on S3, Cloudflare R2, or similar.
     For now, we use the app's own URL to serve the files.
     """
-    base_url = os.environ.get('REPLIT_DEV_DOMAIN', '')
-    if base_url:
-        base_url = f"https://{base_url}"
-    else:
-        base_url = os.environ.get('PUBLIC_URL', 'http://localhost:5000')
+    site_domain = os.environ.get('SITE_DOMAIN', 'magicmemoriesbooks.com')
+    base_url = f"https://{site_domain}"
     
     folder_name = os.path.basename(order_folder)
     file_url = f"{base_url}/lulu-files/{folder_name}/{filename}"
