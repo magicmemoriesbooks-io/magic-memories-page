@@ -3435,7 +3435,9 @@ def api_generation_status(preview_id):
     scene_paths = story_data.get('scene_paths', [])
     
     if is_illustrated_book and (scenes_pending or scenes_generating):
-        scene_task = task_queue.get_status(f"scene_gen_{preview_id}")
+        # PB uses "book_compose_" task ID; QS uses "scene_gen_"
+        scene_task = task_queue.get_status(f"scene_gen_{preview_id}") or \
+                     task_queue.get_status(f"book_compose_{preview_id}")
         if scene_task and scene_task.get('status') == 'completed':
             with open(preview_file, 'r', encoding='utf-8') as f:
                 story_data = json.load(f)
@@ -3459,12 +3461,49 @@ def api_generation_status(preview_id):
                 'error': ''
             })
         elif scene_task and scene_task.get('status') == 'failed':
+            # Task failed — reset flags in JSON so the book doesn't stay stuck forever
+            try:
+                with open(preview_file, 'r', encoding='utf-8') as f:
+                    _sd = json.load(f)
+                if _sd.get('scenes_pending') or _sd.get('scenes_generating'):
+                    _sd['scenes_pending'] = False
+                    _sd['scenes_generating'] = False
+                    _sd['generation_failed'] = True
+                    _sd['generation_error'] = _sd.get('generation_error', 'Book generation task failed')
+                    with open(preview_file, 'w', encoding='utf-8') as f:
+                        json.dump(_sd, f, ensure_ascii=False, indent=2)
+            except Exception:
+                pass
             return jsonify({
                 'status': 'failed',
                 'generated': 0,
                 'expected': 1,
                 'scene_paths': [],
                 'error': story_data.get('generation_error', 'Scene generation failed')
+            })
+        # No task found in queue at all — book may be stuck if app restarted mid-generation
+        # Check if it's been too long without progress (>20 min) and mark as failed
+        import time as _time
+        gen_started = story_data.get('generation_started_at', 0)
+        if gen_started and (_time.time() - gen_started) > 1200:
+            try:
+                with open(preview_file, 'r', encoding='utf-8') as f:
+                    _sd = json.load(f)
+                if _sd.get('scenes_pending') or _sd.get('scenes_generating'):
+                    _sd['scenes_pending'] = False
+                    _sd['scenes_generating'] = False
+                    _sd['generation_failed'] = True
+                    _sd['generation_error'] = 'Generation timed out - please contact support'
+                    with open(preview_file, 'w', encoding='utf-8') as f:
+                        json.dump(_sd, f, ensure_ascii=False, indent=2)
+            except Exception:
+                pass
+            return jsonify({
+                'status': 'failed',
+                'generated': 0,
+                'expected': 1,
+                'scene_paths': [],
+                'error': 'Generation timed out'
             })
         prog = _generation_progress.get(preview_id, {})
         return jsonify({
@@ -7089,7 +7128,9 @@ def _trigger_personalized_book_composition(preview_id):
         production_logger.info(f"[BG-COMPOSE] Task {task_id} already queued, skipping")
         return
     
+    import time as _compose_time
     story_data['book_composing'] = True
+    story_data['generation_started_at'] = _compose_time.time()
     if not story_data.get('book_scenes_ready', False):
         story_data['scenes_pending'] = True
         story_data['scenes_generating'] = True
