@@ -7922,7 +7922,9 @@ def _process_quick_story_print(preview_id, customer_email):
                 title=f"{story_name} - {child_name}",
                 shipping_address=lulu_shipping,
                 shipping_level=shipping_level,
-                pod_package_id=QS_POD_PACKAGE_ID
+                pod_package_id=QS_POD_PACKAGE_ID,
+                interior_url=interior_url,
+                cover_url=cover_url
             )
             print(f"[QS-PRINT] Lulu submit result: success={lulu_success}, msg={lulu_msg}, job_id={lulu_job_id}")
         elif is_admin_gift_qs:
