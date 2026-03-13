@@ -4877,6 +4877,29 @@ def check_openai():
 
 with app.app_context():
     db.create_all()
+    # Runtime migration: add columns that may be missing on older VPS databases
+    try:
+        from sqlalchemy import text as _sa_text
+        with db.engine.connect() as _conn:
+            _missing = {
+                'real_story_orders': [
+                    ('paypal_order_id', 'VARCHAR(100)'),
+                    ('amount_paid', 'INTEGER'),
+                    ('paid_at', 'DATETIME'),
+                ],
+                'preview_leads': [
+                    ('paypal_order_id', 'VARCHAR(100)'),
+                ],
+            }
+            for _table, _cols in _missing.items():
+                _existing = [row[1] for row in _conn.execute(_sa_text(f"PRAGMA table_info({_table})")).fetchall()]
+                for _col, _type in _cols:
+                    if _col not in _existing:
+                        _conn.execute(_sa_text(f"ALTER TABLE {_table} ADD COLUMN {_col} {_type}"))
+                        print(f"[MIGRATION] Added missing column {_table}.{_col}")
+            _conn.commit()
+    except Exception as _me:
+        print(f"[MIGRATION] Warning (non-blocking): {_me}")
     from services.lulu_storage import cleanup_expired_orders, get_storage_summary
     deleted = cleanup_expired_orders()
     summary = get_storage_summary()
