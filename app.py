@@ -3448,6 +3448,16 @@ def api_generation_status(preview_id):
                     'scene_paths': scene_paths,
                     'error': ''
                 })
+            prog = _generation_progress.get(preview_id, {})
+            total = max(prog.get('total', 1), 1)
+            generated = prog.get('generated', total)
+            return jsonify({
+                'status': 'generating',
+                'generated': min(generated, total),
+                'expected': total,
+                'scene_paths': [],
+                'error': ''
+            })
         elif scene_task and scene_task.get('status') == 'failed':
             return jsonify({
                 'status': 'failed',
@@ -3460,7 +3470,7 @@ def api_generation_status(preview_id):
         return jsonify({
             'status': 'generating',
             'generated': prog.get('generated', 0),
-            'expected': prog.get('total', 1),
+            'expected': max(prog.get('total', 1), 1),
             'scene_paths': [],
             'error': ''
         })
@@ -3547,7 +3557,7 @@ def api_generation_status(preview_id):
     
     is_qs = not is_illustrated_book and story_id in FS_CHECK
     qs_text_composed = story_data.get('qs_text_composed', False)
-    
+
     if generated_count >= expected and scenes_pending:
         formatted = []
         sorted_scenes = sorted([
@@ -3599,6 +3609,12 @@ def api_generation_status(preview_id):
         else:
             status = 'complete'
     
+    if status == 'generating':
+        prog = _generation_progress.get(preview_id, {})
+        if prog:
+            generated_count = prog.get('generated', generated_count)
+            expected = max(prog.get('total', expected), expected)
+
     return jsonify({
         'status': status,
         'generated': generated_count,
@@ -6551,9 +6567,17 @@ def _generate_scenes_background(preview_id, **kwargs):
         
         production_logger.info(f"[BG-GEN] Starting scene generation for {preview_id} (story={story_id}, flux_dev={use_flux_dev})")
         
+        from services.fixed_stories import STORIES as _FS_TOTAL
+        _qs_total = len(_FS_TOTAL.get(story_id, {}).get('scenes', [])) or len(story_data.get('pages', [])) or 8
+        _generation_progress[preview_id] = {'generated': 0, 'total': _qs_total}
+
+        def _qs_progress_cb(done, total):
+            _generation_progress[preview_id] = {'generated': done, 'total': total}
+
         scenes_result = generate_scenes_only(
             story_id, gender, traits, output_dir, scene_ref_image, child_name,
-            use_flux_dev=use_flux_dev
+            use_flux_dev=use_flux_dev,
+            progress_callback=_qs_progress_cb
         )
         
         scene_paths = scenes_result.get('scenes', [])
