@@ -7891,6 +7891,10 @@ def _process_quick_story_print(preview_id, customer_email):
         save_interior_pdf(order_folder, interior_path)
         save_cover_pdf(order_folder, cover_path)
 
+        from services.lulu_api_service import get_public_file_url
+        interior_url = get_public_file_url(order_folder, 'interior.pdf')
+        cover_url = get_public_file_url(order_folder, 'cover.pdf')
+
         QS_POD_PACKAGE_ID = '0850X0850FCPRESS080CW444GXX'
         
         lulu_job_id = None
@@ -8001,7 +8005,8 @@ def _process_quick_story_print(preview_id, customer_email):
             json.dump(story_data, f, ensure_ascii=False, indent=2)
 
         print(f"[QS-PRINT] COMPLETE for {preview_id}")
-        print(f"[QS-PRINT]   Order folder: {order_folder}")
+        print(f"[QS-PRINT]   Interior URL: {interior_url}")
+        print(f"[QS-PRINT]   Cover URL: {cover_url}")
         print(f"[QS-PRINT]   Admin notified: {story_data.get('admin_notified')}")
 
     except Exception as e:
