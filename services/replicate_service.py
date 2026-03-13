@@ -992,13 +992,6 @@ def generate_scenes_only(story_id: str, gender: str, traits: dict,
         print("MODE: Ideogram Character (auto-detects face from reference)")
     print("=" * 60)
     
-    additional_refs = None
-    if not use_flux_dev and not use_ideogram:
-        if story_id == 'baby_puppy_love' and os.path.exists(PUPPY_PLUSH_REFERENCE):
-            additional_refs = [PUPPY_PLUSH_REFERENCE]
-        elif story_id == 'baby_first_pet' and os.path.exists(KITTEN_REFERENCE):
-            additional_refs = [KITTEN_REFERENCE]
-    
     from services.quick_stories.checkout import is_quick_story as check_qs
     is_qs = check_qs(story_id)
     scene_prompts = get_scene_prompts(story_id, child_name, gender, traits)
