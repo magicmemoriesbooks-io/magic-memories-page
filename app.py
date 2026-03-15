@@ -3241,7 +3241,12 @@ def process_payment(preview_id):
             _admin_pt = 'qs_print' if want_print else 'qs_digital'
         elif product_type == 'personalized_book':
             _admin_pt = 'personalized'
-        send_admin_purchase_notification(preview_id, _admin_pt, email, story_data)
+        send_admin_purchase_notification(
+            preview_id, _admin_pt, email, story_data,
+            line_items=_line_items if _line_items else None,
+            shipping_cost=_shipping_cost,
+            total_usd=_total
+        )
         print(f"[PAYMENT] Admin purchase notification sent ({_admin_pt})")
     except Exception as _adm_err:
         print(f"[PAYMENT] Admin notification failed: {_adm_err}")
