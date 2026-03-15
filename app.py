@@ -5546,36 +5546,77 @@ def admin_approve_lulu_order(folder_name):
     """Approve order and send to Lulu for printing."""
     if not check_admin_auth():
         return jsonify({"error": "Unauthorized"}), 401
-    
+
     from services.lulu_storage import get_order_by_folder, update_order_status
-    from services.lulu_api_service import submit_print_order
-    
+    from services.lulu_api_service import submit_print_order, get_public_file_url
+
     order = get_order_by_folder(folder_name)
     if not order:
         return jsonify({"error": "Order not found"}), 404
-    
-    interior_path = os.path.join(order['folder_path'], 'interior.pdf')
-    cover_path = os.path.join(order['folder_path'], 'cover.pdf')
-    
+
+    order_folder = order['folder_path']
+    interior_path = os.path.join(order_folder, 'interior.pdf')
+    cover_path = os.path.join(order_folder, 'cover.pdf')
+
     if not os.path.exists(interior_path) or not os.path.exists(cover_path):
         return jsonify({"error": "Missing PDF files"}), 400
-    
+
+    preview_id = order.get('order_id', '')
+    story_data = {}
+    if preview_id:
+        preview_file = f'story_previews/{preview_id}.json'
+        if os.path.exists(preview_file):
+            with open(preview_file, 'r', encoding='utf-8') as f:
+                story_data = json.load(f)
+
+    shipping_address = story_data.get('shipping_address', {})
+    if not shipping_address or not shipping_address.get('name'):
+        return jsonify({"error": "No hay dirección de envío guardada para este pedido."}), 400
+
+    child_name = order.get('child_name', story_data.get('child_name', 'Unknown'))
+    story_id = story_data.get('story_id', '')
+    lang = story_data.get('lang', story_data.get('language', 'es'))
+    _is_illustrated = story_data.get('is_illustrated_book', True)
+    _pod_id = '0827X1169FCPRECW080CW444GXX' if _is_illustrated else '0850X0850FCPRESS080CW444GXX'
+
     try:
-        result = submit_print_order(
-            interior_pdf_path=interior_path,
-            cover_pdf_path=cover_path,
-            title=f"El Jardín del Dragón - {order.get('child_name', 'Unknown')}",
-            quantity=1
+        from services.personalized_books.generation import get_lulu_title
+        pb_traits = story_data.get('traits', {})
+        pet_name_lulu = pb_traits.get('pet_name', '') if pb_traits else ''
+        book_title = get_lulu_title(story_id, child_name, lang, pet_name=pet_name_lulu)
+    except Exception:
+        book_title = story_data.get('story_name', story_data.get('title', f"Mi Libro - {child_name}"))
+
+    shipping_level = story_data.get('shipping_method', 'MAIL')
+    if not shipping_address.get('email'):
+        shipping_address['email'] = order.get('email', story_data.get('customer_email', ''))
+
+    try:
+        interior_url = get_public_file_url(order_folder, "interior.pdf")
+        cover_url = get_public_file_url(order_folder, "cover.pdf")
+        success, message, lulu_job_id = submit_print_order(
+            order_folder=order_folder,
+            title=book_title,
+            shipping_address=shipping_address,
+            shipping_level=shipping_level,
+            pod_package_id=_pod_id,
+            interior_url=interior_url,
+            cover_url=cover_url
         )
-        
-        if result.get('success'):
-            update_order_status(order['folder_path'], 'sent_to_lulu', result.get('print_job_id'))
-            return jsonify({"success": True, "message": "Order sent to Lulu!", "job_id": result.get('print_job_id')})
+        if success and lulu_job_id:
+            update_order_status(order_folder, 'sent_to_lulu', lulu_job_id)
+            if preview_id and story_data:
+                story_data['lulu_job_id'] = lulu_job_id
+                story_data['lulu_submitted'] = True
+                with open(f'story_previews/{preview_id}.json', 'w', encoding='utf-8') as f:
+                    json.dump(story_data, f, ensure_ascii=False, indent=2)
+            return jsonify({"success": True, "message": "Order sent to Lulu!", "job_id": lulu_job_id})
         else:
-            update_order_status(order['folder_path'], 'failed')
-            return jsonify({"error": result.get('error', 'Unknown error')}), 500
+            update_order_status(order_folder, 'failed')
+            return jsonify({"error": message}), 500
     except Exception as e:
-        update_order_status(order['folder_path'], 'failed')
+        update_order_status(order_folder, 'failed')
+        import traceback; traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
@@ -8451,27 +8492,73 @@ def admin_send_to_lulu(req_id):
         if os.path.exists(preview_file):
             with open(preview_file, 'r', encoding='utf-8') as f:
                 story_data = json.load(f)
+
+        lulu_order_folder = story_data.get('lulu_order_folder', '')
+        if not lulu_order_folder or not os.path.exists(lulu_order_folder):
+            return jsonify({'error': 'PDF folder not found — genera los PDFs primero desde la página de admin preview.'}), 400
+
         shipping_address = {
             'name': pr.shipping_name,
             'street1': pr.shipping_street,
             'city': pr.shipping_city,
             'state_code': pr.shipping_state,
-            'postcode': pr.shipping_postal,
+            'postal_code': pr.shipping_postal,
             'country_code': pr.shipping_country,
             'phone_number': pr.shipping_phone or '',
             'email': pr.customer_email
         }
-        from services.lulu_api_service import submit_print_order
-        lulu_result = submit_print_order(story_data, shipping_address, pr.shipping_method)
-        lulu_job_id = lulu_result.get('id') or lulu_result.get('print_job_id')
+
+        child_name = story_data.get('child_name', pr.child_name or 'Unknown')
+        story_id = story_data.get('story_id', '')
+        lang = story_data.get('lang', story_data.get('language', 'es'))
+        _is_illustrated = story_data.get('is_illustrated_book', False)
+        _pod_id = '0827X1169FCPRECW080CW444GXX' if _is_illustrated else '0850X0850FCPRESS080CW444GXX'
+
+        try:
+            from services.personalized_books.generation import get_lulu_title
+            pb_traits = story_data.get('traits', {})
+            pet_name_lulu = pb_traits.get('pet_name', '') if pb_traits else ''
+            book_title = get_lulu_title(story_id, child_name, lang, pet_name=pet_name_lulu)
+        except Exception:
+            book_title = story_data.get('story_name', story_data.get('title', child_name or 'Mi Libro'))
+
+        from services.lulu_api_service import submit_print_order, get_public_file_url
+        interior_url = get_public_file_url(lulu_order_folder, "interior.pdf")
+        cover_url = get_public_file_url(lulu_order_folder, "cover.pdf")
+        shipping_level = pr.shipping_method or story_data.get('shipping_method', 'MAIL')
+
+        success, message, lulu_job_id = submit_print_order(
+            order_folder=lulu_order_folder,
+            title=book_title,
+            shipping_address=shipping_address,
+            shipping_level=shipping_level,
+            pod_package_id=_pod_id,
+            interior_url=interior_url,
+            cover_url=cover_url
+        )
+        if not success:
+            return jsonify({'error': message}), 500
+
         pr.lulu_print_job_id = str(lulu_job_id) if lulu_job_id else None
         pr.status = 'sent_to_lulu'
         db.session.commit()
+        story_data['lulu_job_id'] = lulu_job_id
+        story_data['lulu_submitted'] = True
+        story_data['lulu_interior_url'] = interior_url
+        story_data['lulu_cover_url'] = cover_url
+        with open(preview_file, 'w', encoding='utf-8') as f:
+            json.dump(story_data, f, ensure_ascii=False, indent=2)
         try:
-            from services.email_service import send_admin_notification_email
-            send_admin_notification_email(
-                subject=f'[PRINT ORDER #{pr.id}] Enviado a Lulu — Job {lulu_job_id}',
-                body=f'Pedido #{pr.id} enviado a Lulu. Job ID: {lulu_job_id}'
+            from services.email_service import send_lulu_order_notification
+            _customer_email = story_data.get('customer_email', pr.customer_email or 'pay@magicmemoriesbooks.com')
+            send_lulu_order_notification(
+                order_folder=lulu_order_folder,
+                lulu_job_id=lulu_job_id,
+                title=book_title,
+                customer_email=_customer_email,
+                shipping_address=shipping_address,
+                interior_url=interior_url,
+                cover_url=cover_url
             )
         except Exception:
             pass
