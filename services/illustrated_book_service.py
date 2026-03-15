@@ -1117,6 +1117,7 @@ def generate_cover_spread(
         has_refs = is_furry and reference_image_path and reference_image_path_2 and os.path.exists(reference_image_path) and os.path.exists(reference_image_path_2)
         print(f"[COVER] Generating front cover with FLUX 2 Dev{' + references' if has_refs else ''}...")
         ref_files = []
+        front_cover = None
         try:
             flux_input = {
                 "prompt": front_prompt,
@@ -1129,32 +1130,50 @@ def generate_cover_spread(
                 f2 = open(reference_image_path_2, "rb")
                 ref_files = [f1, f2]
                 flux_input["input_images"] = [f1, f2]
-            output = replicate.run(
-                "black-forest-labs/flux-2-dev",
-                input=flux_input
-            )
-            
+
+            import concurrent.futures as _cf_cover
+            FLUX_TIMEOUT_SEC = 8 * 60
+            def _run_flux():
+                return replicate.run("black-forest-labs/flux-2-dev", input=flux_input)
+            with _cf_cover.ThreadPoolExecutor(max_workers=1) as _ex:
+                _fut = _ex.submit(_run_flux)
+                try:
+                    output = _fut.result(timeout=FLUX_TIMEOUT_SEC)
+                except _cf_cover.TimeoutError:
+                    raise Exception(f"FLUX cover generation timed out after {FLUX_TIMEOUT_SEC//60} min")
+
             if isinstance(output, list) and len(output) > 0:
                 image_url = output[0]
             elif isinstance(output, str):
                 image_url = output
             else:
                 image_url = str(output)
-            
-            response = requests.get(image_url)
+
+            response = requests.get(image_url, timeout=120)
             front_cover = Image.open(BytesIO(response.content)).convert("RGB")
             front_cover = front_cover.resize((cover_width_px, cover_height_px), Image.Resampling.LANCZOS)
             print(f"[COVER] Front cover generated with FLUX 2 Dev: {front_cover.size}")
-            
+
         except Exception as e:
-            print(f"[COVER] Error generating front cover: {e}")
-            front_cover = Image.new("RGB", (cover_width_px, cover_height_px), "#4A90A4")
+            print(f"[COVER] Error generating front cover with FLUX 2 Dev: {e}")
+            if reference_image_path and os.path.exists(reference_image_path):
+                try:
+                    print(f"[COVER] Falling back to reference_image_path as front cover: {reference_image_path}")
+                    front_cover = Image.open(reference_image_path).convert("RGB")
+                    front_cover = front_cover.resize((cover_width_px, cover_height_px), Image.Resampling.LANCZOS)
+                except Exception as e2:
+                    print(f"[COVER] Fallback also failed: {e2}")
+                    front_cover = Image.new("RGB", (cover_width_px, cover_height_px), "#4A90A4")
+            else:
+                front_cover = Image.new("RGB", (cover_width_px, cover_height_px), "#4A90A4")
         finally:
             for f in ref_files:
                 try:
                     f.close()
                 except:
                     pass
+        if front_cover is None:
+            front_cover = Image.new("RGB", (cover_width_px, cover_height_px), "#4A90A4")
     
     # Author name will be added AFTER fitting into spread to avoid being cropped by fit_cover_to_area
     
