@@ -24,6 +24,35 @@ PREVIEW_RATE_MAX = 4
 _generation_progress = {}
 PREVIEW_RATE_WINDOW = 3 * 60 * 60
 
+def _write_progress(preview_id, done, total):
+    """Write generation progress to disk so all Gunicorn workers can read it."""
+    try:
+        path = f'story_previews/{preview_id}_progress.json'
+        with open(path, 'w') as _pf:
+            json.dump({'generated': done, 'total': total}, _pf)
+    except Exception:
+        pass
+
+def _read_progress(preview_id):
+    """Read progress from disk (fallback when in-memory dict is in another worker)."""
+    try:
+        path = f'story_previews/{preview_id}_progress.json'
+        if os.path.exists(path):
+            with open(path, 'r') as _pf:
+                return json.load(_pf)
+    except Exception:
+        pass
+    return {}
+
+def _clear_progress(preview_id):
+    """Remove progress file on completion or failure."""
+    try:
+        path = f'story_previews/{preview_id}_progress.json'
+        if os.path.exists(path):
+            os.remove(path)
+    except Exception:
+        pass
+
 def get_client_ip():
     forwarded = request.headers.get('X-Forwarded-For', '')
     if forwarded:
@@ -3450,7 +3479,7 @@ def api_generation_status(preview_id):
                     'scene_paths': scene_paths,
                     'error': ''
                 })
-            prog = _generation_progress.get(preview_id, {})
+            prog = _generation_progress.get(preview_id) or _read_progress(preview_id)
             total = max(prog.get('total', 1), 1)
             generated = prog.get('generated', total)
             return jsonify({
@@ -3505,7 +3534,7 @@ def api_generation_status(preview_id):
                 'scene_paths': [],
                 'error': 'Generation timed out'
             })
-        prog = _generation_progress.get(preview_id, {})
+        prog = _generation_progress.get(preview_id) or _read_progress(preview_id)
         return jsonify({
             'status': 'generating',
             'generated': prog.get('generated', 0),
@@ -3649,7 +3678,7 @@ def api_generation_status(preview_id):
             status = 'complete'
     
     if status == 'generating':
-        prog = _generation_progress.get(preview_id, {})
+        prog = _generation_progress.get(preview_id) or _read_progress(preview_id)
         if prog:
             generated_count = prog.get('generated', generated_count)
             expected = max(prog.get('total', expected), expected)
@@ -6385,6 +6414,7 @@ def _generate_scenes_background(preview_id, **kwargs):
             
             def _scene_progress_cb(done, total):
                 _generation_progress[preview_id] = {'generated': done, 'total': total}
+                _write_progress(preview_id, done, total)
             
             pages, failed_scene_indices = generate_full_book(
                 book_id=book_id,
@@ -6525,6 +6555,7 @@ def _generate_scenes_background(preview_id, **kwargs):
 
         def _qs_progress_cb(done, total):
             _generation_progress[preview_id] = {'generated': done, 'total': total}
+            _write_progress(preview_id, done, total)
 
         scenes_result = generate_scenes_only(
             story_id, gender, traits, output_dir, scene_ref_image, child_name,
@@ -6631,6 +6662,7 @@ def _generate_scenes_background(preview_id, **kwargs):
             json.dump(story_data, f, ensure_ascii=False, indent=2)
         
         _generation_progress.pop(preview_id, None)
+        _clear_progress(preview_id)
         production_logger.info(f"[BG-GEN] {preview_id} completed: {len(scene_paths)} scenes, closing={bool(closing_image)}")
         
         is_digital_only = story_data.get('paid', False) and not story_data.get('want_print', False) and not story_data.get('visor_uploaded', False)
@@ -6656,6 +6688,7 @@ def _generate_scenes_background(preview_id, **kwargs):
             json.dump(story_data, f, ensure_ascii=False, indent=2)
         
         _generation_progress.pop(preview_id, None)
+        _clear_progress(preview_id)
         is_final_attempt = task_result is None or task_result.retries >= task_result.max_retries - 1
 
         customer_email = story_data.get('customer_email')
