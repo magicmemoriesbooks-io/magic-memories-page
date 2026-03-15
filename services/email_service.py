@@ -419,7 +419,7 @@ def send_lulu_order_notification(
         <h3 style="color:#16a34a;margin-top:20px;font-size:16px;">💳 Pagar a Lulu</h3>
         <div style="background:#f0fdf4;padding:15px;border-radius:8px;border-left:4px solid #16a34a;margin:10px 0;">
             <p style="margin:0 0 10px;color:#1f2937;font-size:14px;">Lulu enviará una factura por email. También puedes ver y pagar el pedido directamente en tu cuenta Lulu Direct:</p>
-            <a href="https://developers.lulu.com/pages/print-jobs" style="display:inline-block;background:#16a34a;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">🖨️ Ver pedidos en Lulu Direct</a>
+            <a href="https://direct.lulu.com/account/orders" style="display:inline-block;background:#16a34a;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">🖨️ Ver pedidos en Lulu Direct</a>
             <p style="margin:10px 0 0;color:#6b7280;font-size:12px;">Job ID a buscar: <strong>{lulu_job_id}</strong></p>
         </div>
     """
