@@ -26,6 +26,18 @@
     .ap-btn-pdf { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; }
     .ap-btn-ebook { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: #fff; }
     .ap-btn-back { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+    .ap-btn-lulu { background: linear-gradient(135deg, #16a34a, #15803d); color: #fff; }
+    .ap-lulu-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center; }
+    .ap-lulu-modal.active { display:flex; }
+    .ap-lulu-box { background:#fff; border-radius:14px; padding:28px; width:100%; max-width:460px; box-shadow:0 8px 32px rgba(0,0,0,0.18); }
+    .ap-lulu-box h3 { margin:0 0 18px; font-size:17px; color:#1a1a1a; }
+    .ap-lulu-box label { display:block; font-size:12px; font-weight:600; color:#555; margin-bottom:4px; margin-top:12px; }
+    .ap-lulu-box input, .ap-lulu-box select { width:100%; padding:8px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:13px; box-sizing:border-box; }
+    .ap-lulu-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .ap-lulu-actions { display:flex; gap:10px; margin-top:20px; justify-content:flex-end; }
+    .ap-lulu-msg { margin-top:14px; font-size:13px; font-weight:600; padding:8px 14px; border-radius:8px; }
+    .ap-lulu-msg.ok { background:#dcfce7; color:#166534; }
+    .ap-lulu-msg.err { background:#fee2e2; color:#991b1b; }
     .ap-scene-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
     .ap-scene-card { background: #f9fafb; border-radius: 8px; overflow: hidden; border: 1px solid #e5e7eb; }
     .ap-scene-card img { width: 100%; height: 160px; object-fit: cover; cursor: pointer; }
@@ -107,7 +119,7 @@
 
     <div class="ap-card">
         <div class="ap-card-header ap-hdr-actions">Acciones</div>
-        <div class="ap-card-body" style="display:flex; gap:12px; flex-wrap:wrap;">
+        <div class="ap-card-body" style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
             {% set has_pdf = preview.lulu_order_folder or preview.pdf_path or preview.digital_pdf_path or preview.pdf_printable_path %}
             {% if has_pdf %}
             <a href="{{ url_for('admin_download_pdf', preview_id=preview_id) }}" class="ap-btn ap-btn-pdf" target="_blank">📄 Descargar PDF</a>
@@ -117,7 +129,15 @@
             {% elif preview.project_hash %}
             <a href="/visor_qs/?id={{ preview.project_hash }}" class="ap-btn ap-btn-ebook" target="_blank">📖 Ver eBook (QS)</a>
             {% endif %}
-            {% if not has_pdf and not preview.visor_url and not preview.project_hash %}
+            {% if preview.lulu_order_folder %}
+                {% if preview.lulu_job_id %}
+                <span style="background:#dcfce7; color:#166534; border-radius:8px; padding:7px 16px; font-size:13px; font-weight:600;">✅ Enviado a Lulu — Job {{ preview.lulu_job_id }}</span>
+                <button class="ap-btn ap-btn-lulu" onclick="openLuluModal()" style="font-size:12px; padding:6px 14px;">🔄 Reenviar a Lulu</button>
+                {% else %}
+                <button class="ap-btn ap-btn-lulu" onclick="openLuluModal()">📦 Enviar a Lulu</button>
+                {% endif %}
+            {% endif %}
+            {% if not has_pdf and not preview.visor_url and not preview.project_hash and not preview.lulu_order_folder %}
             <p style="color:#888; font-size:13px;">No hay PDF ni eBook disponibles todavía.</p>
             {% endif %}
         </div>
@@ -215,6 +235,71 @@
     <img id="ap-lb-img" src="" onclick="event.stopPropagation()">
 </div>
 
+<div id="lulu-modal" class="ap-lulu-modal" onclick="if(event.target===this)closeLuluModal()">
+    <div class="ap-lulu-box">
+        <h3>📦 Enviar a Lulu — {{ preview.child_name }}</h3>
+        <div class="ap-lulu-row">
+            <div>
+                <label>Nombre completo *</label>
+                <input id="lulu-name" type="text" placeholder="Ana García" value="{{ (preview.shipping_address or {}).get('name', '') if preview.shipping_address else '' }}">
+            </div>
+            <div>
+                <label>Email</label>
+                <input id="lulu-email" type="email" placeholder="cliente@email.com" value="{{ preview.customer_email or preview.admin_gift_email or '' }}">
+            </div>
+        </div>
+        <label>Dirección *</label>
+        <input id="lulu-street1" type="text" placeholder="Calle Mayor 12, 3ºA" value="{{ (preview.shipping_address or {}).get('street1', '') if preview.shipping_address else '' }}">
+        <label>Dirección línea 2</label>
+        <input id="lulu-street2" type="text" placeholder="Piso, puerta..." value="{{ (preview.shipping_address or {}).get('street2', '') if preview.shipping_address else '' }}">
+        <div class="ap-lulu-row">
+            <div>
+                <label>Ciudad *</label>
+                <input id="lulu-city" type="text" placeholder="Madrid" value="{{ (preview.shipping_address or {}).get('city', '') if preview.shipping_address else '' }}">
+            </div>
+            <div>
+                <label>Código Postal *</label>
+                <input id="lulu-postal" type="text" placeholder="28001" value="{{ (preview.shipping_address or {}).get('postal_code', '') if preview.shipping_address else '' }}">
+            </div>
+        </div>
+        <div class="ap-lulu-row">
+            <div>
+                <label>Provincia / Estado</label>
+                <input id="lulu-state" type="text" placeholder="Madrid" value="{{ (preview.shipping_address or {}).get('state_code', '') if preview.shipping_address else '' }}">
+            </div>
+            <div>
+                <label>País</label>
+                <select id="lulu-country">
+                    {% for code, label in [('ES','España'),('MX','México'),('US','Estados Unidos'),('AR','Argentina'),('CO','Colombia'),('CL','Chile'),('GB','Reino Unido'),('DE','Alemania'),('FR','Francia')] %}
+                    <option value="{{ code }}" {% if (preview.shipping_address or {}).get('country_code', 'ES') == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="ap-lulu-row">
+            <div>
+                <label>Teléfono</label>
+                <input id="lulu-phone" type="text" placeholder="+34 600 000 000" value="{{ (preview.shipping_address or {}).get('phone_number', '') if preview.shipping_address else '' }}">
+            </div>
+            <div>
+                <label>Envío</label>
+                <select id="lulu-shipping">
+                    <option value="MAIL">Estándar</option>
+                    <option value="PRIORITY_MAIL">Prioritario</option>
+                    <option value="GROUND">Terrestre</option>
+                    <option value="EXPEDITED">Urgente</option>
+                    <option value="EXPRESS">Express</option>
+                </select>
+            </div>
+        </div>
+        <div id="lulu-msg"></div>
+        <div class="ap-lulu-actions">
+            <button class="ap-btn ap-btn-back" onclick="closeLuluModal()" id="lulu-cancel-btn">Cancelar</button>
+            <button class="ap-btn ap-btn-lulu" onclick="submitLuluOrder()" id="lulu-submit-btn">📦 Enviar a Lulu</button>
+        </div>
+    </div>
+</div>
+
 <script>
 function openLB(src) {
     document.getElementById('ap-lb-img').src = src;
@@ -223,6 +308,64 @@ function openLB(src) {
 function closeLB() {
     document.getElementById('ap-lb').classList.remove('active');
 }
-document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeLB(); });
+function openLuluModal() {
+    document.getElementById('lulu-modal').classList.add('active');
+    document.getElementById('lulu-msg').innerHTML = '';
+}
+function closeLuluModal() {
+    document.getElementById('lulu-modal').classList.remove('active');
+}
+function submitLuluOrder() {
+    var name = document.getElementById('lulu-name').value.trim();
+    var street1 = document.getElementById('lulu-street1').value.trim();
+    var city = document.getElementById('lulu-city').value.trim();
+    var postal = document.getElementById('lulu-postal').value.trim();
+    if (!name || !street1 || !city || !postal) {
+        document.getElementById('lulu-msg').innerHTML = '<div class="ap-lulu-msg err">Nombre, dirección, ciudad y código postal son obligatorios.</div>';
+        return;
+    }
+    var btn = document.getElementById('lulu-submit-btn');
+    var cancelBtn = document.getElementById('lulu-cancel-btn');
+    btn.disabled = true;
+    cancelBtn.disabled = true;
+    btn.innerHTML = '<span style="margin-right:6px;">⏳</span> Enviando...';
+    document.getElementById('lulu-msg').innerHTML = '';
+    var payload = {
+        name: name,
+        street1: street1,
+        street2: document.getElementById('lulu-street2').value.trim(),
+        city: city,
+        postal_code: postal,
+        state_code: document.getElementById('lulu-state').value.trim(),
+        country_code: document.getElementById('lulu-country').value,
+        phone_number: document.getElementById('lulu-phone').value.trim(),
+        email: document.getElementById('lulu-email').value.trim(),
+        shipping_level: document.getElementById('lulu-shipping').value
+    };
+    fetch('/admin/gift-send-to-lulu/{{ preview_id }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        btn.disabled = false;
+        cancelBtn.disabled = false;
+        btn.innerHTML = '📦 Enviar a Lulu';
+        if (data.success) {
+            document.getElementById('lulu-msg').innerHTML = '<div class="ap-lulu-msg ok">✅ Enviado a Lulu — Job ID: ' + data.lulu_job_id + '</div>';
+            setTimeout(function() { location.reload(); }, 2000);
+        } else {
+            document.getElementById('lulu-msg').innerHTML = '<div class="ap-lulu-msg err">❌ ' + (data.error || 'Error desconocido') + '</div>';
+        }
+    })
+    .catch(function() {
+        btn.disabled = false;
+        cancelBtn.disabled = false;
+        btn.innerHTML = '📦 Enviar a Lulu';
+        document.getElementById('lulu-msg').innerHTML = '<div class="ap-lulu-msg err">❌ Error de conexión. Inténtalo de nuevo.</div>';
+    });
+}
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { closeLB(); closeLuluModal(); } });
 </script>
 {% endblock %}
