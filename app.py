@@ -5664,15 +5664,26 @@ def admin_gift_send_to_lulu(preview_id):
 
     try:
         from services.lulu_api_service import submit_print_order
+
+        folder_name = os.path.basename(lulu_order_folder)
+        base_url = request.host_url.rstrip('/')
+        interior_url = f"{base_url}/lulu-files/{folder_name}/interior.pdf"
+        cover_url = f"{base_url}/lulu-files/{folder_name}/cover.pdf"
+        production_logger.info(f"[ADMIN-LULU] Using URLs: interior={interior_url}")
+
         success, message, lulu_job_id = submit_print_order(
             order_folder=lulu_order_folder,
             title=title,
             shipping_address=shipping_address,
-            shipping_level=shipping_level
+            shipping_level=shipping_level,
+            interior_url=interior_url,
+            cover_url=cover_url
         )
         if success and lulu_job_id:
             story_data['lulu_job_id'] = lulu_job_id
             story_data['lulu_submitted'] = True
+            story_data['lulu_interior_url'] = interior_url
+            story_data['lulu_cover_url'] = cover_url
             story_data['shipping_address'] = shipping_address
             story_data['want_print'] = True
             with open(preview_file, 'w', encoding='utf-8') as f:
