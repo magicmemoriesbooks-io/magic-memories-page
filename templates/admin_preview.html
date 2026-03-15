@@ -27,6 +27,7 @@
     .ap-btn-ebook { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: #fff; }
     .ap-btn-back { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
     .ap-btn-lulu { background: linear-gradient(135deg, #16a34a, #15803d); color: #fff; }
+    .ap-btn-reset { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; }
     .ap-lulu-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center; }
     .ap-lulu-modal.active { display:flex; }
     .ap-lulu-box { background:#fff; border-radius:14px; padding:28px; width:100%; max-width:460px; box-shadow:0 8px 32px rgba(0,0,0,0.18); }
@@ -140,6 +141,12 @@
             {% if not has_pdf and not preview.visor_url and not preview.project_hash and not preview.lulu_order_folder %}
             <p style="color:#888; font-size:13px;">No hay PDF ni eBook disponibles todavía.</p>
             {% endif %}
+            {% if preview.book_composing or preview.scenes_generating %}
+            <button class="ap-btn ap-btn-reset" onclick="resetCompose()" id="btn-reset-compose">⚠️ Resetear composición atascada</button>
+            {% elif preview.compose_error %}
+            <span style="background:#fef9c3; color:#854d0e; border-radius:8px; padding:7px 14px; font-size:13px; font-weight:600;">⚠️ {{ preview.compose_error }}</span>
+            {% endif %}
+            <div id="reset-msg" style="font-size:13px; font-weight:600; display:none; padding:6px 14px; border-radius:8px;"></div>
         </div>
     </div>
 
@@ -307,6 +314,31 @@ function openLB(src) {
 }
 function closeLB() {
     document.getElementById('ap-lb').classList.remove('active');
+}
+function resetCompose() {
+    if (!confirm('¿Resetear el estado de composición de este cuento? El cliente verá un mensaje de error y podrá intentarlo de nuevo.')) return;
+    var btn = document.getElementById('btn-reset-compose');
+    var msg = document.getElementById('reset-msg');
+    if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Reseteando...'; }
+    fetch('/admin/reset-compose/{{ preview_id }}', { method: 'POST' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (btn) btn.style.display = 'none';
+        msg.style.display = 'inline-block';
+        if (data.success) {
+            msg.style.background = '#dcfce7'; msg.style.color = '#166534';
+            msg.innerHTML = '✅ Estado reseteado. El cuento ya no está en bucle.';
+        } else {
+            msg.style.background = '#fee2e2'; msg.style.color = '#991b1b';
+            msg.innerHTML = '❌ Error: ' + (data.error || 'desconocido');
+        }
+    })
+    .catch(function() {
+        if (btn) { btn.disabled = false; btn.innerHTML = '⚠️ Resetear composición atascada'; }
+        msg.style.display = 'inline-block';
+        msg.style.background = '#fee2e2'; msg.style.color = '#991b1b';
+        msg.innerHTML = '❌ Error de conexión';
+    });
 }
 function openLuluModal() {
     document.getElementById('lulu-modal').classList.add('active');
