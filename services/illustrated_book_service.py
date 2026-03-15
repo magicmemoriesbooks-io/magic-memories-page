@@ -1117,7 +1117,6 @@ def generate_cover_spread(
         has_refs = is_furry and reference_image_path and reference_image_path_2 and os.path.exists(reference_image_path) and os.path.exists(reference_image_path_2)
         print(f"[COVER] Generating front cover with FLUX 2 Dev{' + references' if has_refs else ''}...")
         ref_files = []
-        front_cover = None
         try:
             flux_input = {
                 "prompt": front_prompt,
@@ -1130,50 +1129,32 @@ def generate_cover_spread(
                 f2 = open(reference_image_path_2, "rb")
                 ref_files = [f1, f2]
                 flux_input["input_images"] = [f1, f2]
-
-            import concurrent.futures as _cf_cover
-            FLUX_TIMEOUT_SEC = 8 * 60
-            def _run_flux():
-                return replicate.run("black-forest-labs/flux-2-dev", input=flux_input)
-            with _cf_cover.ThreadPoolExecutor(max_workers=1) as _ex:
-                _fut = _ex.submit(_run_flux)
-                try:
-                    output = _fut.result(timeout=FLUX_TIMEOUT_SEC)
-                except _cf_cover.TimeoutError:
-                    raise Exception(f"FLUX cover generation timed out after {FLUX_TIMEOUT_SEC//60} min")
-
+            output = replicate.run(
+                "black-forest-labs/flux-2-dev",
+                input=flux_input
+            )
+            
             if isinstance(output, list) and len(output) > 0:
                 image_url = output[0]
             elif isinstance(output, str):
                 image_url = output
             else:
                 image_url = str(output)
-
-            response = requests.get(image_url, timeout=120)
+            
+            response = requests.get(image_url)
             front_cover = Image.open(BytesIO(response.content)).convert("RGB")
             front_cover = front_cover.resize((cover_width_px, cover_height_px), Image.Resampling.LANCZOS)
             print(f"[COVER] Front cover generated with FLUX 2 Dev: {front_cover.size}")
-
+            
         except Exception as e:
-            print(f"[COVER] Error generating front cover with FLUX 2 Dev: {e}")
-            if reference_image_path and os.path.exists(reference_image_path):
-                try:
-                    print(f"[COVER] Falling back to reference_image_path as front cover: {reference_image_path}")
-                    front_cover = Image.open(reference_image_path).convert("RGB")
-                    front_cover = front_cover.resize((cover_width_px, cover_height_px), Image.Resampling.LANCZOS)
-                except Exception as e2:
-                    print(f"[COVER] Fallback also failed: {e2}")
-                    front_cover = Image.new("RGB", (cover_width_px, cover_height_px), "#4A90A4")
-            else:
-                front_cover = Image.new("RGB", (cover_width_px, cover_height_px), "#4A90A4")
+            print(f"[COVER] Error generating front cover: {e}")
+            front_cover = Image.new("RGB", (cover_width_px, cover_height_px), "#4A90A4")
         finally:
             for f in ref_files:
                 try:
                     f.close()
                 except:
                     pass
-        if front_cover is None:
-            front_cover = Image.new("RGB", (cover_width_px, cover_height_px), "#4A90A4")
     
     # Author name will be added AFTER fitting into spread to avoid being cropped by fit_cover_to_area
     
@@ -1826,65 +1807,80 @@ def parse_description_to_traits(description: str) -> dict:
 
 
 def generate_illustrated_book_pdf(
-    pages: list,
-    output_path: str,
-    for_print: bool = False
+    pages: list = None,
+    output_path: str = "",
+    for_print: bool = False,
+    page_paths: list = None
 ) -> str:
     """
-    Convert list of PIL Images to PDF file.
-    
+    Convert images to PDF file. Accepts either PIL Images or file paths.
+    When page_paths is provided, images are loaded and released one at a time
+    to keep peak RAM low (~30 MB instead of ~700 MB for 24 pages at 300 DPI).
+
     Args:
-        pages: List of PIL Image objects
+        pages: List of PIL Image objects (used when page_paths is None)
         output_path: Path to save the PDF
         for_print: If True, upscale to print quality (300 DPI for A4)
-    
+        page_paths: List of file path strings (preferred for memory efficiency)
+
     Returns:
         Path to the generated PDF
     """
+    import gc
     from reportlab.pdfgen import canvas
     from reportlab.lib.utils import ImageReader
-    
+
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    
-    # Lulu A4 hardcover with bleed: 216mm x 303mm (3mm bleed on all sides)
+
     if for_print:
-        # A4 + 3mm bleed at 300 DPI: 2551 x 3579 pixels
         page_width = 2551
         page_height = 3579
         dpi = 300
-        pdf_width = 612.28  # 216mm in points (210 + 6mm bleed)
-        pdf_height = 858.90  # 303mm in points (297 + 6mm bleed)
+        pdf_width = 612.28
+        pdf_height = 858.90
     else:
-        # A4 at 72 DPI for digital viewing (no bleed)
         page_width = 595
         page_height = 842
         dpi = 72
         pdf_width = 595
         pdf_height = 842
-    
+
     c = canvas.Canvas(output_path, pagesize=(pdf_width, pdf_height))
-    
-    for i, page in enumerate(pages):
+
+    source = page_paths if page_paths else (pages or [])
+    total = len(source)
+
+    for i, item in enumerate(source):
+        if page_paths:
+            path = item.lstrip('/') if isinstance(item, str) else item
+            page = Image.open(path)
+        else:
+            page = item
+
         if for_print:
             upscaled = page.resize((page_width, page_height), Image.Resampling.LANCZOS)
         else:
             upscaled = page.resize((int(pdf_width), int(pdf_height)), Image.Resampling.LANCZOS)
-        
+
         img_buffer = BytesIO()
         if upscaled.mode == 'RGBA':
             upscaled = upscaled.convert('RGB')
         upscaled.save(img_buffer, format='JPEG', quality=85, dpi=(dpi, dpi))
         img_buffer.seek(0)
-        
+
         img_reader = ImageReader(img_buffer)
         c.drawImage(img_reader, 0, 0, width=pdf_width, height=pdf_height)
-        
-        if i < len(pages) - 1:
+
+        if i < total - 1:
             c.showPage()
-    
+
+        if page_paths:
+            del upscaled, page, img_buffer, img_reader
+            gc.collect()
+
     c.save()
-    print(f"[PDF] Generated PDF with {len(pages)} pages: {output_path}")
-    
+    print(f"[PDF] Generated PDF with {total} pages: {output_path}")
+
     return output_path
 
 
