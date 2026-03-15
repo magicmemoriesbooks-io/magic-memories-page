@@ -43,6 +43,9 @@
     .ap-scene-card { background: #f9fafb; border-radius: 8px; overflow: hidden; border: 1px solid #e5e7eb; }
     .ap-scene-card img { width: 100%; height: 160px; object-fit: cover; cursor: pointer; }
     .ap-scene-label { padding: 6px 10px; font-size: 12px; font-weight: 600; color: #374151; }
+    .ap-regen-btn { display:block; width:100%; padding:5px 0; font-size:11px; font-weight:600; background:#4f46e5; color:#fff; border:none; cursor:pointer; text-align:center; transition:background .2s; }
+    .ap-regen-btn:hover { background:#4338ca; }
+    .ap-regen-btn:disabled { background:#9ca3af; cursor:not-allowed; }
     .ap-page-item { display: flex; gap: 12px; padding: 12px; background: #f9fafb; border-radius: 8px; margin-bottom: 8px; border: 1px solid #e5e7eb; }
     .ap-page-img { width: 80px; height: 100px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
     .ap-page-text { font-size: 13px; color: #374151; }
@@ -188,10 +191,10 @@
             {% if preview.scenes %}
             <div class="ap-scene-grid">
                 {% for scene in preview.scenes %}
-                <div class="ap-scene-card">
+                <div class="ap-scene-card" id="scene-card-{{ loop.index }}">
                     {% set img = scene.image or scene.scene_path %}
                     {% if img %}
-                    <img src="{% if img.startswith('/') %}{{ img }}{% else %}/{{ img }}{% endif %}?t={{ range(1000000)|random }}" onclick="openLB(this.src)" alt="Escena {{ loop.index }}">
+                    <img id="scene-img-{{ loop.index }}" src="{% if img.startswith('/') %}{{ img }}{% else %}/{{ img }}{% endif %}?t={{ range(1000000)|random }}" onclick="openLB(this.src)" alt="Escena {{ loop.index }}">
                     {% else %}
                     <div style="width:100%; height:160px; background:#e5e7eb; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:12px;">Sin imagen</div>
                     {% endif %}
@@ -199,15 +202,17 @@
                         Escena {{ loop.index }}
                         {% if scene.text %}<br><span style="font-weight:400; color:#6b7280;">{{ scene.text[:60] }}{% if scene.text|length > 60 %}...{% endif %}</span>{% endif %}
                     </div>
+                    <button class="ap-regen-btn" onclick="adminRegenScene('{{ preview_id }}', {{ loop.index }}, this)">↺ Regenerar</button>
                 </div>
                 {% endfor %}
             </div>
             {% elif all_images %}
             <div class="ap-scene-grid">
                 {% for img_path in all_images %}
-                <div class="ap-scene-card">
-                    <img src="{% if img_path.startswith('/') %}{{ img_path }}{% else %}/{{ img_path }}{% endif %}?t={{ range(1000000)|random }}" onclick="openLB(this.src)" alt="Escena {{ loop.index }}">
+                <div class="ap-scene-card" id="scene-card-{{ loop.index }}">
+                    <img id="scene-img-{{ loop.index }}" src="{% if img_path.startswith('/') %}{{ img_path }}{% else %}/{{ img_path }}{% endif %}?t={{ range(1000000)|random }}" onclick="openLB(this.src)" alt="Escena {{ loop.index }}">
                     <div class="ap-scene-label">Escena {{ loop.index }}</div>
+                    <button class="ap-regen-btn" onclick="adminRegenScene('{{ preview_id }}', {{ loop.index }}, this)">↺ Regenerar</button>
                 </div>
                 {% endfor %}
             </div>
@@ -396,6 +401,41 @@ function submitLuluOrder() {
         cancelBtn.disabled = false;
         btn.innerHTML = '📦 Enviar a Lulu';
         document.getElementById('lulu-msg').innerHTML = '<div class="ap-lulu-msg err">❌ Error de conexión. Inténtalo de nuevo.</div>';
+    });
+}
+function adminRegenScene(previewId, sceneNum, btn) {
+    if (!confirm('¿Regenerar escena ' + sceneNum + '? Esto tomará ~30-60 segundos con FLUX 2 Dev + imagen de referencia.')) return;
+    var card = document.getElementById('scene-card-' + sceneNum);
+    var img = document.getElementById('scene-img-' + sceneNum);
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Generando...';
+    if (img) { img.style.opacity = '0.4'; }
+    fetch('/admin/regenerate-scene/' + previewId + '/' + sceneNum, { method: 'POST' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        btn.disabled = false;
+        if (data.success) {
+            btn.innerHTML = '✅ Listo';
+            btn.style.background = '#16a34a';
+            if (img && data.image_url) {
+                img.src = data.image_url + '?t=' + Date.now();
+                img.style.opacity = '1';
+            }
+            setTimeout(function() { btn.innerHTML = '↺ Regenerar'; btn.style.background = ''; btn.disabled = false; }, 4000);
+        } else {
+            btn.innerHTML = '❌ Error';
+            btn.style.background = '#dc2626';
+            if (img) img.style.opacity = '1';
+            alert('Error regenerando escena ' + sceneNum + ': ' + (data.error || 'desconocido'));
+            setTimeout(function() { btn.innerHTML = '↺ Regenerar'; btn.style.background = ''; btn.disabled = false; }, 3000);
+        }
+    })
+    .catch(function() {
+        btn.disabled = false;
+        btn.innerHTML = '❌ Conexión';
+        btn.style.background = '#dc2626';
+        if (img) img.style.opacity = '1';
+        setTimeout(function() { btn.innerHTML = '↺ Regenerar'; btn.style.background = ''; btn.disabled = false; }, 3000);
     });
 }
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { closeLB(); closeLuluModal(); } });
