@@ -5793,13 +5793,16 @@ def admin_gift_send_to_lulu(preview_id):
         from services.lulu_api_service import get_public_file_url
         interior_url = get_public_file_url(lulu_order_folder, "interior.pdf")
         cover_url = get_public_file_url(lulu_order_folder, "cover.pdf")
-        production_logger.info(f"[ADMIN-LULU] Using URLs: interior={interior_url}")
+        _is_illustrated = story_data.get('is_illustrated_book', False)
+        _pod_id = '0827X1169FCPRECW080CW444GXX' if _is_illustrated else '0850X0850FCPRESS080CW444GXX'
+        production_logger.info(f"[ADMIN-LULU] Using URLs: interior={interior_url}, pod_package_id={_pod_id}")
 
         success, message, lulu_job_id = submit_print_order(
             order_folder=lulu_order_folder,
             title=title,
             shipping_address=shipping_address,
             shipping_level=shipping_level,
+            pod_package_id=_pod_id,
             interior_url=interior_url,
             cover_url=cover_url
         )
@@ -5924,11 +5927,13 @@ def admin_retry_lulu_submission(preview_id):
         if not shipping_address.get('phone_number') and shipping_address.get('phone'):
             shipping_address['phone_number'] = shipping_address['phone']
         shipping_level = story_data.get('shipping_method', 'MAIL')
+        _pod_id_retry = '0827X1169FCPRECW080CW444GXX' if is_illustrated else '0850X0850FCPRESS080CW444GXX'
         success, message, lulu_job_id = submit_print_order(
             order_folder=order_folder,
             title=book_title,
             shipping_address=shipping_address,
-            shipping_level=shipping_level
+            shipping_level=shipping_level,
+            pod_package_id=_pod_id_retry
         )
         
         if success and lulu_job_id:
