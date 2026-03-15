@@ -1641,34 +1641,52 @@ def generate_full_book(
     
     failed_scene_indices = []
     total_scenes = len(scenes)
-    for i, scene_config in enumerate(scenes):
-        print(f"[BOOK] Generating scene {i+1}/{total_scenes}...")
-        
+    scene_images = [None] * total_scenes
+    _completed_count = 0
+
+    SCENE_WORKERS = 3
+
+    def _gen_one_scene(args):
+        _i, _scene_cfg = args
+        print(f"[BOOK] Generating scene {_i + 1}/{total_scenes}...")
         try:
-            scene_image = generate_scene_complete(
-                scene_config,
-                traits,
-                child_name,
-                gender,
-                language,
-                book_id,
+            img = generate_scene_complete(
+                _scene_cfg, traits, child_name, gender, language, book_id,
                 reference_image_path=reference_image_path,
                 reference_image_path_2=reference_image_path_2
             )
-        except RuntimeError as gen_err:
-            print(f"[BOOK] Scene {i+1} generation failed permanently: {gen_err}. Using placeholder.")
-            scene_image = Image.new("RGB", (1024, 1365), "#FFFEF5")
-            failed_scene_indices.append(i)
-        
+            return _i, img
+        except RuntimeError as _err:
+            print(f"[BOOK] Scene {_i + 1} generation failed permanently: {_err}. Using placeholder.")
+            return _i, None
+
+    from concurrent.futures import ThreadPoolExecutor, as_completed as _as_completed
+    with ThreadPoolExecutor(max_workers=SCENE_WORKERS) as _executor:
+        _futures = {_executor.submit(_gen_one_scene, (i, sc)): i for i, sc in enumerate(scenes)}
+        for _future in _as_completed(_futures):
+            _i, _img = _future.result()
+            scene_images[_i] = _img
+            if _img is None:
+                failed_scene_indices.append(_i)
+            _completed_count += 1
+            if progress_callback:
+                try:
+                    progress_callback(_completed_count, total_scenes)
+                except Exception:
+                    pass
+
+    for i, scene_config in enumerate(scenes):
+        scene_image = scene_images[i] if scene_images[i] is not None else Image.new("RGB", (1024, 1365), "#FFFEF5")
+
         text_key = f"text_{language}"
         text = scene_config.get(text_key, scene_config.get("text_es", ""))
         text = text.replace("{name}", child_name)
         pet_name = traits.get('pet_name', '')
         if pet_name:
             text = text.replace("{pet_name}", pet_name)
-        
+
         position = scene_config.get("text_position", "split")
-        
+
         final_page = add_text_to_image(
             scene_image,
             text,
@@ -1678,13 +1696,8 @@ def generate_full_book(
             52,
             0.05
         )
-        
+
         pages.append(final_page)
-        if progress_callback:
-            try:
-                progress_callback(i + 1, total_scenes)
-            except Exception:
-                pass
     
     if failed_scene_indices:
         print(f"[BOOK] WARNING: {len(failed_scene_indices)} scenes failed: {[i+1 for i in failed_scene_indices]}")
