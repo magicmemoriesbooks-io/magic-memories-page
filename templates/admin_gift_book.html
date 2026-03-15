@@ -46,8 +46,9 @@
                         </td>
                         <td style="padding: 8px 12px;"><span style="font-size: 11px; color: #94A3B8;">{{ gp.created }}</span></td>
                         <td style="padding: 8px 12px; text-align: right; white-space: nowrap;">
+                            <a href="/admin/preview/{{ gp.preview_id }}" style="padding: 3px 8px; background: #4f46e5; color: white; border-radius: 5px; text-decoration: none; font-size: 11px;">📋 Admin</a>
                             {% if gp.scenes_generating or gp.book_scenes_ready or gp.pages_composed %}
-                            <a href="/order-complete/{{ gp.preview_id }}" style="padding: 3px 8px; background: #6366F1; color: white; border-radius: 5px; text-decoration: none; font-size: 11px;">Ver</a>
+                            <a href="/order-complete/{{ gp.preview_id }}" style="padding: 3px 8px; background: #6366F1; color: white; border-radius: 5px; text-decoration: none; font-size: 11px; margin-left: 4px;">Ver</a>
                             {% endif %}
                             {% if gp.has_lulu_folder %}
                             <a href="/admin/gift-download/{{ gp.preview_id }}" style="padding: 3px 8px; background: #10B981; color: white; border-radius: 5px; text-decoration: none; font-size: 11px; margin-left: 4px;">Descargar PDFs</a>
