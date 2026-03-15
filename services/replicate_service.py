@@ -995,38 +995,37 @@ def generate_scenes_only(story_id: str, gender: str, traits: dict,
     from services.quick_stories.checkout import is_quick_story as check_qs
     is_qs = check_qs(story_id)
     scene_prompts = get_scene_prompts(story_id, child_name, gender, traits)
-    scene_paths = []
     scene_aspect = "1:1" if is_baby or is_qs else "3:4"
     total = len(scene_prompts)
-    
-    for i, prompt in enumerate(scene_prompts, 1):
-        print(f"\n[{i}/{total}] Generating scene {i} with {model_name}...")
-        
+    scene_paths = [None] * total
+    _qs_completed = 0
+    _qs_workers = 2 if use_ideogram else 3
+
+    def _gen_one_qs(args):
+        _i, _prompt = args
+        print(f"\n[{_i}/{total}] Generating scene {_i} with {model_name}...")
         try:
             if use_ideogram:
-                scene_path = generate_scene_with_ideogram(prompt, cover_path, i, scene_aspect, output_dir)
+                _path = generate_scene_with_ideogram(_prompt, cover_path, _i, scene_aspect, output_dir)
             elif use_flux_dev:
-                scene_path = generate_scene_with_flux2dev(prompt, cover_path, i, scene_aspect, output_dir, gender=gender, age_range=age_range, hair_length=hair_length, child_age=child_age)
+                _path = generate_scene_with_flux2dev(_prompt, cover_path, _i, scene_aspect, output_dir, gender=gender, age_range=age_range, hair_length=hair_length, child_age=child_age)
             else:
-                scene_path = generate_scene_with_kontext(prompt, cover_path, i, scene_aspect, output_dir, gender=gender, age_range=age_range, additional_references=additional_refs, hair_length=hair_length, child_age=child_age)
-            scene_paths.append(scene_path)
+                _path = generate_scene_with_kontext(_prompt, cover_path, _i, scene_aspect, output_dir, gender=gender, age_range=age_range, additional_references=additional_refs, hair_length=hair_length, child_age=child_age)
+            return _i, _path
+        except Exception as _e:
+            print(f"Error generating scene {_i}: {_e}")
+            return _i, None
+
+    from concurrent.futures import ThreadPoolExecutor, as_completed as _qs_as_completed
+    with ThreadPoolExecutor(max_workers=_qs_workers) as _qs_executor:
+        _qs_futures = {_qs_executor.submit(_gen_one_qs, (i, p)): i for i, p in enumerate(scene_prompts, 1)}
+        for _qs_future in _qs_as_completed(_qs_futures):
+            _i, _path = _qs_future.result()
+            scene_paths[_i - 1] = _path
+            _qs_completed += 1
             if progress_callback:
                 try:
-                    progress_callback(i, total)
-                except Exception:
-                    pass
-            
-            if i < total:
-                wait_time = 3 if use_ideogram else 5
-                print(f"Waiting {wait_time}s before next request...")
-                time.sleep(wait_time)
-                
-        except Exception as e:
-            print(f"Error generating scene {i}: {e}")
-            scene_paths.append(None)
-            if progress_callback:
-                try:
-                    progress_callback(len(scene_paths), total)
+                    progress_callback(_qs_completed, total)
                 except Exception:
                     pass
     
@@ -1034,7 +1033,6 @@ def generate_scenes_only(story_id: str, gender: str, traits: dict,
     closing_prompt = get_closing_prompt(story_id, child_name, gender, traits)
     if closing_prompt:
         print(f"\n[CLOSING] Generating closing illustration with {model_name}...")
-        time.sleep(3 if use_ideogram else 5)
         try:
             closing_num = total + 1
             if use_ideogram:
