@@ -1854,6 +1854,7 @@ def generate_illustrated_book_pdf(
         if page_paths:
             path = item.lstrip('/') if isinstance(item, str) else item
             page = Image.open(path)
+            page.load()
         else:
             page = item
 
@@ -1861,6 +1862,9 @@ def generate_illustrated_book_pdf(
             upscaled = page.resize((page_width, page_height), Image.Resampling.LANCZOS)
         else:
             upscaled = page.resize((int(pdf_width), int(pdf_height)), Image.Resampling.LANCZOS)
+
+        if page_paths:
+            page.close()
 
         img_buffer = BytesIO()
         if upscaled.mode == 'RGBA':
@@ -1875,7 +1879,7 @@ def generate_illustrated_book_pdf(
             c.showPage()
 
         if page_paths:
-            del upscaled, page, img_buffer, img_reader
+            del upscaled, img_buffer, img_reader
             gc.collect()
 
     c.save()
