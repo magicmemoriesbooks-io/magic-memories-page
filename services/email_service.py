@@ -567,7 +567,10 @@ def send_admin_purchase_notification(
     preview_id: str,
     product_type: str,
     customer_email: str,
-    story_data: dict
+    story_data: dict,
+    line_items: list = None,
+    shipping_cost: float = 0.0,
+    total_usd: float = 0.0
 ) -> dict:
     from datetime import datetime
     
@@ -609,9 +612,27 @@ def send_admin_purchase_notification(
     
     base_url = os.environ.get('SITE_DOMAIN', 'magicmemoriesbooks.com')
     admin_url = f"https://{base_url}/admin/preview/{preview_id}"
-    
+
+    purchase_summary_html = ""
+    if line_items or total_usd > 0:
+        rows = ""
+        for i, item in enumerate(line_items or []):
+            bg = ' style="background:#f9fafb;"' if i % 2 == 0 else ''
+            rows += f'<tr{bg}><td style="padding:8px 12px;color:#374151;font-size:13px;">{item["label"]}</td><td style="padding:8px 12px;color:#111827;font-weight:600;text-align:right;">${item["price"]:.2f}</td></tr>'
+        if shipping_cost > 0:
+            bg = ' style="background:#f9fafb;"' if len(line_items or []) % 2 == 0 else ''
+            rows += f'<tr{bg}><td style="padding:8px 12px;color:#374151;font-size:13px;">Envío</td><td style="padding:8px 12px;color:#111827;font-weight:600;text-align:right;">${shipping_cost:.2f}</td></tr>'
+        if total_usd > 0:
+            rows += f'<tr style="background:#fef3c7;border-top:2px solid #f59e0b;"><td style="padding:10px 12px;color:#92400e;font-size:14px;font-weight:700;">TOTAL</td><td style="padding:10px 12px;color:#92400e;font-size:15px;font-weight:700;text-align:right;">${total_usd:.2f} USD</td></tr>'
+        purchase_summary_html = f"""
+        <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:14px;margin:16px 0;">
+            <p style="margin:0 0 10px;color:#92400e;font-weight:700;font-size:13px;">🧾 Resumen de Compra</p>
+            <table style="width:100%;border-collapse:collapse;font-size:13px;">{rows}</table>
+        </div>"""
+
     content = f"""
         <p style="color:#6b7280;font-size:13px;text-align:center;margin-top:0;">Nueva compra recibida</p>
+        {purchase_summary_html}
         <table style="width:100%;border-collapse:collapse;font-size:14px;margin:15px 0;">
             <tr style="background:#fef2f2;"><td style="padding:10px 12px;color:#6b7280;font-size:13px;width:130px;">Cliente</td><td style="padding:10px 12px;color:#1f2937;font-weight:600;">{customer_email}</td></tr>
             <tr><td style="padding:10px 12px;color:#6b7280;font-size:13px;">Nombre</td><td style="padding:10px 12px;color:#1f2937;font-weight:600;">{child_name}</td></tr>
