@@ -5353,6 +5353,95 @@ def admin_view_preview(preview_id):
     return render_template('admin_preview.html', preview=data, preview_id=preview_id)
 
 
+@app.route('/admin/regenerate-scene/<preview_id>/<int:scene_num>', methods=['POST'])
+def admin_regenerate_scene(preview_id, scene_num):
+    """Admin-only: regenerate a single scene with FLUX 2 Dev + reference image. No regen limit."""
+    if not check_admin_auth():
+        return jsonify({'success': False, 'error': 'No autorizado'}), 401
+
+    preview_path = f'story_previews/{preview_id}.json'
+    if not os.path.exists(preview_path):
+        return jsonify({'success': False, 'error': 'Story not found'}), 404
+
+    with open(preview_path, 'r', encoding='utf-8') as f:
+        story_data = json.load(f)
+
+    story_id = story_data.get('story_id', '')
+    gender = story_data.get('gender', 'neutral')
+    traits = story_data.get('traits', {})
+    lang = story_data.get('lang', story_data.get('language', 'es'))
+    output_dir = story_data.get('output_dir', story_data.get('image_dir', f'generated/{preview_id}'))
+
+    from services.fixed_stories import get_scene_prompts, FIXED_STORIES
+    from services.replicate_service import generate_scene_with_flux2dev
+
+    try:
+        scene_prompts = get_scene_prompts(story_id, story_data.get('child_name', ''), gender, traits)
+        scene_index = scene_num - 1
+        if scene_index < 0 or scene_index >= len(scene_prompts):
+            return jsonify({'success': False, 'error': f'Scene {scene_num} not found (story has {len(scene_prompts)} scenes)'}), 400
+
+        prompt = scene_prompts[scene_index]
+
+        ref_image = None
+        for candidate in ['cover_clean.png', 'base_character.png', 'cover.png']:
+            candidate_path = os.path.join(output_dir, candidate)
+            if os.path.exists(candidate_path):
+                ref_image = candidate_path
+                break
+
+        if not ref_image:
+            return jsonify({'success': False, 'error': 'No reference image found (cover_clean.png missing)'}), 400
+
+        story_config = FIXED_STORIES.get(story_id, {})
+        age_range = story_config.get('age_range', '3-8')
+        is_baby = age_range in ['0-1', '0-2']
+        aspect = '1:1' if is_baby else '3:4'
+        hair_length = traits.get('hair_length', 'medium')
+        child_age = int(traits.get('child_age', '5'))
+
+        print(f"[ADMIN-REGEN] Regenerating scene {scene_num} for {preview_id} (story: {story_id})")
+
+        new_scene_path = generate_scene_with_flux2dev(
+            prompt, ref_image, scene_num, aspect, output_dir,
+            gender=gender, age_range=age_range,
+            hair_length=hair_length, child_age=child_age
+        )
+
+        if new_scene_path and os.path.exists(new_scene_path):
+            story_config_full = FIXED_STORIES.get(story_id, {})
+            text_layout = story_config_full.get('text_layout', 'single')
+            pages_data = story_data.get('pages', [])
+
+            if pages_data and scene_index < len(pages_data):
+                try:
+                    from services.quick_stories.image_composer import compose_baby_text_on_image, compose_kids_text_on_image
+                    from PIL import Image as PILImg
+                    page = pages_data[scene_index]
+                    img_obj = PILImg.open(new_scene_path)
+                    if text_layout == 'split':
+                        ta = page.get(f'text_above_{lang}', page.get('text_above', page.get('text', '')))
+                        tb = page.get(f'text_below_{lang}', page.get('text_below', ''))
+                        composed = compose_kids_text_on_image(img_obj, ta, tb, lang)
+                    else:
+                        txt = page.get(f'text_{lang}', page.get('text', ''))
+                        composed = compose_baby_text_on_image(img_obj, txt, lang)
+                    composed.save(new_scene_path, 'PNG')
+                    print(f"[ADMIN-REGEN] Text recomposed on scene {scene_num}")
+                except Exception as comp_err:
+                    print(f"[ADMIN-REGEN] Text composition skipped: {comp_err}")
+
+            image_url = f'/{new_scene_path}' if not new_scene_path.startswith('/') else new_scene_path
+            print(f"[ADMIN-REGEN] Scene {scene_num} regenerated OK: {new_scene_path}")
+            return jsonify({'success': True, 'image_url': image_url})
+        else:
+            return jsonify({'success': False, 'error': 'Generation returned no file'}), 500
+
+    except Exception as e:
+        print(f"[ADMIN-REGEN] Error: {e}")
+        return jsonify({'success': False, 'error': str(e)[:200]}), 500
+
+
 @app.route('/admin/preview/<preview_id>/pdf')
 def admin_download_pdf(preview_id):
     """Download PDF for a story from admin."""
