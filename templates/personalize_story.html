@@ -490,8 +490,7 @@ async function generateCharacterPreview() {
         };
         
         if (isAdminGift) {
-            requestBody.admin_gift_email = prompt('Por favor, ingresa el email para recibir los PDFs de Lulu:', 'admin@magicmemoriesbooks.com');
-            if (!requestBody.admin_gift_email) return;
+            requestBody.admin_gift_email = 'pay@magicmemoriesbooks.com';
         }
         
         const response = await fetch(previewEndpoint, {
