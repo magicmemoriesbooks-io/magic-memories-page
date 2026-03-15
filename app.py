@@ -5715,10 +5715,6 @@ def admin_gift_send_to_lulu(preview_id):
     with open(preview_file, 'r', encoding='utf-8') as f:
         story_data = json.load(f)
 
-    lulu_order_folder = story_data.get('lulu_order_folder', '')
-    if not lulu_order_folder or not os.path.exists(lulu_order_folder):
-        return jsonify({'error': 'Carpeta de PDFs no encontrada. Genera el libro primero.'}), 400
-
     data = request.get_json() or {}
     name = data.get('name', '').strip()
     street1 = data.get('street1', '').strip()
@@ -5751,9 +5747,49 @@ def admin_gift_send_to_lulu(preview_id):
     except Exception:
         title = story_data.get('story_name', story_data.get('title', child_name or 'Mi Libro'))
 
+    lulu_order_folder = story_data.get('lulu_order_folder', '')
+
+    if not lulu_order_folder or not os.path.exists(lulu_order_folder):
+        print(f"[ADMIN-LULU] No lulu_order_folder for {preview_id} — generating PDFs on demand...")
+        try:
+            from services.quick_stories.pdf_service import generate_quick_story_lulu_pdfs
+            from services.lulu_storage import create_order_folder, save_interior_pdf, save_cover_pdf
+            _scenes = story_data.get('original_scene_paths', story_data.get('images', story_data.get('scene_paths', [])))
+            _cover = story_data.get('original_cover', story_data.get('front_cover_path', story_data.get('cover_image', '')))
+            if _cover and _cover.startswith('/'):
+                _cover = _cover[1:]
+            _scenes = [p.lstrip('/') for p in _scenes if p]
+            if not _scenes:
+                return jsonify({'error': 'No se encontraron imágenes del cuento para generar los PDFs. Asegúrate de que el cuento esté completamente generado.'}), 400
+            _back_cover = 'static/images/quick_story_back_cover.png'
+            if not os.path.exists(_back_cover):
+                _back_cover = 'static/images/fixed_pages/back_cover.png'
+            _tmp_dir = f'generations/lulu_admin/{preview_id}'
+            os.makedirs(_tmp_dir, exist_ok=True)
+            generate_quick_story_lulu_pdfs(
+                story_data=story_data,
+                images=_scenes,
+                front_cover_path=_cover,
+                back_cover_path=_back_cover,
+                interior_output=os.path.join(_tmp_dir, 'interior.pdf'),
+                cover_output=os.path.join(_tmp_dir, 'cover.pdf'),
+                skip_sanitize=True
+            )
+            customer_email = story_data.get('customer_email', story_data.get('admin_gift_email', ''))
+            lulu_order_folder = create_order_folder(f'admin_{preview_id[:8]}', child_name, customer_email)
+            save_interior_pdf(lulu_order_folder, os.path.join(_tmp_dir, 'interior.pdf'))
+            save_cover_pdf(lulu_order_folder, os.path.join(_tmp_dir, 'cover.pdf'))
+            story_data['lulu_order_folder'] = lulu_order_folder
+            import shutil as _shutil
+            _shutil.rmtree(_tmp_dir, ignore_errors=True)
+            print(f"[ADMIN-LULU] PDFs generated → {lulu_order_folder}")
+        except Exception as pdf_err:
+            import traceback
+            traceback.print_exc()
+            return jsonify({'error': f'Error generando PDFs: {str(pdf_err)[:200]}'}), 500
+
     try:
         from services.lulu_api_service import submit_print_order
-
         from services.lulu_api_service import get_public_file_url
         interior_url = get_public_file_url(lulu_order_folder, "interior.pdf")
         cover_url = get_public_file_url(lulu_order_folder, "cover.pdf")
@@ -5777,13 +5813,20 @@ def admin_gift_send_to_lulu(preview_id):
             with open(preview_file, 'w', encoding='utf-8') as f:
                 json.dump(story_data, f, ensure_ascii=False, indent=2)
             try:
-                from services.email_service import send_admin_notification_email
-                send_admin_notification_email(
-                    subject=f'[REGALO LULU] {child_name} → Job {lulu_job_id}',
-                    body=f'Libro regalo de {child_name} enviado a Lulu exitosamente.\nJob ID: {lulu_job_id}\nEnvío a: {name}, {city}, {shipping_address["country_code"]}'
+                from services.email_service import send_lulu_order_notification
+                _customer_email = story_data.get('customer_email', story_data.get('admin_gift_email', 'pay@magicmemoriesbooks.com'))
+                send_lulu_order_notification(
+                    order_folder=lulu_order_folder,
+                    lulu_job_id=lulu_job_id,
+                    title=title,
+                    customer_email=_customer_email,
+                    shipping_address=shipping_address,
+                    interior_url=interior_url,
+                    cover_url=cover_url
                 )
-            except Exception:
-                pass
+                print(f"[ADMIN-LULU] Notification email sent to pay@ for job {lulu_job_id}")
+            except Exception as email_err:
+                print(f"[ADMIN-LULU] Email error (non-fatal): {email_err}")
             return jsonify({'success': True, 'lulu_job_id': lulu_job_id, 'message': message})
         else:
             return jsonify({'success': False, 'error': message}), 500
