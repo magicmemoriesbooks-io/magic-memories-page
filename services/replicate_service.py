@@ -573,31 +573,17 @@ def generate_scene_with_flux2dev(scene_prompt: str, reference_image_path: str, s
     _ref_img.close()
     del _ref_img
 
-    REF_RETRY_LIMIT = 3
     for attempt in range(max_retries + 1):
-        use_ref = attempt < REF_RETRY_LIMIT
         try:
-            if use_ref:
-                with open(reference_image_path, "rb") as ref_file:
-                    output = replicate.run(
-                        FLUX_2_DEV_MODEL,
-                        input={
-                            "prompt": enhanced_prompt,
-                            "input_images": [ref_file],
-                            "aspect_ratio": aspect_ratio,
-                            "output_format": "png",
-                            "go_fast": False
-                        }
-                    )
-            else:
-                print(f"[FALLBACK] Scene {scene_num}: trying without reference image (attempt {attempt + 1})")
+            with open(reference_image_path, "rb") as ref_file:
                 output = replicate.run(
                     FLUX_2_DEV_MODEL,
                     input={
                         "prompt": enhanced_prompt,
+                        "input_images": [ref_file],
                         "aspect_ratio": aspect_ratio,
                         "output_format": "png",
-                        "go_fast": True
+                        "go_fast": False
                     }
                 )
 
@@ -611,8 +597,7 @@ def generate_scene_with_flux2dev(scene_prompt: str, reference_image_path: str, s
             local_path = f"{output_dir}/scene_{scene_num}.png"
             save_image_locally(image_url, local_path)
 
-            mode = "with reference" if use_ref else "WITHOUT reference (fallback)"
-            print(f"Scene {scene_num}: Complete with FLUX 2 Dev {mode}!")
+            print(f"Scene {scene_num}: Complete with FLUX 2 Dev + reference!")
             return local_path
 
         except Exception as e:
@@ -628,13 +613,9 @@ def generate_scene_with_flux2dev(scene_prompt: str, reference_image_path: str, s
                     enhanced_prompt = enhanced_prompt.replace("dragon", "magical creature").replace("fire", "sparkles")
                     time.sleep(3 + attempt * 2)
                 elif is_transient_error:
-                    if attempt + 1 == REF_RETRY_LIMIT:
-                        print(f"q_descale persists after {REF_RETRY_LIMIT} attempts — switching to no-reference mode...")
-                        time.sleep(5)
-                    else:
-                        wait_time = min(10 * (2 ** attempt), 60)
-                        print(f"Transient error, retrying FLUX 2 Dev in {wait_time}s (attempt {attempt + 2}/{max_retries + 1})...")
-                        time.sleep(wait_time)
+                    wait_time = min(10 * (2 ** attempt), 60)
+                    print(f"Transient error, retrying FLUX 2 Dev in {wait_time}s (attempt {attempt + 2}/{max_retries + 1})...")
+                    time.sleep(wait_time)
                 else:
                     print(f"Unknown error, retrying FLUX 2 Dev (attempt {attempt + 2})...")
                     time.sleep(5)
