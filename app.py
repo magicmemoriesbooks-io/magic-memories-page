@@ -3598,6 +3598,29 @@ def api_generation_status(preview_id):
                 'scene_paths': [],
                 'error': story_data.get('generation_error', 'Book composition failed')
             })
+        else:
+            import time as _st
+            generation_started = story_data.get('generation_started_at', 0)
+            elapsed = _st.time() - generation_started if generation_started else 0
+            COMPOSE_TIMEOUT_SEC = 25 * 60
+            task_alive = compose_task and compose_task.get('status') in ('pending', 'processing')
+            if not task_alive and elapsed > COMPOSE_TIMEOUT_SEC:
+                production_logger.warning(
+                    f"[STATUS] book_compose_{preview_id} timed out after {elapsed/60:.1f}min — marking failed"
+                )
+                story_data['book_composing'] = False
+                story_data['generation_error'] = (
+                    'La composición del libro tardó demasiado. Por favor, contacta con soporte o reinténtalo.'
+                )
+                with open(preview_file, 'w', encoding='utf-8') as _pf:
+                    json.dump(story_data, _pf, ensure_ascii=False, indent=2)
+                return jsonify({
+                    'status': 'failed',
+                    'generated': 0,
+                    'expected': 1,
+                    'scene_paths': [],
+                    'error': story_data['generation_error']
+                })
         return jsonify({
             'status': 'composing',
             'generated': 0,
@@ -5563,6 +5586,31 @@ def admin_update_shipping(preview_id):
         json.dump(story_data, f, ensure_ascii=False, indent=2)
     
     return jsonify({"success": True, "message": "Dirección actualizada", "address": shipping_address})
+
+
+@app.route('/admin/reset-compose/<preview_id>', methods=['POST'])
+def admin_reset_compose(preview_id):
+    """Reset book_composing flag so a stuck compose task can be re-triggered."""
+    if not check_admin_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    preview_file = f'story_previews/{preview_id}.json'
+    if not os.path.exists(preview_file):
+        return jsonify({'error': 'Preview not found'}), 404
+
+    with open(preview_file, 'r', encoding='utf-8') as f:
+        story_data = json.load(f)
+
+    was_composing = story_data.get('book_composing', False)
+    story_data['book_composing'] = False
+    story_data['generation_error'] = ''
+    story_data['pages_composed'] = False
+
+    with open(preview_file, 'w', encoding='utf-8') as f:
+        json.dump(story_data, f, ensure_ascii=False, indent=2)
+
+    production_logger.info(f"[ADMIN] Compose state reset for {preview_id} (was_composing={was_composing})")
+    return jsonify({'success': True, 'message': f'Compose state reset. was_composing={was_composing}. Now refresh the order page to re-trigger.'})
 
 
 @app.route('/admin/gift-send-to-lulu/<preview_id>', methods=['POST'])
