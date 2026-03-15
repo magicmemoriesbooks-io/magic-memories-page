@@ -7247,27 +7247,19 @@ def _compose_personalized_book_background(preview_id, **kwargs):
         scenes_already_ready = story_data.get('book_scenes_ready', False)
         
         if scenes_already_ready:
-            production_logger.info(f"[BG-COMPOSE] Scenes already generated (two-stage flow), loading from disk...")
-            from PIL import Image
+            production_logger.info(f"[BG-COMPOSE] Scenes already generated (two-stage flow), verifying files on disk...")
             
             original_paths_on_disk = story_data.get('original_scene_paths', story_data.get('original_images', []))
-            pages = []
-            for p in original_paths_on_disk:
-                clean_p = p.lstrip('/')
-                if os.path.exists(clean_p):
-                    pages.append(Image.open(clean_p))
-                else:
-                    production_logger.warning(f"[BG-COMPOSE] Missing page: {clean_p}")
-            
-            production_logger.info(f"[BG-COMPOSE] Loaded {len(pages)} pages from disk")
-            
-            if len(pages) < 10:
-                production_logger.warning(f"[BG-COMPOSE] Only {len(pages)} pages loaded from disk, falling back to full generation")
-                scenes_already_ready = False
-            
             original_paths = [p.lstrip('/') for p in original_paths_on_disk if os.path.exists(p.lstrip('/'))]
-            preview_paths_data = story_data.get('scene_paths', story_data.get('images', []))
-            preview_paths = [p.lstrip('/') for p in preview_paths_data if os.path.exists(p.lstrip('/'))]
+            
+            production_logger.info(f"[BG-COMPOSE] Found {len(original_paths)} of {len(original_paths_on_disk)} pages on disk")
+            
+            if len(original_paths) < 10:
+                production_logger.warning(f"[BG-COMPOSE] Only {len(original_paths)} pages found on disk, falling back to full generation")
+                scenes_already_ready = False
+            else:
+                preview_paths_data = story_data.get('scene_paths', story_data.get('images', []))
+                preview_paths = [p.lstrip('/') for p in preview_paths_data if os.path.exists(p.lstrip('/'))]
         
         if not scenes_already_ready:
             ref_image_path = None
@@ -7433,7 +7425,10 @@ def _compose_personalized_book_background(preview_id, **kwargs):
         )
         
         interior_path = os.path.join(order_folder, 'interior.pdf')
-        generate_illustrated_book_pdf(pages, interior_path, for_print=True)
+        if scenes_already_ready:
+            generate_illustrated_book_pdf(output_path=interior_path, for_print=True, page_paths=original_paths)
+        else:
+            generate_illustrated_book_pdf(pages, interior_path, for_print=True)
         
         cover_path = os.path.join(order_folder, 'cover.pdf')
         save_cover_as_pdf(cover_spread, cover_path)
