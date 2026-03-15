@@ -5565,6 +5565,87 @@ def admin_update_shipping(preview_id):
     return jsonify({"success": True, "message": "Dirección actualizada", "address": shipping_address})
 
 
+@app.route('/admin/gift-send-to-lulu/<preview_id>', methods=['POST'])
+def admin_gift_send_to_lulu(preview_id):
+    """Submit an admin gift book to Lulu with a manually provided shipping address."""
+    if not check_admin_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    preview_file = f'story_previews/{preview_id}.json'
+    if not os.path.exists(preview_file):
+        return jsonify({'error': 'Preview not found'}), 404
+
+    with open(preview_file, 'r', encoding='utf-8') as f:
+        story_data = json.load(f)
+
+    lulu_order_folder = story_data.get('lulu_order_folder', '')
+    if not lulu_order_folder or not os.path.exists(lulu_order_folder):
+        return jsonify({'error': 'Carpeta de PDFs no encontrada. Genera el libro primero.'}), 400
+
+    data = request.get_json() or {}
+    name = data.get('name', '').strip()
+    street1 = data.get('street1', '').strip()
+    city = data.get('city', '').strip()
+    postal_code = data.get('postal_code', '').strip()
+    if not name or not street1 or not city or not postal_code:
+        return jsonify({'error': 'Nombre, dirección, ciudad y código postal son obligatorios'}), 400
+
+    shipping_address = {
+        'name': name,
+        'street1': street1,
+        'street2': data.get('street2', '').strip(),
+        'city': city,
+        'state_code': data.get('state_code', '').strip(),
+        'postal_code': postal_code,
+        'country_code': data.get('country_code', 'ES').strip().upper(),
+        'phone_number': data.get('phone_number', '').strip(),
+        'email': data.get('email', story_data.get('customer_email', '')).strip(),
+    }
+    shipping_level = data.get('shipping_level', 'MAIL')
+
+    story_id = story_data.get('story_id', '')
+    child_name = story_data.get('child_name', '')
+    lang = story_data.get('lang', story_data.get('language', 'es'))
+    try:
+        from services.personalized_books.generation import get_lulu_title
+        pb_traits = story_data.get('traits', {})
+        pet_name = pb_traits.get('pet_name', '') if pb_traits else ''
+        title = get_lulu_title(story_id, child_name, lang, pet_name=pet_name)
+    except Exception:
+        title = story_data.get('story_name', story_data.get('title', child_name or 'Mi Libro'))
+
+    try:
+        from services.lulu_api_service import submit_print_order
+        success, message, lulu_job_id = submit_print_order(
+            order_folder=lulu_order_folder,
+            title=title,
+            shipping_address=shipping_address,
+            shipping_level=shipping_level
+        )
+        if success and lulu_job_id:
+            story_data['lulu_job_id'] = lulu_job_id
+            story_data['lulu_submitted'] = True
+            story_data['shipping_address'] = shipping_address
+            story_data['want_print'] = True
+            with open(preview_file, 'w', encoding='utf-8') as f:
+                json.dump(story_data, f, ensure_ascii=False, indent=2)
+            try:
+                from services.email_service import send_admin_notification_email
+                send_admin_notification_email(
+                    subject=f'[REGALO LULU] {child_name} → Job {lulu_job_id}',
+                    body=f'Libro regalo de {child_name} enviado a Lulu exitosamente.\nJob ID: {lulu_job_id}\nEnvío a: {name}, {city}, {shipping_address["country_code"]}'
+                )
+            except Exception:
+                pass
+            return jsonify({'success': True, 'lulu_job_id': lulu_job_id, 'message': message})
+        else:
+            return jsonify({'success': False, 'error': message}), 500
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/admin/retry-lulu/<preview_id>', methods=['POST'])
 def admin_retry_lulu_submission(preview_id):
     """Retry Lulu submission for a failed order."""
