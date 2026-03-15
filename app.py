@@ -5665,10 +5665,9 @@ def admin_gift_send_to_lulu(preview_id):
     try:
         from services.lulu_api_service import submit_print_order
 
-        folder_name = os.path.basename(lulu_order_folder)
-        base_url = request.host_url.rstrip('/')
-        interior_url = f"{base_url}/lulu-files/{folder_name}/interior.pdf"
-        cover_url = f"{base_url}/lulu-files/{folder_name}/cover.pdf"
+        from services.lulu_api_service import get_public_file_url
+        interior_url = get_public_file_url(lulu_order_folder, "interior.pdf")
+        cover_url = get_public_file_url(lulu_order_folder, "cover.pdf")
         production_logger.info(f"[ADMIN-LULU] Using URLs: interior={interior_url}")
 
         success, message, lulu_job_id = submit_print_order(
