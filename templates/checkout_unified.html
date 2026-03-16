@@ -310,10 +310,26 @@
             </div>
     </div>
 
+    <div class="bg-yellow-50 border border-yellow-300 rounded-xl p-4 mb-4">
+        <p class="text-sm font-bold text-yellow-800 mb-2">🎟️ {% if lang == 'es' %}¿Tienes un código de descuento?{% else %}Have a discount code?{% endif %}</p>
+        <div class="flex gap-2">
+            <input type="text" id="couponInput" placeholder="{% if lang == 'es' %}Ej: MAGIC20{% else %}E.g. MAGIC20{% endif %}"
+                   style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid #D4AF37;font-size:14px;text-transform:uppercase;"
+                   oninput="this.value=this.value.toUpperCase()">
+            <button onclick="applyCoupon()" id="applyCouponBtn"
+                    style="background:linear-gradient(135deg,#D4AF37,#B8860B);color:white;font-weight:700;font-size:13px;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;">
+                {% if lang == 'es' %}Aplicar{% else %}Apply{% endif %}
+            </button>
+            <button onclick="removeCoupon()" id="removeCouponBtn" style="display:none;background:#EF4444;color:white;font-weight:700;font-size:13px;padding:8px 12px;border-radius:8px;border:none;cursor:pointer;">✕</button>
+        </div>
+        <p id="couponMsg" style="font-size:12px;margin-top:6px;display:none;"></p>
+    </div>
+
     <div class="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-6" id="totalSection">
         <div class="flex justify-between items-center text-lg font-bold">
             <span>{% if lang == 'es' %}Total a Pagar:{% else %}Total to Pay:{% endif %}</span>
             <div class="text-right">
+                <span class="text-purple-500 line-through text-sm mr-1" id="originalPrice" style="display:none;"></span>
                 <span class="text-purple-700" id="totalAmount">
                     {% if checkout_config.allow_digital %}
                         ${{ checkout_config.digital_base_price }} USD
@@ -432,6 +448,7 @@ const CFG = {
 };
 
 let currentTotal = CFG.allowDigital ? CFG.digitalBasePrice : (CFG.allowEbook ? CFG.ebookBasePrice : CFG.printBasePrice);
+let currentPlatformFee = currentTotal; // platform fee only, excluding Lulu shipping/printing
 let selectedFormats = CFG.allowDigital ? ['digital'] : (CFG.allowEbook ? ['ebook'] : []);
 let selectedShippingMethod = null;
 let selectedShippingCost = 0;
@@ -439,6 +456,58 @@ let checkoutDataGlobal = null;
 let addressValidated = false;
 let validatedAddress = null;
 let addressValidationResolve = null;
+let appliedCoupon = null;
+let appliedDiscountPct = 0;
+let appliedDiscount = 0;
+
+async function applyCoupon() {
+    const code = document.getElementById('couponInput').value.trim().toUpperCase();
+    if (!code) return;
+    const email = document.getElementById('email')?.value?.trim() || '';
+    const resp = await fetch('/api/validate-coupon', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({code: code, buyer_email: email})
+    });
+    const result = await resp.json();
+    const msgEl = document.getElementById('couponMsg');
+    msgEl.style.display = 'block';
+    if (result.valid) {
+        appliedCoupon = result.code;
+        appliedDiscountPct = result.discount_pct;
+        // Discount applies ONLY on platform fee (your cost: $7, $20, $30) — NOT on Lulu printing/shipping
+        appliedDiscount = Math.round(currentPlatformFee * appliedDiscountPct) / 100;
+        const origEl = document.getElementById('originalPrice');
+        if (origEl) { origEl.textContent = '$' + (currentPlatformFee + selectedShippingCost).toFixed(2) + ' USD'; origEl.style.display = 'inline'; }
+        currentTotal = Math.max(Math.round((currentPlatformFee - appliedDiscount) * 100) / 100, 1) + selectedShippingCost;
+        const totEl = document.getElementById('totalAmount');
+        if (totEl) totEl.textContent = '$' + currentTotal.toFixed(2) + ' USD';
+        msgEl.style.color = 'green';
+        msgEl.textContent = '✅ ' + result.discount_pct + '% descuento aplicado!';
+        document.getElementById('applyCouponBtn').style.display = 'none';
+        document.getElementById('removeCouponBtn').style.display = 'inline-block';
+        document.getElementById('couponInput').disabled = true;
+    } else {
+        msgEl.style.color = 'red';
+        msgEl.textContent = '❌ ' + (result.error || 'Código inválido');
+    }
+}
+
+function removeCoupon() {
+    appliedCoupon = null;
+    appliedDiscountPct = 0;
+    appliedDiscount = 0;
+    currentTotal = currentPlatformFee + selectedShippingCost;
+    const totEl = document.getElementById('totalAmount');
+    if (totEl) totEl.textContent = '$' + currentTotal.toFixed(2) + ' USD';
+    const origEl = document.getElementById('originalPrice');
+    if (origEl) origEl.style.display = 'none';
+    document.getElementById('couponMsg').style.display = 'none';
+    document.getElementById('couponInput').value = '';
+    document.getElementById('couponInput').disabled = false;
+    document.getElementById('applyCouponBtn').style.display = 'inline-block';
+    document.getElementById('removeCouponBtn').style.display = 'none';
+}
 
 // ── format toggles ──────────────────────────────────────────────────────────
 function toggleFormat() {
@@ -463,8 +532,19 @@ function updatePriceDisplay() {
     if (hasEbook && !hasDigital) base += CFG.ebookBasePrice;
     if (wantPrint) base += CFG.printBasePrice;
     
+    currentPlatformFee = base; // keep Lulu cost separate
     let shipping = wantPrint ? selectedShippingCost : 0;
-    currentTotal = base + shipping;
+    
+    // Re-apply coupon discount to the (possibly updated) platform fee only
+    if (appliedCoupon && appliedDiscountPct > 0) {
+        appliedDiscount = Math.round(currentPlatformFee * appliedDiscountPct) / 100;
+        currentTotal = Math.max(Math.round((currentPlatformFee - appliedDiscount) * 100) / 100, 1) + shipping;
+        const origEl = document.getElementById('originalPrice');
+        if (origEl) { origEl.textContent = '$' + (currentPlatformFee + shipping).toFixed(2) + ' USD'; origEl.style.display = 'inline'; }
+    } else {
+        appliedDiscount = 0;
+        currentTotal = base + shipping;
+    }
     
     const totalEl = document.getElementById('totalAmount');
     if (totalEl) totalEl.textContent = '$' + currentTotal.toFixed(2) + ' USD';
@@ -679,6 +759,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (countryEl) countryEl.addEventListener('blur', () => autoValidateAddress());
 });
 
+// ── start checkout (called by form submit) ───────────────────────────────────
+function startCheckout() {
+    if (!validateCheckoutForm()) return;
+    const paypalContainer = document.getElementById('paypal-button-container');
+    if (paypalContainer) paypalContainer.scrollIntoView({behavior: 'smooth', block: 'center'});
+}
+
 // ── validate form ───────────────────────────────────────────────────────────
 function validateCheckoutForm() {
     const email = document.getElementById('email')?.value?.trim();
@@ -786,10 +873,15 @@ document.addEventListener('DOMContentLoaded', () => {
             checkoutDataGlobal = checkoutData;
             await saveCheckoutData(checkoutData);
             const amount = currentTotal > 0 ? currentTotal : CFG.digitalBasePrice;
+            // base_price_usd = platform fee only (no Lulu shipping), backend applies discount on this
+            const payload = {amount_usd: amount, base_price_usd: currentPlatformFee, preview_id: CFG.previewId};
+            if (appliedCoupon) payload.coupon_code = appliedCoupon;
+            const buyerEmail = document.getElementById('email')?.value?.trim() || '';
+            if (buyerEmail) payload.buyer_email = buyerEmail;
             const resp = await fetch('/api/paypal/create-order', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({amount_usd: amount, preview_id: CFG.previewId})
+                body: JSON.stringify(payload)
             });
             const order = await resp.json();
             if (order.error) throw new Error(order.error);
@@ -799,10 +891,14 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('loadingOverlay').classList.remove('hidden');
             startRotatingMessages();
             try {
+                const capturePayload = {orderID: data.orderID};
+                if (appliedCoupon) capturePayload.coupon_code = appliedCoupon;
+                const buyerEmail = document.getElementById('email')?.value?.trim() || '';
+                if (buyerEmail) capturePayload.buyer_email = buyerEmail;
                 const captureResp = await fetch('/api/paypal/capture-order', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({orderID: data.orderID})
+                    body: JSON.stringify(capturePayload)
                 });
                 const captureResult = await captureResp.json();
                 if (!captureResult.success) {

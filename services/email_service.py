@@ -1623,3 +1623,61 @@ def send_tracking_email(to_email: str, tracking_number: str, customer_name: str,
     except Exception as e:
         print(f"[EMAIL] Tracking email error: {e}")
         return {'success': False, 'error': str(e)}
+
+
+def send_coupon_email(name: str, email: str, code: str = 'MAGIC20', discount_pct: int = 20) -> bool:
+    try:
+        content = f"""
+        <p style="font-size:16px;color:#374151;margin:0 0 14px 0;">Hola <strong>{name}</strong>! 🎉</p>
+        <p style="font-size:15px;color:#374151;margin:0 0 20px 0;">
+            Aquí está tu código exclusivo de <strong>{discount_pct}% de descuento</strong> para tu primer cuento mágico personalizado:
+        </p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0;">
+          <tr>
+            <td align="center">
+              <table cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" style="background-color:#B8860B;border-radius:10px;padding:18px 40px;">
+                    <p style="margin:0 0 4px 0;font-size:11px;font-weight:700;color:#FFE88A;letter-spacing:1px;text-transform:uppercase;">Tu código</p>
+                    <p style="margin:0;font-size:32px;font-weight:900;color:#ffffff;letter-spacing:5px;font-family:Courier,monospace;">{code}</p>
+                    <p style="margin:6px 0 0 0;font-size:13px;font-weight:700;color:#FFE88A;">{discount_pct}% de descuento</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+        <p style="font-size:14px;color:#6B7280;text-align:center;margin:0 0 24px 0;">
+            Introduce este código en el checkout <strong>antes de pagar con PayPal</strong>.
+        </p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 0 0;">
+          <tr>
+            <td align="center">
+              <a href="https://magicmemoriesbooks.com"
+                 style="background-color:#7C3AED;color:#ffffff;padding:13px 30px;
+                        border-radius:50px;text-decoration:none;font-weight:bold;
+                        font-size:15px;display:inline-block;">
+                ✨ Crear mi cuento ahora ✨
+              </a>
+            </td>
+          </tr>
+        </table>
+        <p style="font-size:12px;color:#9CA3AF;text-align:center;margin:20px 0 0 0;">
+            Este código es válido para una compra. No lo compartas.
+        </p>
+        """
+        html_body = _email_wrapper("🎟️ Tu Código de Descuento", content, email)
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = f"🎟️ Tu {discount_pct}% de descuento — Magic Memories Books"
+        msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
+        msg['To'] = email
+        msg.attach(MIMEText(html_body, 'html'))
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.sendmail(FROM_EMAIL, email, msg.as_string())
+        print(f"[COUPON EMAIL] Sent {code} to {email}")
+        return True
+    except Exception as e:
+        print(f"[COUPON EMAIL] Error sending to {email}: {e}")
+        return False

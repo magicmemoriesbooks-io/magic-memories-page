@@ -283,3 +283,49 @@ class StoryBackup(db.Model):
 
     def __repr__(self):
         return f'<StoryBackup {self.preview_id}>'
+
+
+class Coupon(db.Model):
+    __tablename__ = 'coupons'
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(50), unique=True, nullable=False)
+    coupon_type = db.Column(db.String(20), default='general')
+    discount_pct = db.Column(db.Integer, default=20)
+    owner_name = db.Column(db.String(100))
+    owner_email = db.Column(db.String(120))
+    commission_pct = db.Column(db.Integer, default=0)
+    max_uses = db.Column(db.Integer, default=0)
+    use_count = db.Column(db.Integer, default=0)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<Coupon {self.code}>'
+
+
+class CouponLead(db.Model):
+    __tablename__ = 'coupon_leads'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100))
+    email = db.Column(db.String(120))
+    ip_address = db.Column(db.String(50))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<CouponLead {self.email}>'
+
+
+class CouponUsage(db.Model):
+    __tablename__ = 'coupon_usages'
+
+    id = db.Column(db.Integer, primary_key=True)
+    coupon_code = db.Column(db.String(50), nullable=False)
+    buyer_email = db.Column(db.String(120))
+    paypal_order_id = db.Column(db.String(100))
+    discount_pct = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<CouponUsage {self.coupon_code} {self.buyer_email}>'

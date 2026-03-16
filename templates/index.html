@@ -335,22 +335,63 @@
     <canvas id="wandCanvas" class="pointer-events-none" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:60;will-change:transform;"></canvas>
 
     <div class="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-6 lg:pt-12 lg:pb-10">
-        <div class="text-center fade-in-up fade-delay-1">
-            <div style="position:relative;display:flex;flex-direction:column;align-items:center;">
-                <h1 class="font-display font-bold leading-tight" style="font-size:clamp(26px,5vw,48px);background:linear-gradient(45deg,#D4AF37,#F7E98E,#B8860B);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(1px 1px 2px rgba(0,0,0,0.1));margin-bottom:0;position:relative;z-index:2;">
-                    {% if lang == 'es' %}Donde tu hijo es el <span class="slogan-animated">héroe</span> de su propia historia{% else %}Where your child is the <span class="slogan-animated">hero</span> of their own story{% endif %}
-                </h1>
-                <div class="flex justify-center" id="heroLogo" style="margin-top:-55px;margin-bottom:-35px;position:relative;z-index:1;">
-                    <img src="{{ url_for('static', filename='images/logo_book.png') }}" alt="Magic Memories Books" style="max-height:310px;filter:drop-shadow(0 0 20px rgba(212,175,55,0.5));">
+        <div class="fade-in-up fade-delay-1">
+            <h1 class="font-display font-bold leading-tight text-center" style="font-size:clamp(26px,5vw,48px);background:linear-gradient(45deg,#D4AF37,#F7E98E,#B8860B);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(1px 1px 2px rgba(0,0,0,0.1));margin-bottom:0;position:relative;z-index:2;">
+                {% if lang == 'es' %}Convierte a tu hijo en el <span class="slogan-animated">héroe</span> de una historia mágica en pocos minutos <span class="clock-spin">⏰</span>{% else %}Turn your child into the <span class="slogan-animated">hero</span> of a magical story in just minutes <span class="clock-spin">⏰</span>{% endif %}
+            </h1>
+
+            <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-top:4px;">
+
+                <div class="hidden lg:block" style="flex:0 0 200px;background:rgba(255,255,255,0.92);border-radius:12px;padding:10px 14px;box-shadow:0 4px 20px rgba(0,0,0,0.12);border:1px solid rgba(255,255,255,0.8);">
+                    <p style="font-size:12px;font-weight:700;color:#5B3A8C;margin:0 0 7px 0;text-align:center;">{% if lang == 'es' %}Satisfacción garantizada{% else %}Satisfaction guaranteed{% endif %} ✨</p>
+                    <div style="display:flex;flex-direction:column;gap:4px;">
+                        <p style="margin:0;font-size:11px;font-weight:700;color:#374151;display:flex;align-items:center;gap:5px;"><span style="color:#7C3AED;">✓</span>{% if lang == 'es' %}Previsualiza gratis{% else %}Free preview{% endif %}</p>
+                        <p style="margin:0;font-size:11px;font-weight:700;color:#374151;display:flex;align-items:center;gap:5px;"><span style="color:#7C3AED;">✓</span>{% if lang == 'es' %}Regenera escenas{% else %}Regenerate scenes{% endif %}</p>
+                        <p style="margin:0;font-size:11px;font-weight:700;color:#374151;display:flex;align-items:center;gap:5px;"><span style="color:#7C3AED;">✓</span>{% if lang == 'es' %}Ajusta antes de pagar{% else %}Adjust before pay{% endif %}</p>
+                    </div>
                 </div>
-                <p class="fade-in-up fade-delay-2" style="font-family:'Great Vibes',cursive;font-size:clamp(1.8rem,4.5vw,2.8rem);color:#FFD700;text-shadow:0 0 15px rgba(255,215,0,0.5), 0 0 30px rgba(255,215,0,0.3), 0 0 50px rgba(255,215,0,0.15);position:relative;z-index:2;">
-                    {% if lang == 'es' %}¿Listos para la magia?{% else %}Ready for the magic?{% endif %}
-                </p>
-                <a href="{{ url_for('story_selection') }}" class="fade-in-up fade-delay-3" style="margin-top:8px;position:relative;z-index:2;text-decoration:none;display:inline-block;">
-                    <span class="inline-flex items-center gap-2 px-5 py-2 rounded-full text-white font-bold text-sm cursor-pointer hover:scale-105 transition-transform" style="background:linear-gradient(135deg,#7C3AED,#EC4899);animation:badge-glow 2.5s infinite;box-shadow:0 2px 12px rgba(124,58,237,0.3);">
-                        ✨ {% if lang == 'es' %}eBook personalizado solo por{% else %}Personalized eBook for just{% endif %} <span style="color:#FFD700;font-size:1.1em;">$7</span> ✨
-                    </span>
-                </a>
+
+                <div style="display:flex;flex-direction:column;align-items:center;flex:0 0 auto;">
+                    <div class="flex justify-center" id="heroLogo" style="margin-top:-10px;margin-bottom:-20px;position:relative;z-index:1;">
+                        <img src="{{ url_for('static', filename='images/logo_book.png') }}" alt="Magic Memories Books" style="max-height:290px;filter:drop-shadow(0 0 20px rgba(212,175,55,0.5));">
+                    </div>
+                    <p class="fade-in-up fade-delay-2" style="font-family:'Great Vibes',cursive;font-size:clamp(1.8rem,4.5vw,2.8rem);color:#FFD700;text-shadow:0 0 15px rgba(255,215,0,0.5), 0 0 30px rgba(255,215,0,0.3), 0 0 50px rgba(255,215,0,0.15);position:relative;z-index:2;">
+                        {% if lang == 'es' %}¿Listos para la magia?{% else %}Ready for the magic?{% endif %}
+                    </p>
+                    <a href="{{ url_for('story_selection') }}" class="fade-in-up fade-delay-3" style="margin-top:8px;position:relative;z-index:2;text-decoration:none;display:inline-block;">
+                        <span class="inline-flex items-center gap-2 px-5 py-2 rounded-full text-white font-bold text-sm cursor-pointer hover:scale-105 transition-transform" style="background:linear-gradient(135deg,#7C3AED,#EC4899);animation:badge-glow 2.5s infinite;box-shadow:0 2px 12px rgba(124,58,237,0.3);">
+                            ✨ {% if lang == 'es' %}eBook personalizado solo por{% else %}Personalized eBook for just{% endif %} <span style="color:#FFD700;font-size:1.1em;">$7</span> ✨
+                        </span>
+                    </a>
+                    <div style="margin-top:10px;position:relative;z-index:2;">
+                        <span style="display:inline-flex;align-items:center;gap:8px;background:white;border-radius:50px;padding:6px 18px;font-size:13px;font-weight:700;color:#D4AF37;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+                            ⭐ {% if lang == 'es' %}500+ Historias mágicas{% else %}500+ Magical Stories{% endif %} ⭐
+                        </span>
+                    </div>
+                </div>
+
+                <div class="hidden lg:block" style="flex:0 0 200px;">
+                    <div style="background:linear-gradient(135deg,#D4AF37,#B8860B);border-radius:12px;padding:12px 14px;box-shadow:0 4px 20px rgba(212,175,55,0.35);border:1px solid rgba(255,255,255,0.3);">
+                        <p style="margin:0 0 2px 0;font-size:10px;font-weight:800;color:rgba(255,255,255,0.85);text-align:center;letter-spacing:1px;">✨ LAUNCH OFFER ✨</p>
+                        <p style="margin:0 0 8px 0;font-size:22px;font-weight:900;color:white;text-align:center;line-height:1.1;">20% OFF</p>
+                        <div id="couponClaimBtn">
+                            <button onclick="showCouponForm()" style="background:rgba(255,255,255,0.22);border:2px solid white;color:white;font-weight:700;font-size:12px;padding:5px 12px;border-radius:50px;cursor:pointer;width:100%;transition:background 0.2s;white-space:nowrap;" onmouseover="this.style.background='rgba(255,255,255,0.35)'" onmouseout="this.style.background='rgba(255,255,255,0.22)'">
+                                🎁 {% if lang == 'es' %}Pide tu código{% else %}Claim your code{% endif %}
+                            </button>
+                        </div>
+                        <div id="couponForm" style="display:none;margin-top:8px;">
+                            <input id="couponName" type="text" placeholder="{% if lang == 'es' %}Nombre completo{% else %}Full name{% endif %}" style="width:100%;box-sizing:border-box;padding:5px 10px;border-radius:8px;border:none;font-size:12px;margin-bottom:5px;">
+                            <input id="couponEmail" type="email" placeholder="{% if lang == 'es' %}Tu email{% else %}Your email{% endif %}" style="width:100%;box-sizing:border-box;padding:5px 10px;border-radius:8px;border:none;font-size:12px;margin-bottom:6px;">
+                            <button id="couponSendBtn" onclick="submitCouponForm()" style="background:white;color:#B8860B;font-weight:800;font-size:12px;padding:5px;border-radius:50px;cursor:pointer;width:100%;border:none;">
+                                {% if lang == 'es' %}Enviar mi código ✉️{% else %}Send my code ✉️{% endif %}
+                            </button>
+                        </div>
+                        <div id="couponSuccess" style="display:none;margin-top:8px;text-align:center;">
+                            <p style="color:white;font-size:12px;margin:0;">{% if lang == 'es' %}✅ ¡Código enviado a tu email!{% else %}✅ Code sent to your email!{% endif %}</p>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -941,9 +982,58 @@
         setTimeout(initWand, 1500);
     }
 })();
+
+function showCouponForm() {
+    document.getElementById('couponClaimBtn').style.display = 'none';
+    document.getElementById('couponForm').style.display = 'block';
+}
+
+function submitCouponForm() {
+    var name = (document.getElementById('couponName') || {}).value || '';
+    var email = (document.getElementById('couponEmail') || {}).value || '';
+    if (!name || !email) {
+        alert(document.documentElement.lang === 'es' ? 'Por favor completa tu nombre y email.' : 'Please fill in your name and email.');
+        return;
+    }
+    var btn = document.getElementById('couponSendBtn');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+    fetch('/api/request-coupon', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name: name, email: email})
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+        document.getElementById('couponForm').style.display = 'none';
+        document.getElementById('couponSuccess').style.display = 'block';
+    })
+    .catch(function(){
+        if (btn) { btn.disabled = false; btn.textContent = document.documentElement.lang === 'es' ? 'Enviar mi código ✉️' : 'Send my code ✉️'; }
+        alert('Error. Por favor intenta de nuevo.');
+    });
+}
 </script>
 
 <style>
+    @keyframes clock-tick {
+        0%   { transform: rotate(0deg) scale(1); }
+        10%  { transform: rotate(-20deg) scale(1.15); }
+        20%  { transform: rotate(20deg) scale(1.15); }
+        30%  { transform: rotate(-15deg) scale(1.1); }
+        40%  { transform: rotate(15deg) scale(1.1); }
+        50%  { transform: rotate(-8deg) scale(1.05); }
+        60%  { transform: rotate(8deg) scale(1.05); }
+        70%  { transform: rotate(-4deg) scale(1); }
+        80%  { transform: rotate(4deg) scale(1); }
+        100% { transform: rotate(0deg) scale(1); }
+    }
+    .clock-spin {
+        display: inline-block;
+        animation: clock-tick 2.2s ease-in-out infinite;
+        transform-origin: center;
+        -webkit-text-fill-color: initial;
+        filter: none;
+    }
     .hiw-step {
         position: relative;
         text-align: center;

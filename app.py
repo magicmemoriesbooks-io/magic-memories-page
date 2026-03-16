@@ -9,7 +9,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 import logging
 from werkzeug.utils import secure_filename
 from config import Config
-from models import db, Order, StoryTemplate, RealStoryOrder, RealStoryCharacter, RealStoryPet, NewsletterSubscriber, PreviewLead, PrintOrderRequest, StoryBackup
+from models import db, Order, StoryTemplate, RealStoryOrder, RealStoryCharacter, RealStoryPet, NewsletterSubscriber, PreviewLead, PrintOrderRequest, StoryBackup, Coupon, CouponLead, CouponUsage
 from translations import TRANSLATIONS, STORY_TEMPLATES, get_translation
 from apscheduler.schedulers.background import BackgroundScheduler
 from services.task_queue import task_queue, production_logger, get_or_create_tracker
@@ -2975,6 +2975,72 @@ def _get_paypal_access_token():
     return resp.json()["access_token"]
 
 
+@app.route('/api/request-coupon', methods=['POST'])
+def api_request_coupon():
+    from services.email_service import send_coupon_email
+    data = request.get_json() or {}
+    name = data.get('name', '').strip()
+    email = data.get('email', '').strip().lower()
+    if not name or not email:
+        return jsonify({'error': 'name and email required'}), 400
+    try:
+        lead = CouponLead(name=name, email=email, ip_address=request.remote_addr)
+        db.session.add(lead)
+        db.session.commit()
+        send_coupon_email(name=name, email=email, code='MAGIC20', discount_pct=20)
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"[COUPON] request-coupon error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/validate-coupon', methods=['POST'])
+def api_validate_coupon():
+    data = request.get_json() or {}
+    code = data.get('code', '').strip().upper()
+    buyer_email = data.get('buyer_email', '').strip().lower()
+    if not code:
+        return jsonify({'valid': False, 'error': 'No code provided'}), 400
+    try:
+        coupon = Coupon.query.filter_by(code=code, is_active=True).first()
+        if not coupon:
+            return jsonify({'valid': False, 'error': 'Invalid or inactive code'})
+        max_uses = coupon.max_uses or 0
+        use_count = coupon.use_count or 0
+        if max_uses > 0 and use_count >= max_uses:
+            return jsonify({'valid': False, 'error': 'Code has reached maximum uses'})
+        if buyer_email:
+            if coupon.coupon_type in ('influencer', 'referral'):
+                # Block if any usage exists (pending or paid)
+                already_used = CouponUsage.query.filter_by(coupon_code=code, buyer_email=buyer_email).first()
+                if already_used:
+                    return jsonify({'valid': False, 'error': 'Este código ya fue utilizado con este email'})
+                # Pre-register now to lock the email before payment completes
+                pending = CouponUsage(
+                    coupon_code=code,
+                    buyer_email=buyer_email,
+                    paypal_order_id=None,
+                    discount_pct=coupon.discount_pct or 0
+                )
+                coupon.use_count = (coupon.use_count or 0) + 1
+                db.session.add(pending)
+                db.session.commit()
+                print(f"[COUPON] Pre-registered usage: {code} by {buyer_email}")
+            else:
+                # General coupon (e.g. MAGIC20): only block if a completed purchase exists
+                already_purchased = CouponUsage.query.filter(
+                    CouponUsage.coupon_code == code,
+                    CouponUsage.buyer_email == buyer_email,
+                    CouponUsage.paypal_order_id != None  # noqa
+                ).first()
+                if already_purchased:
+                    return jsonify({'valid': False, 'error': 'Ya compraste un cuento con este cupón'})
+        return jsonify({'valid': True, 'discount_pct': coupon.discount_pct or 0, 'code': coupon.code})
+    except Exception as e:
+        print(f"[COUPON] validate-coupon error: {e}")
+        return jsonify({'valid': False, 'error': str(e)}), 500
+
+
 @app.route('/api/paypal/create-order', methods=['POST'])
 def paypal_create_order():
     import requests as req
@@ -2985,8 +3051,29 @@ def paypal_create_order():
     try:
         token = _get_paypal_access_token()
 
+        total_amount = round(float(amount_usd), 2)
+        # base_price_usd = platform fee only (excludes Lulu printing/shipping)
+        # If not provided, fall back to full amount (backwards compat)
+        base_price_usd = data.get('base_price_usd')
+        platform_fee = round(float(base_price_usd), 2) if base_price_usd else total_amount
+        lulu_cost = max(round(total_amount - platform_fee, 2), 0.0)
+
+        coupon_code = data.get('coupon_code', '').strip().upper()
+        if coupon_code:
+            coupon = Coupon.query.filter_by(code=coupon_code, is_active=True).first()
+            if coupon:
+                _max = coupon.max_uses or 0
+                _used = coupon.use_count or 0
+                if _max == 0 or _used < _max:
+                    # Apply discount ONLY to platform fee, never to Lulu printing/shipping
+                    discount = round(platform_fee * (coupon.discount_pct or 0) / 100, 2)
+                    discounted_platform = max(round(platform_fee - discount, 2), 1.0)
+                    total_amount = discounted_platform + lulu_cost
+
+        final_amount = total_amount
+
         purchase_unit = {
-            "amount": {"currency_code": "USD", "value": str(round(float(amount_usd), 2))},
+            "amount": {"currency_code": "USD", "value": str(final_amount)},
             "description": "Magic Memories Books"
         }
 
@@ -3036,6 +3123,45 @@ def paypal_capture_order():
             return jsonify({'error': f'Payment not completed: {status}'}), 400
         payer_email = capture_data.get('payer', {}).get('email_address', '')
         print(f"[PAYPAL] Order {order_id} captured. Payer: {payer_email}")
+        coupon_code = data.get('coupon_code', '').strip().upper()
+        buyer_email = data.get('buyer_email', '').strip().lower() or payer_email
+        if coupon_code:
+            try:
+                coupon = Coupon.query.filter_by(code=coupon_code).first()
+                if coupon:
+                    # For influencer/referral: usage was pre-registered at validate time,
+                    # just update the paypal_order_id on the existing pending record
+                    if coupon.coupon_type in ('influencer', 'referral') and buyer_email:
+                        existing = CouponUsage.query.filter_by(
+                            coupon_code=coupon_code,
+                            buyer_email=buyer_email,
+                            paypal_order_id=None
+                        ).first()
+                        if existing:
+                            existing.paypal_order_id = order_id
+                            db.session.commit()
+                            print(f"[COUPON] Updated pre-registered usage: {coupon_code} by {buyer_email}")
+                        else:
+                            # Fallback: create new record
+                            db.session.add(CouponUsage(
+                                coupon_code=coupon_code, buyer_email=buyer_email,
+                                paypal_order_id=order_id, discount_pct=coupon.discount_pct or 0
+                            ))
+                            db.session.commit()
+                    else:
+                        # General coupon: create usage record now
+                        usage = CouponUsage(
+                            coupon_code=coupon_code,
+                            buyer_email=buyer_email,
+                            paypal_order_id=order_id,
+                            discount_pct=coupon.discount_pct or 0
+                        )
+                        coupon.use_count = (coupon.use_count or 0) + 1
+                        db.session.add(usage)
+                        db.session.commit()
+                    print(f"[COUPON] Usage confirmed: {coupon_code} by {buyer_email} order={order_id}")
+            except Exception as ce:
+                print(f"[COUPON] Error recording usage: {ce}")
         return jsonify({'success': True, 'orderID': order_id, 'payer_email': payer_email, 'status': status})
     except Exception as e:
         print(f"[PAYPAL] capture-order error: {e}")
@@ -4942,6 +5068,46 @@ def check_openai():
 
 with app.app_context():
     db.create_all()
+    # Ensure coupons/coupon_leads/coupon_usages schema is up to date
+    # Each statement uses its own connection to avoid aborted-transaction state
+    def _safe_ddl(sql):
+        try:
+            from sqlalchemy import text as _st
+            with db.engine.connect() as _c:
+                _c.execute(_st(sql))
+                _c.commit()
+            return True
+        except Exception as _e:
+            pass
+        return False
+
+    _safe_ddl("ALTER TABLE coupons RENAME COLUMN active TO is_active")
+    _safe_ddl("ALTER TABLE coupons ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE")
+    _safe_ddl("ALTER TABLE coupon_leads ADD COLUMN IF NOT EXISTS ip_address VARCHAR(50)")
+    _safe_ddl("ALTER TABLE coupon_leads ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()")
+    _safe_ddl("ALTER TABLE coupon_usages ADD COLUMN IF NOT EXISTS buyer_email VARCHAR(120)")
+    _safe_ddl("ALTER TABLE coupon_usages ADD COLUMN IF NOT EXISTS paypal_order_id VARCHAR(100)")
+    _safe_ddl("ALTER TABLE coupon_usages ADD COLUMN IF NOT EXISTS discount_pct INTEGER DEFAULT 0")
+    _safe_ddl("ALTER TABLE coupon_usages ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()")
+    print("[MIGRATION] Coupon table columns ensured")
+    # Seed MAGIC20 coupon on startup if it doesn't exist
+    try:
+        existing = Coupon.query.filter_by(code='MAGIC20').first()
+        if not existing:
+            magic20 = Coupon(
+                code='MAGIC20',
+                coupon_type='general',
+                discount_pct=20,
+                owner_name='Magic Memories Books',
+                max_uses=0,
+                use_count=0,
+                is_active=True
+            )
+            db.session.add(magic20)
+            db.session.commit()
+            print("[COUPON] MAGIC20 coupon seeded")
+    except Exception as _se:
+        print(f"[COUPON] Seed warning: {_se}")
     # Runtime migration: add columns that may be missing on older VPS databases
     try:
         from sqlalchemy import text as _sa_text
@@ -6447,6 +6613,39 @@ def admin_newsletter():
     subscribers = NewsletterSubscriber.query.order_by(NewsletterSubscriber.subscribed_at.desc()).all()
     active_count = sum(1 for s in subscribers if s.is_active)
     return render_template('admin_newsletter.html', subscribers=subscribers, active_count=active_count)
+
+
+@app.route('/admin/coupons', methods=['GET', 'POST'])
+def admin_coupons():
+    if not check_admin_auth():
+        return redirect(url_for('admin_login_page'))
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'create':
+            code = request.form.get('code', '').strip().upper()
+            coupon_type = request.form.get('coupon_type', 'general')
+            discount_pct = int(request.form.get('discount_pct', 20))
+            owner_name = request.form.get('owner_name', '').strip()
+            owner_email = request.form.get('owner_email', '').strip()
+            commission_pct = int(request.form.get('commission_pct', 0))
+            max_uses = int(request.form.get('max_uses', 0))
+            if code and not Coupon.query.filter_by(code=code).first():
+                c = Coupon(code=code, coupon_type=coupon_type, discount_pct=discount_pct,
+                           owner_name=owner_name, owner_email=owner_email,
+                           commission_pct=commission_pct, max_uses=max_uses)
+                db.session.add(c)
+                db.session.commit()
+        elif action == 'toggle':
+            coupon_id = int(request.form.get('coupon_id', 0))
+            c = Coupon.query.get(coupon_id)
+            if c:
+                c.is_active = not c.is_active
+                db.session.commit()
+        return redirect(url_for('admin_coupons'))
+    coupons = Coupon.query.order_by(Coupon.created_at.desc()).all()
+    leads = CouponLead.query.order_by(CouponLead.created_at.desc()).limit(50).all()
+    usages = CouponUsage.query.order_by(CouponUsage.created_at.desc()).limit(50).all()
+    return render_template('admin_coupons.html', coupons=coupons, leads=leads, usages=usages)
 
 
 @app.route('/admin/newsletter/send', methods=['POST'])

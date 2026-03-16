@@ -49,11 +49,16 @@
             <div style="font-size: 13px; opacity: 0.9;">Pedidos Fallidos</div>
         </div>
         
-        <a href="/admin/newsletter" style="background: linear-gradient(135deg, #06B6D4, #22D3EE); border-radius: 12px; padding: 20px; color: white; text-align: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-decoration: none; display: block; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-            <div style="font-size: 24px; margin-bottom: 4px;">📧</div>
-            <div style="font-size: 28px; font-weight: 700;">&nbsp;</div>
-            <div style="font-size: 13px; opacity: 0.9;">Suscriptores</div>
-        </a>
+        <div style="display: flex; gap: 8px; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <a href="/admin/newsletter" style="flex: 1; background: linear-gradient(135deg, #06B6D4, #22D3EE); padding: 16px 8px; color: white; text-align: center; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform=''">
+                <div style="font-size: 22px; margin-bottom: 2px;">📧</div>
+                <div style="font-size: 12px; opacity: 0.95; font-weight: 600;">Suscriptores</div>
+            </a>
+            <a href="/admin/coupons" style="flex: 1; background: linear-gradient(135deg, #D4AF37, #B8860B); padding: 16px 8px; color: white; text-align: center; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform=''">
+                <div style="font-size: 22px; margin-bottom: 2px;">🎟️</div>
+                <div style="font-size: 12px; opacity: 0.95; font-weight: 600;">Cupones</div>
+            </a>
+        </div>
         
         <a href="/admin/print-requests" style="background: linear-gradient(135deg, #D97706, #F59E0B); border-radius: 12px; padding: 20px; color: white; text-align: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-decoration: none; display: block; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
             <div style="font-size: 24px; margin-bottom: 4px;">📦</div>
