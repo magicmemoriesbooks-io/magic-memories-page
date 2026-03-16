@@ -498,9 +498,9 @@ def index():
     demo_visor_url = _get_demo_visor_url()
     demo_visor_url_b = _get_demo_visor_url_b()
     try:
-        from models import Order, RealStoryOrder
-        paid_orders = db.session.query(Order).filter(Order.amount_paid > 0).count()
-        paid_real = db.session.query(RealStoryOrder).filter(RealStoryOrder.amount_paid > 0).count()
+        from sqlalchemy import text as _sql_text
+        paid_orders = db.session.execute(_sql_text("SELECT COUNT(*) FROM orders WHERE amount_paid > 0")).scalar() or 0
+        paid_real = db.session.execute(_sql_text("SELECT COUNT(*) FROM real_story_orders WHERE amount_paid > 0")).scalar() or 0
         stories_count = 400 + paid_orders + paid_real
         stories_display = f"{stories_count}+"
     except Exception:
