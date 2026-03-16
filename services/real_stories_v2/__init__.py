@@ -12,7 +12,7 @@
 # 1. Character form (human + pet customization)
 # 2. Preview both characters → Approve/Regenerate
 # 3. Preview story text with book typography
-# 4. Payment (Paddle) → Background scene generation
+# 4. Payment (PayPal) → Background scene generation
 # 5. Approve illustrations → PDF composition → Lulu/ebook
 
 __version__ = "3.0.0"

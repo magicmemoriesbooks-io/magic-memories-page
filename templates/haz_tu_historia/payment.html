@@ -32,37 +32,24 @@
         <div class="space-y-4 mb-6">
             <div class="flex justify-between items-center py-2 border-b border-gray-100">
                 <div>
-                    <p class="font-medium text-gray-800">{% if lang == 'es' %}Haz tu Historia{% else %}Make Your Story{% endif %}</p>
-                    <p class="text-sm text-gray-500">{% if lang == 'es' %}Libro A4 tapa dura, 24 paginas{% else %}A4 hardcover book, 24 pages{% endif %}</p>
+                    <p class="font-medium text-gray-800">{% if lang == 'es' %}Haz tu Historia - PDF Digital{% else %}Make Your Story - Digital PDF{% endif %}</p>
+                    <p class="text-sm text-gray-500">{% if lang == 'es' %}Cuento personalizado con IA, entrega inmediata{% else %}AI personalized story, immediate delivery{% endif %}</p>
                 </div>
-                <span class="font-medium">$65 USD</span>
-            </div>
-            <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                <div>
-                    <p class="font-medium text-gray-800">{% if lang == 'es' %}Envio Internacional{% else %}International Shipping{% endif %}</p>
-                    <p class="text-sm text-gray-500">{{ shipping_data.city }}, {{ shipping_data.country }}</p>
-                </div>
-                <span class="font-medium">$10 USD</span>
+                <span class="font-medium">${{ personalized_base_price }} USD</span>
             </div>
         </div>
         
         <div class="flex justify-between items-center pt-4 border-t border-gray-200">
             <span class="text-xl font-bold text-gray-800">Total:</span>
-            <span class="text-2xl font-bold text-purple-700">$65 USD</span>
+            <span class="text-2xl font-bold text-purple-700">${{ personalized_base_price }} USD</span>
         </div>
     </div>
 
     <div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6">
-        <h3 class="font-display text-lg font-bold text-gray-800 mb-4">{% if lang == 'es' %}Direccion de Envio{% else %}Shipping Address{% endif %}</h3>
+        <h3 class="font-display text-lg font-bold text-gray-800 mb-4">{% if lang == 'es' %}Direccion de Envio del PDF{% else %}PDF Delivery Address{% endif %}</h3>
         
         <div class="text-gray-600">
             <p class="font-medium">{{ shipping_data.name }}</p>
-            <p>{{ shipping_data.address_line1 }}</p>
-            {% if shipping_data.address_line2 %}
-            <p>{{ shipping_data.address_line2 }}</p>
-            {% endif %}
-            <p>{{ shipping_data.city }}, {{ shipping_data.state }} {{ shipping_data.postal_code }}</p>
-            <p>{{ shipping_data.country }}</p>
             <p class="mt-2 text-purple-600">{{ shipping_data.email }}</p>
         </div>
     </div>
@@ -73,20 +60,25 @@
             <h3 class="font-display text-lg font-bold text-blue-800">{% if lang == 'es' %}Pago Seguro{% else %}Secure Payment{% endif %}</h3>
         </div>
         
-        <p class="text-blue-700 text-sm mb-4">
+        <p class="text-blue-700 text-sm mb-3">
             {% if lang == 'es' %}
-            Tu pago sera procesado de forma segura por Paddle. Aceptamos todas las tarjetas principales.
+            Tu pago sera procesado de forma segura por PayPal. Aceptamos PayPal y todas las tarjetas principales.
             {% else %}
-            Your payment will be processed securely by Paddle. We accept all major cards.
+            Your payment will be processed securely by PayPal. We accept PayPal and all major cards.
             {% endif %}
         </p>
-        
-        <div id="paymentButton" class="text-center">
-            <button onclick="openPaddleCheckout()" 
-                class="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold text-lg rounded-xl hover:from-purple-700 hover:to-pink-600 transition-all shadow-lg">
-                {% if lang == 'es' %}Pagar $65 USD{% else %}Pay $65 USD{% endif %}
-            </button>
+
+        <div class="flex flex-wrap justify-center items-center gap-2 mb-4">
+            <span class="inline-flex items-center justify-center px-2 py-1 rounded border border-gray-200 bg-white text-xs font-extrabold tracking-wide" style="color:#1A1F71;min-width:44px">VISA</span>
+            <span class="inline-flex items-center justify-center px-2 py-1 rounded border border-gray-200 bg-white text-xs font-bold" style="min-width:44px"><span style="color:#EB001B">Master</span><span style="color:#F79E1B">card</span></span>
+            <span class="inline-flex items-center justify-center px-2 py-1 rounded border border-gray-200 text-white text-xs font-bold" style="background:#2557D6;min-width:44px">AMEX</span>
+            <span class="inline-flex items-center justify-center px-2 py-1 rounded border border-gray-200 bg-white text-xs font-bold" style="color:#FF6600;min-width:44px">Discover</span>
+            <span class="inline-flex items-center justify-center px-2 py-1 rounded border border-gray-200 bg-white text-xs font-bold text-gray-600" style="min-width:44px">Diners</span>
+            <span class="inline-flex items-center justify-center px-2 py-1 rounded border border-gray-200 bg-white text-xs font-bold" style="min-width:44px"><span style="color:#EB001B">Mae</span><span style="color:#0066CC">stro</span></span>
         </div>
+        
+        <div id="paypal-button-container" class="min-h-[50px]"></div>
+        <p class="text-xs text-red-500 mt-2 hidden text-center" id="paypalError"></p>
         
         <p class="text-center text-xs text-gray-500 mt-4">
             {% if lang == 'es' %}
@@ -99,50 +91,87 @@
 
     <div class="text-center">
         <a href="{{ url_for('haz_tu_historia_shipping') }}" class="text-purple-600 hover:text-purple-800 font-medium">
-            &#8592; {% if lang == 'es' %}Modificar direccion{% else %}Modify address{% endif %}
+            &#8592; {% if lang == 'es' %}Modificar datos{% else %}Modify details{% endif %}
         </a>
     </div>
 </section>
 
-<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+<div id="loadingOverlay" class="hidden fixed inset-0 bg-white/95 flex flex-col items-center justify-center z-50">
+    <div class="animate-spin w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full mb-6"></div>
+    <p class="font-display text-2xl font-bold text-purple-700 mb-2">{% if lang == 'es' %}Procesando tu pedido...{% else %}Processing your order...{% endif %}</p>
+    <p id="loadingMessage" class="text-gray-500 text-center max-w-sm transition-opacity duration-300">{% if lang == 'es' %}Preparando tu cuento personalizado...{% else %}Preparing your personalized story...{% endif %}</p>
+</div>
+
+<script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=USD&intent=capture" data-namespace="paypal_sdk"></script>
 <script>
-Paddle.Environment.set("sandbox");
+const AMOUNT = {{ personalized_base_price }};
+const STORY_DATA = {{ story_data | tojson }};
+const LANG = '{{ lang }}';
 
-Paddle.Initialize({
-    token: "{{ paddle_client_token }}"
-});
-
-function openPaddleCheckout() {
-    Paddle.Checkout.open({
-        items: [
-            {
-                priceId: "{{ paddle_price_id }}",
-                quantity: 1
-            }
-        ],
-        customer: {
-            email: "{{ shipping_data.email }}",
-            address: {
-                countryCode: "{{ shipping_data.country_code or shipping_data.country or 'US' }}",
-                postalCode: "{{ shipping_data.postal_code or '' }}"
-            }
-        },
-        customData: {
-            story_id: "{{ story_data.id }}",
-            product_type: "haz_tu_historia"
-        },
-        settings: {
-            displayMode: "overlay",
-            theme: "light",
-            locale: "{{ lang }}",
-            successUrl: "{{ url_for('haz_tu_historia_success', _external=True) }}?transaction_id={transaction_id}"
-        }
-    });
+function showError(msg) {
+    const el = document.getElementById('paypalError');
+    if (el) { el.textContent = msg; el.classList.remove('hidden'); }
 }
 
-Paddle.Checkout.on("completed", (data) => {
-    console.log("Payment completed:", data);
-    window.location.href = "{{ url_for('haz_tu_historia_success') }}?transaction_id=" + data.transactionId;
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof paypal_sdk === 'undefined') {
+        console.error('[PAYPAL] SDK not loaded');
+        return;
+    }
+    paypal_sdk.Buttons({
+        style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'pay' },
+        createOrder: async function() {
+            const resp = await fetch('/api/paypal/create-order', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({amount_usd: AMOUNT})
+            });
+            const order = await resp.json();
+            if (order.error) throw new Error(order.error);
+            return order.id;
+        },
+        onApprove: async function(data, actions) {
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+            try {
+                const captureResp = await fetch('/api/paypal/capture-order', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({orderID: data.orderID})
+                });
+                const captureResult = await captureResp.json();
+                if (!captureResult.success) {
+                    document.getElementById('loadingOverlay').classList.add('hidden');
+                    showError('Payment error: ' + (captureResult.error || 'Unknown error'));
+                    return;
+                }
+                const processResp = await fetch('/api/process-payment/{{ story_data.id if story_data.id else "" }}', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        email: '{{ shipping_data.email }}',
+                        paypal_order_id: data.orderID,
+                        product_type: 'personalized',
+                        want_print: false,
+                        formats: ['digital']
+                    })
+                });
+                const processResult = await processResp.json();
+                if (processResult.success) {
+                    window.location.href = processResult.redirect_url || "{{ url_for('haz_tu_historia_success') }}?paypal_order_id=" + data.orderID;
+                } else {
+                    document.getElementById('loadingOverlay').classList.add('hidden');
+                    showError(processResult.error || 'Error processing order');
+                }
+            } catch(e) {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+                showError('Error: ' + e.message);
+            }
+        },
+        onError: function(err) {
+            console.error('[PAYPAL] Error:', err);
+            showError(LANG === 'es' ? 'Error de PayPal. Inténtalo de nuevo.' : 'PayPal error. Please try again.');
+        }
+    }).render('#paypal-button-container');
 });
 </script>
 {% endblock %}

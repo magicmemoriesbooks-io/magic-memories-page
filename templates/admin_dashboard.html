@@ -8,6 +8,7 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
         <h2 style="font-family: 'Quicksand', sans-serif; font-weight: 700; color: #1a1a1a; margin: 0; font-size: 22px;">Panel de Administración</h2>
         <div style="display: flex; gap: 8px;">
+            <button onclick="resetRateLimits()" style="padding: 6px 14px; border: 1px solid #10B981; color: #10B981; background: white; border-radius: 6px; cursor: pointer; font-size: 12px;">🔄 Reset Límite Pruebas</button>
             <button onclick="testLuluConnection()" style="padding: 6px 14px; border: 1px solid #6366F1; color: #6366F1; background: white; border-radius: 6px; cursor: pointer; font-size: 12px;">Probar Lulu API</button>
             <a href="{{ url_for('admin_settings') }}" style="padding: 6px 14px; border: 1px solid #6B7280; color: #6B7280; background: white; border-radius: 6px; text-decoration: none; font-size: 12px;">Ajustes</a>
             <a href="{{ url_for('admin_logout') }}" style="padding: 6px 14px; border: 1px solid #EF4444; color: #EF4444; background: white; border-radius: 6px; text-decoration: none; font-size: 12px;">Cerrar Sesión</a>
@@ -48,12 +49,23 @@
             <div style="font-size: 13px; opacity: 0.9;">Pedidos Fallidos</div>
         </div>
         
-        <a href="/admin/newsletter" style="background: linear-gradient(135deg, #06B6D4, #22D3EE); border-radius: 12px; padding: 20px; color: white; text-align: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-decoration: none; display: block; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-            <div style="font-size: 24px; margin-bottom: 4px;">📧</div>
-            <div style="font-size: 28px; font-weight: 700;">&nbsp;</div>
-            <div style="font-size: 13px; opacity: 0.9;">Suscriptores</div>
-        </a>
+        <div style="display: flex; gap: 8px; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <a href="/admin/newsletter" style="flex: 1; background: linear-gradient(135deg, #06B6D4, #22D3EE); padding: 16px 8px; color: white; text-align: center; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform=''">
+                <div style="font-size: 22px; margin-bottom: 2px;">📧</div>
+                <div style="font-size: 12px; opacity: 0.95; font-weight: 600;">Suscriptores</div>
+            </a>
+            <a href="/admin/coupons" style="flex: 1; background: linear-gradient(135deg, #D4AF37, #B8860B); padding: 16px 8px; color: white; text-align: center; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform=''">
+                <div style="font-size: 22px; margin-bottom: 2px;">🎟️</div>
+                <div style="font-size: 12px; opacity: 0.95; font-weight: 600;">Cupones</div>
+            </a>
+        </div>
         
+        <a href="/admin/print-requests" style="background: linear-gradient(135deg, #D97706, #F59E0B); border-radius: 12px; padding: 20px; color: white; text-align: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-decoration: none; display: block; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+            <div style="font-size: 24px; margin-bottom: 4px;">📦</div>
+            <div style="font-size: 28px; font-weight: 700;">&nbsp;</div>
+            <div style="font-size: 13px; opacity: 0.9;">Libros Impresos</div>
+        </a>
+
         <a href="/admin/preview-leads" style="background: linear-gradient(135deg, #F472B6, #EC4899); border-radius: 12px; padding: 20px; color: white; text-align: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-decoration: none; display: block; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
             <div style="font-size: 24px; margin-bottom: 4px;">👀</div>
             <div style="font-size: 28px; font-weight: 700;">{{ preview_leads_count }}</div>
@@ -126,7 +138,16 @@
     <div id="stories-section" style="display: none; margin-bottom: 20px;">
         <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; overflow: hidden;">
             <div style="padding: 12px 16px; background: linear-gradient(135deg, #10B981, #34D399); color: white; display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-weight: 600; font-size: 14px;">📖 Cuentos Generados (últimos 50)</span>
+                <span style="font-weight: 600; font-size: 14px;">📖 Cuentos Generados (últimos 50)
+                    {% if current_demo_url %}
+                    — <span style="font-size:12px;font-weight:400;color:rgba(255,255,255,0.9);">✓ Demo A activo</span>
+                    <button onclick="clearDemo()" style="font-size:11px;padding:2px 8px;background:#EF4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-left:4px;">Quitar A</button>
+                    {% endif %}
+                    {% if current_demo_url_b %}
+                    — <span style="font-size:12px;font-weight:400;color:rgba(255,255,255,0.9);">✓ Demo B activo</span>
+                    <button onclick="clearDemoB()" style="font-size:11px;padding:2px 8px;background:#EF4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-left:4px;">Quitar B</button>
+                    {% endif %}
+                </span>
                 <div style="display: flex; gap: 8px; align-items: center;">
                     <label style="font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
                         <input type="checkbox" id="selectAllStories" onchange="selectAll('story-check', this.checked)" style="cursor: pointer;"> Todos
@@ -143,6 +164,7 @@
                             <th style="padding: 8px 6px; width: 30px;"></th>
                             <th style="padding: 8px 8px; text-align: left; font-weight: 600;">Nombre</th>
                             <th style="padding: 8px 8px; text-align: left; font-weight: 600;">Cuento</th>
+                            <th style="padding: 8px 8px; text-align: left; font-weight: 600;">ID</th>
                             <th style="padding: 8px 8px; text-align: left; font-weight: 600;">Fecha</th>
                             <th style="padding: 8px 8px; text-align: right; font-weight: 600;">Acciones</th>
                         </tr>
@@ -162,9 +184,24 @@
                                 <span style="background: #FEF3C7; color: #92400E; padding: 1px 6px; border-radius: 8px; font-size: 10px;">Sin escenas</span>
                                 {% endif %}
                             </td>
+                            <td style="padding: 8px 8px;">
+                                <code onclick="navigator.clipboard.writeText('{{ preview.preview_id }}').then(()=>alert('ID copiado!'))" title="Clic para copiar" style="font-size:10px;background:#F1F5F9;padding:2px 5px;border-radius:4px;cursor:pointer;color:#475569;">{{ preview.preview_id }}</code>
+                            </td>
                             <td style="padding: 8px 8px;"><span style="color: #94A3B8; font-size: 11px;">{{ preview.created }}</span></td>
                             <td style="padding: 8px 8px; text-align: right; white-space: nowrap;">
                                 <a href="{{ url_for('admin_view_preview', preview_id=preview.preview_id) }}" style="padding: 3px 8px; border: 1px solid #6366F1; color: #6366F1; border-radius: 5px; text-decoration: none; font-size: 11px;">Ver</a>
+                                {% if preview.visor_url %}
+                                    {% if preview.is_demo %}
+                                    <button onclick="clearDemo()" style="padding: 3px 8px; background: #10B981; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 11px; margin-left: 4px;">✓ Demo A</button>
+                                    {% else %}
+                                    <button onclick="setDemo('{{ preview.preview_id }}')" style="padding: 3px 8px; background: #F59E0B; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 11px; margin-left: 4px;">⭐ Demo A</button>
+                                    {% endif %}
+                                    {% if preview.visor_url == current_demo_url_b %}
+                                    <button onclick="clearDemoB()" style="padding: 3px 8px; background: #8B5CF6; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 11px; margin-left: 4px;">✓ Demo B</button>
+                                    {% else %}
+                                    <button onclick="setDemoB('{{ preview.preview_id }}')" style="padding: 3px 8px; background: #A78BFA; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 11px; margin-left: 4px;">🐉 Demo B</button>
+                                    {% endif %}
+                                {% endif %}
                                 <button onclick="deletePreview('{{ preview.preview_id }}', 'row-preview-{{ preview.preview_id }}')" style="padding: 3px 8px; border: 1px solid #EF4444; color: #EF4444; background: white; border-radius: 5px; cursor: pointer; font-size: 11px; margin-left: 4px;">Eliminar</button>
                             </td>
                         </tr>
@@ -285,6 +322,63 @@ async function deletePreview(previewId, rowId) {
             alert('Error: ' + (data.error || 'No se pudo eliminar'));
         }
     } catch (e) { alert('Error: ' + e.message); }
+}
+
+async function setDemo(previewId) {
+    try {
+        const res = await fetch('/admin/set-demo/' + previewId, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            alert('✅ ¡Demo activado! El visor ya aparece en el homepage.\n\nURL: ' + data.visor_url);
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'No se pudo activar el demo'));
+        }
+    } catch (e) { alert('Error: ' + e.message); }
+}
+
+async function clearDemo() {
+    if (!confirm('¿Quitar el demo A del homepage?')) return;
+    try {
+        const res = await fetch('/admin/clear-demo', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) { alert('Demo A quitado del homepage.'); location.reload(); }
+    } catch (e) { alert('Error: ' + e.message); }
+}
+
+async function setDemoB(previewId) {
+    try {
+        const res = await fetch('/admin/set-demo-b/' + previewId, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            alert('✅ ¡Demo B (dragón) activado! El visor ya aparece en Portal B del homepage.\n\nURL: ' + data.visor_url);
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'No se pudo activar el demo B'));
+        }
+    } catch (e) { alert('Error: ' + e.message); }
+}
+
+async function clearDemoB() {
+    if (!confirm('¿Quitar el demo B (dragón) del homepage?')) return;
+    try {
+        const res = await fetch('/admin/clear-demo-b', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) { alert('Demo B quitado del homepage.'); location.reload(); }
+    } catch (e) { alert('Error: ' + e.message); }
+}
+
+async function resetRateLimits() {
+    try {
+        const res = await fetch('/admin/reset-rate-limits', {method: 'POST'});
+        const data = await res.json();
+        if (data.success) {
+            const r = document.getElementById('luluTestResult');
+            r.style.display = 'block'; r.style.background = '#D1FAE5'; r.style.color = '#065F46';
+            r.textContent = '✅ Límite de generaciones reseteado. Ya puedes volver a generar previsualizaciones.';
+            setTimeout(() => r.style.display = 'none', 4000);
+        }
+    } catch(e) { alert('Error al resetear límites'); }
 }
 
 async function testLuluConnection() {

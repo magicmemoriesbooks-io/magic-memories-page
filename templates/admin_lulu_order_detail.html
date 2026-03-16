@@ -127,6 +127,11 @@
                         <div class="alert alert-success mb-0">
                             Esta orden ya fue enviada a Lulu
                         </div>
+                        {% if preview_id and lulu_status == 'sent' %}
+                        <button id="btn-resolved" class="btn btn-success btn-sm mt-2" onclick="sendResolvedEmail()">
+                            Enviar email "Resuelto" al cliente
+                        </button>
+                        {% endif %}
                         {% endif %}
                     </div>
                 </div>
@@ -289,6 +294,31 @@ function approveOrder() {
         statusMsg.innerHTML = '<div class="alert alert-danger">Error de conexion</div>';
         btn.disabled = false;
         btn.innerHTML = 'Aprobar y Enviar a Lulu';
+    });
+}
+
+function sendResolvedEmail() {
+    if (!confirm('Enviar email de "problema resuelto" al cliente?')) return;
+    var btn = document.getElementById('btn-resolved');
+    var statusMsg = document.getElementById('status-message');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+    fetch('/admin/send-lulu-resolved/{{ preview_id }}', { method: 'POST' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            statusMsg.innerHTML = '<div class="alert alert-success"><strong>Emails enviados!</strong> Cliente: ' + data.results.customer_email + ', Admin: ' + data.results.admin_email + '</div>';
+            btn.innerHTML = 'Enviado ✓';
+        } else {
+            statusMsg.innerHTML = '<div class="alert alert-danger">Error: ' + (data.error || 'Error desconocido') + '</div>';
+            btn.disabled = false;
+            btn.innerHTML = 'Enviar email "Resuelto" al cliente';
+        }
+    })
+    .catch(function() {
+        statusMsg.innerHTML = '<div class="alert alert-danger">Error de conexion</div>';
+        btn.disabled = false;
+        btn.innerHTML = 'Enviar email "Resuelto" al cliente';
     });
 }
 </script>

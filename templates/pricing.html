@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'es' %}Precios — Magic Memories Books{% else %}Pricing — Magic Memories Books{% endif %}{% endblock %}
+{% block meta_description %}{% if lang == 'es' %}Descubre nuestros productos digitales personalizados con IA. Desde $7 el eBook interactivo hasta $20 el PDF imprimible. Entrega inmediata.{% else %}Explore our AI-personalized digital products. From $7 interactive ebook to $20 printable PDF. Immediate delivery.{% endif %}{% endblock %}
+{% block og_title %}{% if lang == 'es' %}Precios — Magic Memories Books{% else %}Pricing — Magic Memories Books{% endif %}{% endblock %}
+{% block og_description %}{% if lang == 'es' %}Cuentos personalizados desde $7. eBook interactivo y PDF imprimible con entrega inmediata.{% else %}Personalized stories from $7. Interactive ebook and printable PDF with immediate delivery.{% endif %}{% endblock %}
+{% block og_image %}{{ url_for('static', filename='images/personalize_result.jpg', _external=True) }}{% endblock %}
+
+{% block content %}
+<section class="py-10 px-4 max-w-5xl mx-auto">
+
+    <div class="text-center mb-12">
+        <h1 class="font-display text-4xl md:text-5xl font-bold text-purple-800 mb-4">
+            {% if lang == 'es' %}Nuestros Productos{% else %}Our Products{% endif %}
+        </h1>
+        <p class="text-lg text-purple-600 max-w-2xl mx-auto">
+            {% if lang == 'es' %}
+                Cuentos infantiles personalizados con inteligencia artificial. Entrega digital inmediata, sin esperas.
+            {% else %}
+                AI-personalized children's stories. Immediate digital delivery, no waiting.
+            {% endif %}
+        </p>
+    </div>
+
+    <!-- Grid de productos -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12 max-w-5xl mx-auto">
+
+        <!-- 1. eBook Interactivo -->
+        <div class="bg-white rounded-3xl shadow-lg overflow-hidden flex flex-col border border-purple-100 hover:shadow-xl transition-shadow duration-300">
+            <div class="relative">
+                <img src="{{ url_for('static', filename='images/flipbook_scene_10.jpg') }}" alt="eBook interactivo" class="w-full h-48 object-cover">
+                <div class="absolute top-3 right-3 bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full">
+                    {% if lang == 'es' %}¡MÁS ECONÓMICO!{% else %}BEST VALUE!{% endif %}
+                </div>
+            </div>
+            <div class="p-6 flex flex-col flex-grow">
+                <div class="text-4xl mb-1">📱</div>
+                <h2 class="font-display text-2xl font-bold text-purple-800 mb-1">
+                    {% if lang == 'es' %}eBook Interactivo{% else %}Interactive eBook{% endif %}
+                </h2>
+                <div class="flex items-baseline gap-1 mb-3">
+                    <span class="text-4xl font-bold text-fuchsia-600">$7</span>
+                    <span class="text-gray-400 text-sm">USD</span>
+                </div>
+                <ul class="text-sm text-gray-600 space-y-2 mb-6 flex-grow">
+                    <li class="flex items-start gap-2"><span class="text-purple-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Visor flipbook animado{% else %}Animated flipbook viewer{% endif %}</li>
+                    <li class="flex items-start gap-2"><span class="text-purple-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Música y efectos de sonido{% else %}Music & sound effects{% endif %}</li>
+                    <li class="flex items-start gap-2"><span class="text-purple-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Acceso online 180 días{% else %}Online access for 180 days{% endif %}</li>
+                    <li class="flex items-start gap-2"><span class="text-purple-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Disponible al instante{% else %}Available instantly{% endif %}</li>
+                    <li class="flex items-start gap-2"><span class="text-purple-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Se ve en cualquier dispositivo{% else %}Works on any device{% endif %}</li>
+                </ul>
+                <a href="{{ url_for('story_selection') }}" class="block text-center bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-2xl transition-colors">
+                    {% if lang == 'es' %}Ver cuentos{% else %}Browse stories{% endif %}
+                </a>
+            </div>
+        </div>
+
+        <!-- 2. Cuento Express Digital PDF -->
+        <div class="bg-white rounded-3xl shadow-lg overflow-hidden flex flex-col border border-fuchsia-100 hover:shadow-xl transition-shadow duration-300">
+            <div class="relative">
+                <img src="{{ url_for('static', filename='images/magic_express_scene_2.jpg') }}" alt="Cuento Express Digital PDF" class="w-full h-48 object-cover">
+                <div class="absolute top-3 right-3 bg-fuchsia-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                    {% if lang == 'es' %}MÁS POPULAR{% else %}MOST POPULAR{% endif %}
+                </div>
+            </div>
+            <div class="p-6 flex flex-col flex-grow">
+                <div class="text-4xl mb-1">🖨️</div>
+                <h2 class="font-display text-2xl font-bold text-purple-800 mb-1">
+                    {% if lang == 'es' %}Cuento Express Digital{% else %}Express Story Digital{% endif %}
+                </h2>
+                <p class="text-xs text-gray-400 mb-2">{% if lang == 'es' %}Cuentos Mágicos Express{% else %}Magic Express Stories{% endif %}</p>
+                <div class="flex items-baseline gap-1 mb-3">
+                    <span class="text-4xl font-bold text-fuchsia-600">$20</span>
+                    <span class="text-gray-400 text-sm">USD</span>
+                </div>
+                <ul class="text-sm text-gray-600 space-y-2 mb-6 flex-grow">
+                    <li class="flex items-start gap-2"><span class="text-fuchsia-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}PDF de alta calidad{% else %}High-quality PDF{% endif %}</li>
+                    <li class="flex items-start gap-2"><span class="text-fuchsia-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}PDF imprimible con instrucciones{% else %}Printable PDF with instructions{% endif %}</li>
+                    <li class="flex items-start gap-2"><span class="text-fuchsia-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}12 páginas con el nombre e imagen de tu hijo/a{% else %}12 pages with your child's name & image{% endif %}</li>
+                    <li class="flex items-start gap-2"><span class="text-fuchsia-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Descarga inmediata por email{% else %}Instant email delivery{% endif %}</li>
+                    <li class="flex items-start gap-2"><span class="text-fuchsia-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}eBook interactivo de regalo (6 meses){% else %}Gift interactive eBook (6 months){% endif %}</li>
+                </ul>
+                <a href="{{ url_for('story_selection') }}" class="block text-center bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold py-3 rounded-2xl transition-colors">
+                    {% if lang == 'es' %}Ver cuentos{% else %}Browse stories{% endif %}
+                </a>
+            </div>
+        </div>
+
+        <!-- 3. Libro Impreso -->
+        <div class="bg-white rounded-3xl shadow-lg overflow-hidden flex flex-col border border-amber-100 hover:shadow-xl transition-shadow duration-300">
+            <div class="relative">
+                <img src="{{ url_for('static', filename='images/personalize_result.jpg') }}" alt="Libro impreso en papel" class="w-full h-48 object-cover">
+                <div class="absolute top-3 right-3 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                    {% if lang == 'es' %}REGALO ESPECIAL{% else %}SPECIAL GIFT{% endif %}
+                </div>
+            </div>
+            <div class="p-6 flex flex-col flex-grow">
+                <div class="text-4xl mb-1">📖</div>
+                <h2 class="font-display text-2xl font-bold text-purple-800 mb-1">
+                    {% if lang == 'es' %}Libro Impreso{% else %}Printed Book{% endif %}
+                </h2>
+                <p class="text-xs text-gray-400 mb-2">{% if lang == 'es' %}Tapa dura, 24 páginas a color{% else %}Hardcover, 24 full-color pages{% endif %}</p>
+                <div class="flex items-baseline gap-1 mb-3">
+                    <span class="text-2xl font-bold text-amber-600">{% if lang == 'es' %}Desde{% else %}From{% endif %}</span>
+                    <span class="text-4xl font-bold text-amber-600">$30</span>
+                    <span class="text-gray-400 text-sm">USD</span>
+                </div>
+                <p class="text-xs text-gray-500 mb-3">{% if lang == 'es' %}+ envío según destino (sin impuestos){% else %}+ shipping by destination (no taxes){% endif %}</p>
+                <ul class="text-sm text-gray-600 space-y-2 mb-6 flex-grow">
+                    <li class="flex items-start gap-2"><span class="text-amber-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Tapa dura de calidad profesional{% else %}Professional quality hardcover{% endif %}</li>
+                    <li class="flex items-start gap-2"><span class="text-amber-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Impresión a color de alta resolución{% else %}High-resolution full-color printing{% endif %}</li>
+                    <li class="flex items-start gap-2"><span class="text-amber-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Enviado a tu domicilio en 7-15 días{% else %}Delivered to your door in 7-15 days{% endif %}</li>
+                    <li class="flex items-start gap-2"><span class="text-amber-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Disponible tras compra del cuento digital{% else %}Available after digital story purchase{% endif %}</li>
+                    <li class="flex items-start gap-2"><span class="text-amber-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Impreso por Lulu Press (imprenta global){% else %}Printed by Lulu Press (global printer){% endif %}</li>
+                </ul>
+                <a href="{{ url_for('story_selection') }}" class="block text-center bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-2xl transition-colors">
+                    {% if lang == 'es' %}Crear mi cuento{% else %}Create my story{% endif %}
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Pago seguro -->
+    <div class="bg-blue-50 border border-blue-200 rounded-2xl p-5 max-w-3xl mx-auto mb-10 text-center">
+        <p class="text-blue-800 font-semibold">
+            🔒 {% if lang == 'es' %}Pago 100% seguro con PayPal — Aceptamos PayPal y todas las tarjetas principales (Visa, Mastercard, American Express){% else %}100% secure payment with PayPal — We accept PayPal and all major cards (Visa, Mastercard, American Express){% endif %}
+        </p>
+    </div>
+
+    <!-- FAQ rápida -->
+    <div class="max-w-3xl mx-auto mb-10">
+        <h2 class="font-display text-2xl font-bold text-purple-800 text-center mb-6">
+            {% if lang == 'es' %}Preguntas frecuentes{% else %}Frequently Asked Questions{% endif %}
+        </h2>
+        <div class="space-y-4">
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-purple-50">
+                <h3 class="font-bold text-purple-800 mb-1">
+                    {% if lang == 'es' %}¿Cuándo recibo mi cuento?{% else %}When do I receive my story?{% endif %}
+                </h3>
+                <p class="text-gray-600 text-sm">
+                    {% if lang == 'es' %}
+                        Al instante. Una vez completado el pago, recibirás el PDF en tu email en minutos.
+                    {% else %}
+                        Immediately. Once payment is complete, you'll receive the PDF in your email within minutes.
+                    {% endif %}
+                </p>
+            </div>
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-purple-50">
+                <h3 class="font-bold text-purple-800 mb-1">
+                    {% if lang == 'es' %}¿Puedo añadir el eBook al Cuento Express?{% else %}Can I add the eBook to an Express Story?{% endif %}
+                </h3>
+                <p class="text-gray-600 text-sm">
+                    {% if lang == 'es' %}
+                        Sí. Al comprar el Cuento Express Digital ($20) recibes el eBook interactivo de regalo por 6 meses.
+                    {% else %}
+                        Yes. When you buy the Express Digital Story ($20), you get the interactive eBook as a gift for 6 months.
+                    {% endif %}
+                </p>
+            </div>
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-purple-50">
+                <h3 class="font-bold text-purple-800 mb-1">
+                    {% if lang == 'es' %}¿Hay algún coste oculto?{% else %}Are there any hidden fees?{% endif %}
+                </h3>
+                <p class="text-gray-600 text-sm">
+                    {% if lang == 'es' %}
+                        No. El precio mostrado es el total que pagas. No hay suscripciones ni cargos adicionales.
+                    {% else %}
+                        No. The displayed price is the total you pay. No subscriptions or additional charges.
+                    {% endif %}
+                </p>
+            </div>
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-purple-50">
+                <h3 class="font-bold text-purple-800 mb-1">
+                    {% if lang == 'es' %}¿Puedo obtener el libro impreso en papel?{% else %}Can I get the book printed on paper?{% endif %}
+                </h3>
+                <p class="text-gray-600 text-sm">
+                    {% if lang == 'es' %}
+                        Sí. Después de tu compra digital, aparecerá un botón para pedir el libro impreso. Tapa dura de calidad profesional, desde $30 (sin impuestos) + gastos de envío según destino. Entrega en 7-15 días.
+                    {% else %}
+                        Yes. After your digital purchase, a button will appear to order the printed book. Professional hardcover from $30 (no taxes) + shipping by destination. Delivered in 7-15 days.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA final -->
+    <div class="text-center py-8">
+        <p class="text-gray-600 mb-4">
+            {% if lang == 'es' %}¿Tienes más preguntas?{% else %}Have more questions?{% endif %}
+        </p>
+        <a href="{{ url_for('faq') }}" class="inline-block mr-3 px-6 py-3 border-2 border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white font-bold rounded-2xl transition-colors">
+            {% if lang == 'es' %}Ver todas las FAQs{% else %}See all FAQs{% endif %}
+        </a>
+        <a href="{{ url_for('contact') }}" class="inline-block px-6 py-3 border-2 border-fuchsia-500 text-fuchsia-600 hover:bg-fuchsia-500 hover:text-white font-bold rounded-2xl transition-colors">
+            {% if lang == 'es' %}Contactar{% else %}Contact Us{% endif %}
+        </a>
+    </div>
+
+</section>
+{% endblock %}

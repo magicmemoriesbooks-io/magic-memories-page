@@ -415,6 +415,13 @@ def send_lulu_order_notification(
             <p style="margin:0;">{pdf_links}</p>
             <p style="color:#6b7280;font-size:12px;margin-top:8px;">(Los PDFs son demasiado grandes para adjuntar por email)</p>
         </div>
+
+        <h3 style="color:#16a34a;margin-top:20px;font-size:16px;">💳 Pagar a Lulu</h3>
+        <div style="background:#f0fdf4;padding:15px;border-radius:8px;border-left:4px solid #16a34a;margin:10px 0;">
+            <p style="margin:0 0 10px;color:#1f2937;font-size:14px;">Lulu enviará una factura por email. También puedes ver y pagar el pedido directamente en tu cuenta Lulu Direct:</p>
+            <a href="https://direct.lulu.com/account/orders" style="display:inline-block;background:#16a34a;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">🖨️ Ver pedidos en Lulu Direct</a>
+            <p style="margin:10px 0 0;color:#6b7280;font-size:12px;">Job ID a buscar: <strong>{lulu_job_id}</strong></p>
+        </div>
     """
     
     html_body = _admin_wrapper("📦 Nuevo Pedido Lulu", content)
@@ -468,11 +475,109 @@ Cover: {cover_url or 'N/A'}
         return {'success': False, 'message': str(e)}
 
 
+def send_lulu_customer_notification(
+    to_email: str,
+    child_name: str,
+    book_title: str,
+    shipping_address: dict,
+    shipping_method: str = 'MAIL',
+    lang: str = 'es'
+) -> bool:
+    shipping_labels = {
+        'MAIL': ('Correo Estándar', 'Standard Mail'),
+        'PRIORITY_MAIL': ('Correo Prioritario', 'Priority Mail'),
+        'GROUND_HD': ('Envío Terrestre', 'Ground Shipping'),
+        'GROUND': ('Envío Terrestre', 'Ground Shipping'),
+        'EXPEDITED': ('Envío Exprés', 'Expedited Shipping'),
+        'EXPRESS': ('Envío Express', 'Express Shipping'),
+    }
+    method_label = shipping_labels.get(shipping_method, (shipping_method, shipping_method))
+    method_name = method_label[0] if lang == 'es' else method_label[1]
+
+    addr_name = shipping_address.get('name', '')
+    addr_street = shipping_address.get('street1', '')
+    addr_city = shipping_address.get('city', '')
+    addr_state = shipping_address.get('state_code', '')
+    addr_postal = shipping_address.get('postcode', '')
+    addr_country = shipping_address.get('country_code', '')
+    addr_html = f"<strong>{addr_name}</strong><br>{addr_street}<br>{addr_city}, {addr_state} {addr_postal}<br>{addr_country}"
+
+    if lang == 'es':
+        subject = f"Tu libro '{book_title}' para {child_name} está en camino a la imprenta"
+        content = f"""
+            <p style="font-size:16px;color:#374151;">¡Buenas noticias! Tu libro personalizado ha sido enviado a nuestra imprenta.</p>
+            {_success_box(f'''
+                <h3 style="margin-top:0;color:#166534;">📖 "{book_title}"</h3>
+                <p style="color:#374151;font-size:14px;">Tu libro para <strong>{child_name}</strong> ya está siendo impreso.</p>
+            ''')}
+            {_info_box(f'''
+                <h3 style="margin-top:0;color:#7c3aed;">📦 Detalles del Envío</h3>
+                <table style="width:100%;font-size:14px;color:#374151;">
+                    <tr><td style="padding:6px 0;font-weight:600;width:140px;">Método de envío:</td><td>{method_name}</td></tr>
+                    <tr><td style="padding:6px 0;font-weight:600;">Dirección:</td><td>{addr_html}</td></tr>
+                    <tr><td style="padding:6px 0;font-weight:600;">Tiempo estimado:</td><td><strong>Máximo 15 días</strong></td></tr>
+                </table>
+            ''')}
+            {_alert_box('''
+                <p style="margin:0;color:#92400e;font-size:14px;">
+                    <strong>¿No has recibido tu libro después de 15 días?</strong><br>
+                    Escríbenos a <strong>pay@magicmemoriesbooks.com</strong> con tu email de compra y te ayudaremos a rastrear tu pedido.
+                </p>
+            ''')}
+            {_newsletter_invite_html('es')}"""
+        html_content = _email_wrapper("📖 ¡Tu Libro Está en Imprenta!", content, to_email)
+    else:
+        subject = f"Your book '{book_title}' for {child_name} is on its way to the printer"
+        content = f"""
+            <p style="font-size:16px;color:#374151;">Great news! Your personalized book has been sent to our printer.</p>
+            {_success_box(f'''
+                <h3 style="margin-top:0;color:#166534;">📖 "{book_title}"</h3>
+                <p style="color:#374151;font-size:14px;">Your book for <strong>{child_name}</strong> is now being printed.</p>
+            ''')}
+            {_info_box(f'''
+                <h3 style="margin-top:0;color:#7c3aed;">📦 Shipping Details</h3>
+                <table style="width:100%;font-size:14px;color:#374151;">
+                    <tr><td style="padding:6px 0;font-weight:600;width:140px;">Shipping method:</td><td>{method_name}</td></tr>
+                    <tr><td style="padding:6px 0;font-weight:600;">Delivery address:</td><td>{addr_html}</td></tr>
+                    <tr><td style="padding:6px 0;font-weight:600;">Estimated delivery:</td><td><strong>Up to 15 days</strong></td></tr>
+                </table>
+            ''')}
+            {_alert_box('''
+                <p style="margin:0;color:#92400e;font-size:14px;">
+                    <strong>Haven't received your book after 15 days?</strong><br>
+                    Email us at <strong>pay@magicmemoriesbooks.com</strong> with your purchase email and we'll help track your order.
+                </p>
+            ''')}
+            {_newsletter_invite_html('en')}"""
+        html_content = _email_wrapper("📖 Your Book Is Being Printed!", content, to_email)
+
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = subject
+    msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
+    msg['To'] = to_email
+
+    msg.attach(MIMEText(html_content, 'html'))
+
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.sendmail(FROM_EMAIL, to_email, msg.as_string())
+        print(f"[EMAIL] Lulu customer notification sent to {to_email}")
+        return True
+    except Exception as e:
+        print(f"[EMAIL] Failed to send Lulu customer notification: {e}")
+        return False
+
+
 def send_admin_purchase_notification(
     preview_id: str,
     product_type: str,
     customer_email: str,
-    story_data: dict
+    story_data: dict,
+    line_items: list = None,
+    shipping_cost: float = 0.0,
+    total_usd: float = 0.0
 ) -> dict:
     from datetime import datetime
     
@@ -514,9 +619,27 @@ def send_admin_purchase_notification(
     
     base_url = os.environ.get('SITE_DOMAIN', 'magicmemoriesbooks.com')
     admin_url = f"https://{base_url}/admin/preview/{preview_id}"
-    
+
+    purchase_summary_html = ""
+    if line_items or total_usd > 0:
+        rows = ""
+        for i, item in enumerate(line_items or []):
+            bg = ' style="background:#f9fafb;"' if i % 2 == 0 else ''
+            rows += f'<tr{bg}><td style="padding:8px 12px;color:#374151;font-size:13px;">{item["label"]}</td><td style="padding:8px 12px;color:#111827;font-weight:600;text-align:right;">${item["price"]:.2f}</td></tr>'
+        if shipping_cost > 0:
+            bg = ' style="background:#f9fafb;"' if len(line_items or []) % 2 == 0 else ''
+            rows += f'<tr{bg}><td style="padding:8px 12px;color:#374151;font-size:13px;">Envío</td><td style="padding:8px 12px;color:#111827;font-weight:600;text-align:right;">${shipping_cost:.2f}</td></tr>'
+        if total_usd > 0:
+            rows += f'<tr style="background:#fef3c7;border-top:2px solid #f59e0b;"><td style="padding:10px 12px;color:#92400e;font-size:14px;font-weight:700;">TOTAL</td><td style="padding:10px 12px;color:#92400e;font-size:15px;font-weight:700;text-align:right;">${total_usd:.2f} USD</td></tr>'
+        purchase_summary_html = f"""
+        <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:14px;margin:16px 0;">
+            <p style="margin:0 0 10px;color:#92400e;font-weight:700;font-size:13px;">🧾 Resumen de Compra</p>
+            <table style="width:100%;border-collapse:collapse;font-size:13px;">{rows}</table>
+        </div>"""
+
     content = f"""
         <p style="color:#6b7280;font-size:13px;text-align:center;margin-top:0;">Nueva compra recibida</p>
+        {purchase_summary_html}
         <table style="width:100%;border-collapse:collapse;font-size:14px;margin:15px 0;">
             <tr style="background:#fef2f2;"><td style="padding:10px 12px;color:#6b7280;font-size:13px;width:130px;">Cliente</td><td style="padding:10px 12px;color:#1f2937;font-weight:600;">{customer_email}</td></tr>
             <tr><td style="padding:10px 12px;color:#6b7280;font-size:13px;">Nombre</td><td style="padding:10px 12px;color:#1f2937;font-weight:600;">{child_name}</td></tr>
@@ -635,11 +758,39 @@ Cover: {cover_url}
         return {'success': False, 'message': str(e)}
 
 
-def send_payment_confirmation_email(to_email: str, child_name: str, recovery_url: str, lang: str = 'es'):
+def _build_receipt_table(line_items: list, shipping_cost: float, total_usd: float, lang: str = 'es'):
+    rows = ""
+    for item in line_items:
+        label = item.get('label', '')
+        price = item.get('price', 0)
+        rows += f'<tr><td style="padding:8px 12px;color:#374151;font-size:14px;">{label}</td><td style="padding:8px 12px;text-align:right;color:#374151;font-size:14px;">${price:.2f}</td></tr>'
+
+    if shipping_cost and shipping_cost > 0:
+        ship_label = 'Envío' if lang == 'es' else 'Shipping'
+        rows += f'<tr><td style="padding:8px 12px;color:#374151;font-size:14px;">{ship_label}</td><td style="padding:8px 12px;text-align:right;color:#374151;font-size:14px;">${shipping_cost:.2f}</td></tr>'
+
+    total_label = 'Total' if lang == 'es' else 'Total'
+    rows += f'<tr style="border-top:2px solid #9333ea;"><td style="padding:10px 12px;color:#1f2937;font-size:16px;font-weight:bold;">{total_label}</td><td style="padding:10px 12px;text-align:right;color:#1f2937;font-size:16px;font-weight:bold;">${total_usd:.2f} USD</td></tr>'
+
+    title = 'Resumen de Compra' if lang == 'es' else 'Purchase Summary'
+    return f'''
+    <div style="margin:20px 0;">
+        <h3 style="color:#7c3aed;margin-bottom:10px;font-size:16px;">🧾 {title}</h3>
+        <table style="width:100%;border-collapse:collapse;background:#faf5ff;border-radius:8px;overflow:hidden;">
+            {rows}
+        </table>
+    </div>'''
+
+
+def send_payment_confirmation_email(to_email: str, child_name: str, recovery_url: str, lang: str = 'es',
+                                    line_items: list = None, shipping_cost: float = 0, total_usd: float = 0):
+    receipt_html = _build_receipt_table(line_items or [], shipping_cost, total_usd, lang) if line_items else ''
+
     if lang == 'es':
         subject = f"Confirmación de Pago - Cuento de {child_name}"
         content = f"""
                 <p style="font-size:16px;color:#374151;">¡Gracias por tu compra! Tu pago ha sido procesado correctamente.</p>
+                {receipt_html}
                 {_success_box(f'''
                     <h3 style="margin-top:0;color:#166534;">Tu cuento personalizado para {child_name} está siendo creado</h3>
                     <p style="color:#374151;font-size:14px;">Estamos generando las ilustraciones únicas de tu historia. Este proceso toma aproximadamente 3-4 minutos.</p>
@@ -658,6 +809,7 @@ def send_payment_confirmation_email(to_email: str, child_name: str, recovery_url
         subject = f"Payment Confirmation - {child_name}'s Story"
         content = f"""
                 <p style="font-size:16px;color:#374151;">Thank you for your purchase! Your payment has been processed successfully.</p>
+                {receipt_html}
                 {_success_box(f'''
                     <h3 style="margin-top:0;color:#166534;">Your personalized story for {child_name} is being created</h3>
                     <p style="color:#374151;font-size:14px;">We're generating the unique illustrations for your story. This process takes approximately 3-4 minutes.</p>
@@ -868,6 +1020,60 @@ def send_lulu_failure_email(to_email: str, child_name: str, error_message: str, 
         return True
     except Exception as e:
         print(f"[EMAIL] Failed to send Lulu failure email: {e}")
+        return False
+
+
+def send_lulu_resolved_email(to_email: str, child_name: str, lulu_job_id: str, lang: str = 'es'):
+    if lang == 'es':
+        subject = f"¡Tu libro está en camino a la imprenta! - {child_name}"
+        content = f"""
+                <h2 style="color:#7c3aed;margin-top:0;">¡Buenas noticias! 🎉</h2>
+                <p style="font-size:16px;color:#374151;">Queremos contarte que el problema con la impresión del libro de <strong>{child_name}</strong> ha sido resuelto.</p>
+                {_success_box(f'''
+                    <h3 style="margin-top:0;color:#166534;">✅ Problema resuelto</h3>
+                    <p style="color:#166534;font-size:14px;">Tu libro ya fue enviado a la imprenta y está siendo procesado.</p>
+                    <p style="color:#166534;font-size:13px;">Número de orden de impresión: <strong>{lulu_job_id}</strong></p>
+                ''')}
+                {_info_box(f'''
+                    <h3 style="margin-top:0;color:#7c3aed;">¿Qué sigue?</h3>
+                    <p style="color:#374151;font-size:14px;">Tu libro será impreso y enviado a la dirección que proporcionaste. El tiempo de entrega depende del método de envío seleccionado.</p>
+                    <p style="margin-top:10px;color:#374151;font-size:14px;">Si tienes alguna pregunta, escríbenos a <strong>info@magicmemoriesbooks.com</strong>.</p>
+                ''')}
+                <p style="color:#374151;font-size:14px;">Lamentamos las molestias y agradecemos tu paciencia. ¡Esperamos que disfrutes el libro!</p>"""
+        html_content = _email_wrapper("✨ Magic Memories Books ✨", content, to_email)
+    else:
+        subject = f"Your book is on its way to the printer! - {child_name}"
+        content = f"""
+                <h2 style="color:#7c3aed;margin-top:0;">Great news! 🎉</h2>
+                <p style="font-size:16px;color:#374151;">We wanted to let you know that the printing issue with <strong>{child_name}</strong>'s book has been resolved.</p>
+                {_success_box(f'''
+                    <h3 style="margin-top:0;color:#166534;">✅ Issue resolved</h3>
+                    <p style="color:#166534;font-size:14px;">Your book has been sent to the printer and is now being processed.</p>
+                    <p style="color:#166534;font-size:13px;">Print order number: <strong>{lulu_job_id}</strong></p>
+                ''')}
+                {_info_box(f'''
+                    <h3 style="margin-top:0;color:#7c3aed;">What happens next?</h3>
+                    <p style="color:#374151;font-size:14px;">Your book will be printed and shipped to the address you provided. Delivery time depends on the shipping method you selected.</p>
+                    <p style="margin-top:10px;color:#374151;font-size:14px;">If you have any questions, email us at <strong>info@magicmemoriesbooks.com</strong>.</p>
+                ''')}
+                <p style="color:#374151;font-size:14px;">We apologize for the inconvenience and appreciate your patience. We hope you enjoy the book!</p>"""
+        html_content = _email_wrapper("✨ Magic Memories Books ✨", content, to_email)
+
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = subject
+    msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
+    msg['To'] = to_email
+    msg.attach(MIMEText(html_content, 'html'))
+
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.sendmail(FROM_EMAIL, to_email, msg.as_string())
+        print(f"[EMAIL] Lulu resolved notification sent to {to_email}")
+        return True
+    except Exception as e:
+        print(f"[EMAIL] Failed to send Lulu resolved email: {e}")
         return False
 
 
@@ -1340,3 +1546,138 @@ def send_admin_error_email(process_name: str, preview_id: str, error_message: st
     except Exception as e:
         print(f"[ADMIN-ERROR] No se pudo enviar email de error: {e}")
         return {'success': False, 'error': str(e)}
+
+
+def send_admin_notification_email(subject: str, body: str) -> dict:
+    """Send a plain text notification email to the admin."""
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
+        msg['To'] = FROM_EMAIL
+        html = f"""<html><body style="font-family:sans-serif;padding:20px;">
+            <pre style="background:#f3f4f6;padding:16px;border-radius:8px;white-space:pre-wrap;">{body}</pre>
+        </body></html>"""
+        msg.attach(MIMEText(html, 'html', 'utf-8'))
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.sendmail(FROM_EMAIL, FROM_EMAIL, msg.as_string())
+        return {'success': True}
+    except Exception as e:
+        print(f"[EMAIL] Admin notification error: {e}")
+        return {'success': False, 'error': str(e)}
+
+
+def send_tracking_email(to_email: str, tracking_number: str, customer_name: str, lang: str = 'es') -> dict:
+    """Send tracking number email to customer for their printed book."""
+    try:
+        if lang == 'es':
+            subject = "📦 Tu libro impreso está en camino — Magic Memories Books"
+            body_html = f"""
+            <div style="text-align:center;padding:32px 0;">
+                <p style="font-size:48px;">📦</p>
+                <h1 style="color:#7c3aed;font-family:Georgia,serif;">¡Tu libro está en camino!</h1>
+                <p style="color:#4b5563;font-size:16px;">Hola {customer_name},</p>
+                <p style="color:#4b5563;">Tu libro impreso personalizado ha sido enviado y está en camino hacia ti.</p>
+                <div style="background:#f5f3ff;border-radius:12px;padding:20px;margin:24px 0;display:inline-block;">
+                    <p style="color:#6b7280;font-size:14px;margin:0;">Número de seguimiento</p>
+                    <p style="color:#7c3aed;font-size:24px;font-weight:bold;margin:8px 0;">{tracking_number}</p>
+                </div>
+                <p style="color:#4b5563;font-size:14px;">Tiempo estimado de entrega: 5-15 días hábiles según tu ubicación.</p>
+                <p style="color:#6b7280;font-size:12px;margin-top:24px;">¿Preguntas? <a href="mailto:pay@magicmemoriesbooks.com" style="color:#7c3aed;">pay@magicmemoriesbooks.com</a></p>
+            </div>"""
+        else:
+            subject = "📦 Your printed book is on its way — Magic Memories Books"
+            body_html = f"""
+            <div style="text-align:center;padding:32px 0;">
+                <p style="font-size:48px;">📦</p>
+                <h1 style="color:#7c3aed;font-family:Georgia,serif;">Your book is on its way!</h1>
+                <p style="color:#4b5563;font-size:16px;">Hello {customer_name},</p>
+                <p style="color:#4b5563;">Your personalized printed book has been shipped and is on its way to you.</p>
+                <div style="background:#f5f3ff;border-radius:12px;padding:20px;margin:24px 0;display:inline-block;">
+                    <p style="color:#6b7280;font-size:14px;margin:0;">Tracking number</p>
+                    <p style="color:#7c3aed;font-size:24px;font-weight:bold;margin:8px 0;">{tracking_number}</p>
+                </div>
+                <p style="color:#4b5563;font-size:14px;">Estimated delivery: 5-15 business days depending on your location.</p>
+                <p style="color:#6b7280;font-size:12px;margin-top:24px;">Questions? <a href="mailto:pay@magicmemoriesbooks.com" style="color:#7c3aed;">pay@magicmemoriesbooks.com</a></p>
+            </div>"""
+
+        full_html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+        <body style="font-family:'Segoe UI',sans-serif;background:#f8f5ff;margin:0;padding:20px;">
+        <div style="max-width:600px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;padding:32px;">
+        {body_html}
+        </div></body></html>"""
+
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
+        msg['To'] = to_email
+        msg.attach(MIMEText(full_html, 'html', 'utf-8'))
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.sendmail(FROM_EMAIL, [to_email], msg.as_string())
+        print(f"[EMAIL] Tracking email sent to {to_email}")
+        return {'success': True}
+    except Exception as e:
+        print(f"[EMAIL] Tracking email error: {e}")
+        return {'success': False, 'error': str(e)}
+
+
+def send_coupon_email(name: str, email: str, code: str = 'MAGIC20', discount_pct: int = 20) -> bool:
+    try:
+        content = f"""
+        <p style="font-size:16px;color:#374151;margin:0 0 14px 0;">Hola <strong>{name}</strong>! 🎉</p>
+        <p style="font-size:15px;color:#374151;margin:0 0 20px 0;">
+            Aquí está tu código exclusivo de <strong>{discount_pct}% de descuento</strong> para tu primer cuento mágico personalizado:
+        </p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0;">
+          <tr>
+            <td align="center">
+              <table cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" style="background-color:#B8860B;border-radius:10px;padding:18px 40px;">
+                    <p style="margin:0 0 4px 0;font-size:11px;font-weight:700;color:#FFE88A;letter-spacing:1px;text-transform:uppercase;">Tu código</p>
+                    <p style="margin:0;font-size:32px;font-weight:900;color:#ffffff;letter-spacing:5px;font-family:Courier,monospace;">{code}</p>
+                    <p style="margin:6px 0 0 0;font-size:13px;font-weight:700;color:#FFE88A;">{discount_pct}% de descuento</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+        <p style="font-size:14px;color:#6B7280;text-align:center;margin:0 0 24px 0;">
+            Introduce este código en el checkout <strong>antes de pagar con PayPal</strong>.
+        </p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 0 0;">
+          <tr>
+            <td align="center">
+              <a href="https://magicmemoriesbooks.com"
+                 style="background-color:#7C3AED;color:#ffffff;padding:13px 30px;
+                        border-radius:50px;text-decoration:none;font-weight:bold;
+                        font-size:15px;display:inline-block;">
+                ✨ Crear mi cuento ahora ✨
+              </a>
+            </td>
+          </tr>
+        </table>
+        <p style="font-size:12px;color:#9CA3AF;text-align:center;margin:20px 0 0 0;">
+            Este código es válido para una compra. No lo compartas.
+        </p>
+        """
+        html_body = _email_wrapper("🎟️ Tu Código de Descuento", content, email)
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = f"🎟️ Tu {discount_pct}% de descuento — Magic Memories Books"
+        msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
+        msg['To'] = email
+        msg.attach(MIMEText(html_body, 'html'))
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.sendmail(FROM_EMAIL, email, msg.as_string())
+        print(f"[COUPON EMAIL] Sent {code} to {email}")
+        return True
+    except Exception as e:
+        print(f"[COUPON EMAIL] Error sending to {email}: {e}")
+        return False

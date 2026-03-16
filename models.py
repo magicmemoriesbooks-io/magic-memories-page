@@ -31,7 +31,7 @@ class Order(db.Model):
     customer_email = db.Column(db.String(120), nullable=False)
     customer_name = db.Column(db.String(100))
     
-    paddle_transaction_id = db.Column(db.String(100))
+    paypal_order_id = db.Column(db.String(100))
     amount_paid = db.Column(db.Integer)
     
     digital_pdf_path = db.Column(db.String(255))
@@ -90,7 +90,7 @@ class RealStoryOrder(db.Model):
     customer_email = db.Column(db.String(120), nullable=False)
     customer_name = db.Column(db.String(100))
     
-    paddle_transaction_id = db.Column(db.String(100))
+    paypal_order_id = db.Column(db.String(100))
     amount_paid = db.Column(db.Integer)
     
     digital_pdf_path = db.Column(db.String(255))
@@ -240,3 +240,92 @@ class PreviewLead(db.Model):
 
     def __repr__(self):
         return f'<PreviewLead {self.email}>'
+
+
+class PrintOrderRequest(db.Model):
+    __tablename__ = 'print_order_requests'
+
+    id = db.Column(db.Integer, primary_key=True)
+    preview_id = db.Column(db.String(100), nullable=False)
+    child_name = db.Column(db.String(100), nullable=True)
+    customer_email = db.Column(db.String(255), nullable=False)
+    paypal_order_id = db.Column(db.String(100), nullable=True)
+    amount_paid = db.Column(db.Float, nullable=True)
+    shipping_name = db.Column(db.String(200), nullable=True)
+    shipping_street = db.Column(db.String(300), nullable=True)
+    shipping_city = db.Column(db.String(100), nullable=True)
+    shipping_state = db.Column(db.String(100), nullable=True)
+    shipping_postal = db.Column(db.String(20), nullable=True)
+    shipping_country = db.Column(db.String(10), nullable=True)
+    shipping_phone = db.Column(db.String(50), nullable=True)
+    shipping_method = db.Column(db.String(50), nullable=True)
+    shipping_cost = db.Column(db.Float, nullable=True)
+    status = db.Column(db.String(30), default='payment_confirmed')
+    lulu_print_job_id = db.Column(db.String(100), nullable=True)
+    tracking_number = db.Column(db.String(100), nullable=True)
+    tracking_email_sent = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<PrintOrderRequest {self.id} {self.customer_email}>'
+
+
+class StoryBackup(db.Model):
+    """Backup of story_previews/*.json files in PostgreSQL so they survive container rebuilds."""
+    __tablename__ = 'story_backups'
+
+    id = db.Column(db.Integer, primary_key=True)
+    preview_id = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    data = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<StoryBackup {self.preview_id}>'
+
+
+class Coupon(db.Model):
+    __tablename__ = 'coupons'
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(50), unique=True, nullable=False)
+    coupon_type = db.Column(db.String(20), default='general')
+    discount_pct = db.Column(db.Integer, default=20)
+    owner_name = db.Column(db.String(100))
+    owner_email = db.Column(db.String(120))
+    commission_pct = db.Column(db.Integer, default=0)
+    max_uses = db.Column(db.Integer, default=0)
+    use_count = db.Column(db.Integer, default=0)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<Coupon {self.code}>'
+
+
+class CouponLead(db.Model):
+    __tablename__ = 'coupon_leads'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100))
+    email = db.Column(db.String(120))
+    ip_address = db.Column(db.String(50))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<CouponLead {self.email}>'
+
+
+class CouponUsage(db.Model):
+    __tablename__ = 'coupon_usages'
+
+    id = db.Column(db.Integer, primary_key=True)
+    coupon_code = db.Column(db.String(50), nullable=False)
+    buyer_email = db.Column(db.String(120))
+    paypal_order_id = db.Column(db.String(100))
+    discount_pct = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<CouponUsage {self.coupon_code} {self.buyer_email}>'

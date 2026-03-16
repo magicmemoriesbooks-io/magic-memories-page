@@ -32,10 +32,9 @@ La documentación visible con todos los prompts, estructura, y especificaciones 
 ### Rutas en app.py
 - `/personalized-book/<story_id>` - Formulario
 - `/personalized-book/generate` - Generación de libro completo
-- `/personalized-book/checkout` - Selección de envío + Paddle
+- `/personalized-book/checkout` - Selección de envío + PayPal
 - `/order-complete/<preview_id>` - Vista previa + regeneración
 - `/api/regenerate-page/<preview_id>/<page_num>` - Regenerar página
-- `/api/paddle-webhook` - Webhook unificado (también maneja Quick Stories)
 
 ## Reglas Críticas
 
@@ -61,8 +60,8 @@ Layout: [Wrap 19mm][Back Board 213mm][Spine 6.35mm][Front Board 213mm][Wrap 19mm
 ```
 **ESTAS DIMENSIONES ESTÁN VERIFICADAS Y APROBADAS POR LULU. NO CAMBIAR.**
 
-### 3. Pipeline Unificado (Paddle + Lulu)
-Un solo webhook `/api/paddle-webhook` maneja todos los pagos.
+### 3. Pipeline Unificado (PayPal + Lulu)
+Los pagos se procesan via PayPal. La ruta `/api/payment-complete/<preview_id>` maneja la confirmación.
 Una sola función `_process_personalized_book_post_payment()` procesa todos los libros.
 El `book_id` / `story_id` determina qué libro es. No hay código separado por libro.
 

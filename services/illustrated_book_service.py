@@ -1537,7 +1537,8 @@ def generate_full_book(
     for_print: bool = False,
     author_name: str = "Magic Memories Books",
     reference_image_path: str = None,
-    reference_image_path_2: str = None
+    reference_image_path_2: str = None,
+    progress_callback=None
 ) -> list:
     """
     Generate all pages for the illustrated book (Lulu print structure).
@@ -1640,34 +1641,52 @@ def generate_full_book(
     
     failed_scene_indices = []
     total_scenes = len(scenes)
-    for i, scene_config in enumerate(scenes):
-        print(f"[BOOK] Generating scene {i+1}/{total_scenes}...")
-        
+    scene_images = [None] * total_scenes
+    _completed_count = 0
+
+    SCENE_WORKERS = 3
+
+    def _gen_one_scene(args):
+        _i, _scene_cfg = args
+        print(f"[BOOK] Generating scene {_i + 1}/{total_scenes}...")
         try:
-            scene_image = generate_scene_complete(
-                scene_config,
-                traits,
-                child_name,
-                gender,
-                language,
-                book_id,
+            img = generate_scene_complete(
+                _scene_cfg, traits, child_name, gender, language, book_id,
                 reference_image_path=reference_image_path,
                 reference_image_path_2=reference_image_path_2
             )
-        except RuntimeError as gen_err:
-            print(f"[BOOK] Scene {i+1} generation failed permanently: {gen_err}. Using placeholder.")
-            scene_image = Image.new("RGB", (1024, 1365), "#FFFEF5")
-            failed_scene_indices.append(i)
-        
+            return _i, img
+        except RuntimeError as _err:
+            print(f"[BOOK] Scene {_i + 1} generation failed permanently: {_err}. Using placeholder.")
+            return _i, None
+
+    from concurrent.futures import ThreadPoolExecutor, as_completed as _as_completed
+    with ThreadPoolExecutor(max_workers=SCENE_WORKERS) as _executor:
+        _futures = {_executor.submit(_gen_one_scene, (i, sc)): i for i, sc in enumerate(scenes)}
+        for _future in _as_completed(_futures):
+            _i, _img = _future.result()
+            scene_images[_i] = _img
+            if _img is None:
+                failed_scene_indices.append(_i)
+            _completed_count += 1
+            if progress_callback:
+                try:
+                    progress_callback(_completed_count, total_scenes)
+                except Exception:
+                    pass
+
+    for i, scene_config in enumerate(scenes):
+        scene_image = scene_images[i] if scene_images[i] is not None else Image.new("RGB", (1024, 1365), "#FFFEF5")
+
         text_key = f"text_{language}"
         text = scene_config.get(text_key, scene_config.get("text_es", ""))
         text = text.replace("{name}", child_name)
         pet_name = traits.get('pet_name', '')
         if pet_name:
             text = text.replace("{pet_name}", pet_name)
-        
+
         position = scene_config.get("text_position", "split")
-        
+
         final_page = add_text_to_image(
             scene_image,
             text,
@@ -1677,7 +1696,7 @@ def generate_full_book(
             52,
             0.05
         )
-        
+
         pages.append(final_page)
     
     if failed_scene_indices:
@@ -1801,65 +1820,84 @@ def parse_description_to_traits(description: str) -> dict:
 
 
 def generate_illustrated_book_pdf(
-    pages: list,
-    output_path: str,
-    for_print: bool = False
+    pages: list = None,
+    output_path: str = "",
+    for_print: bool = False,
+    page_paths: list = None
 ) -> str:
     """
-    Convert list of PIL Images to PDF file.
-    
+    Convert images to PDF file. Accepts either PIL Images or file paths.
+    When page_paths is provided, images are loaded and released one at a time
+    to keep peak RAM low (~30 MB instead of ~700 MB for 24 pages at 300 DPI).
+
     Args:
-        pages: List of PIL Image objects
+        pages: List of PIL Image objects (used when page_paths is None)
         output_path: Path to save the PDF
         for_print: If True, upscale to print quality (300 DPI for A4)
-    
+        page_paths: List of file path strings (preferred for memory efficiency)
+
     Returns:
         Path to the generated PDF
     """
+    import gc
     from reportlab.pdfgen import canvas
     from reportlab.lib.utils import ImageReader
-    
+
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    
-    # Lulu A4 hardcover with bleed: 216mm x 303mm (3mm bleed on all sides)
+
     if for_print:
-        # A4 + 3mm bleed at 300 DPI: 2551 x 3579 pixels
         page_width = 2551
         page_height = 3579
         dpi = 300
-        pdf_width = 612.28  # 216mm in points (210 + 6mm bleed)
-        pdf_height = 858.90  # 303mm in points (297 + 6mm bleed)
+        pdf_width = 612.28
+        pdf_height = 858.90
     else:
-        # A4 at 72 DPI for digital viewing (no bleed)
         page_width = 595
         page_height = 842
         dpi = 72
         pdf_width = 595
         pdf_height = 842
-    
+
     c = canvas.Canvas(output_path, pagesize=(pdf_width, pdf_height))
-    
-    for i, page in enumerate(pages):
+
+    source = page_paths if page_paths else (pages or [])
+    total = len(source)
+
+    for i, item in enumerate(source):
+        if page_paths:
+            path = item.lstrip('/') if isinstance(item, str) else item
+            page = Image.open(path)
+            page.load()
+        else:
+            page = item
+
         if for_print:
             upscaled = page.resize((page_width, page_height), Image.Resampling.LANCZOS)
         else:
             upscaled = page.resize((int(pdf_width), int(pdf_height)), Image.Resampling.LANCZOS)
-        
+
+        if page_paths:
+            page.close()
+
         img_buffer = BytesIO()
         if upscaled.mode == 'RGBA':
             upscaled = upscaled.convert('RGB')
         upscaled.save(img_buffer, format='JPEG', quality=85, dpi=(dpi, dpi))
         img_buffer.seek(0)
-        
+
         img_reader = ImageReader(img_buffer)
         c.drawImage(img_reader, 0, 0, width=pdf_width, height=pdf_height)
-        
-        if i < len(pages) - 1:
+
+        if i < total - 1:
             c.showPage()
-    
+
+        if page_paths:
+            del upscaled, img_buffer, img_reader
+            gc.collect()
+
     c.save()
-    print(f"[PDF] Generated PDF with {len(pages)} pages: {output_path}")
-    
+    print(f"[PDF] Generated PDF with {total} pages: {output_path}")
+
     return output_path
 
 

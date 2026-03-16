@@ -28,7 +28,7 @@ services/personalized_books/
 
 services/illustrated_book_service.py  # BOOK_CONFIGS["furry_love"], generación de escenas con 2 refs
 templates/personalize_furry_love.html # Formulario dedicado (humano + mascota)
-templates/checkout_unified.html       # Checkout compartido (Paddle)
+templates/checkout_unified.html       # Checkout compartido (PayPal)
 templates/order_complete.html         # Aprobación de escenas + descarga PDF
 app.py                                # Rutas: /personalize-furry-love, generate-baby-preview, etc.
 ```
@@ -400,53 +400,16 @@ Además de los campos estándar de libros personalizados, furry_love agrega:
 
 ---
 
-## 17. Integración Paddle - Cálculo de Impuestos (Feb 2026)
+## 17. Integración PayPal - Pagos (Mar 2026)
 
-### Flujo de Transacción Server-Side
-El checkout usa **precios dinámicos** calculados en el servidor:
-1. Frontend envía `country_code` + `postal_code` + `shipping_method` a `/api/create-paddle-transaction`
-2. Servidor calcula precio real: `base_price ($35) + Lulu shipping cost`
-3. Servidor crea **customer** + **address** en Paddle API antes de crear la transacción
-4. Transaction se crea con `customer_id` + `address_id` adjuntos → Paddle calcula IVA correcto por dirección
+### Flujo de Pago
+El checkout usa **PayPal** para procesar pagos:
+1. Frontend muestra botones PayPal via SDK
+2. Al hacer clic, se valida la dirección con Lulu y se crea una orden PayPal
+3. Usuario completa pago en PayPal
+4. Se confirma la orden via `/api/payment-complete/<preview_id>` y se procesa el pedido
 
-### Manejo de Customer Existente (409 Conflict)
-- Si el email ya existe en Paddle, se recibe 409 al crear customer
-- Se busca el customer existente por email via `GET /customers?email=...`
-- Se crea nueva address bajo ese customer existente
-- Se adjuntan ambos IDs a la transacción
-
-### Paddle.Checkout.open() - Parámetros de Dirección
-```javascript
-Paddle.Checkout.open({
-    transactionId: txnResult.transaction_id,
-    customer: {
-        email: checkoutData.email,
-        address: {
-            countryCode: document.getElementById('shippingCountry').value,
-            postalCode: document.getElementById('shippingPostal').value
-        }
-    },
-    settings: { displayMode: "overlay", theme: "light", locale: CFG.lang }
-});
-```
-
-### Bug Corregido (Feb 2026)
-- **Problema**: `checkout_unified.html` usaba `shippingZip` como ID del campo postal, pero el campo real es `shippingPostal`. Esto enviaba código postal vacío a Paddle.
-- **Efecto**: Paddle rechazaba la dirección y caía a geolocalización por IP → IVA incorrecto.
-- **Solución**: Corregido `shippingZip` → `shippingPostal` en 2 lugares (payload del servidor + `Paddle.Checkout.open()`).
-- **Prevención**: Todos los checkouts (`checkout_unified.html`, `checkout.html`, `checkout_quick_story.html`) ahora pasan `customer.address` con `countryCode` + `postalCode` al abrir el overlay de Paddle.
-
-### IDs de Campos por Template
-| Template | Campo País | Campo Postal |
-|----------|-----------|-------------|
-| `checkout_unified.html` | `shippingCountry` | `shippingPostal` |
-| `checkout.html` | `country_code` | `postcode` |
-| `checkout_quick_story.html` | `shippingCountry` | `shippingPostal` |
-
-### Variables de Entorno Paddle
-- `PADDLE_API_KEY`: API key del servidor (nota: usar `PADDLE_SERVER_API_KEY` como workaround si hay corrupción en secrets)
-- `PADDLE_CLIENT_TOKEN`: Token del cliente para el overlay
-- `PADDLE_PERSONALIZED_PRODUCT_ID`: ID de producto para libros personalizados
-- `PADDLE_QS_PRINT_PRODUCT_ID`: ID de producto para Quick Stories impresos
-- `PADDLE_SELLER_ID`: ID del vendedor
-- `PADDLE_WEBHOOK_SECRET`: Secret para validar webhooks
+### Variables de Entorno PayPal
+- `PAYPAL_CLIENT_ID`: Client ID de PayPal
+- `PAYPAL_CLIENT_SECRET`: Client Secret de PayPal
+- `PAYPAL_MODE`: `sandbox` para pruebas, `live` para producción

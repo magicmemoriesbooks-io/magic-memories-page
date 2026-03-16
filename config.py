@@ -28,34 +28,22 @@ class Config:
     
     OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
     
-    PADDLE_API_KEY = os.environ.get('PADDLE_SERVER_API_KEY') or os.environ.get('PADDLE_API_KEY')
-    PADDLE_SELLER_ID = os.environ.get('PADDLE_SELLER_ID')
-    PADDLE_CLIENT_TOKEN = os.environ.get('PADDLE_CLIENT_TOKEN')
-    PADDLE_WEBHOOK_SECRET = os.environ.get('PADDLE_WEBHOOK_SECRET')
-    _paddle_key = os.environ.get('PADDLE_SERVER_API_KEY') or os.environ.get('PADDLE_API_KEY', '')
-    PADDLE_ENVIRONMENT = os.environ.get('PADDLE_ENVIRONMENT') or ('production' if _paddle_key.startswith('live_') else 'sandbox')
-    
-    # === PADDLE DYNAMIC PRICING (Feb 2026) ===
-    # 
-    # Product 1: Quick Stories Digital + PDF Imprimible ($20 fijo, NO va a Lulu)
-    PADDLE_QS_DIGITAL_PRODUCT_ID = os.environ.get('PADDLE_QS_DIGITAL_PRODUCT_ID', '')
-    _qs_digital_price = os.environ.get('PADDLE_QS_DIGITAL_PRICE_ID', '')
-    PADDLE_QS_DIGITAL_PRICE_ID = _qs_digital_price if _qs_digital_price.startswith('pri_') else 'pri_01kgpq0455g6ztxfy52pcm94sg'
+    # === PAYPAL (Mar 2026) ===
+    PAYPAL_CLIENT_ID = os.environ.get('PAYPAL_CLIENT_ID', '')
+    PAYPAL_CLIENT_SECRET = os.environ.get('PAYPAL_CLIENT_SECRET', '')
+    PAYPAL_MODE = os.environ.get('PAYPAL_MODE', 'live')
+    PAYPAL_API_BASE = 'https://api-m.sandbox.paypal.com' if os.environ.get('PAYPAL_MODE', 'live') == 'sandbox' else 'https://api-m.paypal.com'
+
+    # === PRODUCT PRICING ===
+    # Product 1: Quick Stories Digital + PDF ($20)
     QS_DIGITAL_BASE_PRICE = 2000
-    #
-    # Product 2: Quick Stories Impreso 12 páginas ($20 base + Lulu dinámico)
-    PADDLE_QS_PRINT_PRODUCT_ID = os.environ.get('PADDLE_QS_PRINT_PRODUCT_ID', '')
-    QS_PRINT_BASE_PRICE = 2000
-    #
-    # Product 3: Libros Personalizados Impreso 24 páginas tapa dura ($30 base + Lulu dinámico)
-    PADDLE_PERSONALIZED_PRODUCT_ID = os.environ.get('PADDLE_PERSONALIZED_PRODUCT_ID', '')
-    PERSONALIZED_BASE_PRICE = 3000
-    #
-    # Product 4: eBook Interactivo (visor flipbook) $7 fijo, sin impresión
-    PADDLE_EBOOK_PRODUCT_ID = os.environ.get('PADDLE_EBOOK_PRODUCT_ID', '')
-    PADDLE_EBOOK_PRICE_ID = os.environ.get('PADDLE_EBOOK_PRICE_ID', '')
+    # Product 2: Quick Stories / eBook ($7)
     EBOOK_BASE_PRICE = 700
     EBOOK_EXPIRY_DAYS = 180
+    # Product 3: Libros Personalizados base ($30)
+    PERSONALIZED_BASE_PRICE = 3000
+    # Product 4: Print base price (used in /print-order)
+    QS_PRINT_BASE_PRICE = 2000
     
     SUPPORTED_LANGUAGES = ['es', 'en']
     DEFAULT_LANGUAGE = 'en'

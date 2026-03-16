@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pedidos de Impresión — Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>body { font-family: system-ui, sans-serif; }</style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+<div class="max-w-6xl mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">📦 Pedidos de Libro Impreso</h1>
+        <a href="/admin" class="text-sm text-purple-600 hover:underline">← Volver al admin</a>
+    </div>
+
+    {% if requests %}
+    <div class="space-y-4">
+        {% for req in requests %}
+        <div class="bg-white rounded-xl shadow p-6 border-l-4 {% if req.status == 'payment_confirmed' %}border-yellow-400{% elif req.status == 'sent_to_lulu' %}border-blue-400{% elif req.status == 'shipped' %}border-green-400{% else %}border-gray-300{% endif %}">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <p class="text-xs text-gray-500 uppercase font-semibold mb-1">Cliente</p>
+                    <p class="font-medium text-gray-900">{{ req.shipping_name }}</p>
+                    <p class="text-sm text-gray-600">{{ req.customer_email }}</p>
+                    <p class="text-xs text-gray-500">{{ req.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                    <p class="text-xs text-gray-400 mt-1">ID: {{ req.preview_id[:12] }}...</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 uppercase font-semibold mb-1">Envío</p>
+                    <p class="text-sm text-gray-800">{{ req.shipping_street }}, {{ req.shipping_city }}</p>
+                    <p class="text-sm text-gray-800">{{ req.shipping_postal }} {{ req.shipping_state }}</p>
+                    <p class="text-sm font-medium text-gray-800">{{ req.shipping_country }}</p>
+                    <p class="text-xs text-purple-600 mt-1">Método: {{ req.shipping_method }}</p>
+                    <p class="text-xs text-gray-500">PayPal: {{ req.paypal_order_id[:16] if req.paypal_order_id else '—' }}...</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 uppercase font-semibold mb-1">Estado & Acciones</p>
+                    <span class="inline-block px-3 py-1 rounded-full text-xs font-bold mb-3
+                        {% if req.status == 'payment_confirmed' %}bg-yellow-100 text-yellow-800
+                        {% elif req.status == 'sent_to_lulu' %}bg-blue-100 text-blue-800
+                        {% elif req.status == 'shipped' %}bg-green-100 text-green-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {{ req.status }}
+                    </span>
+                    <p class="text-sm font-bold text-gray-800 mb-3">💰 ${{ '%.2f' % (req.amount_paid or 0) }} USD</p>
+
+                    {% if req.status == 'payment_confirmed' %}
+                    <button onclick="sendToLulu({{ req.id }})"
+                        class="w-full mb-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition-colors">
+                        ✅ Enviar a Lulu
+                    </button>
+                    {% endif %}
+
+                    {% if req.status in ['sent_to_lulu', 'shipped'] %}
+                    <p class="text-xs text-gray-500 mb-1">Lulu Job: {{ req.lulu_print_job_id or '—' }}</p>
+                    {% endif %}
+
+                    {% if req.status == 'sent_to_lulu' %}
+                    <div class="flex gap-2 items-center">
+                        <input type="text" id="tracking_{{ req.id }}" placeholder="Número de tracking"
+                            class="flex-1 p-2 border border-gray-300 rounded text-xs">
+                        <button onclick="sendTracking({{ req.id }})"
+                            class="px-3 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded text-xs whitespace-nowrap">
+                            📦 Enviar
+                        </button>
+                    </div>
+                    {% endif %}
+
+                    {% if req.status == 'shipped' and req.tracking_number %}
+                    <p class="text-xs text-green-600 font-medium">✓ Tracking: {{ req.tracking_number }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-xl shadow p-12 text-center">
+        <p class="text-5xl mb-4">📭</p>
+        <p class="text-gray-500 text-lg">No hay pedidos de libros impresos aún.</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+async function sendToLulu(reqId) {
+    if (!confirm('¿Enviar este pedido a Lulu para impresión?')) return;
+    const resp = await fetch(`/api/admin/send-to-lulu/${reqId}`, {method: 'POST'});
+    const data = await resp.json();
+    if (data.success) {
+        alert('✅ Pedido enviado a Lulu. Job ID: ' + (data.lulu_job_id || 'OK'));
+        location.reload();
+    } else {
+        alert('Error: ' + (data.error || 'Unknown error'));
+    }
+}
+
+async function sendTracking(reqId) {
+    const trackingNumber = document.getElementById('tracking_' + reqId)?.value?.trim();
+    if (!trackingNumber) { alert('Introduce el número de tracking.'); return; }
+    const resp = await fetch(`/api/admin/send-tracking/${reqId}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({tracking_number: trackingNumber})
+    });
+    const data = await resp.json();
+    if (data.success) {
+        alert('📦 Email de tracking enviado al cliente.');
+        location.reload();
+    } else {
+        alert('Error: ' + (data.error || 'Unknown error'));
+    }
+}
+</script>
+</body>
+</html>

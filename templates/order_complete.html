@@ -99,9 +99,33 @@
         {% endif %}
 
         {% if story_data.admin_gift and story_data.lulu_order_folder %}
-        <div class="mb-8 text-center">
+        <div class="mb-8 text-center flex flex-wrap gap-3 justify-center">
             <a href="/admin/gift-download/{{ preview_id }}" class="inline-block px-6 py-3 text-white font-semibold rounded-lg no-underline" style="background: linear-gradient(135deg, #8B5CF6, #EC4899);">
                 Descargar PDFs para Lulu
+            </a>
+            {% if story_data.lulu_job_id %}
+            <span class="inline-flex items-center gap-2 px-5 py-3 bg-green-100 text-green-800 font-semibold rounded-lg text-sm">
+                Enviado a Lulu — Job {{ story_data.lulu_job_id }}
+            </span>
+            {% else %}
+            <button onclick="openGiftLuluModal('{{ preview_id }}')" class="px-6 py-3 text-white font-semibold rounded-lg" style="background: linear-gradient(135deg, #059669, #047857);">
+                Enviar a Lulu
+            </button>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if not story_data.want_print %}
+        <div class="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-6 text-center">
+            <p class="text-2xl mb-2">📚</p>
+            <h4 class="font-semibold text-amber-800 mb-1">
+                {% if lang == 'es' %}¿Quieres el libro impreso en papel?{% else %}Want the book printed on paper?{% endif %}
+            </h4>
+            <p class="text-amber-700 text-sm mb-3">
+                {% if lang == 'es' %}Recibe el cuento de {{ story_data.child_name }} como un libro físico de calidad profesional, enviado a tu domicilio.{% else %}Receive {{ story_data.child_name }}'s story as a professional-quality physical book, shipped to your door.{% endif %}
+            </p>
+            <a href="/print-order/{{ preview_id }}" class="inline-block px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-colors text-sm">
+                {% if lang == 'es' %}Ver opciones de libro impreso →{% else %}See printed book options →{% endif %}
             </a>
         </div>
         {% endif %}
@@ -1081,9 +1105,20 @@
             <div class="mt-4 border-2 border-purple-300 rounded-xl p-4 text-center" style="background: linear-gradient(135deg, #f3e8ff, #fce7f3);">
                 <div class="text-2xl mb-2">🎁</div>
                 <p class="text-purple-800 font-semibold mb-3">Libro Regalo - PDFs listos</p>
-                <a href="/admin/gift-download/{{ preview_id }}" class="inline-block px-6 py-3 text-white font-semibold rounded-lg no-underline" style="background: linear-gradient(135deg, #8B5CF6, #EC4899);">
-                    Descargar PDFs para Lulu
-                </a>
+                <div class="flex flex-wrap gap-3 justify-center">
+                    <a href="/admin/gift-download/{{ preview_id }}" class="inline-block px-5 py-2 text-white font-semibold rounded-lg no-underline text-sm" style="background: linear-gradient(135deg, #8B5CF6, #EC4899);">
+                        Descargar PDFs
+                    </a>
+                    {% if story_data.lulu_job_id %}
+                    <span class="inline-flex items-center px-5 py-2 bg-green-100 text-green-800 font-semibold rounded-lg text-sm">
+                        Enviado — Job {{ story_data.lulu_job_id }}
+                    </span>
+                    {% else %}
+                    <button onclick="openGiftLuluModal('{{ preview_id }}')" class="px-5 py-2 text-white font-semibold rounded-lg text-sm" style="background: linear-gradient(135deg, #059669, #047857);">
+                        Enviar a Lulu
+                    </button>
+                    {% endif %}
+                </div>
             </div>
             {% endif %}
         </div>
@@ -1702,5 +1737,169 @@ function doRegenerateQuickScene(sceneNum, btn, loading, img, countSpan) {
     var obs = new MutationObserver(updateSpacer);
     obs.observe(warning, { childList: true, subtree: true, attributes: true });
 })();
+</script>
+
+<!-- Modal: Enviar regalo a Lulu -->
+<div id="giftLuluModal" class="fixed inset-0 z-50 hidden items-center justify-center" style="background:rgba(0,0,0,0.55);">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+    <div class="px-6 py-4 flex items-center justify-between" style="background:linear-gradient(135deg,#059669,#047857);">
+      <div>
+        <h3 class="text-white font-bold text-lg">Enviar a Lulu</h3>
+        <p class="text-green-100 text-sm">Introduce la dirección de envío del destinatario</p>
+      </div>
+      <button onclick="closeGiftLuluModal()" class="text-white text-2xl leading-none">&times;</button>
+    </div>
+    <div class="px-6 py-5 overflow-y-auto max-h-96">
+      <div id="giftLuluError" class="hidden mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm"></div>
+      <div id="giftLuluSuccess" class="hidden mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm"></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="col-span-2">
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Nombre completo *</label>
+          <input id="gl_name" type="text" placeholder="Ej: María García López" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-green-500">
+        </div>
+        <div class="col-span-2">
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Dirección *</label>
+          <input id="gl_street1" type="text" placeholder="Calle, número, piso" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-green-500">
+        </div>
+        <div class="col-span-2">
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Piso / Apto (opcional)</label>
+          <input id="gl_street2" type="text" placeholder="Piso 3B, Puerta 2..." class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-green-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Ciudad *</label>
+          <input id="gl_city" type="text" placeholder="Madrid" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-green-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Código Postal *</label>
+          <input id="gl_postal" type="text" placeholder="28001" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-green-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Provincia / Estado</label>
+          <input id="gl_state" type="text" placeholder="Madrid" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-green-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">País</label>
+          <select id="gl_country" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-green-500">
+            <option value="ES">España (ES)</option>
+            <option value="MX">México (MX)</option>
+            <option value="US">Estados Unidos (US)</option>
+            <option value="CO">Colombia (CO)</option>
+            <option value="AR">Argentina (AR)</option>
+            <option value="PE">Perú (PE)</option>
+            <option value="CL">Chile (CL)</option>
+            <option value="DE">Alemania (DE)</option>
+            <option value="FR">Francia (FR)</option>
+            <option value="GB">Reino Unido (GB)</option>
+            <option value="IT">Italia (IT)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label>
+          <input id="gl_phone" type="text" placeholder="+34 600 000 000" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-green-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Email destinatario</label>
+          <input id="gl_email" type="email" placeholder="destinatario@email.com" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-green-500">
+        </div>
+        <div class="col-span-2">
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Método de envío</label>
+          <select id="gl_shipping" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-green-500">
+            <option value="MAIL">Correo estándar (MAIL)</option>
+            <option value="PRIORITY_MAIL">Correo prioritario (PRIORITY_MAIL)</option>
+            <option value="GROUND">Terrestre (GROUND)</option>
+            <option value="EXPEDITED">Exprés (EXPEDITED)</option>
+            <option value="EXPRESS">Urgente (EXPRESS)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="px-6 py-4 bg-gray-50 flex gap-3 justify-end">
+      <button onclick="closeGiftLuluModal()" class="px-5 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100">Cancelar</button>
+      <button id="giftLuluSubmitBtn" onclick="submitGiftToLulu()" class="px-6 py-2 text-white font-semibold rounded-lg text-sm flex items-center gap-2" style="background:linear-gradient(135deg,#059669,#047857);">
+        <span id="giftLuluBtnText">Enviar a Lulu</span>
+        <span id="giftLuluSpinner" class="hidden">
+          <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+        </span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+var _giftLuluPreviewId = null;
+
+function openGiftLuluModal(previewId) {
+    _giftLuluPreviewId = previewId;
+    document.getElementById('giftLuluModal').classList.remove('hidden');
+    document.getElementById('giftLuluModal').classList.add('flex');
+    document.getElementById('giftLuluError').classList.add('hidden');
+    document.getElementById('giftLuluSuccess').classList.add('hidden');
+}
+
+function closeGiftLuluModal() {
+    document.getElementById('giftLuluModal').classList.add('hidden');
+    document.getElementById('giftLuluModal').classList.remove('flex');
+}
+
+async function submitGiftToLulu() {
+    var name = document.getElementById('gl_name').value.trim();
+    var street1 = document.getElementById('gl_street1').value.trim();
+    var city = document.getElementById('gl_city').value.trim();
+    var postal = document.getElementById('gl_postal').value.trim();
+    var errDiv = document.getElementById('giftLuluError');
+    var successDiv = document.getElementById('giftLuluSuccess');
+    errDiv.classList.add('hidden');
+    successDiv.classList.add('hidden');
+    if (!name || !street1 || !city || !postal) {
+        errDiv.textContent = 'Nombre, dirección, ciudad y código postal son obligatorios.';
+        errDiv.classList.remove('hidden');
+        return;
+    }
+    var btn = document.getElementById('giftLuluSubmitBtn');
+    document.getElementById('giftLuluBtnText').textContent = 'Enviando...';
+    document.getElementById('giftLuluSpinner').classList.remove('hidden');
+    btn.disabled = true;
+    try {
+        var resp = await fetch('/admin/gift-send-to-lulu/' + _giftLuluPreviewId, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                name: name,
+                street1: street1,
+                street2: document.getElementById('gl_street2').value.trim(),
+                city: city,
+                postal_code: postal,
+                state_code: document.getElementById('gl_state').value.trim(),
+                country_code: document.getElementById('gl_country').value,
+                phone_number: document.getElementById('gl_phone').value.trim(),
+                email: document.getElementById('gl_email').value.trim(),
+                shipping_level: document.getElementById('gl_shipping').value
+            })
+        });
+        var data = await resp.json();
+        if (data.success) {
+            successDiv.textContent = 'Enviado a Lulu exitosamente. Job ID: ' + data.lulu_job_id;
+            successDiv.classList.remove('hidden');
+            document.getElementById('giftLuluBtnText').textContent = 'Enviado';
+            setTimeout(function() { location.reload(); }, 2500);
+        } else {
+            errDiv.textContent = data.error || 'Error desconocido al enviar a Lulu.';
+            errDiv.classList.remove('hidden');
+            document.getElementById('giftLuluBtnText').textContent = 'Enviar a Lulu';
+            document.getElementById('giftLuluSpinner').classList.add('hidden');
+            btn.disabled = false;
+        }
+    } catch (e) {
+        errDiv.textContent = 'Error de red: ' + e.message;
+        errDiv.classList.remove('hidden');
+        document.getElementById('giftLuluBtnText').textContent = 'Enviar a Lulu';
+        document.getElementById('giftLuluSpinner').classList.add('hidden');
+        btn.disabled = false;
+    }
+}
+
+document.getElementById('giftLuluModal').addEventListener('click', function(e) {
+    if (e.target === this) closeGiftLuluModal();
+});
 </script>
 {% endblock %}

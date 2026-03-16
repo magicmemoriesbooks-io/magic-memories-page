@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cupones - Magic Memories Books</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Quicksand', 'Segoe UI', sans-serif; background: #F9F9FB; color: #333; }
+        .header { background: linear-gradient(135deg, #D4AF37, #B8860B); color: #fff; padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 20px; }
+        .header a { color: #fff; text-decoration: none; font-size: 13px; opacity: 0.8; }
+        .container { max-width: 1100px; margin: 24px auto; padding: 0 20px; }
+        .stats { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+        .stat-card { background: #fff; border-radius: 12px; padding: 20px; flex: 1; min-width: 140px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .stat-card .number { font-size: 32px; font-weight: 700; color: #B8860B; }
+        .stat-card .label { font-size: 12px; color: #888; margin-top: 4px; }
+        .section { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .section h2 { font-size: 16px; color: #B8860B; margin-bottom: 16px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; padding: 10px 12px; background: #F9F9FB; color: #888; font-weight: 600; font-size: 11px; text-transform: uppercase; }
+        td { padding: 10px 12px; border-top: 1px solid #f0f0f0; vertical-align: middle; }
+        .badge-active { background: #dcfce7; color: #16a34a; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+        .badge-inactive { background: #fef2f2; color: #dc2626; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+        .code-pill { background: #F3E8FF; color: #7C3AED; font-weight: 800; font-size: 13px; padding: 3px 10px; border-radius: 6px; font-family: monospace; letter-spacing: 1px; }
+        label { display: block; font-size: 13px; color: #555; margin-bottom: 4px; font-weight: 600; }
+        input[type="text"], input[type="email"], input[type="number"], select { width: 100%; padding: 9px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; font-family: inherit; }
+        .form-row { margin-bottom: 12px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+        .btn { border: none; padding: 10px 22px; border-radius: 20px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+        .btn-gold { background: linear-gradient(135deg, #D4AF37, #B8860B); color: #fff; }
+        .btn-gold:hover { opacity: 0.9; }
+        .btn-toggle { background: #f3f4f6; color: #374151; font-size: 11px; padding: 4px 10px; border-radius: 8px; }
+        .btn-toggle:hover { background: #e5e7eb; }
+        .empty-msg { color: #aaa; font-size: 13px; text-align: center; padding: 20px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎟️ Cupones de Descuento</h1>
+        <a href="{{ url_for('admin_dashboard') }}">&larr; Dashboard</a>
+    </div>
+
+    <div class="container">
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="number">{{ coupons|length }}</div>
+                <div class="label">Cupones totales</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">{{ coupons|selectattr('is_active')|list|length }}</div>
+                <div class="label">Activos</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">{{ leads|length }}</div>
+                <div class="label">Solicitudes recientes</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">{{ usages|length }}</div>
+                <div class="label">Usos recientes</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Crear nuevo cupón</h2>
+            <form method="POST" action="{{ url_for('admin_coupons') }}">
+                <input type="hidden" name="action" value="create">
+                <div class="form-grid">
+                    <div class="form-row">
+                        <label>Código</label>
+                        <input type="text" name="code" placeholder="MAGIC20" required>
+                    </div>
+                    <div class="form-row">
+                        <label>Tipo</label>
+                        <select name="coupon_type">
+                            <option value="general">General (sin dedup email)</option>
+                            <option value="influencer">Influencer (dedup email)</option>
+                            <option value="referral">Referral (dedup email)</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label>% Descuento</label>
+                        <input type="number" name="discount_pct" value="20" min="1" max="100">
+                    </div>
+                    <div class="form-row">
+                        <label>Nombre colaborador</label>
+                        <input type="text" name="owner_name" placeholder="Nombre influencer">
+                    </div>
+                    <div class="form-row">
+                        <label>Email colaborador</label>
+                        <input type="email" name="owner_email" placeholder="email@ejemplo.com">
+                    </div>
+                    <div class="form-row">
+                        <label>Comisión % (0 = sin comisión)</label>
+                        <input type="number" name="commission_pct" value="0" min="0" max="100">
+                    </div>
+                    <div class="form-row">
+                        <label>Máx usos (0 = ilimitado)</label>
+                        <input type="number" name="max_uses" value="0" min="0">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-gold">+ Crear cupón</button>
+            </form>
+        </div>
+
+        <div class="section">
+            <h2>Cupones activos</h2>
+            {% if coupons %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Tipo</th>
+                        <th>Descuento</th>
+                        <th>Colaborador</th>
+                        <th>Usos</th>
+                        <th>Estado</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in coupons %}
+                    <tr>
+                        <td><span class="code-pill">{{ c.code }}</span></td>
+                        <td>{{ c.coupon_type }}</td>
+                        <td><strong>{{ c.discount_pct }}%</strong></td>
+                        <td>{{ c.owner_name or '—' }}{% if c.owner_email %}<br><small style="color:#aaa;">{{ c.owner_email }}</small>{% endif %}</td>
+                        <td>{{ c.use_count or 0 }} / {{ c.max_uses if c.max_uses else '∞' }}</td>
+                        <td><span class="{{ 'badge-active' if c.is_active else 'badge-inactive' }}">{{ 'Activo' if c.is_active else 'Inactivo' }}</span></td>
+                        <td>
+                            <form method="POST" action="{{ url_for('admin_coupons') }}" style="display:inline;">
+                                <input type="hidden" name="action" value="toggle">
+                                <input type="hidden" name="coupon_id" value="{{ c.id }}">
+                                <button type="submit" class="btn btn-toggle">{{ 'Desactivar' if c.is_active else 'Activar' }}</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="empty-msg">No hay cupones creados aún.</p>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            <h2>Solicitudes de código recientes ({{ leads|length }})</h2>
+            {% if leads %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>IP</th>
+                        <th>Fecha</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for l in leads %}
+                    <tr>
+                        <td>{{ l.name }}</td>
+                        <td>{{ l.email }}</td>
+                        <td style="color:#aaa;font-size:11px;">{{ l.ip_address or '—' }}</td>
+                        <td style="color:#aaa;font-size:11px;">{{ l.created_at.strftime('%d/%m/%y %H:%M') if l.created_at else '—' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="empty-msg">Nadie ha solicitado un código aún.</p>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            <h2>Usos recientes ({{ usages|length }})</h2>
+            {% if usages %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Email comprador</th>
+                        <th>Descuento aplicado</th>
+                        <th>Order PayPal</th>
+                        <th>Fecha</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in usages %}
+                    <tr>
+                        <td><span class="code-pill">{{ u.coupon_code }}</span></td>
+                        <td>{{ u.buyer_email or '—' }}</td>
+                        <td>{{ u.discount_pct or 0 }}%</td>
+                        <td style="font-size:11px;color:#aaa;">{{ u.paypal_order_id or '—' }}</td>
+                        <td style="color:#aaa;font-size:11px;">{{ u.created_at.strftime('%d/%m/%y %H:%M') if u.created_at else '—' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="empty-msg">Ningún cupón usado aún.</p>
+            {% endif %}
+        </div>
+
+    </div>
+</body>
+</html>
