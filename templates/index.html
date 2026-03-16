@@ -498,6 +498,15 @@
                 <span class="text-gray-700 text-xs font-medium">{% if lang == 'es' %}Desde $7{% else %}From $7{% endif %}</span>
             </div>
         </div>
+
+        <div class="mt-5 fade-in-up fade-delay-4" style="text-align:center;">
+            <div style="display:inline-block;background:linear-gradient(135deg,#7B52B0,#9B72CC);border-radius:16px;padding:12px 24px;box-shadow:0 4px 20px rgba(123,82,176,0.3);">
+                <p style="font-family:'Quicksand',sans-serif;font-size:11px;font-weight:700;color:#FFD700;letter-spacing:0.08em;margin:0 0 2px;">✨ {% if lang == 'es' %}OFERTA DE LANZAMIENTO{% else %}LAUNCH OFFER{% endif %} ✨</p>
+                <p style="font-family:'Quicksand',sans-serif;font-size:15px;font-weight:800;color:#fff;margin:0 0 4px;">{% if lang == 'es' %}20% OFF en tu primer cuento{% else %}20% OFF your first magical story{% endif %}</p>
+                <p style="font-family:'Quicksand',sans-serif;font-size:12px;color:#E9D5FF;margin:0;">{% if lang == 'es' %}Usa el código {% else %}Use code {% endif %}<span style="background:#FFD700;color:#3B1A6B;font-weight:900;padding:1px 8px;border-radius:6px;font-size:13px;">MAGIC20</span></p>
+            </div>
+        </div>
+
     </div>
 </section>
 
@@ -1147,6 +1156,35 @@
 })();
 </script>
 
+<section id="guarantee-strip" class="py-8 px-4" style="background:#FDF8FF;border-top:1px solid #EDE0F5;border-bottom:1px solid #EDE0F5;">
+    <div class="max-w-4xl mx-auto">
+        <p class="text-center font-bold text-purple-700 mb-4" style="font-family:'Playfair Display',serif;font-size:1.1rem;">{% if lang == 'es' %}Tu satisfacción está garantizada{% else %}Your satisfaction is guaranteed{% endif %} ✨</p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="flex items-start gap-3 bg-white rounded-xl p-4 shadow-sm border border-purple-100">
+                <span style="font-size:1.6rem;flex-shrink:0;">👁️</span>
+                <div>
+                    <p class="font-bold text-purple-800 text-sm" style="font-family:'Quicksand',sans-serif;">{% if lang == 'es' %}Preview antes de pagar{% else %}Preview before you pay{% endif %}</p>
+                    <p class="text-gray-500 text-xs mt-1" style="font-family:'Quicksand',sans-serif;">{% if lang == 'es' %}Ves el personaje de tu hijo antes de comprar. Sin sorpresas.{% else %}See your child's character before buying. No surprises.{% endif %}</p>
+                </div>
+            </div>
+            <div class="flex items-start gap-3 bg-white rounded-xl p-4 shadow-sm border border-purple-100">
+                <span style="font-size:1.6rem;flex-shrink:0;">🔄</span>
+                <div>
+                    <p class="font-bold text-purple-800 text-sm" style="font-family:'Quicksand',sans-serif;">{% if lang == 'es' %}Regenera cualquier escena{% else %}Regenerate any scene{% endif %}</p>
+                    <p class="text-gray-500 text-xs mt-1" style="font-family:'Quicksand',sans-serif;">{% if lang == 'es' %}¿No te convence alguna ilustración? La regeneramos al instante.{% else %}Not happy with an illustration? Regenerate it instantly.{% endif %}</p>
+                </div>
+            </div>
+            <div class="flex items-start gap-3 bg-white rounded-xl p-4 shadow-sm border border-purple-100">
+                <span style="font-size:1.6rem;flex-shrink:0;">✏️</span>
+                <div>
+                    <p class="font-bold text-purple-800 text-sm" style="font-family:'Quicksand',sans-serif;">{% if lang == 'es' %}Ajusta antes del checkout{% else %}Adjust before checkout{% endif %}</p>
+                    <p class="text-gray-500 text-xs mt-1" style="font-family:'Quicksand',sans-serif;">{% if lang == 'es' %}Confirma que todo está perfecto. Solo entonces pagas.{% else %}Confirm everything is perfect. Then and only then you pay.{% endif %}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 <section id="products" class="py-16 md:py-20 px-4 bg-gradient-to-br from-purple-50 via-pink-50 to-amber-50">
     <div class="max-w-6xl mx-auto">
         <div class="text-center mb-12">
@@ -1288,7 +1326,7 @@
 
 <div style="text-align:center;margin:24px 0 16px;">
     <h2 style="font-family:'Playfair Display',serif;font-size:1.8rem;color:#B8860B;font-weight:700;margin-bottom:4px;">{% if lang == 'es' %}Historias que Enamoran{% else %}Stories That Inspire Love{% endif %}</h2>
-    <p style="font-family:'Quicksand',sans-serif;font-size:13px;color:#999;">{% if lang == 'es' %}Más de 500 cuentos mágicos creados{% else %}Over 500 magical stories created{% endif %} &#9733;</p>
+    <p style="font-family:'Quicksand',sans-serif;font-size:13px;color:#999;">{% if lang == 'es' %}Más de {{ stories_count }} cuentos mágicos creados{% else %}Over {{ stories_count }} magical stories created{% endif %} &#9733;</p>
 </div>
 <div style="overflow:hidden;width:100%;padding:8px 0 20px;">
     <div class="testimonial-marquee">
