@@ -497,7 +497,15 @@ def set_language(lang):
 def index():
     demo_visor_url = _get_demo_visor_url()
     demo_visor_url_b = _get_demo_visor_url_b()
-    return render_template('index.html', demo_visor_url=demo_visor_url, demo_visor_url_b=demo_visor_url_b)
+    try:
+        from models import Order, RealStoryOrder
+        paid_orders = db.session.query(Order).filter(Order.amount_paid > 0).count()
+        paid_real = db.session.query(RealStoryOrder).filter(RealStoryOrder.amount_paid > 0).count()
+        stories_count = 400 + paid_orders + paid_real
+        stories_display = f"{stories_count}+"
+    except Exception:
+        stories_display = "500+"
+    return render_template('index.html', demo_visor_url=demo_visor_url, demo_visor_url_b=demo_visor_url_b, stories_count=stories_display)
 
 @app.route('/about')
 def about():
