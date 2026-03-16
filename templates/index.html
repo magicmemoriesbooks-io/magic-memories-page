@@ -389,6 +389,9 @@
                         <div id="couponSuccess" style="display:none;margin-top:8px;text-align:center;">
                             <p style="color:white;font-size:12px;margin:0;">{% if lang == 'es' %}✅ ¡Código enviado a tu email!{% else %}✅ Code sent to your email!{% endif %}</p>
                         </div>
+                        <div id="couponAlreadySent" style="display:none;margin-top:8px;text-align:center;">
+                            <p style="color:#FFE066;font-size:12px;margin:0;">{% if lang == 'es' %}⚠️ Este email ya recibió el código. ¡Revisa tu bandeja!{% else %}⚠️ This email already received the code. Check your inbox!{% endif %}</p>
+                        </div>
                     </div>
                 </div>
 
@@ -1005,7 +1008,11 @@ function submitCouponForm() {
     .then(function(r){ return r.json(); })
     .then(function(d){
         document.getElementById('couponForm').style.display = 'none';
-        document.getElementById('couponSuccess').style.display = 'block';
+        if (d.already_sent) {
+            document.getElementById('couponAlreadySent').style.display = 'block';
+        } else {
+            document.getElementById('couponSuccess').style.display = 'block';
+        }
     })
     .catch(function(){
         if (btn) { btn.disabled = false; btn.textContent = document.documentElement.lang === 'es' ? 'Enviar mi código ✉️' : 'Send my code ✉️'; }

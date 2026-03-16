@@ -2984,11 +2984,14 @@ def api_request_coupon():
     if not name or not email:
         return jsonify({'error': 'name and email required'}), 400
     try:
+        existing = CouponLead.query.filter_by(email=email).first()
+        if existing:
+            return jsonify({'success': True, 'already_sent': True})
         lead = CouponLead(name=name, email=email, ip_address=request.remote_addr)
         db.session.add(lead)
         db.session.commit()
         send_coupon_email(name=name, email=email, code='MAGIC20', discount_pct=20)
-        return jsonify({'success': True})
+        return jsonify({'success': True, 'already_sent': False})
     except Exception as e:
         print(f"[COUPON] request-coupon error: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
