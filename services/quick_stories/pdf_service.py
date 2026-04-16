@@ -1,5 +1,5 @@
 # Quick Stories PDF Generation
-# Digital PDFs + Lulu print PDFs for all quick stories
+# Digital PDFs + Cloudprinter print PDFs for all quick stories
 
 from io import BytesIO
 from PIL import Image
@@ -36,56 +36,61 @@ def generate_quick_story_pdf(story_data: dict, output_path: str = None) -> str:
     images = [img for img in images if img]
     
     if is_baby:
-        return create_baby_quick_story_pdf(story_data, images, output_path, format_type='digital', skip_sanitize=True)
+        return create_baby_quick_story_pdf(story_data, images, output_path, format_type='cloudprinter', skip_sanitize=True)
     else:
-        return create_kids_quick_story_pdf(story_data, images, output_path, format_type='digital', skip_sanitize=True)
+        return create_kids_quick_story_pdf(story_data, images, output_path, format_type='cloudprinter', skip_sanitize=True)
 
 
-def generate_quick_story_lulu_pdfs(story_data: dict, images: list, 
-                                    front_cover_path: str, back_cover_path: str,
-                                    interior_output: str, cover_output: str,
-                                    skip_sanitize: bool = False) -> tuple:
+def generate_quick_story_cloudprinter_pdf(
+    story_data: dict,
+    images: list,
+    front_cover_path: str,
+    output_path: str,
+    back_cover_path: str = None,
+    skip_sanitize: bool = False
+) -> str:
     """
-    Generate Lulu-ready PDFs for Quick Story saddle stitch printing.
-    8.5" x 8.5" (21.59cm) square format.
-    
-    Baby (0-2): Uses new full-page illustration layout with text overlay
-    Kids (3-8): Uses existing layout
-    
-    Returns: (interior_path, cover_path)
+    Generate a 16-page A4 portrait PDF for Cloudprinter saddle-stitch printing.
+    Product: magazine_sas_a4_p_fc — Trim 210×297mm + 3mm bleed each side.
+
+    The A4 functions produce the complete self-contained book:
+      p1 cover · p2 blank · p3 portadilla · p4 dedicatoria ·
+      p5-p11/12 story scenes · p13-p14 drawing pages · p15 blank · p16 back-cover
+
+    The cover_image in story_data drives p1 so front_cover_path is stored there.
+    back_cover_path (if provided) is injected into story_data for the generators.
+
+    Returns: path to the 16-page A4 PDF.
     """
+    import os
     from services.pdf_service import (
         create_baby_quick_story_pdf,
         create_kids_quick_story_pdf,
-        create_quick_story_lulu_cover,
-        QUICK_STORY_BACK_COVER
     )
-    
+
     age_range = story_data.get('age_range', '0-2')
     is_baby = age_range in ['0-1', '0-2']
-    
+
+    enriched = dict(story_data)
+    if front_cover_path and os.path.exists(front_cover_path):
+        enriched['cover_image'] = front_cover_path
+    if back_cover_path and os.path.exists(back_cover_path):
+        enriched['cp_back_cover_override'] = back_cover_path
+
     if is_baby:
-        interior_path = create_baby_quick_story_pdf(
-            story_data, images, interior_output, 
-            format_type='lulu', skip_sanitize=skip_sanitize
+        create_baby_quick_story_pdf(
+            enriched, images, output_path,
+            format_type='cloudprinter', skip_sanitize=skip_sanitize
         )
     else:
-        interior_path = create_kids_quick_story_pdf(
-            story_data, images, interior_output,
-            format_type='lulu', skip_sanitize=skip_sanitize
+        create_kids_quick_story_pdf(
+            enriched, images, output_path,
+            format_type='cloudprinter', skip_sanitize=skip_sanitize
         )
-    
-    if not back_cover_path:
-        back_cover_path = QUICK_STORY_BACK_COVER
-    
-    title = story_data.get('story_name', '')
-    author = story_data.get('author_name') or story_data.get('author', '')
-    cover_path = create_quick_story_lulu_cover(
-        front_cover_path, back_cover_path, cover_output, 
-        skip_sanitize=skip_sanitize, title=title, author=author
-    )
-    
-    return interior_path, cover_path
+
+    print(f"[CP-PDF] 16-page A4 PDF generated: {output_path}")
+    return output_path
+
 
 
 def get_quick_story_pdf_config(story_id: str) -> dict:
@@ -99,27 +104,27 @@ def get_quick_story_pdf_config(story_id: str) -> dict:
     if is_baby:
         return {
             'format': 'quick_story_baby',
-            'digital_size': '8.5x8.5in',
-            'lulu_size': '8.5x8.5in',
-            'lulu_binding': 'saddle_stitch',
-            'lulu_pod_package_id': '0850X0850FCPRESS080CW444GXX',
-            'total_pages': 12,
-            'interior_pages': 10,
+            'product_id': 'magazine_sas_a4_p_fc',
+            'print_size': '210x297mm',
+            'print_binding': 'saddle_stitch',
+            'print_provider': 'cloudprinter',
+            'total_pages': 16,
+            'interior_pages': 14,
             'content_scenes': 8,
             'fin_page': False,
-            'structure': 'cover, title_page, dedication, (illus+text)x8, back_cover',
+            'structure': 'cover, blank, portadilla, dedication, (illus+text)x8, drawing_page, drawing_page, blank, back_cover',
             'resolution': 300
         }
     
     return {
         'format': 'quick_story_kids',
-        'digital_size': '8.5x8.5in',
-        'lulu_size': '8.5x8.5in',
-        'lulu_binding': 'saddle_stitch',
-        'lulu_pod_package_id': '0850X0850FCPRESS080CW444GXX',
-        'total_pages': 12,
-        'interior_pages': 10,
+        'product_id': 'magazine_sas_a4_p_fc',
+        'print_size': '210x297mm',
+        'print_binding': 'saddle_stitch',
+        'print_provider': 'cloudprinter',
+        'total_pages': 16,
+        'interior_pages': 14,
         'content_scenes': 7,
-        'structure': 'cover, blank, dedication, (illus_with_split_text)x7, blank, back_cover',
+        'structure': 'cover, blank, portadilla, dedication, (illus_with_split_text)x7, closing, drawing_page, drawing_page, blank, back_cover',
         'resolution': 300
     }
