@@ -57,8 +57,15 @@
             {% if lang == 'es' %}Volver a Elegir Cuento{% else %}Back to Choose Story{% endif %}
         </a>
         {% else %}
-        <a href="{{ url_for('personalize_story', story=story_data.story_template or story_data.story_id, name=story_data.child_name, gender=story_data.traits.gender) }}" 
+        {% set _sid = story_data.story_template or story_data.story_id %}
+        {% set _furry_map = {'furry_love_illustrated': 'furry_love', 'furry_love_adventure_illustrated': 'furry_love_adventure', 'furry_love_teen_illustrated': 'furry_love_teen', 'furry_love_adult_illustrated': 'furry_love_adult'} %}
+        {% if _sid in _furry_map %}
+        <a href="/personalize-furry-love?story={{ _furry_map[_sid] }}&name={{ story_data.child_name }}"
            class="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 font-medium transition-colors">
+        {% else %}
+        <a href="{{ url_for('personalize_story', story=_sid, name=story_data.child_name, gender=story_data.get('traits', {}).get('gender', 'female')) }}"
+           class="inline-flex items-center gap-2 text-purple-600 hover:text-purple-800 font-medium transition-colors">
+        {% endif %}
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
             </svg>
@@ -186,14 +193,11 @@
             </button>
         </div>
         
-        <div id="dedicationView" class="bg-gradient-to-br from-purple-50/50 to-pink-50/50 rounded-xl p-6">
-            <div class="mb-4">
-                <p class="text-sm text-purple-600 font-semibold mb-2">{% if lang == 'es' %}Dedicatoria{% else %}Dedication{% endif %}</p>
-                <p class="text-lg italic" id="dedicationText">{{ story_data.dedication or (lang == 'es' and 'Sin dedicatoria' or 'No dedication') }}</p>
-            </div>
-            <div>
-                <p class="text-sm text-purple-600 font-semibold mb-2">{% if lang == 'es' %}Autor{% else %}Author{% endif %}</p>
-                <p class="text-lg" id="authorText">{{ story_data.author_name or story_data.author or (lang == 'es' and 'Anónimo' or 'Anonymous') }}</p>
+        <div id="dedicationView" style="display:flex;justify-content:center;padding:8px 0;">
+            <div style="background:#fdfdf5;border:2px solid #8B6914;border-radius:4px;width:100%;max-width:340px;min-height:220px;padding:28px 28px 24px;display:flex;flex-direction:column;align-items:center;gap:0;">
+                <p style="font-family:Verdana,Geneva,sans-serif;font-size:16px;font-weight:700;color:#8B6914;text-align:center;margin:0 0 20px;letter-spacing:1px;">{% if lang == 'es' %}Dedicatoria{% else %}Dedication{% endif %}</p>
+                <p id="dedicationText" style="font-family:Verdana,Geneva,sans-serif;font-size:13.5px;color:#5C3A1E;text-align:center;line-height:1.7;margin:0 0 18px;word-break:break-word;">{{ story_data.dedication or (lang == 'es' and '—' or '—') }}</p>
+                <p id="authorText" style="font-family:Verdana,Geneva,sans-serif;font-size:12px;color:#8B6914;text-align:center;margin:0;font-style:italic;">— {{ story_data.author_name or story_data.author or (lang == 'es' and 'Anónimo' or 'Anonymous') }}</p>
             </div>
         </div>
         
@@ -254,7 +258,7 @@
             <p class="text-gray-600 text-sm mt-1">Sin cobro - Generación gratuita para regalo/colaboración</p>
         </div>
         <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Email para enviar los PDFs de Lulu:</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Email para enviar los PDFs de impresión:</label>
             <input type="email" id="adminGiftEmail" placeholder="tu@email.com" class="w-full px-4 py-3 border-2 border-purple-200 rounded-xl focus:outline-none focus:border-purple-500 text-center" required>
         </div>
         <button onclick="generateFree()" id="generateFreeBtn" class="w-full py-4 text-white font-bold rounded-xl text-lg transition-all transform hover:scale-[1.02] shadow-lg flex items-center justify-center gap-2" style="background: linear-gradient(135deg, #8B5CF6, #EC4899);">
@@ -266,24 +270,23 @@
     <div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
         <div class="text-center mb-6">
             {% if story_data.is_illustrated_book %}
-            <div class="text-4xl font-bold text-emerald-700 mb-2">$30 USD</div>
-            <p class="text-gray-600 text-sm">{% if lang == 'es' %}+ costo de impresión y envío{% else %}+ printing and shipping cost{% endif %}</p>
-            <p class="text-gray-500 text-xs mt-1">{% if lang == 'es' %}PDF Digital + Libro Impreso Tapa Dura A4{% else %}Digital PDF + A4 Hardcover Printed Book{% endif %}</p>
+            <div class="text-3xl font-bold text-purple-700 mb-2">{% if lang == 'es' %}Desde{% else %}From{% endif %} $9 USD</div>
+            <p class="text-gray-600 text-sm">{% if lang == 'es' %}eBook $9 | PDF $24 | Tapa Dura $26 + envío{% else %}eBook $9 | PDF $24 | Hardcover $26 + shipping{% endif %}</p>
             {% elif is_baby %}
-            <div class="text-3xl font-bold text-purple-700 mb-2">{% if lang == 'es' %}Desde{% else %}From{% endif %} $7 USD</div>
-            <p class="text-gray-600 text-sm">{% if lang == 'es' %}eBook $7 | Impreso + Envío desde $20{% else %}eBook $7 | Printed + Shipping from $20{% endif %}</p>
+            <div class="text-3xl font-bold text-purple-700 mb-2">{% if lang == 'es' %}Desde{% else %}From{% endif %} $6 USD</div>
+            <p class="text-gray-600 text-sm">{% if lang == 'es' %}eBook $6 | Impreso + Envío desde $15{% else %}eBook $6 | Printed + Shipping from $15{% endif %}</p>
             {% else %}
-            <div class="text-3xl font-bold text-purple-700 mb-2">{% if lang == 'es' %}Desde{% else %}From{% endif %} $7 USD</div>
-            <p class="text-gray-600 text-sm">{% if lang == 'es' %}eBook $7 | Impreso + Envío desde $20{% else %}eBook $7 | Printed + Shipping from $20{% endif %}</p>
+            <div class="text-3xl font-bold text-purple-700 mb-2">{% if lang == 'es' %}Desde{% else %}From{% endif %} $6 USD</div>
+            <p class="text-gray-600 text-sm">{% if lang == 'es' %}eBook $6 | Impreso + Envío desde $15{% else %}eBook $6 | Printed + Shipping from $15{% endif %}</p>
             {% endif %}
         </div>
         
         <div class="bg-purple-50 rounded-lg p-4 mb-6 text-sm text-gray-700">
             {% if story_data.is_illustrated_book %}
-            <p class="flex items-center gap-2 mb-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}24 páginas ilustradas{% else %}24 illustrated pages{% endif %}</p>
-            <p class="flex items-center gap-2 mb-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}PDF digital de alta calidad{% else %}High-quality digital PDF{% endif %}</p>
-            <p class="flex items-center gap-2 mb-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}Libro impreso tapa dura A4{% else %}A4 hardcover printed book{% endif %}</p>
-            <p class="flex items-center gap-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}Envío incluido{% else %}Shipping included{% endif %}</p>
+            <p class="flex items-center gap-2 mb-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}26 páginas ilustradas{% else %}26 illustrated pages{% endif %}</p>
+            <p class="flex items-center gap-2 mb-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}Tu foto integrada en cada ilustración{% else %}Your photo in every illustration{% endif %}</p>
+            <p class="flex items-center gap-2 mb-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}eBook digital o libro tapa dura A4{% else %}Digital eBook or A4 hardcover book{% endif %}</p>
+            <p class="flex items-center gap-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}Envío calculado en el siguiente paso{% else %}Shipping calculated at next step{% endif %}</p>
             {% elif is_baby %}
             {% set num_illustrations = story_data.pages|length if story_data.pages else 6 %}
             <p class="flex items-center gap-2 mb-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}{{ num_illustrations }} ilustraciones únicas generadas por IA{% else %}{{ num_illustrations }} unique AI-generated illustrations{% endif %}</p>
@@ -291,7 +294,8 @@
             <p class="flex items-center gap-2 mb-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}Entrega inmediata por email{% else %}Immediate delivery by email{% endif %}</p>
             <p class="flex items-center gap-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}Opción de libro impreso con envío{% else %}Printed book with shipping option{% endif %}</p>
             {% else %}
-            <p class="flex items-center gap-2 mb-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}6 ilustraciones únicas generadas por IA{% else %}6 unique AI-generated illustrations{% endif %}</p>
+            {% set num_ilus = story_data.pages|length if story_data.pages else 16 %}
+            <p class="flex items-center gap-2 mb-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}{{ num_ilus }} páginas con ilustraciones únicas generadas por IA{% else %}{{ num_ilus }} pages with unique AI-generated illustrations{% endif %}</p>
             <p class="flex items-center gap-2 mb-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}PDF digital de alta calidad{% else %}High-quality digital PDF{% endif %}</p>
             <p class="flex items-center gap-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}Entrega inmediata por email{% else %}Immediate delivery by email{% endif %}</p>
             {% endif %}
@@ -333,8 +337,8 @@ function saveDedication() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            document.getElementById('dedicationText').textContent = dedication || '{% if lang == "es" %}Sin dedicatoria{% else %}No dedication{% endif %}';
-            document.getElementById('authorText').textContent = author || '{% if lang == "es" %}Anónimo{% else %}Anonymous{% endif %}';
+            document.getElementById('dedicationText').textContent = dedication || '—';
+            document.getElementById('authorText').textContent = '— ' + (author || '{% if lang == "es" %}Anónimo{% else %}Anonymous{% endif %}');
             toggleEditDedication();
         }
     });
@@ -422,11 +426,20 @@ async function regenerateCover(previewId) {
 (function() {
     const bar = document.getElementById('reviewWarningStickyBar');
     const spacer = document.getElementById('reviewWarningSpacer');
-    if (bar && spacer) {
-        spacer.style.height = bar.offsetHeight + 'px';
-        window.addEventListener('resize', function() {
-            spacer.style.height = bar.offsetHeight + 'px';
-        });
+    function updatePosition() {
+        if (!bar) return;
+        var navbar = document.getElementById('sticky-header');
+        var navH = navbar ? navbar.offsetHeight : 0;
+        bar.style.top = navH + 'px';
+        bar.style.zIndex = '110';
+        if (spacer) spacer.style.height = bar.offsetHeight + 'px';
+    }
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    var navbar = document.getElementById('sticky-header');
+    if (navbar) {
+        var navObs = new MutationObserver(updatePosition);
+        navObs.observe(navbar, { childList: true, subtree: true, attributes: true });
     }
 })();
 </script>
