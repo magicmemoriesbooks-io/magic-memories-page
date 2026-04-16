@@ -1,0 +1,402 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'es' %}Mi Carrito{% else %}My Cart{% endif %} - {{ translations.site_title }}{% endblock %}
+
+{% block content %}
+<section class="py-8 px-4 max-w-3xl mx-auto">
+
+    <div class="mb-6 text-center">
+        <h1 class="font-display text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent mb-2">
+            🛒 {% if lang == 'es' %}Tu Carrito{% else %}Your Cart{% endif %}
+        </h1>
+        <p class="text-gray-500 text-sm">
+            {% if lang == 'es' %}Revisa tus libros y completa el pago{% else %}Review your books and complete payment{% endif %}
+        </p>
+    </div>
+
+    {% if not cart_items %}
+    <div class="bg-white rounded-2xl shadow-lg p-12 text-center border border-gray-100 mb-6">
+        <div class="text-7xl mb-4">🛒</div>
+        <h2 class="font-display text-xl font-bold text-gray-700 mb-2">
+            {% if lang == 'es' %}Tu carrito está vacío{% else %}Your cart is empty{% endif %}
+        </h2>
+        <p class="text-gray-500 mb-6">
+            {% if lang == 'es' %}Añade algunos cuentos mágicos para empezar{% else %}Add some magical stories to get started{% endif %}
+        </p>
+        <a href="{{ url_for('index') }}"
+           class="inline-block py-3 px-8 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl hover:opacity-90 transition-opacity no-underline">
+            {% if lang == 'es' %}Ver catálogo{% else %}Browse catalog{% endif %}
+        </a>
+    </div>
+    {% else %}
+
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        <h2 class="font-display text-lg font-bold text-gray-800 mb-4">
+            {% if lang == 'es' %}Libros en tu carrito{% else %}Books in your cart{% endif %}
+            <span class="ml-2 text-sm font-normal text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">{{ summary.item_count }}</span>
+        </h2>
+
+        <div id="cartItemsList" class="space-y-3 divide-y divide-gray-100">
+            {% for item in cart_items %}
+            <div class="pt-3 first:pt-0 flex gap-4 items-start" id="cart-item-{{ item.id }}">
+                <div class="w-16 h-20 rounded-lg overflow-hidden bg-purple-100 flex-shrink-0">
+                    {% if item.cover_image %}
+                    <img src="{{ item.cover_image if (item.cover_image and item.cover_image[:1] == '/') else '/' ~ item.cover_image }}"
+                         alt="{{ item.story_name }}" class="w-full h-full object-cover">
+                    {% else %}
+                    <div class="w-full h-full flex items-center justify-center text-2xl">📚</div>
+                    {% endif %}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="font-bold text-gray-800 truncate">{{ item.story_name or '—' }}</p>
+                    <p class="text-sm text-gray-500">
+                        {% if lang == 'es' %}Para{% else %}For{% endif %} {{ item.child_name or '—' }}
+                    </p>
+                    <p class="text-xs mt-1">
+                        {% if item.product_type == 'personalized_pdf' %}
+                        <span class="text-green-600 font-medium">🖨️ {% if lang == 'es' %}PDF Imprimible{% else %}Printable PDF{% endif %}</span>
+                        {% elif item.product_type == 'gelato_personalized' %}
+                        <span class="text-amber-600 font-medium">📖 {% if lang == 'es' %}Libro Impreso (Gelato){% else %}Printed Book (Gelato){% endif %}</span>
+                        {% elif item.product_type == 'qs_digital' %}
+                        <span class="text-purple-600 font-medium">💻 {% if lang == 'es' %}PDF Digital{% else %}Digital PDF{% endif %}</span>
+                        {% elif item.product_type == 'qs_print' %}
+                        <span class="text-amber-600 font-medium">📦 {% if lang == 'es' %}Impreso{% else %}Printed{% endif %}</span>
+                        {% elif item.product_type == 'universo_ebook' %}
+                        <span class="text-blue-600 font-medium">📱 eBook</span>
+                        {% else %}
+                        <span class="text-gray-500">{{ item.product_type }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="text-right flex-shrink-0">
+                    <p class="font-bold text-gray-800">${{ "%.2f"|format(item.price) }}</p>
+                    <button onclick="removeFromCart('{{ item.id }}')"
+                            class="mt-1 text-xs text-red-400 hover:text-red-600 transition-colors">
+                        {% if lang == 'es' %}Eliminar{% else %}Remove{% endif %}
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        <h2 class="font-display text-lg font-bold text-gray-800 mb-4">
+            {% if lang == 'es' %}País de destino{% else %}Destination country{% endif %}
+        </h2>
+        <select id="cartCountry" onchange="updateCartSummary(this.value)"
+                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+            <option value="">{% if lang == 'es' %}Selecciona tu país{% else %}Select your country{% endif %}</option>
+            {% for code, name_es, name_en in countries %}
+            <option value="{{ code }}" {% if code == summary.country_code %}selected{% endif %}>
+                {% if lang == 'es' %}{{ name_es }}{% else %}{{ name_en }}{% endif %}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div id="upsellBanner" class="{% if not summary.upsell_show %}hidden{% endif %} bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-400 rounded-2xl p-5 mb-6">
+        <div class="flex gap-3">
+            <span class="text-3xl">🎁</span>
+            <div class="flex-1">
+                <p class="font-bold text-amber-800 text-lg">
+                    {% if lang == 'es' %}¡Te falta 1 libro para envío GRATIS!{% else %}Just 1 more book for FREE shipping!{% endif %}
+                </p>
+                <p class="text-amber-700 text-sm mt-1">
+                    {% if lang == 'es' %}¿Quién más merece su libro mágico personalizado?{% else %}Who else deserves their own magical personalized book?{% endif %}
+                </p>
+                <div class="flex flex-wrap gap-2 mt-3">
+                    <a href="{{ url_for('story_selection') }}"
+                       class="inline-block py-2 px-4 bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm rounded-lg no-underline transition-colors">
+                        📖 Quick Stories
+                    </a>
+                    <a href="{{ url_for('index') }}#universos"
+                       class="inline-block py-2 px-4 bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm rounded-lg no-underline transition-colors">
+                        ✨ Universos
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100" id="accessoriesSection">
+        <h2 class="font-display text-lg font-bold text-gray-800 mb-3">
+            {% if lang == 'es' %}Accesorios personalizados{% else %}Personalized accessories{% endif %}
+            <span class="ml-2 text-xs font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                {% if lang == 'es' %}Próximamente{% else %}Coming soon{% endif %}
+            </span>
+        </h2>
+        <div class="grid grid-cols-3 gap-3 opacity-50 pointer-events-none">
+            <div class="text-center p-3 border border-dashed border-gray-300 rounded-xl">
+                <div class="text-3xl mb-1">☕</div>
+                <p class="text-xs font-medium text-gray-600">{% if lang == 'es' %}Taza{% else %}Mug{% endif %}</p>
+                <p class="text-xs text-gray-400">$5</p>
+            </div>
+            <div class="text-center p-3 border border-dashed border-gray-300 rounded-xl">
+                <div class="text-3xl mb-1">👕</div>
+                <p class="text-xs font-medium text-gray-600">{% if lang == 'es' %}Camiseta{% else %}T-Shirt{% endif %}</p>
+                <p class="text-xs text-gray-400">$12</p>
+            </div>
+            <div class="text-center p-3 border border-dashed border-gray-300 rounded-xl">
+                <div class="text-3xl mb-1">🧑‍🍳</div>
+                <p class="text-xs font-medium text-gray-600">{% if lang == 'es' %}Delantal{% else %}Apron{% endif %}</p>
+                <p class="text-xs text-gray-400">$9</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100" id="priceSummaryCard">
+        <h2 class="font-display text-lg font-bold text-gray-800 mb-4">
+            {% if lang == 'es' %}Resumen del Pedido{% else %}Order Summary{% endif %}
+        </h2>
+        <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+                <span class="text-gray-600">{% if lang == 'es' %}Subtotal libros:{% else %}Books subtotal:{% endif %}</span>
+                <span class="font-semibold text-gray-800" id="summarySubtotal">${{ "%.2f"|format(summary.subtotal) }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-600">{% if lang == 'es' %}Impresión + envío:{% else %}Printing + shipping:{% endif %}</span>
+                <span class="font-semibold" id="summaryShipping">
+                    {% if summary.has_physical %}
+                        {% if summary.free_shipping %}
+                        <span class="text-green-600">GRATIS 🎉</span>
+                        {% elif summary.country_code %}
+                        ${{ "%.2f"|format(summary.shipping) }}
+                        {% else %}
+                        {% if lang == 'es' %}Pendiente{% else %}Pending{% endif %}
+                        {% endif %}
+                    {% else %}
+                    —
+                    {% endif %}
+                </span>
+            </div>
+            {% if summary.free_shipping %}
+            <div class="text-xs text-green-600 font-medium text-right">
+                🎁 {% if lang == 'es' %}¡Envío gratis por comprar 2+ libros físicos!{% else %}Free shipping for 2+ physical books!{% endif %}
+            </div>
+            {% endif %}
+        </div>
+        <div class="mt-3 pt-3 border-t border-gray-200 flex justify-between items-center">
+            <span class="font-bold text-gray-800 text-lg">{% if lang == 'es' %}Total:{% else %}Total:{% endif %}</span>
+            <span class="font-bold text-2xl text-purple-700" id="summaryTotal">${{ "%.2f"|format(summary.total) }} USD</span>
+        </div>
+    </div>
+
+    {% if summary.has_physical %}
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-orange-100" id="cartShippingSection">
+        <h2 class="font-display text-lg font-bold text-gray-800 mb-3">
+            📦 {% if lang == 'es' %}Dirección de envío{% else %}Shipping address{% endif %}
+            <span class="text-red-500 text-sm">*</span>
+        </h2>
+        <div class="grid grid-cols-1 gap-3 text-sm">
+            <input type="text" id="shippingName" placeholder="{% if lang == 'es' %}Nombre completo{% else %}Full name{% endif %}"
+                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+            <input type="text" id="shippingStreet" placeholder="{% if lang == 'es' %}Dirección (calle y número){% else %}Address (street and number){% endif %}"
+                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+            <div class="grid grid-cols-2 gap-3">
+                <input type="text" id="shippingCity" placeholder="{% if lang == 'es' %}Ciudad{% else %}City{% endif %}"
+                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                <input type="text" id="shippingPostal" placeholder="{% if lang == 'es' %}Código postal{% else %}Postal code{% endif %}"
+                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+            </div>
+            <input type="text" id="shippingPhone" placeholder="{% if lang == 'es' %}Teléfono (opcional){% else %}Phone (optional){% endif %}"
+                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100" id="cartPaymentSection">
+        <h2 class="font-display text-lg font-bold text-gray-800 mb-3">
+            {% if lang == 'es' %}Completar el Pago{% else %}Complete Payment{% endif %}
+        </h2>
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+                {% if lang == 'es' %}Tu email{% else %}Your email{% endif %} <span class="text-red-500">*</span>
+            </label>
+            <input type="email" id="cartEmail" placeholder="{% if lang == 'es' %}Para recibir tus libros{% else %}To receive your books{% endif %}"
+                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+        </div>
+        <p class="text-xs text-gray-500 text-center mb-3">
+            {% if lang == 'es' %}Paga con tu cuenta PayPal o con tarjeta de crédito/débito{% else %}Pay with your PayPal account or credit/debit card{% endif %}
+        </p>
+        <div id="cart-paypal-container" class="min-h-[50px]"></div>
+        <p class="text-xs text-red-500 mt-2 hidden text-center" id="cartPaypalError"></p>
+    </div>
+
+    {% endif %}
+</section>
+
+<div id="cartToast" class="hidden fixed bottom-6 right-6 z-50 bg-green-600 text-white font-semibold py-3 px-6 rounded-xl shadow-xl text-sm transition-all">
+    ✓ <span id="cartToastMsg">{% if lang == 'es' %}Eliminado del carrito{% else %}Removed from cart{% endif %}</span>
+</div>
+
+<div id="cartLoadingOverlay" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-8 max-w-md mx-4 text-center">
+        <div class="animate-spin w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full mx-auto mb-4"></div>
+        <h3 class="font-display text-xl font-bold text-gray-800 mb-2">{% if lang == 'es' %}Procesando tu Pedido{% else %}Processing Your Order{% endif %}</h3>
+        <p class="text-gray-500 text-sm">{% if lang == 'es' %}Por favor espera...{% else %}Please wait...{% endif %}</p>
+    </div>
+</div>
+
+<script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=USD&intent=capture" data-namespace="paypal_sdk"></script>
+<script>
+const CART_LANG = '{{ lang }}';
+const CART_TOTAL = {{ summary.total | default(0) }};
+const CART_HAS_ITEMS = {{ 'true' if cart_items else 'false' }};
+const CART_HAS_PHYSICAL = {{ 'true' if summary.has_physical else 'false' }};
+
+function showCartToast(msg, isError) {
+    const el = document.getElementById('cartToast');
+    const msgEl = document.getElementById('cartToastMsg');
+    if (msgEl) msgEl.textContent = msg;
+    el.classList.remove('hidden', 'bg-green-600', 'bg-red-600');
+    el.classList.add(isError ? 'bg-red-600' : 'bg-green-600');
+    el.classList.remove('hidden');
+    setTimeout(() => el.classList.add('hidden'), 3000);
+}
+
+function removeFromCart(itemId) {
+    fetch(`/api/cart/remove/${itemId}`, {method: 'DELETE'})
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const el = document.getElementById(`cart-item-${itemId}`);
+                if (el) el.remove();
+                updateCartBadge(data.item_count);
+                showCartToast(CART_LANG === 'es' ? 'Eliminado del carrito' : 'Removed from cart');
+                if (data.item_count === 0) location.reload();
+                else updateCartSummary(document.getElementById('cartCountry')?.value || '');
+            }
+        })
+        .catch(() => showCartToast(CART_LANG === 'es' ? 'Error al eliminar' : 'Error removing', true));
+}
+
+function updateCartBadge(count) {
+    const badge = document.getElementById('cartBadge');
+    if (!badge) return;
+    if (count > 0) {
+        badge.textContent = count;
+        badge.classList.remove('hidden');
+    } else {
+        badge.classList.add('hidden');
+    }
+}
+
+function updateCartSummary(countryCode) {
+    fetch(`/api/cart/summary?country=${encodeURIComponent(countryCode)}`)
+        .then(r => r.json())
+        .then(data => {
+            const sub = document.getElementById('summarySubtotal');
+            const ship = document.getElementById('summaryShipping');
+            const tot = document.getElementById('summaryTotal');
+            const upsell = document.getElementById('upsellBanner');
+            if (sub) sub.textContent = '$' + data.subtotal.toFixed(2);
+            if (tot) tot.textContent = '$' + data.total.toFixed(2) + ' USD';
+            if (ship) {
+                if (!data.has_physical) {
+                    ship.textContent = '—';
+                } else if (data.free_shipping) {
+                    ship.innerHTML = '<span class="text-green-600">GRATIS 🎉</span>';
+                } else if (!countryCode) {
+                    ship.textContent = CART_LANG === 'es' ? 'Pendiente' : 'Pending';
+                } else {
+                    ship.textContent = '$' + data.shipping.toFixed(2);
+                }
+            }
+            if (upsell) {
+                if (data.upsell_show) upsell.classList.remove('hidden');
+                else upsell.classList.add('hidden');
+            }
+            currentCartTotal = data.total;
+        });
+}
+
+let currentCartTotal = CART_TOTAL;
+
+if (CART_HAS_ITEMS) {
+    paypal_sdk.Buttons({
+        style: {layout: 'vertical', color: 'gold', shape: 'rect', label: 'pay'},
+        createOrder: function() {
+            const email = document.getElementById('cartEmail')?.value?.trim();
+            const errEl = document.getElementById('cartPaypalError');
+            if (!email || !email.includes('@')) {
+                if (errEl) { errEl.textContent = CART_LANG === 'es' ? 'Por favor ingresa tu email' : 'Please enter your email'; errEl.classList.remove('hidden'); }
+                return Promise.reject(new Error('Email required'));
+            }
+            const cartCountryCreate = document.getElementById('cartCountry')?.value || '';
+            if (CART_HAS_PHYSICAL) {
+                if (!cartCountryCreate) {
+                    if (errEl) { errEl.textContent = CART_LANG === 'es' ? 'Selecciona tu país de envío' : 'Please select your shipping country'; errEl.classList.remove('hidden'); }
+                    return Promise.reject(new Error('Country required'));
+                }
+                const street = document.getElementById('shippingStreet')?.value?.trim() || '';
+                const city = document.getElementById('shippingCity')?.value?.trim() || '';
+                const postal = document.getElementById('shippingPostal')?.value?.trim() || '';
+                const sName = document.getElementById('shippingName')?.value?.trim() || '';
+                if (!sName || !street || !city || !postal) {
+                    const msg = CART_LANG === 'es' ? 'Completa la dirección de envío (nombre, calle, ciudad, código postal)' : 'Please complete the shipping address (name, street, city, postal code)';
+                    if (errEl) { errEl.textContent = msg; errEl.classList.remove('hidden'); }
+                    return Promise.reject(new Error('Shipping address required'));
+                }
+            }
+            if (errEl) errEl.classList.add('hidden');
+            return fetch('/api/paypal/create-order', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    source: 'cart',
+                    country_code: cartCountryCreate
+                })
+            }).then(r => r.json()).then(d => {
+                if (d.error) throw new Error(d.error);
+                return d.id;
+            });
+        },
+        onApprove: function(data) {
+            document.getElementById('cartLoadingOverlay')?.classList.remove('hidden');
+            const email = document.getElementById('cartEmail')?.value?.trim();
+            const country = document.getElementById('cartCountry')?.value || '';
+            const shippingName = document.getElementById('shippingName')?.value?.trim() || '';
+            const shippingStreet = document.getElementById('shippingStreet')?.value?.trim() || '';
+            const shippingCity = document.getElementById('shippingCity')?.value?.trim() || '';
+            const shippingPostal = document.getElementById('shippingPostal')?.value?.trim() || '';
+            const shippingPhone = document.getElementById('shippingPhone')?.value?.trim() || '';
+            const shippingAddress = (shippingStreet) ? {
+                name: shippingName,
+                address_line_1: shippingStreet,
+                city: shippingCity,
+                postal_code: shippingPostal,
+                country_code: country,
+                phone: shippingPhone
+            } : null;
+            return fetch('/api/paypal/capture-order', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    orderID: data.orderID,
+                    buyer_email: email,
+                    source: 'cart',
+                    country_code: country,
+                    shipping_address: shippingAddress
+                })
+            }).then(r => r.json()).then(result => {
+                document.getElementById('cartLoadingOverlay')?.classList.add('hidden');
+                if (result.success || result.status === 'COMPLETED') {
+                    window.location.href = result.redirect_url || '/cart/success';
+                } else {
+                    throw new Error(result.error || 'Payment failed');
+                }
+            }).catch(err => {
+                document.getElementById('cartLoadingOverlay')?.classList.add('hidden');
+                const errEl = document.getElementById('cartPaypalError');
+                if (errEl) { errEl.textContent = err.message; errEl.classList.remove('hidden'); }
+            });
+        },
+        onError: function(err) {
+            const errEl = document.getElementById('cartPaypalError');
+            if (errEl) { errEl.textContent = err.message || (CART_LANG === 'es' ? 'Error en el pago' : 'Payment error'); errEl.classList.remove('hidden'); }
+        }
+    }).render('#cart-paypal-container');
+}
+</script>
+{% endblock %}
