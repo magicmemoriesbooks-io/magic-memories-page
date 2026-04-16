@@ -4,16 +4,22 @@ Uses FLUX 2 Pro for previews and base character, FLUX 2 Pro for scene illustrati
 Updated: All previews now use FLUX 2 Pro for better quality and consistency.
 """
 import os
+import httpx
 import replicate
 import requests
 import time
 import hashlib
 
-# Configurar el token explícitamente al importar el módulo
+# Configurar el token y timeout explícitamente al importar el módulo
 _replicate_token = os.environ.get("REPLICATE_API_TOKEN", "")
+_replicate_timeout = httpx.Timeout(connect=30.0, read=300.0, write=120.0, pool=30.0)
 if _replicate_token:
-    replicate.Client.api_token = _replicate_token
-    replicate.default_client = replicate.Client(api_token=_replicate_token)
+    replicate.default_client = replicate.Client(
+        api_token=_replicate_token,
+        timeout=_replicate_timeout,
+    )
+else:
+    replicate.default_client = replicate.Client(timeout=_replicate_timeout)
 
 FLUX_DEV_MODEL = "black-forest-labs/flux-dev:6e4a938f85952bdabcc15aa329178c4d681c52bf25a0342403287dc26944661d"
 FLUX_2_DEV_MODEL = "black-forest-labs/flux-2-dev:7bba46bdde863cfd7aaee87649a5aa49f39f368495dbea500998d1fcbb262050"
@@ -65,7 +71,7 @@ def get_unified_skin_description(skin_tone: str) -> str:
 
 def get_gender_negative_prompt(gender: str) -> str:
     """Get gender-specific negative prompts to avoid inappropriate attributes."""
-    base_negative = "text, watermark, signature, logo, letters, words, ugly, deformed, blurry, low quality, distorted face, tail, animal tail, dragon tail, cat tail, bunny tail, wings on child, animal features, furry, animal ears, cat ears, bunny ears, extra limbs, hybrid creature"
+    base_negative = "text, watermark, signature, logo, letters, words, ugly, deformed, blurry, low quality, distorted face, tail, animal tail, fox tail, dragon tail, cat tail, bunny tail, wolf tail, fluffy tail, wings on child, animal features on human, furry child, animal ears, cat ears, bunny ears, fox ears, extra limbs, hybrid creature, animal body parts on human"
     if gender == 'male':
         return f"{base_negative}, earrings, jewelry, bows, ribbons, makeup, lipstick, feminine accessories, girl features, ponytails, pigtails"
     elif gender == 'female':
@@ -148,7 +154,7 @@ def generate_base_character(traits: dict, output_dir: str, gender: str = "neutra
                 from services.fixed_stories import adapt_baby_pose_for_age
                 portrait_prompt = adapt_baby_pose_for_age(portrait_prompt, child_age)
             if hair_length == 'very_little' and 'STRICT:' in portrait_prompt:
-                portrait_prompt = portrait_prompt.replace('STRICT:', 'STRICT: Baby head is completely smooth and bald-looking with only thin peach fuzz on bare scalp, head shape fully visible and round,')
+                portrait_prompt = portrait_prompt.replace('STRICT:', 'STRICT: Baby head is completely bald, smooth round scalp,')
             print(f"Using preview_prompt_override for story: {story_id}")
         except KeyError as e:
             print(f"Warning: Missing variable {e} in preview_prompt_override, using fallback")
@@ -189,7 +195,7 @@ No text, no watermarks, no signatures."""
             pose_desc = "standing on tiny feet in a cozy nursery, taking first steps"
         
         if hair_length == 'very_little':
-            baby_hair_note = f"IMPORTANT: This baby has very little hair, just a thin soft fuzz of {traits.get('hair_color', 'brown')} hair on the head. Do NOT give this baby thick or long hair."
+            baby_hair_note = f"IMPORTANT: This baby has a completely bald smooth head, no hair whatsoever, perfectly round smooth scalp."
         
         portrait_prompt = f"""Full body illustration of {age_desc} with {hair_desc}, {eye_desc}, and {skin_desc}.
 {gender_features}
@@ -340,7 +346,8 @@ def generate_scene_with_kontext(scene_prompt: str, base_image_path: str, scene_n
     baby_notes = ""
     if is_baby:
         if hair_length == 'very_little':
-            baby_notes += f"\nCRITICAL HAIR: This {gender_word} has VERY LITTLE HAIR - only thin soft peach fuzz on the head. Do NOT give this baby thick hair, long hair, or styled hair. The head should be mostly visible with barely any hair."
+            baby_hair_color_note = traits.get('hair_color', 'brown') if traits else 'brown'
+            baby_notes += f"\nCRITICAL HAIR: This {gender_word} has a completely bald smooth head, no hair whatsoever, perfectly round smooth scalp."
         if child_age is not None and child_age == 0:
             baby_notes += f"\nCRITICAL POSE: This is a 0-12 month old infant. The {gender_word} CANNOT stand or walk. The {gender_word} MUST ONLY be lying down, sitting supported, or crawling on belly. NEVER show the {gender_word} standing upright or walking on feet."
     
@@ -529,7 +536,8 @@ No text, no watermarks, no signatures, no logo."""
 def generate_scene_with_flux2dev(scene_prompt: str, reference_image_path: str, scene_num: int,
                                   aspect_ratio: str = "1:1", output_dir: str = "generated",
                                   gender: str = "neutral", max_retries: int = 7, age_range: str = "0-1",
-                                  hair_length: str = "medium", child_age: int = None) -> str:
+                                  hair_length: str = "medium", child_age: int = None,
+                                  hair_color: str = "brown") -> str:
     """
     Generate a scene using FLUX 2 Dev with native reference_images for character consistency.
     The reference image (preview/cover) is passed so FLUX 2 Dev maintains the character's appearance.
@@ -544,9 +552,15 @@ def generate_scene_with_flux2dev(scene_prompt: str, reference_image_path: str, s
     else:
         gender_word = "little boy" if gender == "male" else "little girl" if gender == "female" else "child"
 
-    reference_note = f"CRITICAL: Keep the SAME {gender_word} appearance as the reference image - same face, same skin tone, same head/hair."
     if is_baby and hair_length == 'very_little':
-        reference_note += f" This {gender_word} has a nearly bald smooth scalp with minimal fuzz - do NOT add hair volume, buns, or ponytails."
+        reference_note = (
+            f"CRITICAL: Completely bald smooth head, no hair. "
+            f"Same {gender_word} as reference — same face, skin tone."
+        )
+    elif is_baby:
+        reference_note = f"CRITICAL: Same {gender_word} as reference — same hair color and style, same face, same skin tone."
+    else:
+        reference_note = f"CRITICAL: Same {gender_word} as reference photo — match face, hair color, skin tone exactly."
 
     enhanced_prompt = f"""{scene_prompt}
 
@@ -559,22 +573,9 @@ def generate_scene_with_flux2dev(scene_prompt: str, reference_image_path: str, s
     if not os.path.exists(reference_image_path):
         raise Exception(f"Reference image not found at {reference_image_path}. Cannot generate scene without reference.")
 
-    from PIL import Image as PILSanitize
-    _ref_img = PILSanitize.open(reference_image_path)
-    w, h = _ref_img.size
-    needs_sanitize = _ref_img.mode != "RGB" or w % 64 != 0 or h % 64 != 0
-    if needs_sanitize:
-        _ref_img = _ref_img.convert("RGB")
-        new_w = (w // 64) * 64 or 1024
-        new_h = (h // 64) * 64 or 1024
-        _ref_img = _ref_img.resize((new_w, new_h), PILSanitize.LANCZOS)
-        _ref_img.save(reference_image_path, "PNG")
-        print(f"Sanitized reference image: {w}x{h} {_ref_img.mode} → {new_w}x{new_h} RGB")
-    _ref_img.close()
-    del _ref_img
-
     for attempt in range(max_retries + 1):
         try:
+            _img_strength = 0.8
             with open(reference_image_path, "rb") as ref_file:
                 output = replicate.run(
                     FLUX_2_DEV_MODEL,
@@ -583,7 +584,8 @@ def generate_scene_with_flux2dev(scene_prompt: str, reference_image_path: str, s
                         "input_images": [ref_file],
                         "aspect_ratio": aspect_ratio,
                         "output_format": "png",
-                        "go_fast": False
+                        "go_fast": True,
+                        "image_prompt_strength": _img_strength
                     }
                 )
 
@@ -791,20 +793,20 @@ def create_cover_from_character(character_image_path: str, output_dir: str,
     author_color = (160, 110, 190, 230)
     
     if title:
-        margin_px = int(w * 0.12)
+        margin_px = int(w * 0.19)
         max_title_w = w - 2 * margin_px
-        
-        def wrap_title(font):
+
+        def wrap_title(font, max_w):
             title_bbox = draw.textbbox((0, 0), title, font=font)
             title_w = title_bbox[2] - title_bbox[0]
-            if title_w > max_title_w:
+            if title_w > max_w:
                 words = title.split()
                 lines = []
                 current = ""
                 for word in words:
                     test = f"{current} {word}".strip() if current else word
                     tw = draw.textbbox((0, 0), test, font=font)[2] - draw.textbbox((0, 0), test, font=font)[0]
-                    if tw <= max_title_w:
+                    if tw <= max_w:
                         current = test
                     else:
                         if current:
@@ -814,21 +816,29 @@ def create_cover_from_character(character_image_path: str, output_dir: str,
                     lines.append(current)
                 return lines
             return [title]
-        
-        lines = wrap_title(title_font)
-        
-        if len(lines) > 4:
-            title_font_size = int(title_font_size * 0.85)
+
+        lines = wrap_title(title_font, max_title_w)
+
+        for _ in range(10):
+            if not lines:
+                break
+            max_line_w = max(
+                draw.textbbox((0, 0), l, font=title_font)[2] - draw.textbbox((0, 0), l, font=title_font)[0]
+                for l in lines
+            )
+            if max_line_w <= max_title_w:
+                break
+            title_font_size = max(18, int(title_font_size * 0.88))
             try:
                 title_font = ImageFont.truetype(titan_path, title_font_size) if os.path.exists(titan_path) else ImageFont.load_default()
             except:
                 title_font = ImageFont.load_default()
-            lines = wrap_title(title_font)
-        
+            lines = wrap_title(title_font, max_title_w)
+
         title_y = int(h * 0.06)
         line_spacing = int(title_font_size * 1.3)
         border_offset = 2
-        
+
         max_lines = 5
         for line in lines[:max_lines]:
             line_bbox = draw.textbbox((0, 0), line, font=title_font)
@@ -836,6 +846,8 @@ def create_cover_from_character(character_image_path: str, output_dir: str,
             line_x = (w - line_w) // 2
             if line_x < margin_px:
                 line_x = margin_px
+            if line_x + line_w > w - margin_px:
+                line_x = max(margin_px, w - margin_px - line_w)
             for dx in range(-border_offset, border_offset + 1):
                 for dy in range(-border_offset, border_offset + 1):
                     if dx != 0 or dy != 0:
@@ -929,6 +941,7 @@ def generate_cover_only(story_id: str, gender: str, traits: dict,
         cover_prompt = get_cover_prompt(story_id, child_name, gender, traits)
         if cover_prompt:
             from services.quick_stories.checkout import is_quick_story as check_qs_cover
+            hair_color = traits.get('hair_color', 'brown')
             is_baby = age_range in ['0-1', '0-2']
             is_qs_cover = check_qs_cover(story_id)
             cover_aspect = "1:1" if is_baby or is_qs_cover else "3:4"
@@ -936,7 +949,7 @@ def generate_cover_only(story_id: str, gender: str, traits: dict,
             try:
                 cover_scene_prompt = f"BOOK COVER: {cover_prompt}"
                 if use_flux_dev:
-                    cover_path = generate_scene_with_flux2dev(cover_scene_prompt, base_path, 0, cover_aspect, output_dir, gender=gender, age_range=age_range, hair_length=hair_length, child_age=child_age)
+                    cover_path = generate_scene_with_flux2dev(cover_scene_prompt, base_path, 0, cover_aspect, output_dir, gender=gender, age_range=age_range, hair_length=hair_length, child_age=child_age, hair_color=hair_color)
                     os.rename(f"{output_dir}/scene_0.png", f"{output_dir}/cover.png")
                     cover_path = f"{output_dir}/cover.png"
                 else:
@@ -972,6 +985,7 @@ def generate_scenes_only(story_id: str, gender: str, traits: dict,
     age_range = story_config.get('age_range', '0-1')
     is_baby = age_range in ['0-1', '0-2']
     hair_length = traits.get('hair_length', 'medium')
+    hair_color = traits.get('hair_color', 'brown')
     child_age = int(traits.get('child_age', '1'))
     
     use_ideogram = story_config.get('use_ideogram_scenes', False) and is_baby
@@ -1001,6 +1015,20 @@ def generate_scenes_only(story_id: str, gender: str, traits: dict,
     _qs_completed = 0
     _qs_workers = 2 if use_ideogram else 3
 
+    if cover_path and os.path.exists(cover_path):
+        from PIL import Image as _PILSan
+        _san_img = _PILSan.open(cover_path)
+        _san_w, _san_h = _san_img.size
+        if _san_img.mode != "RGB" or _san_w % 64 != 0 or _san_h % 64 != 0:
+            _san_img = _san_img.convert("RGB")
+            _san_new_w = (_san_w // 64) * 64 or 1024
+            _san_new_h = (_san_h // 64) * 64 or 1024
+            _san_img = _san_img.resize((_san_new_w, _san_new_h), _PILSan.LANCZOS)
+            _san_img.save(cover_path, "PNG")
+            print(f"[SANITIZE] Reference image pre-sanitized once: {_san_w}x{_san_h} → {_san_new_w}x{_san_new_h} RGB")
+        _san_img.close()
+        del _san_img
+
     def _gen_one_qs(args):
         _i, _prompt = args
         print(f"\n[{_i}/{total}] Generating scene {_i} with {model_name}...")
@@ -1008,7 +1036,7 @@ def generate_scenes_only(story_id: str, gender: str, traits: dict,
             if use_ideogram:
                 _path = generate_scene_with_ideogram(_prompt, cover_path, _i, scene_aspect, output_dir)
             elif use_flux_dev:
-                _path = generate_scene_with_flux2dev(_prompt, cover_path, _i, scene_aspect, output_dir, gender=gender, age_range=age_range, hair_length=hair_length, child_age=child_age)
+                _path = generate_scene_with_flux2dev(_prompt, cover_path, _i, scene_aspect, output_dir, gender=gender, age_range=age_range, hair_length=hair_length, child_age=child_age, hair_color=hair_color)
             else:
                 _path = generate_scene_with_kontext(_prompt, cover_path, _i, scene_aspect, output_dir, gender=gender, age_range=age_range, additional_references=additional_refs, hair_length=hair_length, child_age=child_age)
             return _i, _path
@@ -1038,7 +1066,7 @@ def generate_scenes_only(story_id: str, gender: str, traits: dict,
             if use_ideogram:
                 closing_path = generate_scene_with_ideogram(closing_prompt, cover_path, closing_num, scene_aspect, output_dir)
             elif use_flux_dev:
-                closing_path = generate_scene_with_flux2dev(closing_prompt, cover_path, closing_num, scene_aspect, output_dir, gender=gender, age_range=age_range, hair_length=hair_length, child_age=child_age)
+                closing_path = generate_scene_with_flux2dev(closing_prompt, cover_path, closing_num, scene_aspect, output_dir, gender=gender, age_range=age_range, hair_length=hair_length, child_age=child_age, hair_color=hair_color)
             else:
                 closing_path = generate_scene_with_kontext(closing_prompt, cover_path, closing_num, scene_aspect, output_dir, gender=gender, age_range=age_range, additional_references=additional_refs, hair_length=hair_length, child_age=child_age)
             os.rename(closing_path, f"{output_dir}/closing.png")
