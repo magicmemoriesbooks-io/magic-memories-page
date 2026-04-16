@@ -1,6 +1,6 @@
 # Personalized Books Story Definitions
-# Dragon Garden Illustrated, Magic Chef Illustrated, Magic Inventor Illustrated, Star Keeper Illustrated
-# $55 - Digital + Print
+# Universos Ilustrados (8 books) — 30 pages, 22 illustrations, Gelato hardcover A4
+# $30 base + $10 Gelato shipping
 
 PERSONALIZED_BOOKS = {
     "dragon_garden_illustrated": {
@@ -8,10 +8,11 @@ PERSONALIZED_BOOKS = {
         "title_en": "{name} and the Magic Garden Dragon",
         "age_range": "3-8",
         "category": "personalized",
-        "price": 55,
+        "price": 30,
         "includes_print": True,
-        "print_pages": 24,
-        "illustrations": 19,
+        "fulfillment": "gelato",
+        "print_pages": 30,
+        "illustrations": 22,
         "has_closing_scene": True,
         "use_fixed_scenes": False
     },
@@ -20,10 +21,11 @@ PERSONALIZED_BOOKS = {
         "title_en": "{name} the Magic Chef",
         "age_range": "3-8",
         "category": "personalized",
-        "price": 55,
+        "price": 30,
         "includes_print": True,
-        "print_pages": 24,
-        "illustrations": 19,
+        "fulfillment": "gelato",
+        "print_pages": 30,
+        "illustrations": 22,
         "has_closing_scene": True,
         "use_fixed_scenes": False
     },
@@ -32,10 +34,11 @@ PERSONALIZED_BOOKS = {
         "title_en": "{name} and the Magic Inventor Workshop",
         "age_range": "6-8",
         "category": "personalized",
-        "price": 55,
+        "price": 30,
         "includes_print": True,
-        "print_pages": 24,
-        "illustrations": 19,
+        "fulfillment": "gelato",
+        "print_pages": 30,
+        "illustrations": 22,
         "has_closing_scene": True,
         "use_fixed_scenes": False
     },
@@ -44,10 +47,76 @@ PERSONALIZED_BOOKS = {
         "title_en": "{name} The Star Keeper",
         "age_range": "6-7",
         "category": "personalized",
-        "price": 55,
+        "price": 30,
         "includes_print": True,
-        "print_pages": 24,
+        "fulfillment": "gelato",
+        "print_pages": 30,
+        "illustrations": 22,
+        "has_closing_scene": True,
+        "use_fixed_scenes": False
+    },
+    "furry_love_illustrated": {
+        "title_es": "Tú y tu Amor Peludo",
+        "title_en": "You and Your Furry Love",
+        "age_range": "18+",
+        "category": "personalized",
+        "price": 30,
+        "includes_print": True,
+        "fulfillment": "gelato",
+        "print_pages": 30,
+        "illustrations": 22,
+        "has_closing_scene": True,
+        "use_fixed_scenes": False
+    },
+    "furry_love_adventure_illustrated": {
+        "title_es": "Tú y tu Amor Peludo: La Gran Aventura",
+        "title_en": "You and Your Furry Love: The Big Adventure",
+        "age_range": "18+",
+        "category": "personalized",
+        "price": 30,
+        "includes_print": True,
+        "fulfillment": "gelato",
+        "print_pages": 30,
+        "illustrations": 22,
+        "has_closing_scene": True,
+        "use_fixed_scenes": False
+    },
+    "furry_love_teen_illustrated": {
+        "title_es": "Tú y tu Amor Peludo: Aventura Teen",
+        "title_en": "You and Your Furry Love: Teen Adventure",
+        "age_range": "12-17",
+        "category": "personalized",
+        "price": 30,
+        "includes_print": True,
+        "fulfillment": "gelato",
+        "print_pages": 30,
+        "illustrations": 22,
+        "has_closing_scene": True,
+        "use_fixed_scenes": False
+    },
+    "centinela_aurora_illustrated": {
+        "title_es": "{name} y el Centinela de la Aurora",
+        "title_en": "{name} and the Aurora Sentinel",
+        "age_range": "4-8",
+        "category": "personalized",
+        "price": 26,
+        "includes_print": True,
+        "fulfillment": "cloudprinter",
+        "print_pages": 26,
         "illustrations": 19,
+        "has_closing_scene": True,
+        "use_fixed_scenes": False
+    },
+    "furry_love_adult_illustrated": {
+        "title_es": "Tú y tu Amor Peludo: Edición Adultos",
+        "title_en": "You and Your Furry Love: Adult Edition",
+        "age_range": "18+",
+        "category": "personalized",
+        "price": 30,
+        "includes_print": True,
+        "fulfillment": "gelato",
+        "print_pages": 30,
+        "illustrations": 22,
         "has_closing_scene": True,
         "use_fixed_scenes": False
     }
