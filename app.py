@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 import json
 import atexit
@@ -339,16 +340,19 @@ def _get_protected_preview_ids():
     return protected
 
 
-def _purge_story_files(preview_id, story_data, include_lulu=False):
+def _purge_story_files(preview_id, story_data, include_lulu=False, include_print=False):
     """Delete all files associated with a story (scenes, visor pages, generated images, user photos)."""
     import shutil
     scenes_dir = f'story_previews/{preview_id}'
     if os.path.exists(scenes_dir):
         shutil.rmtree(scenes_dir)
-    if include_lulu:
+    if include_lulu or include_print:
         lulu_folder = story_data.get('lulu_order_folder', '')
         if lulu_folder and os.path.exists(lulu_folder):
             shutil.rmtree(lulu_folder)
+        cp_folder = f'generations/cloudprinter/{preview_id}'
+        if os.path.exists(cp_folder):
+            shutil.rmtree(cp_folder)
     for visor_type in ('visor_qs', 'visor_pb'):
         visor_dir = f'generations/{visor_type}/{preview_id}'
         if os.path.exists(visor_dir):
@@ -365,7 +369,7 @@ def _purge_story_files(preview_id, story_data, include_lulu=False):
             except Exception:
                 pass
     upload_prefix = 'generated/uploads/furry_photos/'
-    for photo_key in ('human_photo_path', 'pet_photo_path'):
+    for photo_key in ('human_photo_path', 'pet_photo_path', 'child_photo_path'):
         photo_path = story_data.get('traits', {}).get(photo_key, '') or story_data.get(photo_key, '')
         if photo_path and photo_path.startswith(upload_prefix) and os.path.exists(photo_path):
             try:
@@ -445,7 +449,7 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
 def get_visor_base_url(visor_type='visor'):
-    site_domain = os.environ.get('SITE_DOMAIN', 'magicmemoriesbooks.com')
+    site_domain = os.environ.get('SITE_DOMAIN') or os.environ.get('REPLIT_DEV_DOMAIN', 'magicmemoriesbooks.com')
     return f'https://{site_domain}/{visor_type}'
 
 def get_lang():
@@ -466,20 +470,22 @@ def get_story_template_by_id(story_id, child_name=''):
         name_placeholder = child_name if child_name else '[Nombre]'
         return {
             'id': story_id,
-            'name_es': story.get('title_es', '').replace('{name}', name_placeholder).replace('{lo_la}', 'lo/la'),
-            'name_en': story.get('title_en', '').replace('{name}', name_placeholder),
+            'name_es': story.get('title_es', '').replace('{name}', name_placeholder).replace('{lo_la}', 'lo/la').replace('{pet_name}', 'tu mascota'),
+            'name_en': story.get('title_en', '').replace('{name}', name_placeholder).replace('{pet_name}', 'your pet'),
             'age_range': story.get('age_range', '0-1')
         }
     return None
 
 @app.context_processor
 def inject_globals():
+    from services.cart import cart_count as _cart_count
     lang = get_lang()
     return {
         't': t,
         'lang': lang,
         'translations': TRANSLATIONS.get(lang, TRANSLATIONS['es']),
-        'story_templates': STORY_TEMPLATES
+        'story_templates': STORY_TEMPLATES,
+        'cart_count': _cart_count(session),
     }
 
 @app.before_request
@@ -499,9 +505,22 @@ def index():
     demo_visor_url_b = _get_demo_visor_url_b()
     try:
         from sqlalchemy import text as _sql_text
+        import glob as _glob
         paid_orders = db.session.execute(_sql_text("SELECT COUNT(*) FROM orders WHERE amount_paid > 0")).scalar() or 0
         paid_real = db.session.execute(_sql_text("SELECT COUNT(*) FROM real_story_orders WHERE amount_paid > 0")).scalar() or 0
-        stories_count = 500 + paid_orders + paid_real
+        paid_json = 0
+        _preview_dir = os.path.join(os.path.dirname(__file__), 'story_previews')
+        for _jf in _glob.glob(os.path.join(_preview_dir, '*.json')):
+            if '_progress' in _jf:
+                continue
+            try:
+                with open(_jf) as _f:
+                    _d = json.load(_f)
+                if _d.get('paid'):
+                    paid_json += 1
+            except Exception:
+                pass
+        stories_count = 500 + paid_orders + paid_real + paid_json
         stories_display = f"{stories_count}+"
     except Exception:
         stories_display = "500+"
@@ -608,6 +627,7 @@ def robots_txt():
 def pricing():
     return render_template('pricing.html')
 
+
 @app.route('/terms')
 def terms():
     return render_template('terms.html')
@@ -626,54 +646,73 @@ def story_selection():
                           child_gender=child_gender,
                           is_change_mode=is_change_mode)
 
+@app.route('/express-catalog')
+def express_catalog():
+    lang = get_lang()
+    return render_template('express_catalog.html', lang=lang, translations=TRANSLATIONS.get(lang, TRANSLATIONS['es']))
+
+@app.route('/story-selection/express')
+def story_selection_express():
+    return redirect(url_for('express_catalog'))
+
+@app.route('/universos-catalog')
+def universos_catalog():
+    lang = get_lang()
+    return render_template('universos_catalog.html', lang=lang, translations=TRANSLATIONS.get(lang, TRANSLATIONS['es']))
+
+@app.route('/story-selection/universos')
+def story_selection_universos():
+    return redirect(url_for('universos_catalog'))
+
 @app.route('/stories-0-1')
 def stories_0_1():
-    return render_template('stories_0_1.html')
+    return redirect(url_for('express_catalog'))
 
 @app.route('/stories-3-8')
 def stories_3_8():
-    return render_template('stories_3_8.html')
+    return redirect(url_for('express_catalog'))
 
 @app.route('/stories-3-5')
 def stories_3_5():
-    return redirect(url_for('stories_3_8'))
+    return redirect(url_for('express_catalog'))
 
 @app.route('/stories-5-7')
 def stories_5_7():
-    return redirect(url_for('stories_3_8'))
+    return redirect(url_for('express_catalog'))
 
 @app.route('/personalized-books')
 def personalized_books():
     is_change_mode = request.args.get('change') == '1'
+    if not is_change_mode:
+        return redirect(url_for('universos_catalog'))
     original_preview_id = request.args.get('preview_id', '')
-    return render_template('personalized_books.html', 
+    return render_template('personalized_books.html',
                           is_change_mode=is_change_mode,
                           original_preview_id=original_preview_id)
 
 @app.route('/stories-birthday')
 def stories_birthday():
-    return redirect(url_for('birthday_selection'))
+    return redirect(url_for('express_catalog'))
 
 @app.route('/birthday')
 def birthday_selection():
-    return render_template('birthday_selection.html')
+    return redirect(url_for('express_catalog'))
 
 @app.route('/birthday-1-3')
 def birthday_1_3():
-    return render_template('birthday_1_3.html')
+    return redirect('/personalize-story?story=birthday_celebration_1_3')
 
 @app.route('/birthday-4-6')
 def birthday_4_6():
-    return render_template('birthday_4_6.html')
+    return redirect('/personalize-story?story=birthday_celebration_4_6')
 
 @app.route('/birthday-7-9')
 def birthday_7_9():
-    return render_template('birthday_7_9.html')
+    return redirect('/personalize-story?story=birthday_celebration_7_9')
 
 @app.route('/furry-love')
 def furry_love_catalog():
-    lang = get_lang()
-    return render_template('furry_love_catalog.html', lang=lang, translations=TRANSLATIONS.get(lang, TRANSLATIONS['es']))
+    return redirect(url_for('universos_catalog'))
 
 @app.route('/personalize-furry-love')
 def personalize_furry_love():
@@ -723,22 +762,27 @@ def upload_furry_photo():
     import uuid as uuid_mod
     
     consent = request.form.get('consent', '')
+    lang = request.form.get('lang', 'es')
     if consent != 'true':
-        return jsonify({'success': False, 'error': 'Photo consent required (COPPA/GDPR)'})
+        msg = 'Se requiere consentimiento para fotos (COPPA/GDPR)' if lang == 'es' else 'Photo consent required (COPPA/GDPR)'
+        return jsonify({'success': False, 'error': msg})
     
     if 'photo' not in request.files:
-        return jsonify({'success': False, 'error': 'No photo provided'})
+        msg = 'No se recibió ninguna foto' if lang == 'es' else 'No photo provided'
+        return jsonify({'success': False, 'error': msg})
     
     photo = request.files['photo']
     photo_type = request.form.get('type', 'human')
     
     if photo.filename == '':
-        return jsonify({'success': False, 'error': 'No file selected'})
+        msg = 'No se seleccionó ningún archivo' if lang == 'es' else 'No file selected'
+        return jsonify({'success': False, 'error': msg})
     
     allowed_ext = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
     ext = photo.filename.rsplit('.', 1)[-1].lower() if '.' in photo.filename else ''
     if ext not in allowed_ext:
-        return jsonify({'success': False, 'error': 'Invalid file type. Use JPG, PNG, or WEBP.'})
+        msg = 'Tipo de archivo no válido. Usa JPG, PNG o WEBP.' if lang == 'es' else 'Invalid file type. Use JPG, PNG, or WEBP.'
+        return jsonify({'success': False, 'error': msg})
     
     upload_dir = 'generated/uploads/furry_photos'
     os.makedirs(upload_dir, exist_ok=True)
@@ -758,8 +802,8 @@ def personalize_story():
     child_gender = request.args.get('gender', 'female')
     
     admin_gift_mode = request.args.get('admin_gift', '')
-    if not story_id or (not child_name and not admin_gift_mode):
-        return redirect(url_for('index'))
+    if not story_id:
+        return redirect(url_for('express_catalog'))
     if not child_name and admin_gift_mode:
         child_name = 'Regalo'
     
@@ -1506,6 +1550,246 @@ def generate_story(order_id):
 def download_file(filename):
     return send_from_directory(app.config['GENERATED_FOLDER'], filename, as_attachment=True)
 
+@app.route('/preview-pdf/gelato/<session_id>/<filename>')
+def preview_gelato_pdf(session_id, filename):
+    """Serve a Gelato-generated PDF inline for browser preview."""
+    import re
+    if not re.match(r'^[a-zA-Z0-9_\-]+$', session_id):
+        abort(400)
+    if not filename.endswith('.pdf') or '/' in filename or '..' in filename:
+        abort(400)
+    pdf_path = os.path.join('generated', 'gelato', session_id, filename)
+    if not os.path.exists(pdf_path):
+        abort(404)
+    return send_file(os.path.abspath(pdf_path), mimetype='application/pdf')
+
+
+@app.route('/gelato-webhook', methods=['POST'])
+def gelato_webhook():
+    """
+    Receive Gelato order status webhooks.
+    Events: order_status_updated, order_item_status_updated, order_item_tracking_code_updated
+    """
+    import hmac as _hmac
+    import hashlib as _hashlib
+
+    payload_bytes = request.get_data()
+    sig_header = request.headers.get('X-Gelato-Signature', '')
+
+    secret = os.environ.get('GELATO_WEBHOOK_SECRET', '')
+    if secret:
+        expected = _hmac.new(
+            secret.encode('utf-8'), payload_bytes, _hashlib.sha256
+        ).hexdigest()
+        received = sig_header.split('=')[-1] if '=' in sig_header else sig_header
+        if not _hmac.compare_digest(expected, received):
+            print('[GELATO WEBHOOK] Invalid signature — rejected')
+            return jsonify({'error': 'invalid signature'}), 401
+
+    try:
+        data = request.get_json(force=True) or {}
+    except Exception:
+        return jsonify({'error': 'invalid JSON'}), 400
+
+    event_type = data.get('event', data.get('type', 'unknown'))
+    order_id   = data.get('orderId') or data.get('order_id', '')
+    status     = data.get('status', '')
+    print(f'[GELATO WEBHOOK] event={event_type} order={order_id} status={status}')
+
+    try:
+        order = Order.query.filter_by(gelato_order_id=order_id).first() if order_id else None
+        if order:
+            status_map = {
+                'created':   'processing',
+                'passed':    'processing',
+                'printed':   'printing',
+                'shipped':   'shipped',
+                'delivered': 'delivered',
+                'failed':    'error',
+                'canceled':  'cancelled',
+            }
+            new_status = status_map.get(status, order.status)
+            if new_status != order.status:
+                order.status = new_status
+                db.session.commit()
+                print(f'[GELATO WEBHOOK] Order {order.order_number} → {new_status}')
+                if new_status in ('error', 'cancelled'):
+                    try:
+                        from services.email_service import send_admin_notification_email
+                        reason = data.get('message') or data.get('reason') or status
+                        subject = f'[GELATO] Pedido fallido — {order.order_number}'
+                        body = (
+                            f'Pedido Gelato con problema:\n\n'
+                            f'  Número de pedido: {order.order_number}\n'
+                            f'  Cliente: {getattr(order, "customer_name", "")} <{getattr(order, "customer_email", "")}>\n'
+                            f'  Niño/a: {order.child_name}\n'
+                            f'  Estado Gelato: {status}\n'
+                            f'  Motivo: {reason}\n'
+                            f'  Gelato Order ID: {order_id}\n\n'
+                            f'Revisa el panel de admin para gestionar el pedido.'
+                        )
+                        send_admin_notification_email(subject=subject, body=body)
+                        print(f'[GELATO WEBHOOK] Admin failure email sent for {order.order_number}')
+                    except Exception as mail_err:
+                        print(f'[GELATO WEBHOOK] Could not send failure email: {mail_err}')
+
+
+            if event_type == 'order_item_tracking_code_updated':
+                tracking_code = data.get('trackingCode') or data.get('tracking_code', '')
+                tracking_url  = data.get('trackingUrl')  or data.get('tracking_url', '')
+                if tracking_code and hasattr(order, 'tracking_number'):
+                    order.tracking_number = tracking_code
+                    if tracking_url and hasattr(order, 'tracking_url'):
+                        order.tracking_url = tracking_url
+                    db.session.commit()
+                    print(f'[GELATO WEBHOOK] Tracking updated: {tracking_code}')
+    except Exception as e:
+        print(f'[GELATO WEBHOOK] DB update error: {e}')
+
+    return jsonify({'received': True}), 200
+
+
+@app.route('/webhooks/cloudprinter', methods=['POST'])
+def cloudprinter_webhook():
+    """
+    Receive Cloudprinter order status signals (webhooks).
+    Configure in app.cloudprinter.com → Development → Signals → Webhooks
+    Protocol: HTTPS, Endpoint: magicmemoriesbooks.com/webhooks/cloudprinter
+    """
+    try:
+        data = request.get_json(force=True) or {}
+    except Exception:
+        return jsonify({'error': 'invalid JSON'}), 400
+
+    webhook_secret = os.environ.get('CLOUDPRINTER_WEBHOOK_API_KEY', '')
+    if webhook_secret:
+        incoming_key = (
+            request.headers.get('X-Cloudsignal-Apikey') or
+            request.headers.get('X-Api-Key') or
+            data.get('apikey', '')
+        )
+        if incoming_key != webhook_secret:
+            print(f'[CP WEBHOOK] Invalid API key — rejected (got: {incoming_key[:8]}...)')
+            return jsonify({'error': 'unauthorized'}), 401
+
+    reference  = data.get('reference', '')
+    state_code = data.get('state_code', data.get('state', ''))
+    state_num  = data.get('status', data.get('state_num', ''))
+    print(f'[CP WEBHOOK] reference={reference} state={state_code}({state_num}) payload={str(data)[:300]}')
+
+    try:
+        from services.email_service import send_admin_notification_email
+
+        shipped_events  = ('ItemShipped', 'ItemDeliveryStarted',
+                           'order_state_distributed', 'order_state_shipped', 'order_state_in_transit')
+        delivered_events = ('ItemDeliveryCompleted', 'order_state_delivered')
+        problem_events  = ('ItemError', 'ItemCanceled', 'CloudprinterOrderCanceled',
+                           'ItemDeliveryFailed', 'order_state_error', 'order_state_canceled',
+                           'order_state_payment_error', 'order_state_on_hold')
+
+        tracking_code = data.get('trackingCode', data.get('tracking_code', ''))
+        tracking_url  = data.get('trackingUrl',  data.get('tracking_url', ''))
+        if not tracking_code:
+            items = data.get('items', [])
+            if items and isinstance(items, list):
+                t = items[0].get('tracking', {})
+                if isinstance(t, dict):
+                    tracking_code = t.get('code', '')
+                    tracking_url  = t.get('url', '')
+                else:
+                    tracking_code = t or ''
+
+        event_key = event_type or state_code
+
+        if event_key in shipped_events:
+            tracking_line = f'  Tracking: {tracking_code}\n  URL: {tracking_url}\n' if tracking_code else ''
+            subject = f'[Cloudprinter] Pedido enviado — {reference}'
+            body = (
+                f'Un pedido de Cloudprinter ha sido despachado:\n\n'
+                f'  Referencia: {reference}\n'
+                f'  Evento: {event_key}\n'
+                f'{tracking_line}'
+                f'\nRevisa app.cloudprinter.com para más detalles.'
+            )
+            send_admin_notification_email(subject=subject, body=body)
+            print(f'[CP WEBHOOK] Admin shipping notification sent for {reference}')
+
+            if tracking_code:
+                try:
+                    from services.email_service import send_cp_tracking_email
+                    parts = reference.split('-')
+                    preview_prefix = parts[1] if len(parts) >= 2 else ''
+                    story_data = None
+                    story_file = None
+                    if preview_prefix:
+                        import glob as _glob
+                        matches = _glob.glob(f'story_previews/{preview_prefix}*.json')
+                        if matches:
+                            story_file = matches[0]
+                            with open(story_file, 'r', encoding='utf-8') as _f:
+                                story_data = json.load(_f)
+                    if story_data:
+                        # Persist tracking info into the story JSON so track-order page shows it without API call
+                        story_data['cp_tracking_code'] = tracking_code
+                        story_data['cp_tracking_url'] = tracking_url
+                        story_data['cp_order_status'] = 'shipped'
+                        story_data['cp_shipped_at'] = data.get('timestamp', '')
+                        if story_file:
+                            with open(story_file, 'w', encoding='utf-8') as _fw:
+                                json.dump(story_data, _fw, ensure_ascii=False, indent=2)
+                            print(f'[CP WEBHOOK] Tracking saved to {story_file}')
+                        customer_email = story_data.get('customer_email', '')
+                        child_name = story_data.get('child_name', '')
+                        story_name = story_data.get('story_name', story_data.get('title', 'Tu Cuento Mágico'))
+                        lang = story_data.get('lang', story_data.get('language', 'es'))
+                        shipping_address = story_data.get('shipping_address', {})
+                        if customer_email:
+                            sent = send_cp_tracking_email(
+                                to_email=customer_email,
+                                child_name=child_name,
+                                book_title=story_name,
+                                tracking_code=tracking_code,
+                                tracking_url=tracking_url,
+                                shipping_address=shipping_address,
+                                lang=lang
+                            )
+                            print(f'[CP WEBHOOK] Customer tracking email sent={sent} to {customer_email}')
+                        else:
+                            print(f'[CP WEBHOOK] No customer email found in story for {reference}')
+                    else:
+                        print(f'[CP WEBHOOK] Story not found for prefix={preview_prefix}')
+                except Exception as track_err:
+                    print(f'[CP WEBHOOK] Error sending customer tracking email: {track_err}')
+
+        elif event_key in delivered_events:
+            subject = f'[Cloudprinter] Pedido entregado — {reference}'
+            body = (
+                f'Un pedido de Cloudprinter ha sido entregado:\n\n'
+                f'  Referencia: {reference}\n'
+                f'  Evento: {event_key}\n\n'
+                f'El cliente ha recibido su cuento.'
+            )
+            send_admin_notification_email(subject=subject, body=body)
+            print(f'[CP WEBHOOK] Delivery notification sent for {reference}')
+
+        elif event_key in problem_events:
+            subject = f'[Cloudprinter] PROBLEMA en pedido — {reference}'
+            body = (
+                f'Un pedido de Cloudprinter tiene un problema:\n\n'
+                f'  Referencia: {reference}\n'
+                f'  Evento: {event_key}\n'
+                f'  Datos: {str(data)[:500]}\n\n'
+                f'Revisa app.cloudprinter.com urgentemente.'
+            )
+            send_admin_notification_email(subject=subject, body=body)
+            print(f'[CP WEBHOOK] Problem notification sent for {reference}')
+
+    except Exception as e:
+        print(f'[CP WEBHOOK] Notification error: {e}')
+
+    return jsonify({'received': True}), 200
+
+
 @app.route('/api/orders')
 def list_orders():
     orders = Order.query.order_by(Order.created_at.desc()).limit(50).all()
@@ -1545,7 +1829,8 @@ def generate_character_preview_api():
             'hair_length': hair_length,
             'eye_color': eye_color,
             'skin_tone': skin_tone,
-            'child_age': child_age
+            'child_age': child_age,
+            'glasses': data.get('glasses', '')
         }
         
         story_theme = story_template if story_template else 'magical_adventure'
@@ -1692,7 +1977,8 @@ def generate_baby_preview_api():
             'eye_color': data.get('eye_color', 'brown'),
             'skin_tone': data.get('skin_tone', 'light'),
             'child_age': str(child_age),
-            'gender': child_gender
+            'gender': child_gender,
+            'glasses': data.get('glasses', '')
         }
         from services.quick_stories.checkout import ALL_QUICK_FAMILY_IDS
         
@@ -1700,6 +1986,9 @@ def generate_baby_preview_api():
         age_range = story_config.get('age_range', '0-1')
         is_baby = age_range in ['0-1', '0-2']
         is_quick_story = story_id in ALL_QUICK_FAMILY_IDS
+        _child_photo_raw = data.get('child_photo_path', '')
+        _upload_prefix = 'generated/uploads/furry_photos/'
+        child_photo_path = _child_photo_raw if (_child_photo_raw and _child_photo_raw.startswith(_upload_prefix) and os.path.exists(_child_photo_raw)) else ''
         
         hair_desc = get_hair_description(traits)
         eye_desc = get_eye_description(traits)
@@ -1764,12 +2053,24 @@ def generate_baby_preview_api():
                 gender_child = get_gender_child(child_gender)
                 candle_plural = "s" if child_age != 1 else ""
                 candle_plural_en = "s" if child_age != 1 else ""
+                _hair_desc_pv = hair_desc
+                if traits.get('hair_length') == 'very_little':
+                    _clr_raw = traits.get('hair_color', 'brown')
+                    _clr_map2 = {'black': 'jet black', 'brown': 'medium brown', 'light_brown': 'warm light brown (caramel-honey tone)', 'blonde': 'golden blonde', 'very_light_blonde': 'very light blonde', 'red': 'bright red', 'auburn': 'auburn'}
+                    _clr = _clr_map2.get(_clr_raw, _clr_raw)
+                    _pv_type_map = {'straight': 'straight', 'wavy': 'slightly wavy', 'curly': 'softly curly', 'afro': 'tightly coiled afro'}
+                    _pv_type = _pv_type_map.get(traits.get('hair_type', 'straight'), 'straight')
+                    _hair_desc_pv = "completely bald smooth head, no hair whatsoever, perfectly round smooth scalp"
+                _eye_desc_pv = eye_desc
+                _gl_pv = traits.get('glasses', '')
+                if _gl_pv and _gl_pv not in ('none', ''):
+                    _eye_desc_pv = eye_desc + ", wearing round glasses"
                 prompt = preview_override.format(
                     gender_word=gender_word,
                     gender_child=gender_child,
                     age_display=age_display,
-                    hair_desc=hair_desc,
-                    eye_desc=eye_desc,
+                    hair_desc=_hair_desc_pv,
+                    eye_desc=_eye_desc_pv,
                     skin_desc=skin_desc,
                     skin_tone=skin_tone,
                     child_age=child_age,
@@ -1788,7 +2089,12 @@ def generate_baby_preview_api():
                 
                 hair_length_preview = traits.get('hair_length', 'medium')
                 if hair_length_preview == 'very_little' and 'STRICT:' in prompt:
-                    prompt = prompt.replace('STRICT:', 'STRICT: Baby head is completely smooth and bald-looking with only thin peach fuzz on bare scalp, head shape fully visible and round,')
+                    hair_color_raw = traits.get('hair_color', 'brown')
+                    _clr_map = {'black': 'jet black', 'brown': 'medium brown', 'light_brown': 'warm light brown (caramel-honey tone)', 'blonde': 'golden blonde', 'very_light_blonde': 'very light blonde', 'red': 'bright red', 'auburn': 'auburn'}
+                    hair_color_preview = _clr_map.get(hair_color_raw, hair_color_raw)
+                    _strict_type_map = {'straight': 'straight', 'wavy': 'slightly wavy', 'curly': 'softly curly', 'afro': 'tightly coiled afro'}
+                    _strict_type = _strict_type_map.get(traits.get('hair_type', 'straight'), 'straight')
+                    prompt = prompt.replace('STRICT:', 'STRICT: Baby head is completely bald, smooth round scalp,')
                 
                 print(f"Baby preview using DNA override for: {story_id} (age: {age_display}, hair: {hair_desc})")
             else:
@@ -1843,7 +2149,8 @@ def generate_baby_preview_api():
                     child_name=child_name,
                     gender=child_gender,
                     child_age=child_age,
-                    traits=traits
+                    traits=traits,
+                    child_photo_path=child_photo_path
                 )
                 
                 return jsonify(result)
@@ -1873,11 +2180,16 @@ def generate_baby_preview_api():
                     dog_forever_desc_formatted = DOG_FOREVER_DESC.format(gender_word=gender_word)
                     candle_plural = "s" if child_age != 1 else ""
                     candle_plural_en = "s" if child_age != 1 else ""
+                    _eye_desc_qs = eye_desc
+                    _gl_qs = traits.get('glasses', '')
+                    if _gl_qs and _gl_qs not in ('none', ''):
+                        _eye_desc_qs = eye_desc + ", wearing round glasses"
+                        char_base = f"a {age_display} {gender_child} with {hair_color} {hair_length} {hair_type} hair, {skin_tone} skin, {eye_desc}, wearing round glasses"
                     prompt = preview_override.format(
                         gender_word=gender_word,
                         gender_child=gender_child,
                         hair_desc=hair_desc,
-                        eye_desc=eye_desc,
+                        eye_desc=_eye_desc_qs,
                         skin_desc=skin_desc,
                         skin_tone=skin_tone,
                         gender_features=gender_features,
@@ -1908,19 +2220,33 @@ def generate_baby_preview_api():
         
         print(f"Preview prompt: {gender_word} ({age_range}) with {hair_desc}, {eye_desc}, {skin_desc}")
         
-        if is_quick_story and is_baby:
-            preview_model = None
-            print(f"[PREVIEW] Baby Quick Story: using FLUX 2 Pro for better hair/feature accuracy")
-        elif is_quick_story:
-            preview_model = FLUX_2_DEV_MODEL
-        else:
-            preview_model = None
-        image_url = generate_illustration_replicate(prompt, 0, aspect_ratio="1:1", model=preview_model)
-        
         output_dir = f'generated/previews'
         os.makedirs(output_dir, exist_ok=True)
-        local_path = save_image_locally(image_url, f'{output_dir}/preview_{uuid.uuid4().hex[:8]}.png')
-        
+
+        reference_image = data.get('reference_image', '')
+        ref_local = reference_image.lstrip('/') if reference_image else ''
+
+        if is_baby and not is_quick_story and ref_local and os.path.exists(ref_local):
+            from services.replicate_service import generate_scene_with_flux2dev
+            print(f"[PREVIEW REGEN] Using FLUX 2 Dev with reference: {ref_local}")
+            local_path = generate_scene_with_flux2dev(
+                prompt, ref_local, 0, "1:1", output_dir,
+                gender=child_gender, age_range=age_range,
+                hair_length=traits.get('hair_length', 'medium'),
+                child_age=child_age,
+                hair_color=traits.get('hair_color', 'brown')
+            )
+        else:
+            if is_quick_story and is_baby:
+                preview_model = FLUX_DEV_MODEL
+                print(f"[PREVIEW] Baby Quick Story: using FLUX Dev for character reference consistency")
+            elif is_quick_story:
+                preview_model = FLUX_2_DEV_MODEL
+            else:
+                preview_model = None
+            image_url = generate_illustration_replicate(prompt, 0, aspect_ratio="1:1", model=preview_model)
+            local_path = save_image_locally(image_url, f'{output_dir}/preview_{uuid.uuid4().hex[:8]}.png')
+
         return jsonify({
             'success': True,
             'image_url': f'/{local_path}'
@@ -2019,7 +2345,8 @@ def regenerate_furry_preview():
                     age_display = "adult"
                     gender_word = "man" if child_gender == "male" else "woman" if child_gender == "female" else "person"
                 glasses_val = data.get('glasses', 'none')
-                prompt = build_human_preview_prompt_with_photo(gender_word, age_display, eye_desc, hair_desc, glasses=glasses_val)
+                hair_for_prompt = "hair and scalp naturally matching the reference photo" if human_photo_path else hair_desc
+                prompt = build_human_preview_prompt_with_photo(gender_word, age_display, eye_desc, hair_for_prompt, glasses=glasses_val)
                 print(f"[REGEN FURRY] WITH PHOTO prompt: {prompt[:200]}...")
                 print(f"[REGEN FURRY] gender_word={gender_word}, age_display={age_display}, child_age={child_age}, story_id={story_id_regen}")
                 photo_ref = human_photo_path
@@ -2059,12 +2386,12 @@ def regenerate_furry_preview():
                         image_url = generate_with_flux_pulid(prompt, photo_ref, width=768, height=1024)
                     except Exception as pulid_err:
                         print(f"[REGEN FURRY] PuLID failed ({str(pulid_err)[:150]}), falling back to FLUX 2 Dev...")
-                        image_url = generate_with_flux2_dev(prompt, aspect_ratio="3:4", photo_ref_path=photo_ref)
+                        image_url = generate_with_flux2_dev(prompt, aspect_ratio="3:4", photo_ref_path=photo_ref, image_prompt_strength=0.75)
                 else:
                     print(f"[REGEN FURRY] Using FLUX 2 Dev for {story_id_regen}")
-                    image_url = generate_with_flux2_dev(prompt, aspect_ratio="3:4", photo_ref_path=photo_ref)
+                    image_url = generate_with_flux2_dev(prompt, aspect_ratio="3:4", photo_ref_path=photo_ref, image_prompt_strength=0.75)
             else:
-                image_url = generate_with_flux2_dev(prompt, aspect_ratio="3:4")
+                image_url = generate_with_flux2_dev(prompt, aspect_ratio="3:4", image_prompt_strength=0.75)
             local_path = save_image_locally(image_url, f'{output_dir}/preview_human_{uuid.uuid4().hex[:8]}.png')
         else:
             pet_desc = data.get('pet_desc', '')
@@ -2079,7 +2406,7 @@ def regenerate_furry_preview():
                 photo_ref = None
             
             print(f"[REGEN FURRY] Regenerating PET preview (photo={bool(photo_ref)})")
-            image_url = generate_with_flux2_dev(prompt, aspect_ratio="3:4", photo_ref_path=photo_ref)
+            image_url = generate_with_flux2_dev(prompt, aspect_ratio="3:4", photo_ref_path=photo_ref, image_prompt_strength=0.75)
             local_path = save_image_locally(image_url, f'{output_dir}/preview_pet_{uuid.uuid4().hex[:8]}.png')
         
         return jsonify({
@@ -2158,21 +2485,26 @@ def regenerate_cover(preview_id):
                 age_display_regen = f"{age_val_regen} year old adult"
             else:
                 age_display_regen = f"{age_val_regen} month old baby" if age_val_regen < 2 else f"{age_val_regen} year old toddler"
+            _hair_color_map_regen = {'black': 'jet black', 'brown': 'medium brown', 'light_brown': 'warm light brown (caramel-honey tone)', 'blonde': 'dark blonde', 'very_light_blonde': 'light golden blonde', 'red': 'bright red', 'auburn': 'auburn'}
+            hair_color_regen = _hair_color_map_regen.get(traits.get('hair_color', 'brown'), traits.get('hair_color', 'brown'))
+            glasses_regen = traits.get('glasses', 'none')
+            facial_hair_regen = traits.get('facial_hair', 'none')
             
-            cover_prompt = build_scene_prompt(FRONT_COVER, human_desc, pet_name, pet_desc, age_display=age_display_regen, eye_desc=eye_desc_regen, gender_word=gender_word_regen)
+            cover_prompt = build_scene_prompt(FRONT_COVER, human_desc, pet_name, pet_desc, age_display=age_display_regen, eye_desc=eye_desc_regen, gender_word=gender_word_regen, hair_color=hair_color_regen, glasses=glasses_regen, facial_hair=facial_hair_regen)
             
             print(f"[REGEN COVER] Regenerating cover for {story_id} with FLUX 2 Dev + references")
             cover_url = generate_with_flux2_dev(
                 cover_prompt, 
                 aspect_ratio="3:4",
-                photo_ref_paths=[human_preview_path, pet_preview_path]
+                photo_ref_paths=[human_preview_path, pet_preview_path],
+                image_prompt_strength=0.75
             )
             cover_raw_path = save_image_locally(cover_url, f'{output_dir}/cover_raw.png')
             
             story_lang = story_data.get('story_lang', 'es')
-            from services.personalized_books.generation import get_lulu_title
+            from services.personalized_books.generation import get_print_title
             book_id = story_id.replace('_illustrated', '')
-            story_title = get_lulu_title(book_id, child_name, story_lang, pet_name=pet_name)
+            story_title = get_print_title(book_id, child_name, story_lang, pet_name=pet_name)
             author_name = story_data.get('author_name', '')
             
             cover_image_path = create_cover_from_character(
@@ -2241,7 +2573,8 @@ def generate_fixed_story_api():
             'eye_color': data.get('eye_color', 'brown'),
             'skin_tone': data.get('skin_tone', 'light'),
             'child_age': str(child_age),
-            'gender': child_gender
+            'gender': child_gender,
+            'glasses': data.get('glasses', '')
         }
         
         is_furry_love = (story_id in ('furry_love_illustrated', 'furry_love_adventure_illustrated', 'furry_love_teen_illustrated', 'furry_love_adult_illustrated'))
@@ -2348,13 +2681,16 @@ def generate_fixed_story_api():
                     age_display_cover = f"{age_val} year old adult"
                 
                 glasses_cover = traits.get('glasses', 'none')
-                cover_prompt = build_scene_prompt(FRONT_COVER, human_desc, pet_name_cover, pet_desc_cover, age_display=age_display_cover, eye_desc=eye_desc_cover, gender_word=gender_word_cover, glasses=glasses_cover)
+                _hair_color_map_cv = {'black': 'jet black', 'brown': 'medium brown', 'light_brown': 'warm light brown (caramel-honey tone)', 'blonde': 'dark blonde', 'very_light_blonde': 'light golden blonde', 'red': 'bright red', 'auburn': 'auburn'}
+                hair_color_cover = _hair_color_map_cv.get(traits.get('hair_color', 'brown'), traits.get('hair_color', 'brown'))
+                cover_prompt = build_scene_prompt(FRONT_COVER, human_desc, pet_name_cover, pet_desc_cover, age_display=age_display_cover, eye_desc=eye_desc_cover, gender_word=gender_word_cover, glasses=glasses_cover, hair_color=hair_color_cover)
                 
                 print(f"[FURRY LOVE COVER] Generating cover with both characters using FLUX 2 Dev + references")
                 cover_url = generate_with_flux2_dev(
                     cover_prompt, 
                     aspect_ratio="3:4",
-                    photo_ref_paths=[human_preview_path, pet_preview_path]
+                    photo_ref_paths=[human_preview_path, pet_preview_path],
+                    image_prompt_strength=0.75
                 )
                 cover_raw_path = save_image_locally(cover_url, f'{output_dir}/cover_raw.png')
                 
@@ -2552,6 +2888,13 @@ def generate_fixed_story_api():
             if pet_photo and pet_photo.startswith(upload_prefix_fl) and os.path.exists(pet_photo):
                 preview_data['pet_photo_path'] = pet_photo
         
+        if is_illustrated_book_mode:
+            upload_prefix_ub = 'generated/uploads/furry_photos/'
+            child_photo = data.get('child_photo_path', '')
+            if child_photo and child_photo.startswith(upload_prefix_ub) and os.path.exists(child_photo):
+                preview_data['child_photo_path'] = child_photo
+                print(f"[FIXED-STORY] Universos child photo uploaded: {child_photo}")
+        
         if 'personalized_book_generated' in dir() and personalized_book_generated:
             preview_data['pages_composed'] = True
             preview_data['personalized_book_generated'] = True
@@ -2652,6 +2995,12 @@ def story_preview_limited(preview_id):
     with open(preview_file, 'r', encoding='utf-8') as f:
         story_data = json.load(f)
     
+    # If story is already paid and scenes aren't still generating, go straight to order-complete
+    _already_paid = story_data.get('paid', False) or story_data.get('payment_status') == 'admin_gift'
+    _scenes_pending = story_data.get('scenes_pending', False) or story_data.get('scenes_generating', False)
+    if _already_paid and not _scenes_pending:
+        return redirect(url_for('order_complete', preview_id=preview_id))
+    
     return render_template('story_preview_limited.html',
                           preview_id=preview_id,
                           story_data=story_data)
@@ -2693,10 +3042,26 @@ def story_preview_full(preview_id):
     
     full_preview.extend(interior_pages)
     
-    # Always use fixed back cover with logo
-    fixed_back_cover = '/static/images/fixed_pages/back_cover.png'
-    if os.path.exists('static/images/fixed_pages/back_cover.png'):
-        full_preview.append(fixed_back_cover)
+    # Use book-specific fixed back cover if available, otherwise fall back to dynamic or generic
+    _bid_preview = story_data.get('story_id', story_data.get('book_id', ''))
+    _fixed_back_covers_preview = {
+        "dragon_garden": "static/images/fixed_pages/dragon_garden_back_cover.png",
+        "magic_chef": "static/images/fixed_pages/magic_chef_back_cover.png",
+        "magic_inventor": "static/images/fixed_pages/magic_inventor_back_cover.png",
+        "star_keeper": "static/images/fixed_pages/star_keeper_back_cover.png",
+        "furry_love": "static/images/fixed_pages/furry_love_baby_back_cover.png",
+        "furry_love_adventure": "static/images/fixed_pages/furry_love_adventure_back_cover.png",
+        "furry_love_teen": "static/images/fixed_pages/furry_love_teen_back_cover.png",
+        "furry_love_adult": "static/images/fixed_pages/furry_love_adult_back_cover.png",
+        "centinela_aurora": "static/images/fixed_pages/centinela_aurora_back_cover.png",
+        "centinela_aurora_illustrated": "static/images/fixed_pages/centinela_aurora_back_cover.png",
+    }
+    _book_specific_back = _fixed_back_covers_preview.get(_bid_preview)
+    if _book_specific_back and os.path.exists(_book_specific_back):
+        full_preview.append('/' + _book_specific_back)
+        has_back_cover = True
+    elif os.path.exists('static/images/fixed_pages/back_cover.png'):
+        full_preview.append('/static/images/fixed_pages/back_cover.png')
         has_back_cover = True
     else:
         back_cover = story_data.get('back_cover_preview') or story_data.get('back_cover_path')
@@ -2725,6 +3090,11 @@ def story_checkout(preview_id):
     with open(preview_file, 'r', encoding='utf-8') as f:
         story_data = json.load(f)
     
+    # If story is already paid, redirect directly to order-complete
+    _already_paid = story_data.get('paid', False) or story_data.get('payment_status') == 'admin_gift'
+    if _already_paid:
+        return redirect(url_for('order_complete', preview_id=preview_id))
+    
     story_id = story_data.get('story_id', '')
     test_mode = request.args.get('test') == '1'
     lang = get_lang()
@@ -2732,9 +3102,10 @@ def story_checkout(preview_id):
     from services.quick_stories.checkout import ALL_QUICK_FAMILY_IDS
     from services.personalized_books.checkout import PERSONALIZED_BOOK_IDS
     
+    _is_universos = story_id in PERSONALIZED_BOOK_IDS
     ebook_config = {
         'allow_ebook': True,
-        'ebook_base_price': Config.EBOOK_BASE_PRICE / 100.0,
+        'ebook_base_price': Config.UNIVERSOS_EBOOK_PRICE // 100 if _is_universos else Config.EBOOK_BASE_PRICE // 100,
         'ebook_product_type': 'ebook',
     }
     
@@ -2743,8 +3114,8 @@ def story_checkout(preview_id):
             'product_type': 'quick_story',
             'allow_digital': True,
             'allow_print': True,
-            'digital_base_price': Config.QS_DIGITAL_BASE_PRICE / 100.0,
-            'print_base_price': Config.QS_PRINT_BASE_PRICE / 100.0,
+            'digital_base_price': Config.QS_DIGITAL_BASE_PRICE // 100,
+            'print_base_price': Config.QS_PRINT_BASE_PRICE // 100,
             'digital_product_type': 'qs_digital',
             'print_product_type': 'qs_print',
             'product_description': 'PDF digital + PDF imprimible' if lang == 'es' else 'Digital PDF + printable PDF',
@@ -2755,15 +3126,18 @@ def story_checkout(preview_id):
     elif story_id in PERSONALIZED_BOOK_IDS:
         checkout_config = {
             'product_type': 'personalized',
-            'allow_digital': True,
+            'allow_digital': False,
+            'allow_pdf': True,
             'allow_print': True,
-            'digital_base_price': Config.PERSONALIZED_BASE_PRICE / 100.0,
-            'print_base_price': Config.PERSONALIZED_BASE_PRICE / 100.0,
-            'digital_product_type': 'personalized',
-            'print_product_type': 'personalized',
-            'product_description': '24 páginas, 19 ilustraciones, PDF digital' if lang == 'es' else '24 pages, 19 illustrations, digital PDF',
-            'print_description_es': 'Libro tapa dura A4',
-            'print_description_en': 'A4 hardcover book',
+            'pdf_base_price': Config.PERSONALIZED_PDF_PRICE // 100,
+            'pdf_product_type': 'personalized_pdf',
+            'pdf_description_es': 'PDF de alta resolución para imprimir en casa o copistería (26 págs). Entrega por email.',
+            'pdf_description_en': 'High-res PDF to print at home or a copy shop (26 pages). Email delivery.',
+            'print_base_price': Config.CP_PB_BASE_PRICE // 100,
+            'print_product_type': 'cp_personalized',
+            'product_description': '26 páginas, 19 ilustraciones, tapa dura' if lang == 'es' else '26 pages, 19 illustrations, hardcover',
+            'print_description_es': 'Libro tapa dura A4 (impreso y enviado por Cloudprinter)',
+            'print_description_en': 'A4 hardcover book (printed & shipped by Cloudprinter)',
             **ebook_config,
         }
     else:
@@ -2771,22 +3145,27 @@ def story_checkout(preview_id):
             'product_type': 'personalized',
             'allow_digital': True,
             'allow_print': True,
-            'digital_base_price': Config.PERSONALIZED_BASE_PRICE / 100.0,
-            'print_base_price': Config.PERSONALIZED_BASE_PRICE / 100.0,
+            'digital_base_price': Config.PERSONALIZED_BASE_PRICE // 100,
+            'print_base_price': Config.PERSONALIZED_BASE_PRICE // 100,
             'digital_product_type': 'personalized',
-            'print_product_type': 'personalized',
+            'print_product_type': 'personalized_print',
             'product_description': 'PDF digital' if lang == 'es' else 'Digital PDF',
             'print_description_es': 'Libro tapa dura',
             'print_description_en': 'Hardcover book',
             **ebook_config,
         }
     
+    from services.cloudprinter_api_service import CLOUDPRINTER_AVAILABLE_COUNTRIES
+    _cp_countries = sorted(CLOUDPRINTER_AVAILABLE_COUNTRIES)
+
     return render_template('checkout_unified.html',
                           preview_id=preview_id,
                           story_data=story_data,
                           paypal_client_id=Config.PAYPAL_CLIENT_ID,
                           checkout_config=checkout_config,
-                          test_mode=test_mode)
+                          test_mode=test_mode,
+                          excluded_countries=[],
+                          cp_countries=_cp_countries)
 
 def correct_spelling(text: str, language: str = 'es') -> str:
     """
@@ -2862,102 +3241,402 @@ def update_story_data(preview_id):
 
 @app.route('/api/validate-address', methods=['POST'])
 def validate_address():
-    """Validate shipping address using Lulu API."""
-    from services.lulu_api_service import validate_shipping_address
-    
+    """Address validation. For US addresses verifies ZIP via zippopotam.us and auto-corrects city/state."""
+    import requests as _req
     data = request.get_json()
     if not data:
         return jsonify({'valid': False, 'message': 'No address data provided'}), 400
-    
-    result = validate_shipping_address(data)
-    return jsonify(result)
 
+    cc = (data.get('country_code') or '').upper()
+    postal = (data.get('postcode') or '').strip()
+    data = dict(data)
 
-@app.route('/api/shipping-costs', methods=['POST'])
-def get_shipping_costs():
-    """Get shipping costs for all methods based on country code."""
-    from services.lulu_api_service import get_all_shipping_costs
-    
-    data = request.get_json()
-    country_code = data.get('country_code', 'US')
-    
-    costs = get_all_shipping_costs(country_code)
-    return jsonify(costs)
+    required_fields = ['name', 'street1', 'city', 'country_code']
+    missing = [f for f in required_fields if not data.get(f)]
+    if missing:
+        return jsonify({'valid': False, 'message': f'Missing required fields: {", ".join(missing)}'})
+
+    # ── Unified Nominatim (OpenStreetMap) validation — US + international ──────
+    city = (data.get('city') or '').strip()
+    _nm_headers = {'User-Agent': 'MagicMemoriesBooks/1.0 (checkout-address-validation)'}
+    if city and postal:
+        try:
+            if cc == 'US':
+                zip5 = ''.join(filter(str.isdigit, postal))[:5]
+                if len(zip5) == 5:
+                    rn = _req.get('https://nominatim.openstreetmap.org/search',
+                                  params={'postalcode': zip5, 'country': 'US',
+                                          'format': 'json', 'limit': 1, 'addressdetails': 1},
+                                  headers=_nm_headers, timeout=6)
+                    if rn.status_code == 200:
+                        results = rn.json()
+                        if results:
+                            addr = results[0].get('address', {})
+                            canon_city  = addr.get('city') or addr.get('town') or addr.get('village') or addr.get('county') or ''
+                            iso_state   = addr.get('ISO3166-2-lvl4', '')
+                            canon_state = iso_state.split('-')[-1] if '-' in iso_state else addr.get('state', '')
+                            if canon_city:
+                                data['postcode'] = zip5
+                                if not (data.get('city') or '').strip():
+                                    data['city'] = canon_city
+                                if not (data.get('state_code') or '').strip():
+                                    data['state_code'] = canon_state
+                                city_ok  = (data.get('city') or '').lower() == canon_city.lower()
+                                state_ok = (data.get('state_code') or '').upper() == canon_state.upper()
+                                if not city_ok or not state_ok:
+                                    suggested = dict(data)
+                                    suggested['city']       = canon_city
+                                    suggested['state_code'] = canon_state
+                                    print(f'[VALIDATE-ADDRESS] Nominatim US: ZIP {zip5} → {canon_city}, {canon_state} (input: {data.get("city")}, {data.get("state_code")})')
+                                    return jsonify({
+                                        'valid': True,
+                                        'auto_corrected': False,
+                                        'suggested_address': suggested,
+                                        'zip_city': canon_city,
+                                        'zip_state': canon_state,
+                                    })
+                        else:
+                            print(f'[VALIDATE-ADDRESS] Nominatim: ZIP {zip5} not found in US')
+                            return jsonify({
+                                'valid': True,
+                                'warning': True,
+                                'message': f'ZIP code {zip5} could not be verified. Please double-check.',
+                                'message_es': f'El código postal {zip5} no pudo verificarse. Por favor revisa.',
+                            })
+            else:
+                rn = _req.get('https://nominatim.openstreetmap.org/search',
+                              params={'postalcode': postal, 'city': city, 'country': cc,
+                                      'format': 'json', 'limit': 1, 'addressdetails': 0},
+                              headers=_nm_headers, timeout=6)
+                if rn.status_code == 200:
+                    results = rn.json()
+                    if isinstance(results, list) and len(results) == 0:
+                        rp = _req.get('https://nominatim.openstreetmap.org/search',
+                                      params={'postalcode': postal, 'country': cc,
+                                              'format': 'json', 'limit': 1},
+                                      headers=_nm_headers, timeout=5)
+                        if rp.status_code == 200 and isinstance(rp.json(), list) and len(rp.json()) == 0:
+                            print(f'[VALIDATE-ADDRESS] Nominatim: postal {postal} not found in {cc}')
+                            return jsonify({
+                                'valid': True, 'warning': True,
+                                'message': f'Postal code {postal} may not be valid for {cc}. Please double-check.',
+                                'message_es': f'El código postal {postal} puede no ser válido para {cc}. Por favor verifica.',
+                            })
+                        else:
+                            print(f'[VALIDATE-ADDRESS] Nominatim: city "{city}" may not match postal {postal} in {cc}')
+                            return jsonify({
+                                'valid': True, 'warning': True,
+                                'message': f'City "{city}" may not match postal code {postal}. Please verify your address.',
+                                'message_es': f'La ciudad "{city}" puede no corresponder al código postal {postal}. Por favor verifica.',
+                            })
+                    else:
+                        print(f'[VALIDATE-ADDRESS] Nominatim: {cc} {postal} {city} → OK')
+        except Exception as _ne:
+            print(f'[VALIDATE-ADDRESS] Nominatim lookup failed (fail-open): {_ne}')
+
+    return jsonify({'valid': True, 'message': 'Address looks valid'})
 
 
 @app.route('/api/qs-shipping-costs', methods=['POST'])
 def get_qs_shipping_costs():
-    """Get shipping costs for Quick Stories (saddle stitch 8.5x8.5) based on country code."""
-    from services.lulu_api_service import get_all_shipping_costs
-    
-    data = request.get_json()
-    country_code = data.get('country_code', 'US')
-    
-    QS_POD_PACKAGE_ID = '0850X0850FCPRESS080CW444GXX'
-    QS_PAGE_COUNT = 10
-    
-    costs = get_all_shipping_costs(country_code, page_count=QS_PAGE_COUNT, pod_package_id=QS_POD_PACKAGE_ID)
-    return jsonify(costs)
+    """Get Cloudprinter shipping options for Quick Stories (A4 saddle-stitch, magazine_sas_a4_p_fc)."""
+    from services.cloudprinter_api_service import get_shipping_quote
+    data = request.get_json() or {}
+    country_code = data.get('country_code', 'ES')
+    state_code = data.get('state_code', '')
+    options = get_shipping_quote(country_code, state_code=state_code)
+    return jsonify(options)
 
 
 @app.route('/api/calculate-dynamic-price', methods=['POST'])
 def calculate_dynamic_price():
-    """Calculate dynamic price: base_price + Lulu total cost for each shipping method.
-    Returns price breakdown for all available shipping options.
+    """Calculate dynamic price for all product types.
+    qs_print → Cloudprinter; gelato_* → Gelato; pdf → fixed price.
     """
-    from services.lulu_api_service import get_all_shipping_costs
-    
     data = request.get_json()
     if not data:
         return jsonify({'error': 'No data provided'}), 400
-    
+
+    # $1.50 added to each Cloudprinter shipping option to cover EUR/USD exchange variance
+    _CP_SHIPPING_SURCHARGE_USD = 1.50
+
     product_type = data.get('product_type', 'personalized')
     country_code = data.get('country_code', 'US')
-    
-    if product_type == 'qs_print':
-        base_price_cents = Config.QS_PRINT_BASE_PRICE
-        pod_package_id = '0850X0850FCPRESS080CW444GXX'
-        page_count = 10
-    else:
-        base_price_cents = Config.PERSONALIZED_BASE_PRICE
-        pod_package_id = '0827X1169FCPRECW080CW444GXX'
-        page_count = 24
-    
-    base_price_dollars = base_price_cents / 100.0
-    
-    lulu_costs = get_all_shipping_costs(country_code, page_count=page_count, pod_package_id=pod_package_id)
-    
-    if isinstance(lulu_costs, dict) and lulu_costs.get('error'):
-        return jsonify({'error': lulu_costs['error']}), 500
-    
-    pricing_options = {}
-    for method, cost_data in lulu_costs.items():
-        lulu_total = cost_data.get('total_cost', 0)
-        customer_total = round(base_price_dollars + lulu_total, 2)
-        customer_total_cents = int(customer_total * 100)
-        
-        net_profit = round(customer_total - base_price_dollars, 2)
-        
-        pricing_options[method] = {
-            'name_es': cost_data.get('name_es', method),
-            'name_en': cost_data.get('name_en', method),
-            'days': cost_data.get('days', ''),
-            'base_price': base_price_dollars,
-            'lulu_cost': lulu_total,
-            'lulu_shipping': cost_data.get('shipping_cost', 0),
-            'customer_total': customer_total,
-            'customer_total_cents': customer_total_cents,
-            'net_profit': net_profit,
 
+    if product_type == 'qs_print':
+        from services.cloudprinter_api_service import (
+            get_shipping_quote, CLOUDPRINTER_AVAILABLE_COUNTRIES, COUNTRIES_NEEDING_STATE
+        )
+        base_price_dollars = Config.QS_PRINT_BASE_PRICE / 100.0
+        state_code = data.get('state_code', '').strip().upper()
+        cc = country_code.upper()
+
+        if cc not in CLOUDPRINTER_AVAILABLE_COUNTRIES:
+            return jsonify({
+                'error': 'no_shipping_to_country',
+                'message_es': 'No podemos enviar a este país. Puedes elegir el PDF imprimible.',
+                'message_en': 'We cannot ship to this country. You can choose the printable PDF.',
+                'options': {}
+            }), 422
+
+        if cc in COUNTRIES_NEEDING_STATE and state_code and len(state_code) > 3:
+            return jsonify({
+                'error': 'invalid_state_code',
+                'message_es': 'Introduce el código de estado de 2 letras (ej: GA para Georgia, TX para Texas, CA para California).',
+                'message_en': 'Please enter the 2-letter state code (e.g. GA for Georgia, TX for Texas, CA for California).',
+                'options': {}
+            }), 422
+
+        cp_options = get_shipping_quote(cc, state_code=state_code)
+        if not cp_options:
+            return jsonify({
+                'error': 'no_shipping_options',
+                'message_es': 'No hay opciones de envío disponibles para este destino.',
+                'message_en': 'No shipping options available for this destination.',
+                'options': {}
+            }), 422
+
+        pricing_options = {}
+        for uid, opt in cp_options.items():
+            # CP returns USD directly (currency=USD in quote payload) — add $1.50 buffer
+            ship_usd = round(float(opt.get('cp_cost_usd', opt.get('total_usd', 15.0))) + _CP_SHIPPING_SURCHARGE_USD, 2)
+            total_usd = round(base_price_dollars + ship_usd, 2)
+            pricing_options[uid] = {
+                'name_es': opt.get('name_es', 'Envío Estándar'),
+                'name_en': opt.get('name_en', 'Standard Shipping'),
+                'days': opt.get('days_es', '7-15 días hábiles'),
+                'days_es': opt.get('days_es', '7-15 días hábiles'),
+                'days_en': opt.get('days_en', '7-15 business days'),
+                'base_price': base_price_dollars,
+                'cp_cost': ship_usd,
+                'cp_cost_usd': ship_usd,
+                'print_cost_usd': float(opt.get('print_cost_usd', 0)),
+                'customer_total': total_usd,
+                'customer_total_cents': int(total_usd * 100),
+                'shipping_level': uid,
+            }
+        print(f"[DYNAMIC PRICE] qs_print (CP) to {cc}{' state=' + state_code if state_code else ''}: {list(pricing_options.keys())}")
+        return jsonify({
+            'product_type': product_type,
+            'base_price': base_price_dollars,
+            'country_code': cc,
+            'options': pricing_options
+        })
+    elif product_type == 'personalized_pdf':
+        pdf_price = Config.PERSONALIZED_PDF_PRICE / 100.0
+        print(f"[DYNAMIC PRICE] personalized_pdf: fixed ${pdf_price}")
+        return jsonify({
+            'product_type': product_type,
+            'base_price': pdf_price,
+            'no_shipping': True,
+            'options': {
+                'pdf': {
+                    'name_es': 'PDF Imprimible',
+                    'name_en': 'Printable PDF',
+                    'days_es': 'Entrega inmediata por email',
+                    'days_en': 'Immediate email delivery',
+                    'total': pdf_price,
+                    'total_cents': int(pdf_price * 100),
+                }
+            }
+        })
+    elif product_type == 'cp_personalized':
+        from services.cloudprinter_api_service import (
+            get_pb_shipping_quote, CLOUDPRINTER_AVAILABLE_COUNTRIES, COUNTRIES_NEEDING_STATE
+        )
+        base_price_dollars = Config.CP_PB_BASE_PRICE / 100.0
+        state_code = data.get('state_code', '').strip().upper()
+        cc = country_code.upper()
+
+        if cc not in CLOUDPRINTER_AVAILABLE_COUNTRIES:
+            return jsonify({
+                'error': 'no_shipping_to_country',
+                'message_es': 'No podemos enviar a este país. Puedes elegir el PDF imprimible.',
+                'message_en': 'We cannot ship to this country. You can choose the printable PDF.',
+                'options': {}
+            }), 422
+
+        if cc in COUNTRIES_NEEDING_STATE and state_code and len(state_code) > 3:
+            return jsonify({
+                'error': 'invalid_state_code',
+                'message_es': 'Introduce el código de estado de 2 letras (ej: GA para Georgia, TX para Texas, CA para California).',
+                'message_en': 'Please enter the 2-letter state code (e.g. GA for Georgia, TX for Texas, CA for California).',
+                'options': {}
+            }), 422
+
+        cp_options = get_pb_shipping_quote(cc, state_code=state_code)
+        if not cp_options:
+            return jsonify({
+                'error': 'no_shipping_options',
+                'message_es': 'No hay opciones de envío disponibles para este destino.',
+                'message_en': 'No shipping options available for this destination.',
+                'options': {}
+            }), 422
+
+        pricing_options = {}
+        for uid, opt in cp_options.items():
+            # CP returns USD directly (currency=USD in quote payload) — add $1.50 buffer
+            ship_usd   = round(float(opt.get('cp_cost_usd', opt.get('cp_cost_eur', 15.0))) + _CP_SHIPPING_SURCHARGE_USD, 2)
+            print_usd  = float(opt.get('print_cost_usd', opt.get('print_cost_eur', 0)))
+            total_usd  = round(base_price_dollars + ship_usd, 2)
+            pricing_options[uid] = {
+                'name_es':             opt.get('name_es', 'Envío Estándar'),
+                'name_en':             opt.get('name_en', 'Standard Shipping'),
+                'days':                opt.get('days_es', '7-15 días hábiles'),
+                'days_es':             opt.get('days_es', '7-15 días hábiles'),
+                'days_en':             opt.get('days_en', '7-15 business days'),
+                'service':             opt.get('service', ''),
+                'carrier':             opt.get('carrier', ''),
+                'base_price':          base_price_dollars,
+                'cp_cost':             ship_usd,
+                'cp_cost_usd':         ship_usd,
+                'print_cost_usd':      print_usd,
+                'customer_total':      total_usd,
+                'customer_total_cents': int(total_usd * 100),
+                'shipping_level':      opt.get('shipping_level', uid),
+            }
+        print(f"[DYNAMIC PRICE] cp_personalized (CP) to {cc}: {list(pricing_options.keys())}")
+        return jsonify({
+            'product_type': product_type,
+            'base_price': base_price_dollars,
+            'country_code': cc,
+            'options': pricing_options
+        })
+    elif product_type in ('gelato_personalized', 'personalized_print', 'universo_print'):
+        from services.gelato_api_service import get_shipping_quote
+        base_price_dollars = Config.PERSONALIZED_BASE_PRICE / 100.0
+        postal_code = data.get('postal_code') or None
+        gelato_options = get_shipping_quote(country_code, postal_code=postal_code)
+        if not gelato_options:
+            print(f"[DYNAMIC PRICE] gelato_personalized to {country_code}: Gelato API returned no options, using fallback")
+            gelato_options = {
+                'express': {
+                    'name_es': 'Envío Express — Gelato',
+                    'name_en': 'Express Shipping — Gelato',
+                    'days_es': '5-10 días hábiles',
+                    'days_en': '5-10 business days',
+                    'gelato_cost': 18.0,
+                }
+            }
+        pricing_options = {}
+        for uid, opt in gelato_options.items():
+            gelato_cost = float(opt['gelato_cost'])
+            pricing_options[uid] = {
+                'name_es': opt['name_es'],
+                'name_en': opt['name_en'],
+                'days_es': opt.get('days_es', ''),
+                'days_en': opt.get('days_en', ''),
+                'days': opt.get('days_es', ''),
+                'book_base_price': base_price_dollars,
+                'gelato_cost': gelato_cost,
+                'total': round(base_price_dollars + gelato_cost, 2),
+                'total_cents': int((base_price_dollars + gelato_cost) * 100),
+            }
+        print(f"[DYNAMIC PRICE] gelato_personalized to {country_code}: {list(pricing_options.keys())}")
+        return jsonify({
+            'product_type': product_type,
+            'base_price': base_price_dollars,
+            'country_code': country_code,
+            'options': pricing_options
+        })
+    else:
+        return jsonify({'error': f'Unknown product_type: {product_type}'}), 400
+
+
+@app.route('/api/gelato-quote', methods=['POST'])
+def gelato_quote():
+    """
+    Return real-time Gelato shipping options and costs for a given country.
+    Accepts: {country_code: str, postal_code: str (optional)}
+    Returns: {book_base_price, country_code, options: {uid: {name_es, name_en, days_es, days_en, gelato_cost, total, total_cents}}}
+    On failure: {error: str, options: {}}
+    """
+    from services.gelato_api_service import get_shipping_quote
+    data = request.get_json() or {}
+    country_code = (data.get('country_code') or 'US').upper().strip()
+    postal_code = (data.get('postal_code') or '').strip() or None
+
+    book_base_price = Config.PERSONALIZED_BASE_PRICE / 100.0
+    gelato_options = get_shipping_quote(country_code, postal_code=postal_code)
+
+    if not gelato_options:
+        print(f"[GELATO QUOTE API] No options for {country_code} (postal: {postal_code})")
+        return jsonify({
+            'book_base_price': book_base_price,
+            'country_code': country_code,
+            'options': {},
+            'error': 'no_options',
+        }), 200
+
+    options = {}
+    for uid, opt in gelato_options.items():
+        gelato_cost = round(float(opt['gelato_cost']), 2)
+        total = round(book_base_price + gelato_cost, 2)
+        options[uid] = {
+            'name_es': opt['name_es'],
+            'name_en': opt['name_en'],
+            'days_es': opt.get('days_es', ''),
+            'days_en': opt.get('days_en', ''),
+            'gelato_cost': gelato_cost,
+            'book_base_price': book_base_price,
+            'total': total,
+            'total_cents': int(total * 100),
         }
-    
-    print(f"[DYNAMIC PRICE] {product_type} to {country_code}: {len(pricing_options)} options calculated")
-    
+
+    print(f"[GELATO QUOTE API] {country_code} (postal: {postal_code}): {list(options.keys())}")
     return jsonify({
-        'product_type': product_type,
-        'base_price': base_price_dollars,
+        'book_base_price': book_base_price,
         'country_code': country_code,
-        'options': pricing_options
+        'options': options,
+    })
+
+
+@app.route('/api/cp-pb-quote', methods=['POST'])
+def cp_pb_quote():
+    """
+    Return real-time Cloudprinter shipping options for the casewrap hardcover book.
+    Accepts: {country_code: str}
+    Returns: {book_base_price, country_code, options: {level: {name_es, name_en, days_es, days_en, ship_cost, total, total_cents}}}
+    On failure: {error: str, options: {}}
+    """
+    from services.cloudprinter_api_service import get_pb_shipping_quote
+    data = request.get_json() or {}
+    country_code = (data.get('country_code') or 'US').upper().strip()
+
+    book_base_price = Config.CP_PB_BASE_PRICE / 100.0
+    cp_options = get_pb_shipping_quote(country_code)
+
+    if not cp_options:
+        print(f"[CP-PB QUOTE API] No options for {country_code}")
+        return jsonify({
+            'book_base_price': book_base_price,
+            'country_code': country_code,
+            'options': {},
+            'error': 'no_options',
+        }), 200
+
+    options = {}
+    for level, opt in cp_options.items():
+        # cp_cost_eur is the shipping component returned by get_pb_shipping_quote()
+        ship_cost = round(float(opt.get('cp_cost_eur', opt.get('ship_cost', 0))), 2)
+        total = round(book_base_price + ship_cost, 2)
+        options[level] = {
+            'name_es': opt.get('name_es', level),
+            'name_en': opt.get('name_en', level),
+            'days_es': opt.get('days_es', ''),
+            'days_en': opt.get('days_en', ''),
+            'cp_cost_eur': ship_cost,
+            'ship_cost': ship_cost,
+            'book_base_price': book_base_price,
+            'total': total,
+            'total_cents': int(total * 100),
+        }
+
+    print(f"[CP-PB QUOTE API] {country_code}: {list(options.keys())}")
+    return jsonify({
+        'book_base_price': book_base_price,
+        'country_code': country_code,
+        'options': options,
     })
 
 
@@ -2981,6 +3660,7 @@ def api_request_coupon():
     data = request.get_json() or {}
     name = data.get('name', '').strip()
     email = data.get('email', '').strip().lower()
+    lang = data.get('lang') or session.get('lang', 'es')
     if not name or not email:
         return jsonify({'error': 'name and email required'}), 400
     try:
@@ -2990,7 +3670,7 @@ def api_request_coupon():
         lead = CouponLead(name=name, email=email, ip_address=request.remote_addr)
         db.session.add(lead)
         db.session.commit()
-        send_coupon_email(name=name, email=email, code='MAGIC20', discount_pct=20)
+        send_coupon_email(name=name, email=email, code='MAGIC15', discount_pct=15, lang=lang)
         return jsonify({'success': True, 'already_sent': False})
     except Exception as e:
         print(f"[COUPON] request-coupon error: {e}")
@@ -3002,6 +3682,7 @@ def api_validate_coupon():
     data = request.get_json() or {}
     code = data.get('code', '').strip().upper()
     buyer_email = data.get('buyer_email', '').strip().lower()
+    lang = data.get('lang', 'es')
     if not code:
         return jsonify({'valid': False, 'error': 'No code provided'}), 400
     try:
@@ -3013,11 +3694,15 @@ def api_validate_coupon():
         if max_uses > 0 and use_count >= max_uses:
             return jsonify({'valid': False, 'error': 'Code has reached maximum uses'})
         if buyer_email:
-            if coupon.coupon_type in ('influencer', 'referral'):
+            if coupon.coupon_type == 'open':
+                # Open/public promotional codes: no lead required, no per-email restriction
+                pass
+            elif coupon.coupon_type in ('influencer', 'referral'):
                 # Block if any usage exists (pending or paid)
                 already_used = CouponUsage.query.filter_by(coupon_code=code, buyer_email=buyer_email).first()
                 if already_used:
-                    return jsonify({'valid': False, 'error': 'Este código ya fue utilizado con este email'})
+                    msg = ('This code has already been used with this email' if lang == 'en' else 'Este código ya fue utilizado con este email')
+                    return jsonify({'valid': False, 'error': msg})
                 # Pre-register now to lock the email before payment completes
                 pending = CouponUsage(
                     coupon_code=code,
@@ -3030,14 +3715,22 @@ def api_validate_coupon():
                 db.session.commit()
                 print(f"[COUPON] Pre-registered usage: {code} by {buyer_email}")
             else:
-                # General coupon (e.g. MAGIC20): only block if a completed purchase exists
+                # General coupon (e.g. MAGIC15): must have been requested from homepage first
+                lead = CouponLead.query.filter_by(email=buyer_email).first()
+                if not lead:
+                    msg = ('This coupon is exclusive for those who requested it on our homepage. Get it free at magicmemoriesbooks.com'
+                           if lang == 'en' else
+                           'Este cupón es exclusivo para quienes lo solicitaron en nuestra página principal. Pídelo gratis en magicmemoriesbooks.com')
+                    return jsonify({'valid': False, 'error': msg})
+                # Block if a completed purchase already exists with this email
                 already_purchased = CouponUsage.query.filter(
                     CouponUsage.coupon_code == code,
                     CouponUsage.buyer_email == buyer_email,
                     CouponUsage.paypal_order_id != None  # noqa
                 ).first()
                 if already_purchased:
-                    return jsonify({'valid': False, 'error': 'Ya compraste un cuento con este cupón'})
+                    msg = ('You have already used this coupon for a purchase' if lang == 'en' else 'Ya compraste un cuento con este cupón')
+                    return jsonify({'valid': False, 'error': msg})
         return jsonify({'valid': True, 'discount_pct': coupon.discount_pct or 0, 'code': coupon.code})
     except Exception as e:
         print(f"[COUPON] validate-coupon error: {e}")
@@ -3048,6 +3741,56 @@ def api_validate_coupon():
 def paypal_create_order():
     import requests as req
     data = request.get_json() or {}
+
+    is_cart_mode = data.get('source') == 'cart'
+
+    if is_cart_mode:
+        from services.cart import cart_summary, cart_get_items
+        country_code = data.get('country_code', session.get('cart_country', ''))
+        summary = cart_summary(session, country_code)
+        if not summary['item_count']:
+            return jsonify({'error': 'Cart is empty'}), 400
+        if summary.get('has_physical') and not country_code:
+            return jsonify({'error': 'shipping_country_required'}), 400
+        final_amount = summary['total']
+        if final_amount < 0.01:
+            return jsonify({'error': 'Invalid cart total'}), 400
+        cart_snapshot = [dict(it) for it in cart_get_items(session)]
+        session['cart_expected_total'] = final_amount
+        session['cart_order_country'] = country_code
+        session['cart_snapshot'] = cart_snapshot
+        session.modified = True
+        try:
+            token = _get_paypal_access_token()
+            final_amount = round(float(final_amount), 2)  # Force exactly 2 decimals — PayPal rejects more
+            purchase_unit = {
+                "amount": {"currency_code": "USD", "value": f"{final_amount:.2f}"},
+                "description": f"Magic Memories Books — {summary['item_count']} item(s)"
+            }
+            order_payload = {
+                "intent": "CAPTURE",
+                "purchase_units": [purchase_unit],
+                "application_context": {
+                    "brand_name": "Magic Memories Books",
+                    "shipping_preference": "NO_SHIPPING"
+                }
+            }
+            resp = req.post(
+                f"{Config.PAYPAL_API_BASE}/v2/checkout/orders",
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                json=order_payload,
+                timeout=15
+            )
+            resp_data = resp.json()
+            print(f"[PAYPAL-CART] create-order: ${final_amount} for {summary['item_count']} items ({country_code})")
+            resp.raise_for_status()
+            session['cart_paypal_order_id'] = resp_data['id']
+            session.modified = True
+            return jsonify({'id': resp_data['id']})
+        except Exception as e:
+            print(f"[PAYPAL-CART] create-order error: {e}")
+            return jsonify({'error': str(e)}), 500
+
     amount_usd = data.get('amount_usd')
     if not amount_usd:
         return jsonify({'error': 'amount_usd required'}), 400
@@ -3073,10 +3816,10 @@ def paypal_create_order():
                     discounted_platform = max(round(platform_fee - discount, 2), 1.0)
                     total_amount = discounted_platform + lulu_cost
 
-        final_amount = total_amount
+        final_amount = round(total_amount, 2)  # Force exactly 2 decimals — PayPal rejects more
 
         purchase_unit = {
-            "amount": {"currency_code": "USD", "value": str(final_amount)},
+            "amount": {"currency_code": "USD", "value": f"{final_amount:.2f}"},
             "description": "Magic Memories Books"
         }
 
@@ -3112,6 +3855,27 @@ def paypal_capture_order():
     order_id = data.get('orderID')
     if not order_id:
         return jsonify({'error': 'orderID required'}), 400
+    if data.get('source') == 'cart':
+        from services.cart import cart_get_items
+        stored_order_id = session.get('cart_paypal_order_id')
+        if stored_order_id and order_id != stored_order_id:
+            print(f"[CART-SECURITY] Pre-capture order ID mismatch: submitted={order_id}, stored={stored_order_id}")
+            session.pop('cart_paypal_order_id', None)
+            session.pop('cart_snapshot', None)
+            session.pop('cart_expected_total', None)
+            session.modified = True
+            return jsonify({'error': 'Order ID does not match initiated payment', 'code': 'ORDER_MISMATCH'}), 409
+        cart_snapshot_pre = session.get('cart_snapshot')
+        if cart_snapshot_pre is not None:
+            current_ids_pre = {it['id'] for it in cart_get_items(session)}
+            snapshot_ids_pre = {it['id'] for it in cart_snapshot_pre}
+            if current_ids_pre != snapshot_ids_pre:
+                print(f"[CART-SECURITY] Pre-capture cart mismatch: snapshot={snapshot_ids_pre}, current={current_ids_pre}")
+                session.pop('cart_paypal_order_id', None)
+                session.pop('cart_snapshot', None)
+                session.pop('cart_expected_total', None)
+                session.modified = True
+                return jsonify({'error': 'Cart changed since payment was initiated', 'code': 'CART_MISMATCH'}), 409
     try:
         token = _get_paypal_access_token()
         resp = req.post(
@@ -3125,7 +3889,14 @@ def paypal_capture_order():
         if status != 'COMPLETED':
             return jsonify({'error': f'Payment not completed: {status}'}), 400
         payer_email = capture_data.get('payer', {}).get('email_address', '')
-        print(f"[PAYPAL] Order {order_id} captured. Payer: {payer_email}")
+        # Extract the actual captured amount from PayPal response
+        try:
+            _cap_pu = capture_data.get('purchase_units', [{}])[0]
+            _cap_captures = _cap_pu.get('payments', {}).get('captures', [{}])
+            captured_amount_usd = float(_cap_captures[0].get('amount', {}).get('value', 0)) if _cap_captures else 0.0
+        except Exception:
+            captured_amount_usd = 0.0
+        print(f"[PAYPAL] Order {order_id} captured. Payer: {payer_email}. Amount: ${captured_amount_usd:.2f}")
         coupon_code = data.get('coupon_code', '').strip().upper()
         buyer_email = data.get('buyer_email', '').strip().lower() or payer_email
         if coupon_code:
@@ -3165,10 +3936,373 @@ def paypal_capture_order():
                     print(f"[COUPON] Usage confirmed: {coupon_code} by {buyer_email} order={order_id}")
             except Exception as ce:
                 print(f"[COUPON] Error recording usage: {ce}")
-        return jsonify({'success': True, 'orderID': order_id, 'payer_email': payer_email, 'status': status})
+
+        if data.get('source') == 'cart':
+            from services.cart import cart_get_items, cart_clear, cart_summary
+            country_code = session.get('cart_order_country', data.get('country_code', ''))
+            shipping_address = data.get('shipping_address') or None
+            expected_total = session.get('cart_expected_total')
+            cart_snapshot = session.get('cart_snapshot')
+            if not cart_snapshot and not cart_get_items(session):
+                print(f"[CART-SECURITY] Cart empty and no snapshot at capture — possible session loss, order_id={order_id}")
+                return jsonify({'error': 'Cart session not found. Please try again or contact support.', 'code': 'SESSION_MISSING'}), 409
+            integrity_warnings = []
+            if expected_total is not None:
+                captured_amount = 0.0
+                try:
+                    pu = capture_data.get('purchase_units', [{}])[0] if capture_data else {}
+                    captured_amount = float(pu.get('amount', {}).get('value', 0))
+                except Exception:
+                    pass
+                if captured_amount > 0 and abs(captured_amount - float(expected_total)) > 0.05:
+                    msg = f"[CART-SECURITY] Amount mismatch: captured ${captured_amount}, expected ${expected_total} — order_id={order_id}"
+                    print(msg)
+                    integrity_warnings.append(msg)
+            if cart_snapshot is not None:
+                current_ids_post = {it['id'] for it in cart_get_items(session)}
+                snapshot_ids_post = {it['id'] for it in cart_snapshot}
+                if current_ids_post != snapshot_ids_post:
+                    msg = f"[CART-SECURITY] Post-capture cart mismatch: snapshot={snapshot_ids_post}, current={current_ids_post} — order_id={order_id}"
+                    print(msg)
+                    integrity_warnings.append(msg)
+            cart_items_for_fulfillment = cart_snapshot if cart_snapshot else cart_get_items(session)
+            amount_mismatch_warning = "; ".join(integrity_warnings) if integrity_warnings else None
+            summary = cart_summary(session, country_code)
+            total_usd = expected_total if expected_total else summary['total']
+            fulfilled_items = []
+            failed_items = []
+            for item in cart_items_for_fulfillment:
+                try:
+                    dispatched = _dispatch_cart_item(item, buyer_email, order_id, shipping_address=shipping_address)
+                    if dispatched:
+                        fulfilled_items.append({**item, 'paypal_order_id': order_id})
+                    else:
+                        print(f"[CART] Item {item.get('id')} dispatch returned False — skipping from fulfilled list")
+                        failed_items.append({'id': item.get('id'), 'product_type': item.get('product_type'), 'reason': 'dispatch_false'})
+                except Exception as item_err:
+                    print(f"[CART] Error dispatching item {item.get('id')}: {item_err}")
+                    failed_items.append({'id': item.get('id'), 'product_type': item.get('product_type'), 'reason': str(item_err)})
+            if failed_items or amount_mismatch_warning:
+                try:
+                    from services.email_service import send_admin_notification_email
+                    lines = [f"PayPal Order: {order_id}", f"Buyer: {buyer_email}", ""]
+                    if amount_mismatch_warning:
+                        lines.append(f"WARNING: {amount_mismatch_warning}")
+                        lines.append("")
+                    if failed_items:
+                        lines.append(f"FULFILLMENT FAILURES ({len(failed_items)} items):")
+                        for fi in failed_items:
+                            lines.append(f"  - id={fi['id']} type={fi['product_type']} reason={fi['reason']}")
+                    send_admin_notification_email(subject=f"[CART ALERT] Fulfillment issue order {order_id}", body="\n".join(lines))
+                except Exception as notify_err:
+                    print(f"[CART] Admin notification failed: {notify_err}")
+            session['last_cart_order'] = {
+                'items': fulfilled_items,
+                'buyer_email': buyer_email,
+                'paypal_order_id': order_id,
+                'total_usd': total_usd,
+                'lang': session.get('lang', 'es'),
+            }
+            session.pop('cart_expected_total', None)
+            session.pop('cart_order_country', None)
+            session.pop('cart_snapshot', None)
+            session.pop('cart_paypal_order_id', None)
+            session.modified = True
+            cart_clear(session)
+            t_email = threading.Thread(
+                target=_send_cart_order_email,
+                args=(buyer_email, fulfilled_items, total_usd, session.get('lang', 'es')),
+                daemon=True
+            )
+            t_email.start()
+            lang = session.get('lang', 'es')
+            return jsonify({'success': True, 'redirect_url': f'/cart/success?lang={lang}'})
+
+        return jsonify({'success': True, 'orderID': order_id, 'payer_email': payer_email, 'status': status, 'captured_amount_usd': captured_amount_usd})
     except Exception as e:
         print(f"[PAYPAL] capture-order error: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/cart')
+def cart_page():
+    from services.cart import cart_summary
+    lang = get_lang()
+    country_code = request.args.get('country', session.get('cart_country', ''))
+    if country_code:
+        session['cart_country'] = country_code
+    summary = cart_summary(session, country_code)
+    countries = [
+        ('AL', 'Albania', 'Albania'), ('DE', 'Alemania', 'Germany'), ('AR', 'Argentina', 'Argentina'),
+        ('AU', 'Australia', 'Australia'), ('AT', 'Austria', 'Austria'), ('BE', 'Bélgica', 'Belgium'),
+        ('BO', 'Bolivia', 'Bolivia'), ('BR', 'Brasil', 'Brazil'), ('BG', 'Bulgaria', 'Bulgaria'),
+        ('CA', 'Canadá', 'Canada'), ('CL', 'Chile', 'Chile'), ('CO', 'Colombia', 'Colombia'),
+        ('CR', 'Costa Rica', 'Costa Rica'), ('HR', 'Croacia', 'Croatia'), ('CY', 'Chipre', 'Cyprus'),
+        ('CZ', 'República Checa', 'Czech Republic'), ('DK', 'Dinamarca', 'Denmark'),
+        ('EC', 'Ecuador', 'Ecuador'), ('SV', 'El Salvador', 'El Salvador'),
+        ('ES', 'España', 'Spain'), ('US', 'Estados Unidos', 'United States'),
+        ('EE', 'Estonia', 'Estonia'), ('FI', 'Finlandia', 'Finland'),
+        ('FR', 'Francia', 'France'), ('GR', 'Grecia', 'Greece'), ('GT', 'Guatemala', 'Guatemala'),
+        ('HN', 'Honduras', 'Honduras'), ('HU', 'Hungría', 'Hungary'), ('IE', 'Irlanda', 'Ireland'),
+        ('IT', 'Italia', 'Italy'), ('JP', 'Japón', 'Japan'), ('LV', 'Letonia', 'Latvia'),
+        ('LT', 'Lituania', 'Lithuania'), ('LU', 'Luxemburgo', 'Luxembourg'),
+        ('MT', 'Malta', 'Malta'), ('MX', 'México', 'Mexico'), ('NO', 'Noruega', 'Norway'),
+        ('NZ', 'Nueva Zelanda', 'New Zealand'), ('NL', 'Países Bajos', 'Netherlands'),
+        ('PA', 'Panamá', 'Panama'), ('PY', 'Paraguay', 'Paraguay'), ('PE', 'Perú', 'Peru'),
+        ('PL', 'Polonia', 'Poland'), ('PT', 'Portugal', 'Portugal'),
+        ('GB', 'Reino Unido', 'United Kingdom'), ('DO', 'República Dominicana', 'Dominican Republic'),
+        ('RO', 'Rumania', 'Romania'), ('SK', 'Eslovaquia', 'Slovakia'), ('SI', 'Eslovenia', 'Slovenia'),
+        ('SE', 'Suecia', 'Sweden'), ('CH', 'Suiza', 'Switzerland'), ('TR', 'Turquía', 'Turkey'),
+        ('UY', 'Uruguay', 'Uruguay'), ('VE', 'Venezuela', 'Venezuela'),
+    ]
+    cart_items = summary.pop('items', [])
+    return render_template('cart.html',
+        lang=lang,
+        translations=TRANSLATIONS.get(lang, TRANSLATIONS['es']),
+        summary=summary,
+        cart_items=cart_items,
+        countries=countries,
+        paypal_client_id=Config.PAYPAL_CLIENT_ID,
+    )
+
+
+@app.route('/cart/success')
+def cart_success():
+    lang = request.args.get('lang', get_lang())
+    order_data = session.get('last_cart_order', {})
+    items = order_data.get('items', [])
+    buyer_email = order_data.get('buyer_email', '')
+    total_usd = order_data.get('total_usd', 0)
+    return render_template('cart_success.html',
+        lang=lang,
+        translations=TRANSLATIONS.get(lang, TRANSLATIONS['es']),
+        items=items,
+        buyer_email=buyer_email,
+        total_usd=total_usd,
+    )
+
+
+_CART_CANONICAL_PRICES = {
+    'qs_digital': lambda _sid='': Config.QS_DIGITAL_BASE_PRICE / 100.0,
+    'qs_print': lambda _sid='': Config.QS_PRINT_BASE_PRICE / 100.0,
+    'personalized_pdf': lambda _sid='': Config.PERSONALIZED_PDF_PRICE / 100.0,
+    'gelato_personalized': lambda _sid='': Config.PERSONALIZED_BASE_PRICE / 100.0,
+    'personalized_print': lambda _sid='': Config.PERSONALIZED_BASE_PRICE / 100.0,
+    'personalized': lambda _sid='': Config.PERSONALIZED_BASE_PRICE / 100.0,
+    'universo_ebook': lambda _sid='': Config.UNIVERSOS_EBOOK_PRICE / 100.0,
+    'universo_print': lambda _sid='': Config.PERSONALIZED_BASE_PRICE / 100.0,
+    'ebook': None,  # price determined dynamically from story type — see api_cart_add
+}
+
+
+_PREVIEW_ID_RE = re.compile(r'^[A-Za-z0-9_-]{4,120}$')
+
+
+@app.route('/api/cart/add', methods=['POST'])
+def api_cart_add():
+    from services.cart import cart_add_item, cart_count
+    data = request.get_json() or {}
+    preview_id = data.get('preview_id', '')
+    product_type = data.get('product_type', '')
+    if not preview_id or not product_type:
+        return jsonify({'success': False, 'error': 'preview_id and product_type required'}), 400
+    if not _PREVIEW_ID_RE.match(preview_id):
+        return jsonify({'success': False, 'error': 'Invalid preview_id format'}), 400
+    if product_type not in _CART_CANONICAL_PRICES:
+        return jsonify({'success': False, 'error': f'Unknown product_type: {product_type}'}), 400
+    preview_file = f'story_previews/{preview_id}.json'
+    if not os.path.exists(preview_file):
+        return jsonify({'success': False, 'error': 'Story preview not found'}), 404
+    child_name = ''
+    story_name = ''
+    cover_image = ''
+    story_id = ''
+    lang = get_lang()
+    story_data = {}
+    try:
+        with open(preview_file, 'r', encoding='utf-8') as f:
+            story_data = json.load(f)
+        child_name = story_data.get('child_name', '')
+        story_name = story_data.get('story_name', '')
+        cover_image = story_data.get('cover_image', '') or story_data.get('character_preview', '')
+        story_id = story_data.get('story_id', '')
+        lang = story_data.get('lang', lang)
+    except Exception as e:
+        return jsonify({'success': False, 'error': 'Could not read story preview'}), 500
+    if product_type == 'ebook':
+        from services.personalized_books.checkout import PERSONALIZED_BOOK_IDS as _PB_IDS
+        base_price = Config.UNIVERSOS_EBOOK_PRICE / 100.0 if story_id in _PB_IDS else Config.EBOOK_BASE_PRICE / 100.0
+    else:
+        price_fn = _CART_CANONICAL_PRICES[product_type]
+        base_price = price_fn()
+    ebook_session_id = story_data.get('preview_id', preview_id) if story_data else preview_id
+    item_id = cart_add_item(
+        session, preview_id=preview_id, product_type=product_type,
+        child_name=child_name, story_name=story_name, price=base_price,
+        cover_image=cover_image, lang=lang, story_id=story_id,
+        ebook_session_id=ebook_session_id
+    )
+    print(f"[CART] Added item {item_id}: {product_type} @ ${base_price} for preview {preview_id}")
+    return jsonify({'success': True, 'item_id': item_id, 'item_count': cart_count(session)})
+
+
+@app.route('/api/cart/remove/<item_id>', methods=['DELETE'])
+def api_cart_remove(item_id):
+    from services.cart import cart_remove_item, cart_count
+    removed = cart_remove_item(session, item_id)
+    return jsonify({'success': removed, 'item_count': cart_count(session)})
+
+
+@app.route('/api/cart/summary')
+def api_cart_summary():
+    from services.cart import cart_summary
+    country = request.args.get('country', session.get('cart_country', ''))
+    if country:
+        session['cart_country'] = country
+    summary = cart_summary(session, country)
+    discounts_applied = []
+    if summary['free_shipping']:
+        discounts_applied.append({'type': 'free_shipping', 'description': 'Envío gratis (2+ libros físicos en EU/USA/UK)', 'amount': summary.get('shipping_original', summary.get('shipping', 0))})
+    return jsonify({
+        'subtotal': summary['subtotal'],
+        'shipping': summary['shipping'],
+        'total': summary['total'],
+        'free_shipping': summary['free_shipping'],
+        'has_physical': summary['has_physical'],
+        'item_count': summary['item_count'],
+        'upsell_show': summary['upsell_show'],
+        'country_code': summary['country_code'],
+        'discounts_applied': discounts_applied,
+    })
+
+
+def _normalize_cart_shipping_address(addr: dict) -> dict:
+    """Normalize cart-form shipping address keys to the canonical schema used
+    by Lulu / Gelato pipelines (street1, postcode, phone_number, etc.)."""
+    if not addr:
+        return {}
+    return {
+        'name': addr.get('name', '').strip(),
+        'street1': addr.get('street1', '') or addr.get('address_line_1', ''),
+        'street2': addr.get('street2', '') or addr.get('address_line_2', ''),
+        'city': addr.get('city', '').strip(),
+        'state_code': addr.get('state_code', '') or addr.get('state', ''),
+        'postcode': addr.get('postcode', '') or addr.get('postal_code', ''),
+        'country_code': addr.get('country_code', '').strip().upper(),
+        'phone_number': addr.get('phone_number', '') or addr.get('phone', ''),
+    }
+
+
+def _dispatch_cart_item(item: dict, buyer_email: str, paypal_order_id: str, shipping_address: dict = None):
+    """Dispatch post-payment processing for a single cart item."""
+    preview_id = item.get('preview_id', '')
+    product_type = item.get('product_type', '')
+    lang = item.get('lang', 'es')
+    if not _PREVIEW_ID_RE.match(preview_id):
+        print(f"[CART-DISPATCH] Rejected invalid preview_id: {preview_id!r}")
+        return False
+    preview_file = f'story_previews/{preview_id}.json'
+    abs_previews = os.path.abspath('story_previews')
+    abs_file = os.path.abspath(preview_file)
+    if not abs_file.startswith(abs_previews + os.sep):
+        print(f"[CART-DISPATCH] Path traversal attempt blocked: {preview_id!r}")
+        return False
+    if not os.path.exists(preview_file):
+        print(f"[CART-DISPATCH] Preview not found: {preview_id}")
+        return False
+    with open(preview_file, 'r', encoding='utf-8') as f:
+        story_data = json.load(f)
+    from datetime import timedelta
+    story_data['paid'] = True
+    story_data['paypal_order_id'] = paypal_order_id
+    story_data['payment_date'] = datetime.now().isoformat()
+    story_data['payment_status'] = 'completed'
+    story_data['customer_email'] = buyer_email
+    story_data['cart_purchase'] = True
+    _PHYSICAL_PRODUCT_TYPES = ('qs_print', 'gelato_personalized', 'personalized_print', 'universo_print', 'cp_personalized')
+    is_physical = product_type in _PHYSICAL_PRODUCT_TYPES
+    if shipping_address and is_physical:
+        story_data['shipping_address'] = _normalize_cart_shipping_address(shipping_address)
+    if product_type == 'personalized_pdf':
+        story_data['pdf_paid'] = True
+        story_data['pdf_order'] = True
+        story_data['want_print'] = False
+    elif product_type in ('gelato_personalized', 'personalized_print', 'universo_print', 'cp_personalized'):
+        story_data['want_print'] = True
+    elif product_type == 'qs_print':
+        story_data['want_print'] = True
+    else:
+        story_data['want_print'] = False
+        story_data['ebook_paid'] = True
+        story_data['ebook_expires_at'] = (datetime.utcnow() + timedelta(days=Config.EBOOK_EXPIRY_DAYS)).isoformat()
+    with open(preview_file, 'w', encoding='utf-8') as f:
+        json.dump(story_data, f, ensure_ascii=False, indent=2)
+    print(f"[CART-DISPATCH] Processing cart item: {product_type} for {preview_id}")
+    from services.personalized_books.generation import is_personalized_book as _check_pb
+    from services.quick_stories.checkout import is_quick_story as _check_qs
+    story_id = story_data.get('story_id', '')
+    if _check_pb(story_id):
+        if story_data.get('scenes_pending') and not story_data.get('scenes_generating'):
+            _trigger_background_generation(preview_id)
+        elif not story_data.get('pages_composed', False) and not story_data.get('book_composing', False):
+            _trigger_personalized_book_composition(preview_id)
+        elif story_data.get('pages_composed', False):
+            if product_type in ('gelato_personalized', 'personalized_print', 'universo_print', 'cp_personalized'):
+                already_done = story_data.get('admin_notified', False) or (
+                    product_type == 'cp_personalized' and story_data.get('cp_pdfs_ready', False)
+                )
+                if not already_done:
+                    print(f"[CART-DISPATCH] {product_type} — already composed, starting post-payment for {preview_id}")
+                    t = threading.Thread(target=_process_personalized_book_post_payment, args=(preview_id, buyer_email), daemon=True)
+                    t.start()
+        if product_type == 'personalized_pdf':
+            t_pdf = threading.Thread(target=_dispatch_printable_pdf_email, args=(preview_id, buyer_email, lang), daemon=True)
+            t_pdf.start()
+    elif _check_qs(story_id):
+        if story_data.get('scenes_pending'):
+            _trigger_background_generation(preview_id)
+        elif product_type == 'qs_print' and not story_data.get('cp_submitted', story_data.get('lulu_submitted', False)):
+            print(f"[CART-DISPATCH] qs_print — starting Cloudprinter print for {preview_id}")
+            t = threading.Thread(target=_process_quick_story_print, args=(preview_id, buyer_email), daemon=True)
+            t.start()
+        if not story_data.get('visor_uploaded', False):
+            print(f"[CART-DISPATCH] Quick Story — generating visor/ebook for {preview_id}")
+            t = threading.Thread(target=_process_ebook_generation, args=(preview_id, buyer_email), daemon=True)
+            t.start()
+    else:
+        t = threading.Thread(target=_process_ebook_generation, args=(preview_id, buyer_email), daemon=True)
+        t.start()
+    return True
+
+
+def _send_cart_order_email(buyer_email: str, items: list, total_usd: float, lang: str = 'es'):
+    """Send cart confirmation email with per-item access/tracking links."""
+    if not buyer_email:
+        return
+    import time as _t
+    _t.sleep(3)
+    enriched = []
+    for item in items:
+        item_copy = dict(item)
+        preview_id = item_copy.get('preview_id', '')
+        preview_file = f'story_previews/{preview_id}.json'
+        if preview_id and os.path.exists(preview_file):
+            try:
+                with open(preview_file, 'r', encoding='utf-8') as f:
+                    sd = json.load(f)
+                item_copy['visor_url'] = sd.get('visor_url', '')
+                item_copy['pdf_download_url'] = sd.get('pdf_printable_path', '') or sd.get('pdf_download_url', '')
+                item_copy['cp_submitted'] = sd.get('cp_submitted', sd.get('lulu_submitted', False))
+                item_copy['gelato_order_id'] = sd.get('gelato_order_id', '')
+                item_copy['tracking_number'] = sd.get('tracking_number', '')
+            except Exception:
+                pass
+        enriched.append(item_copy)
+    try:
+        from services.email_service import send_cart_confirmation_email
+        send_cart_confirmation_email(buyer_email, enriched, total_usd, lang)
+    except Exception as e:
+        print(f"[CART-EMAIL] Error sending cart confirmation: {e}")
 
 
 @app.route('/api/save-checkout-data/<preview_id>', methods=['POST'])
@@ -3186,15 +4320,41 @@ def save_checkout_data(preview_id):
     want_print = data.get('want_print', False)
     email = data.get('email', '')
     shipping_address = data.get('shipping_address')
-    
+    formats = data.get('formats', [])
+    want_ebook = 'ebook' in formats
+    want_pdf = 'pdf' in formats
+
     story_data['want_print'] = bool(want_print)
+    story_data['want_ebook'] = bool(want_ebook)
+    story_data['want_pdf'] = bool(want_pdf)
     if email:
         story_data['customer_email'] = email
+    
+    buyer_country = data.get('buyer_country', '').strip().upper()
+    if buyer_country:
+        story_data['buyer_country'] = buyer_country
     
     shipping_method = data.get('shipping_method')
     if shipping_method and shipping_method != 'none':
         story_data['shipping_method'] = shipping_method
-    
+
+    product_type_incoming = data.get('product_type')
+    if product_type_incoming and not story_data.get('product_type'):
+        story_data['product_type'] = product_type_incoming
+    print_product_type_incoming = data.get('print_product_type')
+    if print_product_type_incoming and not story_data.get('print_product_type'):
+        story_data['print_product_type'] = print_product_type_incoming
+
+    cp_cost_eur = data.get('cp_cost_eur')
+    print_cost_eur = data.get('print_cost_eur')
+    customer_total_usd = data.get('customer_total_usd')
+    if cp_cost_eur is not None:
+        story_data['cp_cost_eur'] = float(cp_cost_eur)
+    if print_cost_eur is not None:
+        story_data['print_cost_eur'] = float(print_cost_eur)
+    if customer_total_usd is not None:
+        story_data['customer_total_usd'] = float(customer_total_usd)
+
     if want_print and shipping_address:
         story_data['shipping_address'] = {
             'name': shipping_address.get('name', ''),
@@ -3204,7 +4364,7 @@ def save_checkout_data(preview_id):
             'state_code': shipping_address.get('state_code', ''),
             'postcode': shipping_address.get('postcode', ''),
             'country_code': shipping_address.get('country_code', ''),
-            'phone_number': shipping_address.get('phone_number', ''),
+            'phone_number': shipping_address.get('phone_number', '') or shipping_address.get('phone', '') or data.get('phone', ''),
             'email': shipping_address.get('email', email)
         }
     
@@ -3341,11 +4501,13 @@ def process_payment(preview_id):
             _digital_price = float(_fp.get('digital', 0)) or (Config.QS_DIGITAL_BASE_PRICE if _is_qs else Config.PERSONALIZED_BASE_PRICE) / 100.0
             _print_price = float(_fp.get('print', 0)) or (Config.QS_PRINT_BASE_PRICE if _is_qs else Config.PERSONALIZED_BASE_PRICE) / 100.0
             _ebook_price = float(_fp.get('ebook', 0)) or Config.EBOOK_BASE_PRICE / 100.0
+            _pdf_price = float(_fp.get('pdf', 0)) or Config.PERSONALIZED_PDF_PRICE / 100.0
 
             _format_labels = {
                 'digital': (('Cuento Digital (PDF)', 'Digital Story (PDF)'), _digital_price),
                 'ebook': (('eBook Interactivo', 'Interactive eBook'), _ebook_price),
                 'print': (('Libro Impreso', 'Printed Book'), _print_price),
+                'pdf': (('PDF Imprimible', 'Printable PDF'), _pdf_price),
             }
             _line_items = []
             for fmt in _formats:
@@ -3360,6 +4522,17 @@ def process_payment(preview_id):
 
             if _total <= 0 and _line_items:
                 _total = sum(item['price'] for item in _line_items) + _shipping_cost
+
+            _subtotal = sum(item['price'] for item in _line_items)
+            if _subtotal > 0 and _total > 0 and (_subtotal + _shipping_cost - _total) > 0.015:
+                _discount_amount = round(_subtotal + _shipping_cost - _total, 2)
+                _coupon = data.get('coupon_code') or story_data.get('coupon_code', '')
+                if _coupon:
+                    _disc_label = f'Descuento ({_coupon})' if lang == 'es' else f'Discount ({_coupon})'
+                else:
+                    _disc_pct = round(_discount_amount / _subtotal * 100)
+                    _disc_label = f'Descuento ({_disc_pct}%)' if lang == 'es' else f'Discount ({_disc_pct}%)'
+                _line_items.append({'label': _disc_label, 'price': -_discount_amount})
 
             send_payment_confirmation_email(
                 email, child_name, recovery_url, lang,
@@ -3395,12 +4568,46 @@ def process_payment(preview_id):
         story_data['product_type'] = 'ebook'
         with open(preview_file, 'w', encoding='utf-8') as f:
             json.dump(story_data, f, ensure_ascii=False, indent=2)
+        try:
+            from services.vps_upload_service import make_ebook_permanent
+            make_ebook_permanent(preview_id)
+        except Exception as _perm_err:
+            print(f"[PAYMENT] make_ebook_permanent failed (non-fatal): {_perm_err}")
         t = threading.Thread(
             target=_process_ebook_generation,
             args=(preview_id, email),
             daemon=True
         )
         t.start()
+        return jsonify({
+            'success': True,
+            'redirect_url': f'/order-complete/{preview_id}'
+        })
+
+    if product_type == 'personalized_pdf':
+        print(f"[PAYMENT] PDF Imprimible purchase detected for {preview_id}")
+        story_data['pdf_paid'] = True
+        story_data['pdf_paid_at'] = datetime.now().isoformat()
+        story_data['product_type'] = 'personalized_pdf'
+        story_data['want_print'] = False
+        story_data['pdf_order'] = True
+        with open(preview_file, 'w', encoding='utf-8') as f:
+            json.dump(story_data, f, ensure_ascii=False, indent=2)
+        from services.personalized_books.generation import is_personalized_book as _check_pb
+        if _check_pb(story_id):
+            if story_data.get('scenes_pending') and not story_data.get('scenes_generating'):
+                print(f"[PAYMENT] personalized_pdf — scenes pending, launching scene generation...")
+                _trigger_background_generation(preview_id)
+            elif not story_data.get('pages_composed', False) and not story_data.get('book_composing', False):
+                print(f"[PAYMENT] personalized_pdf — launching book composition (no Gelato order)...")
+                _trigger_personalized_book_composition(preview_id)
+        lang_for_pdf = story_data.get('lang', 'es')
+        t_pdf = threading.Thread(
+            target=_dispatch_printable_pdf_email,
+            args=(preview_id, email, lang_for_pdf),
+            daemon=True
+        )
+        t_pdf.start()
         return jsonify({
             'success': True,
             'redirect_url': f'/order-complete/{preview_id}'
@@ -3414,8 +4621,9 @@ def process_payment(preview_id):
         elif not story_data.get('pages_composed', False) and not story_data.get('book_composing', False):
             print(f"[PAYMENT] Personalized book detected - launching background composition + Lulu...")
             _trigger_personalized_book_composition(preview_id)
-        elif not story_data.get('admin_notified', False):
-            print(f"[PAYMENT] Pages already composed, launching Lulu post-payment processing...")
+        elif not story_data.get('admin_notified', False) and not story_data.get('cp_pdfs_ready', False):
+            _pt_check = story_data.get('product_type', '')
+            print(f"[PAYMENT] Pages already composed, launching post-payment processing ({_pt_check})...")
             t = threading.Thread(
                 target=_process_personalized_book_post_payment,
                 args=(preview_id, email),
@@ -3430,16 +4638,16 @@ def process_payment(preview_id):
         if story_data.get('scenes_pending'):
             print(f"[PAYMENT] Quick Story scenes pending - launching background generation")
             _trigger_background_generation(preview_id)
-        elif want_print and not story_data.get('lulu_submitted', False):
-            print(f"[PAYMENT] Quick Story with print option - starting Lulu PDF generation...")
+        elif want_print and not story_data.get('cp_submitted', story_data.get('lulu_submitted', False)):
+            print(f"[PAYMENT] Quick Story with print option - starting Cloudprinter PDF generation...")
             t = threading.Thread(
                 target=_process_quick_story_print,
                 args=(preview_id, email),
                 daemon=True
             )
             t.start()
-        elif not want_print and not story_data.get('visor_uploaded', False):
-            print(f"[PAYMENT] Quick Story digital - generating visor as gift...")
+        if not story_data.get('visor_uploaded', False):
+            print(f"[PAYMENT] Quick Story - generating visor as gift (print or digital)...")
             t = threading.Thread(
                 target=_process_ebook_generation,
                 args=(preview_id, email),
@@ -3447,7 +4655,7 @@ def process_payment(preview_id):
             )
             t.start()
         else:
-            print(f"[PAYMENT] Quick Story already processed for {preview_id}, skipping")
+            print(f"[PAYMENT] Quick Story visor already generated for {preview_id}, skipping")
     
     return jsonify({
         'success': True,
@@ -3506,6 +4714,17 @@ def order_complete(preview_id):
     
     is_furry_love = story_data.get('is_furry_love', False)
     
+    buyer_country = story_data.get('buyer_country', '').strip().upper()
+    try:
+        from services.cloudprinter_api_service import CLOUDPRINTER_AVAILABLE_COUNTRIES
+        cp_available = (not buyer_country) or (buyer_country in CLOUDPRINTER_AVAILABLE_COUNTRIES)
+    except Exception:
+        cp_available = True
+
+    _addr = story_data.get('shipping_address') or {}
+    _shipping_confirmed = bool(_addr.get('name') and _addr.get('street1'))
+    _needs_shipping = _story_needs_physical_shipping(story_data)
+
     return render_template('order_complete.html',
                           preview_id=preview_id,
                           story_data=story_data,
@@ -3515,7 +4734,216 @@ def order_complete(preview_id):
                           is_baby=is_baby,
                           is_kids=is_kids,
                           is_furry_love=is_furry_love,
+                          cp_available=cp_available,
+                          needs_shipping=_needs_shipping,
+                          shipping_confirmed=_shipping_confirmed,
                           lang=story_data.get('lang', story_data.get('language', 'es')))
+
+
+@app.route('/shipping-confirm/<preview_id>', methods=['GET', 'POST'])
+def shipping_confirm(preview_id):
+    """POST-approval shipping address confirmation for physical books."""
+    preview_file = f'story_previews/{preview_id}.json'
+    if not os.path.exists(preview_file):
+        return redirect(url_for('index'))
+
+    with open(preview_file, 'r', encoding='utf-8') as f:
+        story_data = json.load(f)
+
+    lang = story_data.get('lang', story_data.get('language', 'es'))
+
+    if request.method == 'POST':
+        data = request.get_json(silent=True) or request.form.to_dict()
+        name = (data.get('name') or '').strip()
+        street1 = (data.get('street1') or '').strip()
+        street2 = (data.get('street2') or '').strip()
+        city = (data.get('city') or '').strip()
+        state_code = (data.get('state_code') or '').strip()
+        postcode = (data.get('postcode') or '').strip()
+        country_code = (data.get('country_code') or '').strip().upper()
+        phone = (data.get('phone') or '').strip()
+
+        if not (name and street1 and city and postcode and country_code):
+            msg = 'Todos los campos obligatorios son requeridos.' if lang == 'es' else 'All required fields must be filled.'
+            if request.is_json:
+                return jsonify({'success': False, 'error': msg}), 400
+            return redirect(url_for('shipping_confirm', preview_id=preview_id, error=msg))
+
+        shipping_address = {
+            'name': name,
+            'street1': street1,
+            'street2': street2,
+            'city': city,
+            'state_code': state_code,
+            'postcode': postcode,
+            'country_code': country_code,
+            'phone': phone,
+        }
+        story_data['shipping_address'] = shipping_address
+
+        # If PDF already composed but CP order not yet dispatched — dispatch now
+        _pt = story_data.get('product_type', '')
+        _is_cp_pb = (_pt == 'cp_personalized') or (story_data.get('print_product_type') == 'cp_personalized')
+        _is_gelato_pb = not _is_cp_pb and (_pt in ('gelato_personalized',) or story_data.get('is_gelato_book'))
+        if (story_data.get('pages_composed') or story_data.get('cp_pdfs_ready')) and not story_data.get('cp_pb_order_ref') and _is_cp_pb:
+            try:
+                from services.personalized_books.cp_pdf_service import generate_cw_cover_pdf, generate_cw_content_pdf
+                from services.cloudprinter_api_service import submit_pb_print_order, get_pdf_public_url
+                from services.personalized_books.generation import get_print_title
+                traits = story_data.get('traits', {})
+                book_id = story_data.get('story_id', '')
+                child_name = story_data.get('child_name', '')
+                customer_email = story_data.get('customer_email', '')
+                pet_name_g = traits.get('pet_name', '') if traits else ''
+                book_title_g = get_print_title(book_id, child_name, lang, pet_name=pet_name_g)
+                cp_shipping_level = story_data.get('shipping_method', 'cp_saver')
+
+                from services.cloudprinter_api_service import get_pb_chosen_page_count
+                _chosen_pages = get_pb_chosen_page_count()
+                print(f"[SHIPPING-CONFIRM] Generating CP casewrap PDFs for {preview_id} "
+                      f"(page_count={_chosen_pages})...")
+                cp_out_dir = os.path.join("generations", "cloudprinter", preview_id)
+                os.makedirs(cp_out_dir, exist_ok=True)
+                cover_pdf_path   = os.path.join(cp_out_dir, "cover.pdf")
+                content_pdf_path = os.path.join(cp_out_dir, "content.pdf")
+
+                generate_cw_cover_pdf(
+                    session_id=preview_id,
+                    book_title=book_title_g,
+                    output_path=cover_pdf_path,
+                    page_count=_chosen_pages,
+                )
+                generate_cw_content_pdf(
+                    session_id=preview_id,
+                    child_name=child_name,
+                    language=lang,
+                    output_path=content_pdf_path,
+                    page_count=_chosen_pages,
+                )
+                cover_pdf_url   = get_pdf_public_url(preview_id, "cover.pdf")
+                content_pdf_url = get_pdf_public_url(preview_id, "content.pdf")
+                story_data['cp_cover_pdf_url']   = cover_pdf_url
+                story_data['cp_content_pdf_url'] = content_pdf_url
+
+                cp_ok, cp_msg, cp_ref = submit_pb_print_order(
+                    preview_id=preview_id,
+                    cover_pdf_path=cover_pdf_path,
+                    cover_pdf_url=cover_pdf_url,
+                    content_pdf_path=content_pdf_path,
+                    content_pdf_url=content_pdf_url,
+                    customer_data={"email": customer_email or ""},
+                    shipping_address=shipping_address,
+                    shipping_level=cp_shipping_level,
+                )
+                if cp_ok:
+                    story_data['cp_pb_order_ref'] = cp_ref
+                    story_data['cp_order_status'] = 'submitted'
+                    print(f"[SHIPPING-CONFIRM] CP PB order submitted for {preview_id}: {cp_ref}")
+                    try:
+                        from services.email_service import send_cp_pb_admin_notification
+                        send_cp_pb_admin_notification(
+                            preview_id=preview_id,
+                            cp_order_ref=cp_ref or '',
+                            title=book_title_g,
+                            customer_email=customer_email or '',
+                            shipping_address=shipping_address,
+                            cover_pdf_url=cover_pdf_url,
+                            content_pdf_url=content_pdf_url,
+                            visor_url=story_data.get('visor_url', ''),
+                            paid_amount=f"${story_data.get('customer_total_usd', 0):.2f} USD" if story_data.get('customer_total_usd') else '',
+                            cp_cost_eur=float(story_data.get('cp_cost_eur', 0)),
+                            print_cost_eur=float(story_data.get('print_cost_eur', 0)),
+                        )
+                    except Exception as admin_notif_err:
+                        print(f"[SHIPPING-CONFIRM] CP admin notification error: {admin_notif_err}")
+                else:
+                    story_data['cp_order_status'] = 'failed'
+                    story_data['cp_order_error']  = cp_msg
+                    print(f"[SHIPPING-CONFIRM] CP PB order failed for {preview_id}: {cp_msg}")
+            except Exception as dispatch_err:
+                print(f"[SHIPPING-CONFIRM] CP PB dispatch error: {dispatch_err}")
+        elif story_data.get('pages_composed') and not story_data.get('gelato_order_id') and _is_gelato_pb:
+            try:
+                from services.gelato_combined_pdf_service import generate_gelato_combined_pdf
+                from services.gelato_api_service import create_order as _gelato_create_order, build_pdf_url as _gelato_build_pdf_url
+                from services.personalized_books.generation import get_print_title
+                traits = story_data.get('traits', {})
+                book_id = story_data.get('story_id', '')
+                child_name = story_data.get('child_name', '')
+                customer_email = story_data.get('customer_email', '')
+                pet_name_g = traits.get('pet_name', '') if traits else ''
+                book_title_g = get_print_title(book_id, child_name, lang, pet_name=pet_name_g)
+                combined_pdf_url_g = _gelato_build_pdf_url(preview_id)
+                gelato_shipping_addr = {
+                    'address_line1': street1,
+                    'address_line2': street2,
+                    'city': city,
+                    'state': state_code,
+                    'post_code': postcode,
+                    'country': country_code,
+                    'phone': phone,
+                }
+                shipment_uid = story_data.get('shipping_method', 'express')
+                gelato_result = _gelato_create_order(
+                    order_reference_id=preview_id,
+                    customer_name=name,
+                    customer_email=customer_email,
+                    shipping_address=gelato_shipping_addr,
+                    combined_pdf_url=combined_pdf_url_g,
+                    shipment_method_uid=shipment_uid,
+                )
+                if gelato_result:
+                    story_data['gelato_order_id'] = gelato_result.get('id', '')
+                    story_data['gelato_status'] = gelato_result.get('status', 'created')
+                    print(f"[SHIPPING-CONFIRM] Gelato order submitted for {preview_id}: {story_data['gelato_order_id']}")
+                    try:
+                        from services.email_service import send_gelato_customer_notification
+                        send_gelato_customer_notification(
+                            to_email=customer_email,
+                            child_name=child_name,
+                            book_title=book_title_g,
+                            shipping_address=shipping_address,
+                            shipping_method='MAIL',
+                            lang=lang,
+                            recovery_url=f'/order-complete/{preview_id}',
+                        )
+                    except Exception as notif_err:
+                        print(f"[SHIPPING-CONFIRM] Notification error: {notif_err}")
+                else:
+                    story_data['gelato_status'] = 'error'
+                    print(f"[SHIPPING-CONFIRM] Gelato order failed for {preview_id}")
+            except Exception as dispatch_err:
+                print(f"[SHIPPING-CONFIRM] Gelato dispatch error: {dispatch_err}")
+
+        with open(preview_file, 'w', encoding='utf-8') as f:
+            json.dump(story_data, f, ensure_ascii=False, indent=2)
+
+        if request.is_json:
+            return jsonify({'success': True, 'redirect': url_for('shipping_confirm_success', preview_id=preview_id)})
+        return redirect(url_for('shipping_confirm_success', preview_id=preview_id))
+
+    error_msg = request.args.get('error', '')
+    from services.cart import EU_AND_FREE_SHIPPING_COUNTRIES
+    return render_template('shipping_confirm.html',
+                           preview_id=preview_id,
+                           story_data=story_data,
+                           error_msg=error_msg,
+                           free_shipping_countries=list(EU_AND_FREE_SHIPPING_COUNTRIES),
+                           lang=lang)
+
+
+@app.route('/shipping-confirm/<preview_id>/success')
+def shipping_confirm_success(preview_id):
+    preview_file = f'story_previews/{preview_id}.json'
+    story_data = {}
+    if os.path.exists(preview_file):
+        with open(preview_file, 'r', encoding='utf-8') as f:
+            story_data = json.load(f)
+    lang = story_data.get('lang', story_data.get('language', 'es'))
+    return render_template('shipping_confirm_success.html',
+                           preview_id=preview_id,
+                           story_data=story_data,
+                           lang=lang)
 
 
 @app.route('/track-order/<preview_id>')
@@ -3530,16 +4958,17 @@ def track_order(preview_id):
         order = RealStoryOrder.query.filter_by(order_number=order_number).first()
         if not order:
             return redirect(url_for('index'))
-        
+
         lulu_job_id = order.lulu_job_id
+        cp_order_ref = None
         lang = order.language or 'es'
-        
+
         protagonist = order.characters[0].name if order.characters else 'Hero'
         if order.theme_type == 'preset' and order.theme_preset:
             theme_name = order.theme_preset.replace('_', ' ').title()
         else:
             theme_name = 'Nuestra Historia Especial' if lang == 'es' else 'Our Special Story'
-        
+
         story_data = {
             'child_name': protagonist,
             'story_name': f"{theme_name} de {protagonist}" if lang == 'es' else f"{protagonist}'s {theme_name}"
@@ -3548,24 +4977,55 @@ def track_order(preview_id):
         preview_file = f'story_previews/{preview_id}.json'
         if not os.path.exists(preview_file):
             return redirect(url_for('index'))
-        
+
         with open(preview_file, 'r', encoding='utf-8') as f:
             story_data = json.load(f)
-        
+
         lulu_job_id = story_data.get('lulu_job_id')
+        cp_order_ref = story_data.get('cp_order_ref')
         lang = story_data.get('lang', story_data.get('language', 'es'))
-    
+
     tracking_info = None
-    if lulu_job_id:
-        from services.lulu_api_service import get_print_job_status
-        tracking_info = get_print_job_status(lulu_job_id)
-    
+    if cp_order_ref:
+        try:
+            from services.cloudprinter_api_service import get_order_status
+            tracking_info = get_order_status(cp_order_ref)
+        except Exception as e:
+            print(f"[TRACK-ORDER] Cloudprinter tracking error: {e}")
+    elif lulu_job_id:
+        tracking_info = {
+            'status': 'historical',
+            'status_text': {'es': 'Procesado por imprenta anterior', 'en': 'Processed by previous printer'},
+            'tracking_number': None, 'tracking_url': None, 'carrier': None
+        }
+
+    buyer_country_tr = story_data.get('buyer_country', '').strip().upper()
+    try:
+        from services.cloudprinter_api_service import CLOUDPRINTER_AVAILABLE_COUNTRIES
+        cp_available_tr = (not buyer_country_tr) or (buyer_country_tr in CLOUDPRINTER_AVAILABLE_COUNTRIES)
+    except Exception:
+        cp_available_tr = True
+
     return render_template('track_order.html',
                           preview_id=preview_id,
                           story_data=story_data,
-                          lulu_job_id=lulu_job_id,
+                          lulu_job_id=lulu_job_id or cp_order_ref,
+                          cp_order_ref=cp_order_ref,
                           tracking_info=tracking_info,
+                          cp_available=cp_available_tr,
                           lang=lang)
+
+
+_PHYSICAL_PRINT_TYPES_APPROVE = {'gelato_personalized', 'personalized_print', 'qs_print', 'universo_print', 'cp_personalized'}
+
+def _story_needs_physical_shipping(story_data: dict) -> bool:
+    """Returns True if this story has a physical print component that needs a shipping address."""
+    if not story_data.get('want_print'):
+        return False
+    if story_data.get('is_gelato_book'):
+        return True
+    pt = story_data.get('print_product_type', '') or story_data.get('product_type', '')
+    return pt in _PHYSICAL_PRINT_TYPES_APPROVE
 
 
 @app.route('/api/approve-scenes/<preview_id>', methods=['POST'])
@@ -3581,12 +5041,62 @@ def approve_scenes(preview_id):
         return jsonify({'success': False, 'error': 'Scenes not ready'}), 400
     
     if story_data.get('pages_composed', False):
-        return jsonify({'success': True, 'message': 'Already composed'})
+        needs_shipping = _story_needs_physical_shipping(story_data)
+        addr = story_data.get('shipping_address') or {}
+        shipping_confirmed = bool(addr.get('name') and addr.get('street1'))
+        return jsonify({
+            'success': True,
+            'message': 'Already composed',
+            'requires_shipping_address': needs_shipping and not shipping_confirmed,
+            'shipping_confirm_url': f'/shipping-confirm/{preview_id}',
+        })
     
     print(f"[APPROVE] User approved scenes for {preview_id}, launching PDF composition + Lulu...")
     _trigger_personalized_book_composition(preview_id)
+
+    needs_shipping = _story_needs_physical_shipping(story_data)
+    addr = story_data.get('shipping_address') or {}
+    shipping_confirmed = bool(addr.get('name') and addr.get('street1'))
     
-    return jsonify({'success': True, 'message': 'Composition started'})
+    return jsonify({
+        'success': True,
+        'message': 'Composition started',
+        'requires_shipping_address': needs_shipping and not shipping_confirmed,
+        'shipping_confirm_url': f'/shipping-confirm/{preview_id}',
+    })
+
+
+@app.route('/api/retry-compose/<preview_id>', methods=['POST'])
+def retry_compose(preview_id):
+    """Allow a single user-initiated retry when book composition has failed."""
+    preview_file = f'story_previews/{preview_id}.json'
+    if not os.path.exists(preview_file):
+        return jsonify({'success': False, 'error': 'Not found'}), 404
+
+    with open(preview_file, 'r', encoding='utf-8') as f:
+        story_data = json.load(f)
+
+    if not story_data.get('generation_failed', False):
+        return jsonify({'success': False, 'error': 'No failed composition to retry'}), 400
+
+    if story_data.get('retry_attempted', False):
+        return jsonify({'success': False, 'error': 'Retry already attempted'}), 400
+
+    if story_data.get('pages_composed', False):
+        return jsonify({'success': False, 'error': 'Book already composed'}), 400
+
+    production_logger.info(f"[RETRY-COMPOSE] User-initiated retry for {preview_id}")
+
+    story_data['retry_attempted'] = True
+    story_data['generation_failed'] = False
+    story_data['book_composing'] = False
+    story_data['generation_error'] = ''
+    with open(preview_file, 'w', encoding='utf-8') as f:
+        json.dump(story_data, f, ensure_ascii=False, indent=2)
+
+    _trigger_personalized_book_composition(preview_id)
+
+    return jsonify({'success': True, 'message': 'Retry started'})
 
 
 @app.route('/api/generation-status/<preview_id>')
@@ -3792,27 +5302,44 @@ def api_generation_status(preview_id):
     qs_text_composed = story_data.get('qs_text_composed', False)
 
     if generated_count >= expected and scenes_pending:
-        formatted = []
-        sorted_scenes = sorted([
-            fn for fn in os.listdir(output_dir)
-            if fn.startswith('scene_') and fn.endswith('.png') and fn != 'scene_0.png'
-            and os.path.getsize(os.path.join(output_dir, fn)) > 1000
-        ])
-        for fn in sorted_scenes[:expected]:
-            formatted.append(f'/{output_dir}/{fn}')
-        scene_paths = formatted
-        story_data['scene_paths'] = formatted
-        story_data['images'] = formatted
-        story_data['original_scene_paths'] = formatted
-        story_data['original_images'] = formatted
-        story_data['scenes_pending'] = False
-        story_data['scenes_generating'] = False
-        story_data['generation_failed'] = False
-        with open(preview_file, 'w', encoding='utf-8') as f:
-            json.dump(story_data, f, ensure_ascii=False, indent=2)
-        if is_qs and not qs_text_composed:
-            status = 'composing_text'
+        if is_qs:
+            # For Quick Stories: NEVER auto-write to JSON here.
+            # Only BG-GEN has authority to set scenes_pending=False and qs_text_composed=True.
+            # Premature writes here cause a race condition that breaks the ebook flow.
+            qs_task = task_queue.get_status(f"scene_gen_{preview_id}")
+            if qs_task and qs_task.get('status') == 'completed':
+                with open(preview_file, 'r', encoding='utf-8') as f:
+                    story_data = json.load(f)
+                scene_paths = story_data.get('scene_paths', [])
+                qs_text_composed = story_data.get('qs_text_composed', False)
+                status = 'complete' if qs_text_composed else 'composing_text'
+            elif qs_task and qs_task.get('status') == 'failed':
+                status = 'failed'
+            else:
+                prog = _generation_progress.get(preview_id) or _read_progress(preview_id)
+                if prog:
+                    generated_count = prog.get('generated', generated_count)
+                    expected = max(prog.get('total', expected), expected)
+                status = 'generating'
         else:
+            formatted = []
+            sorted_scenes = sorted([
+                fn for fn in os.listdir(output_dir)
+                if fn.startswith('scene_') and fn.endswith('.png') and fn != 'scene_0.png'
+                and os.path.getsize(os.path.join(output_dir, fn)) > 1000
+            ])
+            for fn in sorted_scenes[:expected]:
+                formatted.append(f'/{output_dir}/{fn}')
+            scene_paths = formatted
+            story_data['scene_paths'] = formatted
+            story_data['images'] = formatted
+            story_data['original_scene_paths'] = formatted
+            story_data['original_images'] = formatted
+            story_data['scenes_pending'] = False
+            story_data['scenes_generating'] = False
+            story_data['generation_failed'] = False
+            with open(preview_file, 'w', encoding='utf-8') as f:
+                json.dump(story_data, f, ensure_ascii=False, indent=2)
             status = 'complete'
     elif generation_failed:
         status = 'failed'
@@ -3859,8 +5386,9 @@ def api_generation_status(preview_id):
 @app.route('/api/track-order/<preview_id>')
 def api_track_order(preview_id):
     """API endpoint to get tracking info for a printed book order."""
+    cp_order_ref = None
     lulu_job_id = None
-    
+
     if preview_id.startswith('haz_tu_historia_'):
         order_number = preview_id.replace('haz_tu_historia_', '')
         order = RealStoryOrder.query.filter_by(order_number=order_number).first()
@@ -3871,27 +5399,26 @@ def api_track_order(preview_id):
         if os.path.exists(preview_file):
             with open(preview_file, 'r', encoding='utf-8') as f:
                 story_data = json.load(f)
+            cp_order_ref = story_data.get('cp_order_ref')
             lulu_job_id = story_data.get('lulu_job_id')
-    
-    if not lulu_job_id:
-        return jsonify({
-            'success': False,
-            'error': 'No print job ID found for this order'
-        }), 404
-    
-    from services.lulu_api_service import get_print_job_status
-    tracking_info = get_print_job_status(lulu_job_id)
-    
-    if tracking_info:
+
+    if cp_order_ref:
+        from services.cloudprinter_api_service import get_order_status
+        tracking_info = get_order_status(cp_order_ref)
+        if tracking_info:
+            return jsonify({'success': True, 'tracking': tracking_info})
+        return jsonify({'success': False, 'error': 'Could not retrieve tracking information'}), 500
+    elif lulu_job_id:
         return jsonify({
             'success': True,
-            'tracking': tracking_info
+            'tracking': {
+                'status': 'historical',
+                'status_text': {'es': 'Procesado por imprenta anterior', 'en': 'Processed by previous printer'},
+                'tracking_number': None, 'tracking_url': None, 'carrier': None
+            }
         })
     else:
-        return jsonify({
-            'success': False,
-            'error': 'Could not retrieve tracking information'
-        }), 500
+        return jsonify({'success': False, 'error': 'No print job ID found for this order'}), 404
 
 
 @app.route('/api/regenerate-quick-scene/<preview_id>/<int:scene_num>', methods=['POST'])
@@ -3954,7 +5481,7 @@ def regenerate_quick_scene(preview_id, scene_num):
         hair_length_regen = traits.get('hair_length', 'medium')
         child_age_regen = int(traits.get('child_age', '1'))
         
-        from services.quick_stories.checkout import QUICK_STORY_IDS as QS_REGEN_IDS
+        from services.quick_stories.checkout import ALL_QUICK_FAMILY_IDS as QS_REGEN_IDS
         is_qs_regen_model = story_id in QS_REGEN_IDS
         
         ref_image_regen = None
@@ -4005,8 +5532,8 @@ def regenerate_quick_scene(preview_id, scene_num):
             )
         
         if new_scene_path and os.path.exists(new_scene_path):
-            from services.quick_stories.checkout import is_quick_story as check_qs_compose, is_birthday_story as check_bday
-            if check_qs_compose(story_id) and not check_bday(story_id):
+            from services.quick_stories.checkout import is_quick_story as check_qs_compose
+            if check_qs_compose(story_id):
                 try:
                     from services.quick_stories.image_composer import compose_baby_text_on_image, compose_kids_text_on_image
                     from PIL import Image as PILImage
@@ -4058,10 +5585,11 @@ def regenerate_quick_scene(preview_id, scene_num):
             story_data['original_images'] = original_paths
             story_data['original_scene_paths'] = original_paths
             
-            if story_data.get('lulu_submitted'):
-                story_data['lulu_needs_refresh'] = True
+            if story_data.get('cp_submitted') or story_data.get('lulu_submitted'):
+                story_data['cp_needs_refresh'] = True
+                story_data['cp_submitted'] = False
                 story_data['lulu_submitted'] = False
-                print(f"[REGENERATE-QS] Lulu PDF marked for refresh after scene regeneration")
+                print(f"[REGENERATE-QS] Print PDF marked for refresh after scene regeneration")
             
             story_data['visor_uploaded'] = False
             story_data['visor_url'] = ''
@@ -4091,6 +5619,132 @@ def regenerate_quick_scene(preview_id, scene_num):
         traceback.print_exc()
         error_msg = 'El servicio de generación de imágenes está temporalmente no disponible. Por favor intenta de nuevo en unos minutos.' if 'FLUX' in str(e) or 'q_descale' in str(e) or 'Ideogram' in str(e) else str(e)
         return jsonify({'success': False, 'error': error_msg}), 500
+
+
+@app.route('/api/regenerate-quick-closing/<preview_id>', methods=['POST'])
+def regenerate_quick_closing(preview_id):
+    """Regenerate the closing illustration for a quick story. Max 2 regenerations."""
+    from services.fixed_stories import get_closing_prompt, STORIES
+    from services.replicate_service import generate_scene_with_flux2dev, generate_scene_with_flux2dev_no_ref
+
+    preview_file = f'story_previews/{preview_id}.json'
+    if not os.path.exists(preview_file):
+        return jsonify({'success': False, 'error': 'Story not found'}), 404
+
+    with open(preview_file, 'r', encoding='utf-8') as f:
+        story_data = json.load(f)
+
+    lang = story_data.get('lang', 'es')
+    regen_counts = story_data.get('scene_regenerations', {})
+    current_count = regen_counts.get('closing', 0)
+
+    if current_count >= 2:
+        error_msg = 'Has alcanzado el límite de 2 regeneraciones para la página de cierre' if lang == 'es' else 'You have reached the limit of 2 regenerations for the closing page'
+        return jsonify({'success': False, 'error': error_msg}), 400
+
+    story_id = story_data.get('story_id', '')
+    child_name = story_data.get('child_name', 'Child')
+    gender = story_data.get('gender', 'neutral')
+    traits = story_data.get('traits', {})
+    output_dir = story_data.get('output_dir', story_data.get('image_dir', ''))
+    if not output_dir:
+        output_dir = f'story_previews/{preview_id}_images'
+    os.makedirs(output_dir, exist_ok=True)
+
+    story_config = STORIES.get(story_id, {})
+    age_range = story_config.get('age_range', '0-1')
+    hair_length = traits.get('hair_length', 'medium')
+    hair_color = traits.get('hair_color', 'brown')
+    child_age = int(traits.get('child_age', '1'))
+
+    try:
+        closing_prompt = get_closing_prompt(story_id, child_name, gender, traits)
+        if not closing_prompt:
+            return jsonify({'success': False, 'error': 'No closing template for this story'}), 400
+
+        print(f"[REGEN-CLOSING] Regenerating closing for {preview_id} (attempt {current_count + 1}/2)")
+
+        ref_image = None
+        clean_cover = f"{output_dir}/cover_clean.png"
+        base_char = f"{output_dir}/base_character.png"
+        cover_file = f"{output_dir}/cover.png"
+        if os.path.exists(clean_cover):
+            ref_image = clean_cover
+        elif os.path.exists(base_char):
+            ref_image = base_char
+        elif os.path.exists(cover_file):
+            ref_image = cover_file
+
+        aspect = "1:1" if age_range in ['0-1', '0-2'] else "1:1"
+        closing_num = 99
+
+        if ref_image:
+            new_closing_path = generate_scene_with_flux2dev(
+                closing_prompt, ref_image, closing_num, aspect, output_dir,
+                gender=gender, age_range=age_range, hair_length=hair_length,
+                child_age=child_age, hair_color=hair_color
+            )
+        else:
+            new_closing_path = generate_scene_with_flux2dev_no_ref(
+                closing_prompt, closing_num, output_dir, aspect_ratio=aspect
+            )
+
+        if new_closing_path and os.path.exists(new_closing_path):
+            final_path = f"{output_dir}/closing.png"
+            import shutil
+            shutil.copy2(new_closing_path, final_path)
+            if new_closing_path != final_path and os.path.exists(new_closing_path):
+                os.remove(new_closing_path)
+
+            qs_text_composed = story_data.get('qs_text_composed', False)
+            closing_msg = story_data.get('closing_message', '')
+            if qs_text_composed and closing_msg:
+                try:
+                    from services.quick_stories.image_composer import compose_kids_text_on_image
+                    from PIL import Image as _PILRegen
+                    _ci = _PILRegen.open(final_path).convert('RGBA')
+                    _composed = compose_kids_text_on_image(_ci, '', closing_msg, lang)
+                    _ci.close()
+                    _composed.save(final_path, 'PNG')
+                    _composed.close()
+                    print(f"[REGEN-CLOSING] Closing message recomposed on regenerated image")
+                except Exception as _ce:
+                    print(f"[REGEN-CLOSING] Could not recompose closing message: {_ce}")
+
+            is_paid = story_data.get('paid', False)
+            formatted = f'/{final_path}' if not final_path.startswith('/') else final_path
+
+            if not is_paid:
+                from services.illustrated_book_service import add_watermark
+                from PIL import Image as PILImage
+                img = PILImage.open(final_path)
+                watermarked = add_watermark(img)
+                preview_path = final_path.replace('.png', '_preview.png')
+                watermarked.save(preview_path, 'PNG')
+                formatted = f'/{preview_path}' if not preview_path.startswith('/') else preview_path
+
+            story_data['closing_image'] = formatted
+            story_data['visor_uploaded'] = False
+            story_data['visor_url'] = ''
+            story_data['pdf_printable_path'] = ''
+
+            if 'scene_regenerations' not in story_data:
+                story_data['scene_regenerations'] = {}
+            story_data['scene_regenerations']['closing'] = current_count + 1
+
+            with open(preview_file, 'w', encoding='utf-8') as f:
+                json.dump(story_data, f, ensure_ascii=False, indent=2)
+
+            print(f"[REGEN-CLOSING] Closing regenerated successfully")
+            return jsonify({'success': True, 'image_url': formatted, 'remaining': 2 - (current_count + 1)})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to generate closing image'}), 500
+
+    except Exception as e:
+        print(f"[REGEN-CLOSING] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @app.route('/api/regenerate-page/<preview_id>/<int:page_num>', methods=['POST'])
@@ -4264,10 +5918,11 @@ def regenerate_page(preview_id, page_num):
         story_data['visor_uploaded'] = False
         story_data['visor_url'] = ''
         story_data['pdf_printable_path'] = ''
-        if story_data.get('lulu_submitted'):
-            story_data['lulu_needs_refresh'] = True
+        if story_data.get('cp_submitted') or story_data.get('lulu_submitted'):
+            story_data['cp_needs_refresh'] = True
+            story_data['cp_submitted'] = False
             story_data['lulu_submitted'] = False
-        print(f"[REGENERATE] Visor, PDF and Lulu flags reset — will regenerate on next confirm_and_send")
+        print(f"[REGENERATE] Visor, PDF and print flags reset — will regenerate on next confirm_and_send")
         
         # Save updated story data
         with open(preview_file, 'w', encoding='utf-8') as f:
@@ -4330,6 +5985,9 @@ def confirm_and_send(preview_id):
     
     try:
         want_print = story_data.get('want_print', False)
+        want_ebook = story_data.get('want_ebook', False)
+        # Visor is gift (6-month) when customer didn't buy the ebook
+        _visor_is_gift_cs = not want_ebook
         
         with open(preview_file, 'r', encoding='utf-8') as f:
             story_data = json.load(f)
@@ -4339,8 +5997,7 @@ def confirm_and_send(preview_id):
             try:
                 print(f"[CONFIRM-SEND] No visor_url found, preparing visor for {preview_id}...")
                 from services.vps_upload_service import prepare_and_upload
-                is_gift = want_print
-                visor_result = prepare_and_upload(story_data, preview_id, is_gift=is_gift)
+                visor_result = prepare_and_upload(story_data, preview_id, is_gift=_visor_is_gift_cs)
                 visor_url = visor_result.get('visor_url', '')
                 story_data['visor_url'] = visor_url
                 story_data['visor_uploaded'] = True
@@ -4352,8 +6009,22 @@ def confirm_and_send(preview_id):
         
         pdf_printable_path = story_data.get('pdf_printable_path')
         instructions_path_email = story_data.get('instructions_path')
+        personalized_pdf_url = None
         
-        if visor_url and not pdf_printable_path:
+        if is_personalized_book:
+            pdf_printable_path = None
+            instructions_path_email = None
+            try:
+                gelato_pdf_path = os.path.join('generated', 'gelato', preview_id, 'combined.pdf')
+                if os.path.exists(gelato_pdf_path):
+                    base_url = os.environ.get('SITE_DOMAIN', os.environ.get('REPLIT_DEV_DOMAIN', 'magicmemoriesbooks.com'))
+                    personalized_pdf_url = f"https://{base_url}/gelato-pdf/{preview_id}/combined.pdf"
+                    print(f"[CONFIRM-SEND] Gelato combined PDF URL: {personalized_pdf_url}")
+                else:
+                    print(f"[CONFIRM-SEND] Gelato combined PDF not yet generated for {preview_id}")
+            except Exception as pdf_err:
+                print(f"[CONFIRM-SEND] Gelato PDF URL generation failed: {pdf_err}")
+        elif visor_url and not pdf_printable_path:
             try:
                 from services.quick_stories.checkout import is_quick_story as check_qs_cs
                 if check_qs_cs(story_data.get('story_id', '')):
@@ -4376,9 +6047,12 @@ def confirm_and_send(preview_id):
                 to_email=email,
                 story_data=story_data,
                 visor_url=visor_url,
-                is_gift=want_print,
+                is_gift=_visor_is_gift_cs,
                 pdf_printable_path=pdf_printable_path,
-                instructions_path=instructions_path_email
+                instructions_path=instructions_path_email,
+                pdf_download_url=personalized_pdf_url,
+                preview_id=preview_id,
+                is_print_order=bool(want_print)
             )
         else:
             email_result = send_story_email_with_attachments(
@@ -4401,17 +6075,20 @@ def confirm_and_send(preview_id):
         lulu_result = None
         is_quick_story = not is_personalized_book
         if want_print and is_quick_story:
-            needs_lulu = not story_data.get('lulu_submitted') or story_data.get('lulu_needs_refresh')
-            if needs_lulu:
-                if story_data.get('lulu_needs_refresh'):
-                    print(f"[CONFIRM-SEND] Scenes were regenerated after payment - refreshing Lulu PDFs...")
+            already_submitted = story_data.get('cp_submitted') or story_data.get('lulu_submitted')
+            needs_refresh = story_data.get('cp_needs_refresh') or story_data.get('lulu_needs_refresh')
+            needs_print = not already_submitted or needs_refresh
+            if needs_print:
+                if needs_refresh:
+                    print(f"[CONFIRM-SEND] Scenes were regenerated after payment - refreshing Cloudprinter PDF...")
                     with open(preview_file, 'r', encoding='utf-8') as f:
                         story_data = json.load(f)
+                    story_data['cp_needs_refresh'] = False
                     story_data['lulu_needs_refresh'] = False
                     with open(preview_file, 'w', encoding='utf-8') as f:
                         json.dump(story_data, f, ensure_ascii=False, indent=2)
                 else:
-                    print(f"[CONFIRM-SEND] Quick Story with want_print=True - launching Lulu print processing...")
+                    print(f"[CONFIRM-SEND] Quick Story with want_print=True - launching Cloudprinter print processing...")
                 t = threading.Thread(
                     target=_process_quick_story_print,
                     args=(preview_id, email),
@@ -4420,114 +6097,14 @@ def confirm_and_send(preview_id):
                 t.start()
                 lulu_result = {'id': 'processing', 'success': True}
             else:
-                print(f"[CONFIRM-SEND] Lulu already submitted for {preview_id}, skipping")
-                lulu_result = {'id': story_data.get('lulu_job_id', 'already_submitted'), 'success': True}
+                print(f"[CONFIRM-SEND] Already submitted for {preview_id}, skipping")
+                lulu_result = {'id': story_data.get('cp_order_ref', story_data.get('lulu_job_id', 'already_submitted')), 'success': True}
         
         if want_print and is_personalized_book:
-            needs_lulu = not story_data.get('lulu_submitted') and not story_data.get('lulu_job_id')
-            if needs_lulu and story_data.get('pages_composed', False):
-                lulu_order_folder = story_data.get('lulu_order_folder', '')
-                if lulu_order_folder and os.path.exists(lulu_order_folder):
-                    shipping_address = dict(story_data.get('shipping_address', {}))
-                    if not shipping_address.get('email'):
-                        shipping_address['email'] = story_data.get('customer_email', email)
-                    if not shipping_address.get('phone_number') and shipping_address.get('phone'):
-                        shipping_address['phone_number'] = shipping_address['phone']
-                    is_admin_gift = story_data.get('admin_gift', False)
-                    if shipping_address and shipping_address.get('name') and shipping_address.get('street1') and not is_admin_gift:
-                        try:
-                            from services.lulu_api_service import submit_print_order
-                            from services.personalized_books.generation import get_lulu_title
-                            
-                            pb_book_id = story_data.get('story_id', '')
-                            pb_traits = story_data.get('traits', {})
-                            pet_name_lulu = pb_traits.get('pet_name', '') if pb_traits else ''
-                            pb_lang = story_data.get('lang', story_data.get('language', 'es'))
-                            book_title = get_lulu_title(pb_book_id, child_name, pb_lang, pet_name=pet_name_lulu)
-                            shipping_level = story_data.get('shipping_method', 'MAIL')
-                            
-                            print(f"[CONFIRM-SEND] Submitting personalized book to Lulu...")
-                            success, message, lulu_job_id = submit_print_order(
-                                order_folder=lulu_order_folder,
-                                title=book_title,
-                                shipping_address=shipping_address,
-                                shipping_level=shipping_level
-                            )
-                            
-                            if success:
-                                story_data['lulu_job_id'] = lulu_job_id
-                                story_data['lulu_status'] = 'sent'
-                                story_data['lulu_submitted'] = True
-                                lulu_result = {'id': lulu_job_id, 'success': True}
-                                print(f"[CONFIRM-SEND] Lulu order submitted: {lulu_job_id}")
-                                
-                                try:
-                                    from services.email_service import send_lulu_order_notification, send_lulu_customer_notification
-                                    base_url = os.environ.get('SITE_DOMAIN', os.environ.get('REPLIT_DEV_DOMAIN', 'magicmemoriesbooks.com'))
-                                    folder_name = os.path.basename(lulu_order_folder)
-                                    interior_url = f"https://{base_url}/lulu-files/{folder_name}/interior.pdf"
-                                    cover_url = f"https://{base_url}/lulu-files/{folder_name}/cover.pdf"
-                                    send_lulu_order_notification(
-                                        order_folder=folder_name,
-                                        lulu_job_id=lulu_job_id,
-                                        title=book_title,
-                                        customer_email=email,
-                                        shipping_address=shipping_address,
-                                        interior_url=interior_url,
-                                        cover_url=cover_url
-                                    )
-                                    if email:
-                                        send_lulu_customer_notification(
-                                            to_email=email,
-                                            child_name=child_name,
-                                            book_title=book_title,
-                                            shipping_address=shipping_address,
-                                            shipping_method=shipping_level,
-                                            lang=pb_lang
-                                        )
-                                    print(f"[CONFIRM-SEND] Admin + customer notifications sent")
-                                except Exception as notif_err:
-                                    print(f"[CONFIRM-SEND] Notifications failed: {notif_err}")
-                            else:
-                                story_data['lulu_status'] = 'failed'
-                                story_data['lulu_error'] = message
-                                lulu_result = {'id': None, 'success': False}
-                                print(f"[CONFIRM-SEND] Lulu submission failed: {message}")
-                            
-                            with open(preview_file, 'w', encoding='utf-8') as f:
-                                json.dump(story_data, f, ensure_ascii=False, indent=2)
-                        except Exception as lulu_err:
-                            print(f"[CONFIRM-SEND] Personalized book Lulu processing failed: {lulu_err}")
-                            import traceback
-                            traceback.print_exc()
-                    elif is_admin_gift:
-                        try:
-                            from services.personalized_books.generation import get_lulu_title
-                            pb_book_id = story_data.get('story_id', '')
-                            pb_traits = story_data.get('traits', {})
-                            pet_name_lulu = pb_traits.get('pet_name', '') if pb_traits else ''
-                            pb_lang = story_data.get('lang', story_data.get('language', 'es'))
-                            book_title = get_lulu_title(pb_book_id, child_name, pb_lang, pet_name=pet_name_lulu)
-                            base_url = os.environ.get('SITE_DOMAIN', os.environ.get('REPLIT_DEV_DOMAIN', 'magicmemoriesbooks.com'))
-                            folder_name = os.path.basename(lulu_order_folder)
-                            interior_url = f"https://{base_url}/lulu-files/{folder_name}/interior.pdf"
-                            cover_url = f"https://{base_url}/lulu-files/{folder_name}/cover.pdf"
-                            from services.email_service import send_lulu_order_notification
-                            send_lulu_order_notification(
-                                order_folder=folder_name,
-                                lulu_job_id='ADMIN-GIFT (pedido manual)',
-                                title=book_title,
-                                customer_email=email,
-                                shipping_address={'name': child_name, 'street1': 'Pedido manual — sin dirección'},
-                                interior_url=interior_url,
-                                cover_url=cover_url
-                            )
-                            print(f"[CONFIRM-SEND] Admin gift: PDF links sent to admin, no Lulu submit")
-                            lulu_result = {'id': 'admin_gift', 'success': True}
-                        except Exception as gift_err:
-                            print(f"[CONFIRM-SEND] Admin gift PDF notification failed: {gift_err}")
-            elif story_data.get('lulu_job_id'):
-                lulu_result = {'id': story_data.get('lulu_job_id'), 'success': True}
+            gelato_order_id = story_data.get('gelato_order_id', '')
+            if gelato_order_id:
+                lulu_result = {'id': gelato_order_id, 'success': True}
+                print(f"[CONFIRM-SEND] Gelato order already submitted: {gelato_order_id}")
         
         visor_url_resp = story_data.get('visor_url', '')
         
@@ -4768,7 +6345,9 @@ def generate_pdf(preview_id):
                 "furry_love": "static/images/fixed_pages/furry_love_baby_back_cover.png",
                 "furry_love_adventure": "static/images/fixed_pages/furry_love_adventure_back_cover.png",
                 "furry_love_teen": "static/images/fixed_pages/furry_love_teen_back_cover.png",
-                "furry_love_adult": "static/images/fixed_pages/furry_love_adult_back_cover.png"
+                "furry_love_adult": "static/images/fixed_pages/furry_love_adult_back_cover.png",
+                "centinela_aurora_illustrated": "static/images/fixed_pages/centinela_aurora_back_cover.png",
+                "centinela_aurora": "static/images/fixed_pages/centinela_aurora_back_cover.png"
             }
             back_cover = _fixed_backs.get(_bid, 'static/images/fixed_pages/back_cover.png')
         
@@ -4803,7 +6382,7 @@ def generate_pdf(preview_id):
         illustrations = story_data.get('illustrations', [])
         
         if format_type == 'print':
-            filename = f"{child_name_safe}_{story_template}_lulu_print.pdf"
+            filename = f"{child_name_safe}_{story_template}_print.pdf"
             output_path = f'generations/pdfs/{preview_id}_print.pdf'
             create_print_pdf(order, story_text, illustrations, output_path)
         else:
@@ -4824,7 +6403,7 @@ def generate_pdf(preview_id):
 def generate_baby_pdf(preview_id):
     """Generate PDF for baby story or birthday story"""
     format_type = request.args.get('format', 'digital')
-    if format_type not in ('digital', 'print', 'lulu'):
+    if format_type not in ('digital', 'print', 'lulu', 'cloudprinter'):
         format_type = 'digital'
     force_download = request.args.get('download', '0') == '1'
     skip_sanitize = True
@@ -4861,7 +6440,7 @@ def generate_baby_pdf(preview_id):
     
     filename = f"{child_name_safe}_{story_name_safe}_{format_type}.pdf"
     output_path = f'generations/pdfs/{preview_id}_{format_type}.pdf'
-    create_baby_quick_story_pdf(story_data, images, output_path, format_type, skip_sanitize=skip_sanitize)
+    create_baby_quick_story_pdf(story_data, images, output_path, 'cloudprinter', skip_sanitize=skip_sanitize)
     
     as_attachment = format_type == 'print' or force_download
     response = send_file(
@@ -4905,7 +6484,7 @@ def generate_baby_printable(preview_id):
     filename = f"{child_name_safe}_{story_name_safe}_imprimible.pdf"
     output_path = f'generations/pdfs/{preview_id}_printable.pdf'
     
-    create_baby_quick_story_pdf(story_data, images, output_path, format_type='print', skip_sanitize=True)
+    create_baby_quick_story_pdf(story_data, images, output_path, format_type='cloudprinter', skip_sanitize=True)
     
     response = send_file(
         output_path,
@@ -5060,7 +6639,7 @@ def generate_baby_cover_spread_endpoint(preview_id):
     return send_file(
         output_path,
         as_attachment=True,
-        download_name=f'{child_name_safe}_cover_spread_lulu.pdf',
+        download_name=f'{child_name_safe}_cover_spread_print.pdf',
         mimetype='application/pdf'
     )
 
@@ -5092,25 +6671,44 @@ with app.app_context():
     _safe_ddl("ALTER TABLE coupon_usages ADD COLUMN IF NOT EXISTS paypal_order_id VARCHAR(100)")
     _safe_ddl("ALTER TABLE coupon_usages ADD COLUMN IF NOT EXISTS discount_pct INTEGER DEFAULT 0")
     _safe_ddl("ALTER TABLE coupon_usages ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()")
+    _safe_ddl("ALTER TABLE coupon_usages ALTER COLUMN email DROP NOT NULL")
     print("[MIGRATION] Coupon table columns ensured")
-    # Seed MAGIC20 coupon on startup if it doesn't exist
+    # Seed MAGIC15 coupon on startup if it doesn't exist
     try:
-        existing = Coupon.query.filter_by(code='MAGIC20').first()
+        existing = Coupon.query.filter_by(code='MAGIC15').first()
         if not existing:
-            magic20 = Coupon(
-                code='MAGIC20',
+            magic15 = Coupon(
+                code='MAGIC15',
                 coupon_type='general',
-                discount_pct=20,
+                discount_pct=15,
                 owner_name='Magic Memories Books',
                 max_uses=0,
                 use_count=0,
                 is_active=True
             )
-            db.session.add(magic20)
+            db.session.add(magic15)
             db.session.commit()
-            print("[COUPON] MAGIC20 coupon seeded")
+            print("[COUPON] MAGIC15 coupon seeded")
     except Exception as _se:
         print(f"[COUPON] Seed warning: {_se}")
+    # Seed APERTURA10 — public inauguration promo (10% off, open to all users)
+    try:
+        existing_a10 = Coupon.query.filter_by(code='APERTURA10').first()
+        if not existing_a10:
+            apertura10 = Coupon(
+                code='APERTURA10',
+                coupon_type='open',
+                discount_pct=10,
+                owner_name='Magic Memories Books',
+                max_uses=0,
+                use_count=0,
+                is_active=True
+            )
+            db.session.add(apertura10)
+            db.session.commit()
+            print("[COUPON] APERTURA10 inauguration coupon seeded")
+    except Exception as _se2:
+        print(f"[COUPON] APERTURA10 seed warning: {_se2}")
     # Runtime migration: add columns that may be missing on older VPS databases
     try:
         from sqlalchemy import text as _sa_text
@@ -5134,10 +6732,17 @@ with app.app_context():
             _conn.commit()
     except Exception as _me:
         print(f"[MIGRATION] Warning (non-blocking): {_me}")
-    from services.lulu_storage import cleanup_expired_orders, get_storage_summary
-    deleted = cleanup_expired_orders()
-    summary = get_storage_summary()
-    print(f"[LULU STORAGE] Storage summary: {summary['total_orders']} orders, {summary['total_size_mb']} MB")
+    pass  # lulu_storage removed
+    # Verify CP casewrap page count against /products/info in background (non-blocking)
+    def _bg_verify_cp_pb():
+        try:
+            from services.cloudprinter_api_service import verify_pb_page_counts
+            chosen = verify_pb_page_counts()
+            print(f"[STARTUP] CP PB page count verification complete: chosen={chosen}")
+        except Exception as _ve:
+            print(f"[STARTUP] CP PB page count verification warning: {_ve}")
+    import threading as _th
+    _th.Thread(target=_bg_verify_cp_pb, daemon=True).start()
 
 
 import uuid as uuid_module
@@ -5318,13 +6923,10 @@ def admin_dashboard():
     if not check_admin_auth():
         return redirect(url_for('admin_login_page'))
     
-    from services.lulu_storage import list_all_orders, get_storage_summary, cleanup_expired_orders
     import glob
-    
-    cleanup_expired_orders()
-    
-    lulu_orders = list_all_orders()
-    lulu_summary = get_storage_summary()
+
+    lulu_orders = []
+    lulu_summary = {'total_orders': 0, 'pending': 0, 'sent': 0, 'failed': 0, 'total_size_mb': 0}
     
     story_previews = []
     failed_orders = []
@@ -5344,13 +6946,14 @@ def admin_dashboard():
                 }
                 story_previews.append(preview_info)
                 
-                if data.get('lulu_status') == 'failed' and data.get('paid'):
+                _print_failed = (data.get('cp_status') == 'failed' or data.get('lulu_status') == 'failed')
+                if _print_failed and data.get('paid'):
                     failed_orders.append({
                         'preview_id': pid,
                         'child_name': data.get('child_name', 'Unknown'),
                         'story_id': data.get('story_id', ''),
                         'customer_email': data.get('customer_email', ''),
-                        'lulu_error': data.get('lulu_error', 'Error desconocido'),
+                        'cp_error': data.get('cp_error', data.get('lulu_error', 'Error desconocido')),
                         'payment_date': data.get('payment_date', ''),
                         'is_illustrated_book': data.get('is_illustrated_book', False),
                     })
@@ -5391,8 +6994,8 @@ def admin_dashboard():
             p['paid'] = False
 
     return render_template('admin_dashboard.html', 
-                          lulu_orders=lulu_orders, 
-                          lulu_summary=lulu_summary,
+                          failed_print_orders=lulu_orders, 
+                          failed_print_summary=lulu_summary,
                           story_previews=story_previews,
                           failed_orders=failed_orders,
                           real_stories_count=real_stories_count,
@@ -5456,62 +7059,43 @@ def admin_clear_demo_b():
     _save_admin_config({'demo_visor_url_b': '', 'demo_preview_id_b': ''})
     return jsonify({'success': True})
 
-@app.route('/admin/lulu-orders')
-def admin_lulu_orders():
-    """Admin page to view Lulu orders storage."""
-    if not check_admin_auth():
-        return redirect(url_for('admin_login_page'))
-    
-    from services.lulu_storage import list_all_orders, get_storage_summary, cleanup_expired_orders
-    
-    cleanup_expired_orders()
-    
-    orders = list_all_orders()
-    summary = get_storage_summary()
-    
-    return render_template('admin_lulu_orders.html', orders=orders, summary=summary)
-
-
-@app.route('/admin/lulu-orders/<path:folder_name>/<filename>')
-def download_lulu_file(folder_name, filename):
-    """Download a file from a Lulu order folder."""
-    if not check_admin_auth():
-        return redirect(url_for('admin_login_page'))
-    
-    from flask import send_from_directory
-    import os
-    
-    if filename not in ['interior.pdf', 'cover.pdf', 'metadata.json']:
+@app.route('/cp-files/<preview_id>/<filename>')
+def serve_cp_file_public(preview_id, filename):
+    """
+    Serve Cloudprinter PDF files publicly so Cloudprinter can download them.
+    This endpoint must be accessible without authentication.
+    Files are stored in generations/cloudprinter/<preview_id>/
+    """
+    import re
+    if not re.match(r'^[a-zA-Z0-9_\-]+$', preview_id):
+        return "Invalid preview ID", 400
+    if filename not in ['book.pdf', 'cover.pdf', 'content.pdf']:
         return "File not allowed", 403
-    
-    folder_path = os.path.join('lulu_orders', folder_name)
+    folder_path = os.path.join('generations', 'cloudprinter', preview_id)
     if not os.path.exists(folder_path):
         return "Order not found", 404
-    
-    return send_from_directory(folder_path, filename, as_attachment=True)
-
-
-@app.route('/lulu-files/<path:folder_name>/<filename>')
-def serve_lulu_file_public(folder_name, filename):
-    """
-    Serve Lulu order files publicly for Lulu API to download.
-    This endpoint must be accessible without authentication for Lulu's servers.
-    """
-    from flask import send_from_directory
-    import os
-    
-    if filename not in ['interior.pdf', 'cover.pdf']:
-        return "File not allowed", 403
-    
-    folder_path = os.path.join('lulu_orders', folder_name)
-    if not os.path.exists(folder_path):
-        return "Order not found", 404
-    
     file_path = os.path.join(folder_path, filename)
     if not os.path.exists(file_path):
         return "File not found", 404
-    
-    return send_from_directory(folder_path, filename, mimetype='application/pdf')
+    return send_file(os.path.abspath(file_path), mimetype='application/pdf')
+
+
+@app.route('/cp-test-files/<session_id>/<filename>')
+def serve_cp_test_file(session_id, filename):
+    """
+    Serve Cloudprinter simulation PDFs from generated/cp_test/<session_id>/.
+    Used by cp_simulation_cw.py so Cloudprinter can download test files.
+    Secured by session_id pattern validation and strict filename allowlist.
+    """
+    import re
+    if not re.match(r'^[a-zA-Z0-9_\-]+$', session_id):
+        return "Invalid session ID", 400
+    if filename not in ['cover.pdf', 'content.pdf', 'qs_product.pdf', 'qs_cover.pdf', 'qs_book.pdf']:
+        return "File not allowed", 403
+    file_path = os.path.join('generated', 'cp_test', session_id, filename)
+    if not os.path.exists(file_path):
+        return "File not found", 404
+    return send_file(os.path.abspath(file_path), mimetype='application/pdf')
 
 
 @app.route('/admin/preview/<preview_id>')
@@ -5635,6 +7219,10 @@ def admin_download_pdf(preview_id):
     pdf_path = None
     candidates = []
     
+    gelato_combined = os.path.join('generated', 'gelato', preview_id, 'combined.pdf')
+    if os.path.exists(gelato_combined):
+        candidates.append(gelato_combined)
+    
     lulu_folder = data.get('lulu_order_folder', '')
     if lulu_folder:
         candidates.append(os.path.join(lulu_folder, 'interior.pdf'))
@@ -5660,209 +7248,171 @@ def admin_download_pdf(preview_id):
     return send_file(pdf_path, as_attachment=True, download_name=f'{child_name}_{preview_id[:8]}.pdf')
 
 
-@app.route('/admin/lulu-order/<folder_name>')
-def admin_view_lulu_order(folder_name):
-    """View a specific Lulu order with cover preview."""
+@app.route('/admin/gelato-order/<preview_id>/download-pdf')
+def admin_download_gelato_pdf(preview_id):
+    """Download the Gelato combined PDF for a personalized book order."""
     if not check_admin_auth():
         return redirect(url_for('admin_login_page'))
-    
-    from services.lulu_storage import get_order_by_folder
-    
-    order = get_order_by_folder(folder_name)
-    if not order:
-        return "Order not found", 404
-    
-    interior_path = os.path.join(order['folder_path'], 'interior.pdf')
-    cover_preview_exists = os.path.exists(os.path.join(order['folder_path'], 'cover_preview.png'))
-    interior_exists = os.path.exists(interior_path)
-    cover_pdf_exists = os.path.exists(os.path.join(order['folder_path'], 'cover.pdf'))
-    
-    if interior_exists:
-        order['interior_size_mb'] = round(os.path.getsize(interior_path) / 1024 / 1024, 1)
-    
-    preview_id = order.get('order_id', '')
-    shipping_address = {}
-    lulu_error = ''
-    lulu_status = ''
-    if preview_id:
-        preview_file = f'story_previews/{preview_id}.json'
-        if os.path.exists(preview_file):
-            with open(preview_file, 'r', encoding='utf-8') as f:
-                story_data = json.load(f)
-            shipping_address = story_data.get('shipping_address', {})
-            lulu_error = story_data.get('lulu_error', '')
-            lulu_status = story_data.get('lulu_status', '')
-    
-    return render_template('admin_lulu_order_detail.html', 
-                          order=order, 
-                          cover_preview_exists=cover_preview_exists,
-                          interior_exists=interior_exists,
-                          cover_pdf_exists=cover_pdf_exists,
-                          preview_id=preview_id,
-                          shipping_address=shipping_address,
-                          lulu_error=lulu_error,
-                          lulu_status=lulu_status)
-
-
-@app.route('/admin/lulu-order/<folder_name>/cover-preview')
-def admin_get_cover_preview(folder_name):
-    """Serve the cover preview image."""
-    if not check_admin_auth():
-        return "Unauthorized", 401
-    
-    folder_path = os.path.join('lulu_orders', folder_name)
-    preview_path = os.path.join(folder_path, 'cover_preview.png')
-    
+    import re
+    if not re.match(r'^[a-zA-Z0-9_\-]+$', preview_id):
+        abort(400)
+    pdf_path = os.path.join('generated', 'gelato', preview_id, 'combined.pdf')
+    if not os.path.exists(pdf_path):
+        return f"Gelato PDF not found for order {preview_id}. The PDF may still be generating.", 404
+    preview_path = f'story_previews/{preview_id}.json'
+    child_name = 'libro'
     if os.path.exists(preview_path):
-        return send_from_directory(folder_path, 'cover_preview.png')
-    return "Preview not found", 404
+        with open(preview_path, 'r') as f:
+            try:
+                d = json.load(f)
+                child_name = d.get('child_name', 'libro').replace(' ', '_')
+            except Exception:
+                pass
+    return send_file(os.path.abspath(pdf_path), as_attachment=True, download_name=f'{child_name}_{preview_id[:8]}_gelato.pdf')
 
 
-@app.route('/admin/lulu-order/<folder_name>/approve', methods=['POST'])
-def admin_approve_lulu_order(folder_name):
-    """Approve order and send to Lulu for printing."""
-    if not check_admin_auth():
-        return jsonify({"error": "Unauthorized"}), 401
-
-    from services.lulu_storage import get_order_by_folder, update_order_status
-    from services.lulu_api_service import submit_print_order, get_public_file_url
-
-    order = get_order_by_folder(folder_name)
-    if not order:
-        return jsonify({"error": "Order not found"}), 404
-
-    order_folder = order['folder_path']
-    interior_path = os.path.join(order_folder, 'interior.pdf')
-    cover_path = os.path.join(order_folder, 'cover.pdf')
-
-    if not os.path.exists(interior_path) or not os.path.exists(cover_path):
-        return jsonify({"error": "Missing PDF files"}), 400
-
-    preview_id = order.get('order_id', '')
-    story_data = {}
-    if preview_id:
-        preview_file = f'story_previews/{preview_id}.json'
-        if os.path.exists(preview_file):
-            with open(preview_file, 'r', encoding='utf-8') as f:
-                story_data = json.load(f)
-
-    shipping_address = story_data.get('shipping_address', {})
-    if not shipping_address or not shipping_address.get('name'):
-        return jsonify({"error": "No hay dirección de envío guardada para este pedido."}), 400
-
-    child_name = order.get('child_name', story_data.get('child_name', 'Unknown'))
-    story_id = story_data.get('story_id', '')
-    lang = story_data.get('lang', story_data.get('language', 'es'))
-    _is_illustrated = story_data.get('is_illustrated_book', True)
-    _pod_id = '0827X1169FCPRECW080CW444GXX' if _is_illustrated else '0850X0850FCPRESS080CW444GXX'
-
-    try:
-        from services.personalized_books.generation import get_lulu_title
-        pb_traits = story_data.get('traits', {})
-        pet_name_lulu = pb_traits.get('pet_name', '') if pb_traits else ''
-        book_title = get_lulu_title(story_id, child_name, lang, pet_name=pet_name_lulu)
-    except Exception:
-        book_title = story_data.get('story_name', story_data.get('title', f"Mi Libro - {child_name}"))
-
-    shipping_level = story_data.get('shipping_method', 'MAIL')
-    if not shipping_address.get('email'):
-        shipping_address['email'] = order.get('email', story_data.get('customer_email', ''))
-
-    try:
-        interior_url = get_public_file_url(order_folder, "interior.pdf")
-        cover_url = get_public_file_url(order_folder, "cover.pdf")
-        success, message, lulu_job_id = submit_print_order(
-            order_folder=order_folder,
-            title=book_title,
-            shipping_address=shipping_address,
-            shipping_level=shipping_level,
-            pod_package_id=_pod_id,
-            interior_url=interior_url,
-            cover_url=cover_url
-        )
-        if success and lulu_job_id:
-            update_order_status(order_folder, 'sent_to_lulu', lulu_job_id)
-            if preview_id and story_data:
-                story_data['lulu_job_id'] = lulu_job_id
-                story_data['lulu_submitted'] = True
-                with open(f'story_previews/{preview_id}.json', 'w', encoding='utf-8') as f:
-                    json.dump(story_data, f, ensure_ascii=False, indent=2)
-            return jsonify({"success": True, "message": "Order sent to Lulu!", "job_id": lulu_job_id})
-        else:
-            update_order_status(order_folder, 'failed')
-            return jsonify({"error": message}), 500
-    except Exception as e:
-        update_order_status(order_folder, 'failed')
-        import traceback; traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
 
 
-@app.route('/admin/lulu-order/<folder_name>/regenerate-cover', methods=['POST'])
-def admin_regenerate_cover(folder_name):
-    """Regenerate the cover for an order."""
-    if not check_admin_auth():
-        return jsonify({"error": "Unauthorized"}), 401
-    
-    from services.lulu_storage import get_order_by_folder, save_cover_preview, update_order_status
-    from services.illustrated_book_service import generate_cover_spread, save_cover_as_pdf
-    from services.personalized_books.generation import get_personalized_book_id
-    
-    order = get_order_by_folder(folder_name)
-    if not order:
-        return jsonify({"error": "Order not found"}), 404
-    
-    try:
-        traits = order.get('traits', {
-            'hair_color': 'brown',
-            'hair_length': 'medium', 
-            'hair_type': 'wavy',
-            'eye_color': 'brown',
-            'skin_tone': 'medium'
-        })
-        child_name = order.get('child_name', 'Unknown')
-        gender = order.get('gender', 'female')
-        language = order.get('language', 'es')
-        author_name = order.get('author_name', 'Magic Memories Books')
-        story_id = order.get('story_id', 'dragon_garden_illustrated')
-        book_id = get_personalized_book_id(story_id)
-        
-        cover_spread = generate_cover_spread(traits, child_name, gender, language, book_id, author_name)
-        
-        save_cover_preview(order['folder_path'], cover_spread)
-        
-        cover_pdf_path = os.path.join(order['folder_path'], 'cover.pdf')
-        save_cover_as_pdf(cover_spread, cover_pdf_path)
-        
-        update_order_status(order['folder_path'], 'pending_review')
-        
-        return jsonify({"success": True, "message": "Cover regenerated successfully!"})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route('/admin/test-lulu-connection')
-def admin_test_lulu_connection():
-    """Test connection to Lulu API (sandbox or production)."""
+@app.route('/admin/test-pdf-delivery/<preview_id>')
+def admin_test_pdf_delivery(preview_id):
+    """
+    Manual test: trigger full printable-PDF generation + email for a given preview_id.
+    Accessible only by pay@ admin. Useful to re-send or verify a PDF delivery.
+    """
     if not check_admin_auth():
         return redirect(url_for('admin_login_page'))
-    
-    from services.lulu_api_service import get_access_token, is_sandbox_mode, LULU_API_BASE
-    
+
+    import re as _re
+    if not _re.match(r'^[a-zA-Z0-9_\-]{4,64}$', preview_id):
+        return jsonify({'success': False, 'error': 'Invalid preview_id'}), 400
+
+    preview_file = f'story_previews/{preview_id}.json'
+    if not os.path.exists(preview_file):
+        return jsonify({'success': False, 'error': f'Preview not found: {preview_id}'}), 404
+
+    with open(preview_file, 'r', encoding='utf-8') as f:
+        story_data = json.load(f)
+
+    lang           = story_data.get('lang', 'es')
+    customer_email = request.args.get('to') or story_data.get('customer_email', '')
+
+    import threading
+    t = threading.Thread(
+        target=_dispatch_printable_pdf_email,
+        args=(preview_id, customer_email, lang),
+        daemon=True
+    )
+    t.start()
+
+    return jsonify({
+        'success': True,
+        'message': f'PDF delivery triggered for {preview_id} → {customer_email}',
+        'preview_id': preview_id,
+        'customer_email': customer_email,
+        'lang': lang,
+        'tip': 'Pass ?to=pay@magicmemoriesbooks.com to override recipient for QA testing.',
+    })
+
+
+@app.route('/admin/test-cp-connection')
+def admin_test_cp_connection():
+    """Test connection to Cloudprinter API (sandbox or production)."""
+    if not check_admin_auth():
+        return redirect(url_for('admin_login_page'))
+
+    from services.cloudprinter_api_service import is_sandbox_mode as cp_sandbox, _get_api_key, CLOUDPRINTER_API_BASE
+    import requests as _r
+
+    sandbox = cp_sandbox()
+    api_key = _get_api_key()
     result = {
-        'sandbox_mode': is_sandbox_mode(),
-        'api_base': LULU_API_BASE,
+        'sandbox_mode': sandbox,
+        'api_base': CLOUDPRINTER_API_BASE,
         'connection_success': False,
         'message': ''
     }
-    
-    token = get_access_token()
-    if token:
-        result['connection_success'] = True
-        result['message'] = f"Conexión exitosa a Lulu {'SANDBOX' if is_sandbox_mode() else 'PRODUCTION'}"
-    else:
-        result['message'] = "Error de conexión. Verifica LULU_CLIENT_KEY y LULU_CLIENT_SECRET"
-    
+    try:
+        resp = _r.post(
+            f"{CLOUDPRINTER_API_BASE}/orders/quote",
+            json={"apikey": api_key, "country": "ES",
+                  "items": [{"reference": "test", "product": "magazine_sas_a4_p_fc",
+                              "count": "1",
+                              "options": [{"type": "pageblock_130mcs", "count": "16"},
+                                          {"type": "total_pages", "count": "16"}]}]},
+            timeout=15
+        )
+        if resp.status_code == 200:
+            result['connection_success'] = True
+            result['message'] = f"Conexión exitosa a Cloudprinter {'SANDBOX' if sandbox else 'PRODUCTION'}"
+        else:
+            result['message'] = f"HTTP {resp.status_code}: {resp.text[:200]}"
+    except Exception as e:
+        result['message'] = f"Error: {e}"
+
     return jsonify(result)
+
+
+@app.route('/admin/cp-order-lookup', methods=['GET', 'POST'])
+def admin_cp_order_lookup():
+    """Admin: look up any Cloudprinter order by reference and see address + tracking."""
+    if not check_admin_auth():
+        return redirect(url_for('admin_login_page'))
+
+    result = None
+    ref = ''
+    if request.method == 'POST':
+        ref = (request.form.get('reference') or '').strip()
+        if ref:
+            from services.cloudprinter_api_service import get_order_status
+            result = get_order_status(ref)
+            if result:
+                print(f'[ADMIN CP LOOKUP] {ref} → status={result.get("status")} '
+                      f'addr={result.get("cp_address")} tracking={result.get("tracking_number")}')
+            else:
+                result = {'error': f'No se encontró el pedido {ref} en Cloudprinter'}
+
+    html = f"""
+    <!DOCTYPE html><html><head><title>CP Order Lookup</title>
+    <style>body{{font-family:sans-serif;max-width:800px;margin:40px auto;padding:20px}}
+    input{{padding:8px;width:400px;border:1px solid #ccc;border-radius:4px}}
+    button{{padding:8px 20px;background:#7c3aed;color:white;border:none;border-radius:4px;cursor:pointer}}
+    pre{{background:#f5f5f5;padding:16px;border-radius:8px;overflow:auto;font-size:13px}}
+    .ok{{color:#16a34a}}.err{{color:#dc2626}}.addr{{background:#eff6ff;padding:12px;border-radius:6px;border-left:4px solid #3b82f6}}
+    </style></head><body>
+    <h2>🔍 Cloudprinter Order Lookup</h2>
+    <p>Consulta cualquier pedido por referencia (ej: <code>MM-abc123-456</code> o <code>MMPB-abc123</code>)</p>
+    <form method="POST">
+      <input name="reference" value="{ref}" placeholder="MM-... o MMPB-...">
+      <button type="submit">Consultar</button>
+    </form>
+    """
+    if result and 'error' not in result:
+        addr = result.get('cp_address') or {}
+        addr_html = ''
+        if addr:
+            addr_html = f"""<div class="addr"><strong>📦 Dirección recibida por CP:</strong><br>
+            {addr.get('name','')}<br>
+            {addr.get('street1','')}{'<br>' + addr.get('street2','') if addr.get('street2') else ''}<br>
+            {addr.get('city','')}, {addr.get('postcode','')}<br>
+            {addr.get('country','')}</div>"""
+        tracking_html = ''
+        if result.get('tracking_number'):
+            tracking_html = f"""<p>🚚 <strong>Tracking:</strong> {result['tracking_number']}<br>
+            {'<a href="' + result['tracking_url'] + '" target="_blank">' + result['tracking_url'] + '</a>' if result.get('tracking_url') else ''}<br>
+            Transportista: {result.get('carrier','desconocido')}</p>"""
+        html += f"""
+        <hr style="margin:24px 0">
+        <h3>Pedido: <code>{ref}</code></h3>
+        <p>Estado: <span class="ok"><strong>{result.get('status_text',{}).get('es', result.get('status',''))}</strong></span></p>
+        {addr_html}
+        {tracking_html}
+        <details><summary>Respuesta completa de CP (raw)</summary><pre>{json.dumps(result.get('raw',{}), indent=2, ensure_ascii=False)}</pre></details>
+        """
+    elif result and 'error' in result:
+        html += f'<p class="err">⚠️ {result["error"]}</p>'
+
+    html += '</body></html>'
+    return html
 
 
 @app.route('/admin/update-shipping/<preview_id>', methods=['POST'])
@@ -5920,9 +7470,9 @@ def admin_reset_compose(preview_id):
     return jsonify({'success': True, 'message': f'Compose state reset. was_composing={was_composing}. Now refresh the order page to re-trigger.'})
 
 
-@app.route('/admin/gift-send-to-lulu/<preview_id>', methods=['POST'])
-def admin_gift_send_to_lulu(preview_id):
-    """Submit an admin gift book to Lulu with a manually provided shipping address."""
+@app.route('/admin/gift-send-to-cp/<preview_id>', methods=['POST'])
+def admin_gift_send_to_cp(preview_id):
+    """Submit an admin gift Quick Story to Cloudprinter with a manually provided shipping address."""
     if not check_admin_auth():
         return jsonify({'error': 'Unauthorized'}), 401
 
@@ -5947,268 +7497,181 @@ def admin_gift_send_to_lulu(preview_id):
         'street2': data.get('street2', '').strip(),
         'city': city,
         'state_code': data.get('state_code', '').strip(),
-        'postal_code': postal_code,
+        'postcode': postal_code,
         'country_code': data.get('country_code', 'ES').strip().upper(),
         'phone_number': data.get('phone_number', '').strip(),
         'email': data.get('email', story_data.get('customer_email', '')).strip(),
     }
-    shipping_level = data.get('shipping_level', 'MAIL')
 
-    story_id = story_data.get('story_id', '')
     child_name = story_data.get('child_name', '')
-    lang = story_data.get('lang', story_data.get('language', 'es'))
-    try:
-        from services.personalized_books.generation import get_lulu_title
-        pb_traits = story_data.get('traits', {})
-        pet_name = pb_traits.get('pet_name', '') if pb_traits else ''
-        title = get_lulu_title(story_id, child_name, lang, pet_name=pet_name)
-    except Exception:
-        title = story_data.get('story_name', story_data.get('title', child_name or 'Mi Libro'))
+    story_name = story_data.get('story_name', 'Quick Story')
+    customer_email = story_data.get('customer_email', story_data.get('admin_gift_email', ''))
 
-    lulu_order_folder = story_data.get('lulu_order_folder', '')
+    from services.cloudprinter_api_service import submit_print_order as cp_submit, get_pdf_public_url
+    from services.quick_stories.pdf_service import generate_quick_story_cloudprinter_pdf
 
-    if not lulu_order_folder or not os.path.exists(lulu_order_folder):
-        print(f"[ADMIN-LULU] No lulu_order_folder for {preview_id} — generating PDFs on demand...")
-        try:
-            from services.quick_stories.pdf_service import generate_quick_story_lulu_pdfs
-            from services.lulu_storage import create_order_folder, save_interior_pdf, save_cover_pdf
-            _scenes = story_data.get('original_scene_paths', story_data.get('images', story_data.get('scene_paths', [])))
-            _cover = story_data.get('original_cover', story_data.get('front_cover_path', story_data.get('cover_image', '')))
-            if _cover and _cover.startswith('/'):
-                _cover = _cover[1:]
-            _scenes = [p.lstrip('/') for p in _scenes if p]
-            if not _scenes:
-                return jsonify({'error': 'No se encontraron imágenes del cuento para generar los PDFs. Asegúrate de que el cuento esté completamente generado.'}), 400
-            _back_cover = 'static/images/quick_story_back_cover.png'
-            if not os.path.exists(_back_cover):
-                _back_cover = 'static/images/fixed_pages/back_cover.png'
-            _tmp_dir = f'generations/lulu_admin/{preview_id}'
-            os.makedirs(_tmp_dir, exist_ok=True)
-            generate_quick_story_lulu_pdfs(
-                story_data=story_data,
-                images=_scenes,
-                front_cover_path=_cover,
-                back_cover_path=_back_cover,
-                interior_output=os.path.join(_tmp_dir, 'interior.pdf'),
-                cover_output=os.path.join(_tmp_dir, 'cover.pdf'),
-                skip_sanitize=True
-            )
-            customer_email = story_data.get('customer_email', story_data.get('admin_gift_email', ''))
-            lulu_order_folder = create_order_folder(f'admin_{preview_id[:8]}', child_name, customer_email)
-            save_interior_pdf(lulu_order_folder, os.path.join(_tmp_dir, 'interior.pdf'))
-            save_cover_pdf(lulu_order_folder, os.path.join(_tmp_dir, 'cover.pdf'))
-            story_data['lulu_order_folder'] = lulu_order_folder
-            import shutil as _shutil
-            _shutil.rmtree(_tmp_dir, ignore_errors=True)
-            print(f"[ADMIN-LULU] PDFs generated → {lulu_order_folder}")
-        except Exception as pdf_err:
-            import traceback
-            traceback.print_exc()
-            return jsonify({'error': f'Error generando PDFs: {str(pdf_err)[:200]}'}), 500
+    cp_folder = f'generations/cloudprinter/{preview_id}'
+    os.makedirs(cp_folder, exist_ok=True)
+    pdf_output = os.path.join(cp_folder, 'book.pdf')
+
+    _scenes = story_data.get('original_scene_paths', story_data.get('scene_paths', []))
+    _cover = story_data.get('original_cover', story_data.get('front_cover_path', story_data.get('cover_image', '')))
+    if _cover and _cover.startswith('/'):
+        _cover = _cover[1:]
+    _scenes = [p.lstrip('/') for p in _scenes if p]
+    if not _scenes:
+        return jsonify({'error': 'No se encontraron imágenes del cuento. Asegúrate de que el cuento esté completamente generado.'}), 400
 
     try:
-        from services.lulu_api_service import submit_print_order
-        from services.lulu_api_service import get_public_file_url
-        interior_url = get_public_file_url(lulu_order_folder, "interior.pdf")
-        cover_url = get_public_file_url(lulu_order_folder, "cover.pdf")
-        _is_illustrated = story_data.get('is_illustrated_book', False)
-        _pod_id = '0827X1169FCPRECW080CW444GXX' if _is_illustrated else '0850X0850FCPRESS080CW444GXX'
-        production_logger.info(f"[ADMIN-LULU] Using URLs: interior={interior_url}, pod_package_id={_pod_id}")
-
-        success, message, lulu_job_id = submit_print_order(
-            order_folder=lulu_order_folder,
-            title=title,
-            shipping_address=shipping_address,
-            shipping_level=shipping_level,
-            pod_package_id=_pod_id,
-            interior_url=interior_url,
-            cover_url=cover_url
+        pdf_path = generate_quick_story_cloudprinter_pdf(
+            story_data=story_data,
+            images=_scenes,
+            front_cover_path=_cover,
+            output_path=pdf_output
         )
-        if success and lulu_job_id:
-            story_data['lulu_job_id'] = lulu_job_id
-            story_data['lulu_submitted'] = True
-            story_data['lulu_interior_url'] = interior_url
-            story_data['lulu_cover_url'] = cover_url
+    except Exception as pdf_err:
+        import traceback; traceback.print_exc()
+        return jsonify({'error': f'Error generando PDF: {str(pdf_err)[:200]}'}), 500
+
+    pdf_url = get_pdf_public_url(preview_id, 'book.pdf')
+
+    try:
+        cp_success, cp_msg, cp_order_ref = cp_submit(
+            preview_id=preview_id,
+            pdf_path=pdf_path,
+            pdf_url=pdf_url,
+            customer_data={'email': customer_email},
+            shipping_address=shipping_address
+        )
+        if cp_success:
+            story_data['cp_submitted'] = True
+            story_data['cp_order_ref'] = cp_order_ref
+            story_data['cp_pdf_url'] = pdf_url
             story_data['shipping_address'] = shipping_address
             story_data['want_print'] = True
             with open(preview_file, 'w', encoding='utf-8') as f:
                 json.dump(story_data, f, ensure_ascii=False, indent=2)
             try:
-                from services.email_service import send_lulu_order_notification
-                _customer_email = story_data.get('customer_email', story_data.get('admin_gift_email', 'pay@magicmemoriesbooks.com'))
-                send_lulu_order_notification(
-                    order_folder=lulu_order_folder,
-                    lulu_job_id=lulu_job_id,
-                    title=title,
-                    customer_email=_customer_email,
+                from services.email_service import send_cp_order_notification
+                _title = f"{story_name} - {child_name} (Admin Gift)"
+                send_cp_order_notification(
+                    preview_id=preview_id,
+                    cp_order_ref=cp_order_ref or 'N/A',
+                    title=_title,
+                    customer_email=customer_email,
                     shipping_address=shipping_address,
-                    interior_url=interior_url,
-                    cover_url=cover_url
+                    pdf_url=pdf_url
                 )
-                print(f"[ADMIN-LULU] Notification email sent to pay@ for job {lulu_job_id}")
             except Exception as email_err:
-                print(f"[ADMIN-LULU] Email error (non-fatal): {email_err}")
-            return jsonify({'success': True, 'lulu_job_id': lulu_job_id, 'message': message})
+                print(f"[ADMIN-CP] Email error (non-fatal): {email_err}")
+            return jsonify({'success': True, 'cp_order_ref': cp_order_ref, 'message': cp_msg})
         else:
-            return jsonify({'success': False, 'error': message}), 500
+            return jsonify({'success': False, 'error': cp_msg})
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        import traceback; traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@app.route('/admin/retry-lulu/<preview_id>', methods=['POST'])
-def admin_retry_lulu_submission(preview_id):
-    """Retry Lulu submission for a failed order."""
+@app.route('/admin/retry-cp/<preview_id>', methods=['POST'])
+def admin_retry_cp_submission(preview_id):
+    """Retry Cloudprinter submission for a failed Quick Story order."""
     if not check_admin_auth():
         return jsonify({"error": "Unauthorized"}), 401
-    
+
     preview_file = f'story_previews/{preview_id}.json'
     if not os.path.exists(preview_file):
         return jsonify({"error": "Preview not found"}), 404
-    
+
     with open(preview_file, 'r', encoding='utf-8') as f:
         story_data = json.load(f)
-    
+
     if not story_data.get('paid'):
         return jsonify({"error": "Order not paid"}), 400
-    
+
     shipping_address = story_data.get('shipping_address')
     if not shipping_address:
         return jsonify({"error": "No shipping address"}), 400
-    
-    order_folder = story_data.get('lulu_order_folder')
-    is_illustrated = story_data.get('is_illustrated_book', False)
 
-    if not order_folder or not os.path.exists(order_folder):
-        if is_illustrated:
-            return jsonify({"error": "Lulu order folder not found. No se puede regenerar automáticamente para libros ilustrados."}), 400
+    from services.cloudprinter_api_service import submit_print_order as cp_submit, get_pdf_public_url
+    from services.quick_stories.pdf_service import generate_quick_story_cloudprinter_pdf
+
+    child_name = story_data.get('child_name', 'Unknown')
+    story_name = story_data.get('story_name', story_data.get('title', 'Quick Story'))
+    customer_email = story_data.get('customer_email', '')
+    lang = story_data.get('lang', 'es')
+
+    cp_folder = f'generations/cloudprinter/{preview_id}'
+    os.makedirs(cp_folder, exist_ok=True)
+    pdf_output = os.path.join(cp_folder, 'book.pdf')
+
+    if not os.path.exists(pdf_output):
+        _regen_scenes = story_data.get('original_scene_paths', story_data.get('scene_paths', []))
+        _regen_cover = story_data.get('original_cover', story_data.get('front_cover_path', story_data.get('cover_image', '')))
+        if _regen_cover and _regen_cover.startswith('/'):
+            _regen_cover = _regen_cover[1:]
+        _regen_scenes = [p.lstrip('/') for p in _regen_scenes if p]
+        if not _regen_scenes:
+            return jsonify({"error": "No se encontraron imágenes para regenerar el PDF"}), 400
         try:
-            from services.quick_stories.pdf_service import generate_quick_story_lulu_pdfs
-            from services.lulu_storage import create_order_folder, save_interior_pdf, save_cover_pdf
-            _regen_child = story_data.get('child_name', 'Unknown')
-            _regen_scenes = story_data.get('original_scene_paths', story_data.get('scene_paths', []))
-            _regen_cover = story_data.get('original_cover', story_data.get('front_cover_path', story_data.get('cover_image', '')))
-            if _regen_cover and _regen_cover.startswith('/'):
-                _regen_cover = _regen_cover[1:]
-            _regen_scenes = [p.lstrip('/') for p in _regen_scenes if p]
-            if not _regen_scenes:
-                return jsonify({"error": "No se encontraron imágenes para regenerar los PDFs"}), 400
-            _back_cover = 'static/images/quick_story_back_cover.png'
-            if not os.path.exists(_back_cover):
-                _back_cover = 'static/images/fixed_pages/back_cover.png'
-            _regen_dir = f'generations/lulu_retry/{preview_id}'
-            os.makedirs(_regen_dir, exist_ok=True)
-            generate_quick_story_lulu_pdfs(
+            generate_quick_story_cloudprinter_pdf(
                 story_data=story_data,
                 images=_regen_scenes,
                 front_cover_path=_regen_cover,
-                back_cover_path=_back_cover,
-                interior_output=os.path.join(_regen_dir, 'interior.pdf'),
-                cover_output=os.path.join(_regen_dir, 'cover.pdf'),
-                skip_sanitize=True
+                output_path=pdf_output
             )
-            _regen_email = story_data.get('customer_email', '')
-            order_folder = create_order_folder(f'qs_retry_{preview_id[:8]}', _regen_child, _regen_email)
-            save_interior_pdf(order_folder, os.path.join(_regen_dir, 'interior.pdf'))
-            save_cover_pdf(order_folder, os.path.join(_regen_dir, 'cover.pdf'))
-            story_data['lulu_order_folder'] = order_folder
-            import shutil as _shutil_regen
-            _shutil_regen.rmtree(_regen_dir, ignore_errors=True)
-            print(f"[RETRY] Regenerated PDFs for {preview_id} → {order_folder}")
+            print(f"[RETRY-CP] PDF regenerated → {pdf_output}")
         except Exception as _regen_err:
-            import traceback
-            traceback.print_exc()
-            return jsonify({"error": f"Error regenerando PDFs: {_regen_err}"}), 500
+            import traceback; traceback.print_exc()
+            return jsonify({"error": f"Error regenerando PDF: {_regen_err}"}), 500
+
+    pdf_url = get_pdf_public_url(preview_id, 'book.pdf')
 
     try:
-        from services.lulu_api_service import submit_print_order
-        from services.lulu_storage import update_order_status
-        
-        story_id = story_data.get('story_id', '')
-        child_name = story_data.get('child_name', 'Unknown')
-        lang = story_data.get('lang', 'es')
-        
-        is_illustrated = story_data.get('is_illustrated_book', False)
-        if is_illustrated:
-            from services.personalized_books.generation import get_personalized_book_id, get_lulu_title
-            book_id = get_personalized_book_id(story_id)
-            pet_name_lulu = story_data.get('traits', {}).get('pet_name', '') if story_data.get('traits') else story_data.get('pet_name', '')
-            book_title = get_lulu_title(book_id, child_name, lang, pet_name=pet_name_lulu)
-        else:
-            story_name = story_data.get('story_name', story_data.get('title', 'Quick Story'))
-            book_title = f"{story_name} - {child_name}"
-        
-        shipping_address = dict(shipping_address)
-        if not shipping_address.get('email'):
-            shipping_address['email'] = story_data.get('customer_email', '')
-        if not shipping_address.get('phone_number') and shipping_address.get('phone'):
-            shipping_address['phone_number'] = shipping_address['phone']
-        shipping_level = story_data.get('shipping_method', 'MAIL')
-        _pod_id_retry = '0827X1169FCPRECW080CW444GXX' if is_illustrated else '0850X0850FCPRESS080CW444GXX'
-        success, message, lulu_job_id = submit_print_order(
-            order_folder=order_folder,
-            title=book_title,
-            shipping_address=shipping_address,
-            shipping_level=shipping_level,
-            pod_package_id=_pod_id_retry
+        cp_success, cp_msg, cp_order_ref = cp_submit(
+            preview_id=preview_id,
+            pdf_path=pdf_output,
+            pdf_url=pdf_url,
+            customer_data={'email': customer_email},
+            shipping_address=shipping_address
         )
-        
-        if success and lulu_job_id:
-            story_data['lulu_job_id'] = lulu_job_id
-            story_data['lulu_status'] = 'sent'
-            story_data['lulu_error'] = None
-            story_data['lulu_submitted'] = True
-            update_order_status(order_folder, 'sent_to_lulu', lulu_job_id)
-            import shutil as _shutil_retry
-            _shutil_retry.rmtree(order_folder, ignore_errors=True)
 
+        if cp_success:
+            story_data['cp_submitted'] = True
+            story_data['cp_order_ref'] = cp_order_ref
+            story_data['cp_status'] = 'sent'
+            story_data['cp_error'] = None
+            story_data['cp_pdf_url'] = pdf_url
             with open(preview_file, 'w', encoding='utf-8') as f:
                 json.dump(story_data, f, ensure_ascii=False, indent=2)
-            
             try:
-                from services.email_service import send_lulu_order_notification, send_lulu_customer_notification
-                folder_name = os.path.basename(order_folder) if order_folder else preview_id
-                send_lulu_order_notification(
-                    order_folder=folder_name,
-                    lulu_job_id=lulu_job_id,
+                from services.email_service import send_cp_order_notification
+                book_title = f"{story_name} - {child_name}"
+                send_cp_order_notification(
+                    preview_id=preview_id,
+                    cp_order_ref=cp_order_ref or 'N/A',
                     title=book_title,
-                    customer_email=story_data.get('customer_email', ''),
-                    shipping_address=shipping_address
+                    customer_email=customer_email,
+                    shipping_address=shipping_address,
+                    pdf_url=pdf_url
                 )
-                cust_email = story_data.get('customer_email', '')
-                if cust_email:
-                    send_lulu_customer_notification(
-                        to_email=cust_email,
-                        child_name=child_name,
-                        book_title=book_title,
-                        shipping_address=shipping_address,
-                        shipping_method=shipping_level,
-                        lang=lang
-                    )
             except Exception:
                 pass
-            
-            return jsonify({
-                "success": True, 
-                "message": f"Order sent to Lulu! Job ID: {lulu_job_id}",
-                "lulu_job_id": lulu_job_id
-            })
+            return jsonify({"success": True, "message": f"Order submitted to Cloudprinter! Ref: {cp_order_ref}", "cp_order_ref": cp_order_ref})
         else:
-            story_data['lulu_error'] = message or 'Failed to submit'
+            story_data['cp_error'] = cp_msg or 'Failed to submit'
             with open(preview_file, 'w', encoding='utf-8') as f:
                 json.dump(story_data, f, ensure_ascii=False, indent=2)
-            return jsonify({"error": message or "Failed to submit to Lulu"}), 500
-            
+            return jsonify({"error": cp_msg or "Failed to submit to Cloudprinter"}), 500
+
     except Exception as e:
-        app.logger.error(f"Error retrying Lulu submission: {e}")
-        import traceback
-        traceback.print_exc()
+        app.logger.error(f"Error retrying CP submission: {e}")
+        import traceback; traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
-@app.route('/admin/send-lulu-resolved/<preview_id>', methods=['POST'])
-def admin_send_lulu_resolved(preview_id):
+@app.route('/admin/send-cp-resolved/<preview_id>', methods=['POST'])
+def admin_send_cp_resolved(preview_id):
+    """Manually notify a customer that their Cloudprinter order issue has been resolved."""
     if not check_admin_auth():
         return jsonify({"error": "Unauthorized"}), 401
 
@@ -6222,57 +7685,32 @@ def admin_send_lulu_resolved(preview_id):
     customer_email = story_data.get('customer_email', '')
     child_name = story_data.get('child_name', 'Unknown')
     lang = story_data.get('lang', 'es')
-    lulu_job_id = story_data.get('lulu_job_id', '')
+    cp_order_ref = story_data.get('cp_order_ref', story_data.get('lulu_job_id', ''))
 
     if not customer_email:
         return jsonify({"error": "No customer email found"}), 400
-    if not lulu_job_id:
-        return jsonify({"error": "No Lulu job ID found"}), 400
 
     results = {}
 
     try:
-        from services.email_service import send_lulu_resolved_email
-        ok = send_lulu_resolved_email(customer_email, child_name, str(lulu_job_id), lang)
-        results['customer_email'] = 'sent' if ok else 'failed'
-    except Exception as e:
-        results['customer_email'] = f'error: {e}'
-
-    try:
-        from services.email_service import send_lulu_order_notification, send_lulu_customer_notification
+        from services.email_service import send_cp_order_notification
         shipping_address = story_data.get('shipping_address', {})
-        story_id = story_data.get('story_id', '')
-        is_illustrated = story_data.get('is_illustrated_book', False)
-        if is_illustrated:
-            from services.personalized_books.generation import get_personalized_book_id, get_lulu_title
-            book_id = get_personalized_book_id(story_id)
-            pet_name_lulu = story_data.get('traits', {}).get('pet_name', '') if story_data.get('traits') else story_data.get('pet_name', '')
-            book_title = get_lulu_title(book_id, child_name, lang, pet_name=pet_name_lulu)
-        else:
-            story_name = story_data.get('story_name', story_data.get('title', 'Quick Story'))
-            book_title = f"{story_name} - {child_name}"
-        send_lulu_order_notification(
-            order_folder=preview_id,
-            lulu_job_id=str(lulu_job_id),
+        pdf_url = story_data.get('cp_pdf_url', '')
+        story_name = story_data.get('story_name', story_data.get('title', 'Quick Story'))
+        book_title = f"{story_name} - {child_name}"
+        send_cp_order_notification(
+            preview_id=preview_id,
+            cp_order_ref=str(cp_order_ref) if cp_order_ref else 'manual',
             title=book_title,
             customer_email=customer_email,
-            shipping_address=shipping_address
+            shipping_address=shipping_address,
+            pdf_url=pdf_url
         )
         results['admin_email'] = 'sent'
-        shipping_method = story_data.get('shipping_method', 'MAIL')
-        send_lulu_customer_notification(
-            to_email=customer_email,
-            child_name=child_name,
-            book_title=book_title,
-            shipping_address=shipping_address,
-            shipping_method=shipping_method,
-            lang=lang
-        )
-        results['customer_print_email'] = 'sent'
     except Exception as e:
         results['admin_email'] = f'error: {e}'
 
-    story_data['lulu_resolved_email_sent'] = True
+    story_data['cp_resolved_email_sent'] = True
     with open(preview_file, 'w', encoding='utf-8') as f:
         json.dump(story_data, f, ensure_ascii=False, indent=2)
 
@@ -6508,6 +7946,21 @@ def admin_gift_download(preview_id):
                           cover_exists=cover_exists)
 
 
+@app.route('/admin/pb-files/<folder_name>/<filename>')
+def admin_pb_files(folder_name, filename):
+    """Serve PB (personalized book) PDF files for admin download."""
+    if not check_admin_auth():
+        return "Unauthorized", 401
+    if filename not in ('interior.pdf', 'cover.pdf'):
+        return "Not found", 404
+    folder_path = os.path.join('generations', 'pb_orders', folder_name)
+    file_path = os.path.join(folder_path, filename)
+    if not os.path.exists(file_path):
+        return "File not found", 404
+    return send_file(os.path.abspath(file_path), mimetype='application/pdf',
+                     as_attachment=True, download_name=filename)
+
+
 # ============================================================
 # ADMIN: REAL STORIES QUALITY CONTROL PANEL (Feb 2026)
 # ============================================================
@@ -6530,6 +7983,8 @@ def admin_rescue_order(preview_id):
     shipping_address = data.get('shipping_address', {})
     lulu_error = data.get('lulu_error', '')
     lulu_status = data.get('lulu_status', '')
+    cp_error = data.get('cp_error', '')
+    cp_status = data.get('cp_status', '')
     lulu_order_folder = data.get('lulu_order_folder', '')
     
     lulu_folder_name = ''
@@ -6552,6 +8007,8 @@ def admin_rescue_order(preview_id):
                           shipping_address=shipping_address,
                           lulu_error=lulu_error,
                           lulu_status=lulu_status,
+                          cp_error=cp_error,
+                          cp_status=cp_status,
                           lulu_folder_name=lulu_folder_name,
                           interior_exists=interior_exists,
                           cover_pdf_exists=cover_pdf_exists,
@@ -6851,7 +8308,28 @@ def _generate_scenes_background(preview_id, **kwargs):
     
     story_id = story_data.get('story_id', '')
     output_dir = story_data.get('output_dir', '')
-    
+    _qs_lang = story_data.get('lang', 'es')
+    _qs_child_name = story_data.get('child_name', '')
+    _qs_email = story_data.get('customer_email', '')
+
+    if _qs_email and story_data.get('paid', False) and not story_data.get('recovery_email_sent', False):
+        try:
+            _qs_base = os.environ.get('SITE_DOMAIN', '') or os.environ.get('REPLIT_DEV_DOMAIN', 'magicmemoriesbooks.com')
+            _qs_recovery_url = f"https://{_qs_base}/order-complete/{preview_id}"
+            from services.email_service import send_recovery_link_email
+            send_recovery_link_email(
+                to_email=_qs_email,
+                child_name=_qs_child_name,
+                recovery_url=_qs_recovery_url,
+                lang=_qs_lang
+            )
+            story_data['recovery_email_sent'] = True
+            with open(preview_file, 'w', encoding='utf-8') as _qsf:
+                json.dump(story_data, _qsf, ensure_ascii=False, indent=2)
+            production_logger.info(f"[BG-GEN] Recovery email sent to {_qs_email}")
+        except Exception as _qs_rec_err:
+            production_logger.warning(f"[BG-GEN] Recovery email failed: {_qs_rec_err}")
+
     if not story_data.get('scenes_pending', False):
         production_logger.info(f"[BG-GEN] {preview_id} scenes already generated, skipping")
         return {'status': 'already_done'}
@@ -6948,6 +8426,7 @@ def _generate_scenes_background(preview_id, **kwargs):
                 _generation_progress[preview_id] = {'generated': done, 'total': total}
                 _write_progress(preview_id, done, total)
             
+            _clean_scenes = []
             pages, failed_scene_indices = generate_full_book(
                 book_id=book_id,
                 child_name=child_name,
@@ -6959,7 +8438,8 @@ def _generate_scenes_background(preview_id, **kwargs):
                 author_name=author_name,
                 reference_image_path=ref_path,
                 reference_image_path_2=ref_path_2,
-                progress_callback=_scene_progress_cb
+                progress_callback=_scene_progress_cb,
+                clean_scenes_collector=_clean_scenes
             )
             
             if len(pages) < 10:
@@ -6968,6 +8448,14 @@ def _generate_scenes_background(preview_id, **kwargs):
             composed_dir = f'generated/composed_{preview_id}'
             os.makedirs(composed_dir, exist_ok=True)
             
+            for _cs_idx, _cs_img in _clean_scenes:
+                try:
+                    _cs_path = os.path.join(composed_dir, f'clean_scene_{_cs_idx}.png')
+                    _cs_img.save(_cs_path, format='PNG')
+                    _cs_img.close()
+                except Exception as _cs_err:
+                    print(f'[BG-GEN] WARNING: could not save clean_scene_{_cs_idx}: {_cs_err}')
+
             saved = save_book_as_images(pages, composed_dir, prefix='page', with_watermark=True)
             original_paths = saved.get('original', [])
             preview_paths = saved.get('preview', [])
@@ -7103,16 +8591,26 @@ def _generate_scenes_background(preview_id, **kwargs):
         lang = story_data.get('lang', story_data.get('language', 'es'))
         is_birthday_story = story_cfg.get('is_birthday', False)
         
+        import shutil as _shutil
+        original_raw_paths = []
         if scene_paths and pages_data:
             from services.quick_stories.image_composer import compose_baby_text_on_image, compose_kids_text_on_image
             from PIL import Image as PILImage
             
             for idx, sp in enumerate(scene_paths):
                 if not sp:
+                    original_raw_paths.append(None)
                     continue
                 raw_path = sp.lstrip('/')
                 if not os.path.exists(raw_path):
+                    original_raw_paths.append(None)
                     continue
+                orig_copy_path = raw_path.replace('.png', '_orig.png')
+                try:
+                    _shutil.copy2(raw_path, orig_copy_path)
+                    original_raw_paths.append(orig_copy_path)
+                except Exception:
+                    original_raw_paths.append(raw_path)
                 if idx >= len(pages_data):
                     continue
                     
@@ -7167,14 +8665,22 @@ def _generate_scenes_background(preview_id, **kwargs):
                 path = p if p.startswith('/') else f'/{p}'
                 formatted_scene_paths.append(path)
         
+        formatted_original_paths = []
+        for p in original_raw_paths:
+            if p:
+                path = p if p.startswith('/') else f'/{p}'
+                formatted_original_paths.append(path)
+        if not formatted_original_paths:
+            formatted_original_paths = formatted_scene_paths
+        
         story_data['scene_paths'] = formatted_scene_paths
         story_data['images'] = formatted_scene_paths
-        story_data['original_scene_paths'] = formatted_scene_paths
-        story_data['original_images'] = formatted_scene_paths
+        story_data['original_scene_paths'] = formatted_original_paths
+        story_data['original_images'] = formatted_original_paths
         if closing_image:
             story_data['closing_image'] = closing_image if closing_image.startswith('/') else f'/{closing_image}'
             closing_msg = story_data.get('closing_message', '')
-            if closing_msg and not is_birthday_story:
+            if closing_msg:
                 try:
                     from services.quick_stories.image_composer import compose_kids_text_on_image
                     from PIL import Image as PILImage
@@ -7197,10 +8703,10 @@ def _generate_scenes_background(preview_id, **kwargs):
         _clear_progress(preview_id)
         production_logger.info(f"[BG-GEN] {preview_id} completed: {len(scene_paths)} scenes, closing={bool(closing_image)}")
         
-        is_digital_only = story_data.get('paid', False) and not story_data.get('want_print', False) and not story_data.get('visor_uploaded', False)
         customer_email = story_data.get('customer_email', '')
-        if is_qs and is_digital_only and customer_email:
-            production_logger.info(f"[BG-GEN] Quick Story Digital - auto-launching visor upload + email for {preview_id}")
+        qs_needs_ebook = story_data.get('paid', False) and not story_data.get('visor_uploaded', False)
+        if is_qs and qs_needs_ebook and customer_email:
+            production_logger.info(f"[BG-GEN] Quick Story - auto-launching visor upload + email for {preview_id}")
             try:
                 _process_ebook_generation(preview_id, customer_email)
             except Exception as visor_err:
@@ -7223,22 +8729,12 @@ def _generate_scenes_background(preview_id, **kwargs):
         _clear_progress(preview_id)
         is_final_attempt = task_result is None or task_result.retries >= task_result.max_retries - 1
 
-        customer_email = story_data.get('customer_email')
-        if is_final_attempt and customer_email:
-            try:
-                from services.email_service import send_generation_failed_email
-                base_url = os.environ.get('SITE_DOMAIN', os.environ.get('REPLIT_DEV_DOMAIN', 'magicmemoriesbooks.com'))
-                retry_url = f"https://{base_url}/retry-story/{preview_id}"
-                lang = story_data.get('lang', story_data.get('language', 'es'))
-                send_generation_failed_email(customer_email, child_name, retry_url, lang)
-            except Exception as email_err:
-                production_logger.error(f"[BG-GEN] Failed to send error email: {email_err}")
-
         if is_final_attempt:
             try:
                 import traceback as tb
                 from services.email_service import send_admin_error_email
-                send_admin_error_email('_generate_scenes_background', preview_id, str(e), tb.format_exc())
+                send_admin_error_email('_generate_scenes_background', preview_id, str(e), tb.format_exc(),
+                                       story_data=story_data, is_retry_failure=bool(story_data.get('retry_attempted', False)))
             except Exception:
                 pass
 
@@ -7441,8 +8937,8 @@ def _retry_failed_scenes_background(preview_id):
                 position,
                 "#FFFFFF",
                 "#000000",
-                52,
-                0.05
+                38,
+                0.143
             )
             
             page_index = scene_idx + 3
@@ -7633,7 +9129,25 @@ def _compose_personalized_book_background(preview_id, **kwargs):
     gender = story_data.get('gender', 'neutral')
     traits = story_data.get('traits', {})
     customer_email = story_data.get('customer_email', '')
-    
+
+    if customer_email and not story_data.get('recovery_email_sent', False):
+        try:
+            _base = os.environ.get('SITE_DOMAIN', '') or os.environ.get('REPLIT_DEV_DOMAIN', 'magicmemoriesbooks.com')
+            _recovery_url = f"https://{_base}/order-complete/{preview_id}"
+            from services.email_service import send_recovery_link_email
+            send_recovery_link_email(
+                to_email=customer_email,
+                child_name=child_name,
+                recovery_url=_recovery_url,
+                lang=lang
+            )
+            story_data['recovery_email_sent'] = True
+            with open(preview_file, 'w', encoding='utf-8') as _f:
+                json.dump(story_data, _f, ensure_ascii=False, indent=2)
+            production_logger.info(f"[BG-COMPOSE] Recovery email sent to {customer_email}")
+        except Exception as _rec_err:
+            production_logger.warning(f"[BG-COMPOSE] Recovery email failed: {_rec_err}")
+
     try:
         from services.illustrated_book_service import generate_full_book, save_book_as_images
         from services.personalized_books.generation import get_personalized_book_id
@@ -7662,7 +9176,12 @@ def _compose_personalized_book_background(preview_id, **kwargs):
         if not scenes_already_ready:
             ref_image_path = None
             ref_image_path_2 = None
-            if book_id == "magic_inventor":
+            
+            child_photo_path = story_data.get('child_photo_path', '')
+            if child_photo_path and os.path.exists(child_photo_path):
+                ref_image_path = child_photo_path
+                production_logger.info(f"[BG-COMPOSE] Using child photo reference for FLUX 2 Dev: {ref_image_path}")
+            elif book_id == "magic_inventor":
                 character_preview = story_data.get('character_preview', '')
                 if character_preview:
                     ref_candidate = character_preview.lstrip('/')
@@ -7687,6 +9206,7 @@ def _compose_personalized_book_background(preview_id, **kwargs):
                         production_logger.info(f"[BG-COMPOSE] Furry love pet reference: {ref_image_path_2}")
             
             production_logger.info(f"[BG-COMPOSE] Generating personalized book pages for '{book_id}'...")
+            _clean_scenes_compose = []
             pages, _failed = generate_full_book(
                 book_id=book_id,
                 child_name=child_name,
@@ -7696,18 +9216,35 @@ def _compose_personalized_book_background(preview_id, **kwargs):
                 dedication_text=dedication,
                 for_print=True,
                 reference_image_path=ref_image_path,
-                reference_image_path_2=ref_image_path_2
+                reference_image_path_2=ref_image_path_2,
+                clean_scenes_collector=_clean_scenes_compose
             )
-            
+            for _cs_idx, _cs_img in _clean_scenes_compose:
+                try:
+                    _cs_path = os.path.join(composed_dir, f'clean_scene_{_cs_idx}.png')
+                    _cs_img.save(_cs_path, format='PNG')
+                    _cs_img.close()
+                except Exception as _cs_err:
+                    production_logger.warning(f'[BG-COMPOSE] Could not save clean_scene_{_cs_idx}: {_cs_err}')
+
             saved_paths = save_book_as_images(pages, composed_dir, prefix='page', with_watermark=True)
             original_paths = saved_paths['original']
             preview_paths = saved_paths['preview']
+            
+            if child_photo_path and os.path.exists(child_photo_path):
+                try:
+                    os.remove(child_photo_path)
+                    story_data['child_photo_path'] = ''
+                    production_logger.info(f"[BG-COMPOSE] Child photo deleted after composition: {child_photo_path}")
+                except Exception as photo_del_err:
+                    production_logger.warning(f"[BG-COMPOSE] Could not delete child photo: {photo_del_err}")
         
         content_original = original_paths[2:-2]
         content_preview = preview_paths[2:-2]
         
         formatted_original = [f'/{p}' if not p.startswith('/') else p for p in content_original]
         formatted_preview = [f'/{p}' if not p.startswith('/') else p for p in content_preview]
+        all_pages_original = [f'/{p}' if not p.startswith('/') else p for p in original_paths[:-2]]
         
         all_original = [f'/{p}' if not p.startswith('/') else p for p in original_paths]
         all_preview = [f'/{p}' if not p.startswith('/') else p for p in preview_paths]
@@ -7789,7 +9326,9 @@ def _compose_personalized_book_background(preview_id, **kwargs):
         front_x = wrap_px + board_w_px + spine_px
         front_cover = cover_spread.crop((front_x, wrap_px, front_x + board_w_px, wrap_px + int(303.35 * MM_TO_INCH * DPI)))
         back_cover = cover_spread.crop((wrap_px, wrap_px, wrap_px + board_w_px, wrap_px + int(303.35 * MM_TO_INCH * DPI)))
-        
+
+        production_logger.info("[BG-COMPOSE] Back cover ready (logo already embedded by generate_cover_spread)")
+
         front_cover_original_path = os.path.join(composed_dir, 'front_cover.png')
         front_cover.save(front_cover_original_path, 'PNG')
         story_data['front_cover_path'] = f'/{front_cover_original_path}'
@@ -7812,61 +9351,11 @@ def _compose_personalized_book_background(preview_id, **kwargs):
         cover_spread.save(cover_spread_save_path, 'PNG')
         story_data['cover_spread_path'] = cover_spread_save_path
         
-        production_logger.info(f"[BG-COMPOSE] Cover spread saved! Generating Lulu print files...")
-        from services.lulu_storage import create_order_folder, save_cover_preview, update_order_status
-        from services.illustrated_book_service import generate_illustrated_book_pdf, save_cover_as_pdf
-        
-        order_folder = create_order_folder(
-            order_id=preview_id,
-            child_name=child_name,
-            email=customer_email
-        )
-        
-        interior_path = os.path.join(order_folder, 'interior.pdf')
-        if scenes_already_ready:
-            generate_illustrated_book_pdf(output_path=interior_path, for_print=True, page_paths=original_paths)
-        else:
-            generate_illustrated_book_pdf(pages, interior_path, for_print=True)
-        
-        cover_path = os.path.join(order_folder, 'cover.pdf')
-        save_cover_as_pdf(cover_spread, cover_path)
-        
-        save_cover_preview(order_folder, cover_spread)
-        
-        story_data['lulu_order_folder'] = order_folder
-        
         is_admin_gift = story_data.get('admin_gift', False)
-        
+
         if is_admin_gift:
-            production_logger.info(f"[BG-COMPOSE] ADMIN GIFT book - skipping Lulu submission. PDFs saved for manual download: {order_folder}")
-            update_order_status(order_folder, 'admin_gift_ready')
-            story_data['lulu_status'] = 'admin_gift'
-            
-            admin_gift_email = story_data.get('admin_gift_email', '') or story_data.get('customer_email', '')
-            if admin_gift_email:
-                try:
-                    from services.personalized_books.generation import get_lulu_title
-                    pet_name_lulu = traits.get('pet_name', '') if traits else ''
-                    book_title = get_lulu_title(book_id, child_name, lang, pet_name=pet_name_lulu)
-                    
-                    base_url = os.environ.get('SITE_DOMAIN', os.environ.get('REPLIT_DEV_DOMAIN', 'magicmemoriesbooks.com'))
-                    folder_name = os.path.basename(order_folder)
-                    interior_url = f"https://{base_url}/lulu-files/{folder_name}/interior.pdf"
-                    cover_url = f"https://{base_url}/lulu-files/{folder_name}/cover.pdf"
-                    
-                    from services.email_service import send_admin_gift_email
-                    send_admin_gift_email(
-                        to_email=admin_gift_email,
-                        book_title=book_title,
-                        child_name=child_name,
-                        interior_url=interior_url,
-                        cover_url=cover_url,
-                        order_folder=folder_name
-                    )
-                    production_logger.info(f"[BG-COMPOSE] Admin gift email sent to {admin_gift_email}")
-                    story_data['admin_gift_email_sent'] = True
-                except Exception as email_err:
-                    production_logger.error(f"[BG-COMPOSE] Admin gift email failed: {email_err}")
+            production_logger.info(f"[BG-COMPOSE] ADMIN GIFT Gelato book — skipping Gelato submission")
+            story_data['gelato_status'] = 'admin_gift'
             
             try:
                 from services.vps_upload_service import prepare_and_upload
@@ -7879,154 +9368,246 @@ def _compose_personalized_book_background(preview_id, **kwargs):
                 production_logger.info(f"[BG-COMPOSE] Admin gift visor prepared: {visor_url}")
             except Exception as visor_err:
                 production_logger.error(f"[BG-COMPOSE] Admin gift visor preparation failed: {visor_err}")
-        else:
-            shipping_address = story_data.get('shipping_address')
-            if shipping_address and shipping_address.get('name') and shipping_address.get('street1'):
-                if not shipping_address.get('email'):
-                    shipping_address['email'] = customer_email or story_data.get('customer_email', '')
-                if not shipping_address.get('phone_number') and shipping_address.get('phone'):
-                    shipping_address['phone_number'] = shipping_address['phone']
-                production_logger.info(f"[BG-COMPOSE] Sending to Lulu for printing...")
-                from services.lulu_api_service import submit_print_order
-                from services.personalized_books.generation import get_lulu_title
-                
-                pet_name_lulu = traits.get('pet_name', '') if traits else ''
-                book_title = get_lulu_title(book_id, child_name, lang, pet_name=pet_name_lulu)
-                shipping_level = story_data.get('shipping_method', 'MAIL')
-                
-                success, message, lulu_job_id = submit_print_order(
-                    order_folder=order_folder,
-                    title=book_title,
-                    shipping_address=shipping_address,
-                    shipping_level=shipping_level
-                )
-                
-                if success:
-                    production_logger.info(f"[BG-COMPOSE] Lulu order submitted! Job ID: {lulu_job_id}")
-                    update_order_status(order_folder, 'sent_to_lulu')
-                    story_data['lulu_job_id'] = lulu_job_id
-                    story_data['lulu_status'] = 'sent'
-                    
-                    try:
-                        from services.email_service import send_lulu_order_notification, send_lulu_customer_notification
-                        base_url = os.environ.get('SITE_DOMAIN', os.environ.get('REPLIT_DEV_DOMAIN', 'magicmemoriesbooks.com'))
-                        folder_name = os.path.basename(order_folder)
-                        interior_url = f"https://{base_url}/lulu-files/{folder_name}/interior.pdf"
-                        cover_url = f"https://{base_url}/lulu-files/{folder_name}/cover.pdf"
-                        
-                        send_lulu_order_notification(
-                            order_folder=folder_name,
-                            lulu_job_id=lulu_job_id,
-                            title=book_title,
-                            customer_email=customer_email,
-                            shipping_address=shipping_address,
-                            interior_url=interior_url,
-                            cover_url=cover_url
-                        )
-                        if customer_email:
-                            send_lulu_customer_notification(
-                                to_email=customer_email,
-                                child_name=child_name,
-                                book_title=book_title,
-                                shipping_address=shipping_address,
-                                shipping_method=shipping_level,
-                                lang=lang
-                            )
-                    except Exception as notif_error:
-                        production_logger.error(f"[BG-COMPOSE] Notifications failed: {notif_error}")
-                else:
-                    production_logger.error(f"[BG-COMPOSE] Lulu submission failed: {message}")
-                    update_order_status(order_folder, 'failed')
-                    story_data['lulu_status'] = 'failed'
-                    story_data['lulu_error'] = message
-                    
-                    if customer_email:
-                        try:
-                            from services.email_service import send_lulu_failure_email
-                            send_lulu_failure_email(
-                                to_email=customer_email,
-                                child_name=child_name,
-                                error_message=message,
-                                lang=lang,
-                                preview_id=preview_id
-                            )
-                            production_logger.info(f"[BG-COMPOSE] Lulu failure notification sent to {customer_email}")
-                        except Exception as fail_email_err:
-                            production_logger.error(f"[BG-COMPOSE] Failed to send Lulu failure email: {fail_email_err}")
-                    
-                    try:
-                        from services.email_service import send_lulu_failure_admin_email
-                        send_lulu_failure_admin_email(
-                            preview_id=preview_id,
-                            child_name=child_name,
-                            error_message=message,
-                            customer_email=customer_email or '',
-                            shipping_address=shipping_address,
-                            story_id=story_data.get('story_id', ''),
-                            product_type='personalized'
-                        )
-                    except Exception as admin_err:
-                        production_logger.error(f"[BG-COMPOSE] Failed to send admin failure email: {admin_err}")
-            else:
-                production_logger.info(f"[BG-COMPOSE] No shipping address - order saved for manual review")
-                if order_folder:
-                    update_order_status(order_folder, 'pending_review')
         
         if customer_email and not is_admin_gift:
             try:
+                want_print = bool(story_data.get('want_print', False))
+                want_ebook = bool(story_data.get('want_ebook', False))
+                want_pdf = (story_data.get('product_type') == 'personalized_pdf') or bool(story_data.get('pdf_order')) or bool(story_data.get('want_pdf', False))
+
+                # Gift ebook: customer didn't buy the ebook → receives 6-month gift visor
+                give_gift_ebook = not want_ebook
+                # Visor: permanent if ebook purchased, 6-month gift otherwise
+                _visor_is_gift = not want_ebook
+
+                # Gift email placement (1 gift ebook max per order):
+                # PDF+Print (no ebook): gift goes in libro impreso email (comes later)
+                # PDF-only (no print, no ebook): gift goes in PDF email
+                # All ebook combos: no gift (they paid for permanent access)
+                _pdf_include_gift = give_gift_ebook and want_pdf and not want_print
+                _print_include_gift = give_gift_ebook and want_print
+
+                base_url = os.environ.get('SITE_DOMAIN', os.environ.get('REPLIT_DEV_DOMAIN', 'magicmemoriesbooks.com'))
+                recovery_url = f"https://{base_url}/order-complete/{preview_id}"
+
                 visor_url = None
                 try:
                     from services.vps_upload_service import prepare_and_upload
-                    visor_result = prepare_and_upload(story_data, preview_id, is_gift=True)
+                    visor_result = prepare_and_upload(story_data, preview_id, is_gift=_visor_is_gift)
                     visor_url = visor_result.get('visor_url')
                     story_data['visor_url'] = visor_url
                     story_data['visor_uuid'] = visor_result.get('book_uuid')
                     story_data['visor_uploaded'] = True
-                    story_data['ebook_is_gift'] = True
-                    production_logger.info(f"[BG-COMPOSE] Gift visor prepared: {visor_url}")
+                    story_data['ebook_is_gift'] = _visor_is_gift
+                    story_data['pdf_include_gift_ebook'] = _pdf_include_gift
+                    with open(preview_file, 'w', encoding='utf-8') as _vf:
+                        json.dump(story_data, _vf, ensure_ascii=False, indent=2)
+                    production_logger.info(f"[BG-COMPOSE] Visor prepared (is_gift={_visor_is_gift}, want_ebook={want_ebook}, want_pdf={want_pdf}, want_print={want_print}): {visor_url}")
                 except Exception as visor_err:
                     production_logger.error(f"[BG-COMPOSE] Visor preparation failed: {visor_err}")
-                
-                if visor_url:
-                    from services.email_service import send_ebook_email
-                    send_ebook_email(
-                        to_email=customer_email,
-                        story_data=story_data,
-                        visor_url=visor_url,
-                        is_gift=True
-                    )
-                else:
-                    from services.email_service import send_story_email_with_attachments
-                    from services.pdf_service import create_pdf_from_images
-                    safe_name = child_name.replace(' ', '_').replace("'", "")
-                    os.makedirs(f'generations/email/{preview_id}', exist_ok=True)
-                    pdf_digital_path = f'generations/email/{preview_id}/{safe_name}_digital.pdf'
-                    pdf_pages = []
-                    front_cover_p = story_data.get('front_cover_path', '')
-                    if front_cover_p:
-                        pdf_pages.append(front_cover_p.lstrip('/'))
-                    pdf_pages.extend([p.lstrip('/') for p in formatted_original])
-                    back_cover_p = story_data.get('back_cover_path', '')
-                    if back_cover_p and os.path.exists(back_cover_p.lstrip('/')):
-                        pdf_pages.append(back_cover_p.lstrip('/'))
-                    create_pdf_from_images(pdf_pages, pdf_digital_path, skip_sanitize=True)
-                    send_story_email_with_attachments(
-                        to_email=customer_email,
-                        story_data=story_data,
-                        pdf_digital_path=pdf_digital_path,
-                        pdf_printable_path=None,
-                        epub_path=None,
-                        instructions_path=None,
-                        age_group='personalized',
-                        preview_id=preview_id,
-                        visor_url=None
-                    )
-                
-                story_data['email_sent'] = True
-                story_data['email_sent_date'] = datetime.now().isoformat()
-                production_logger.info(f"[BG-COMPOSE] Customer email sent to {customer_email}")
+
+                _bg_product_type = story_data.get('product_type', '') or ''
+                _print_product_type_bg = story_data.get('print_product_type', '') or ''
+                _is_cp_pb_bg = (_bg_product_type == 'cp_personalized') or \
+                               (_print_product_type_bg == 'cp_personalized') or \
+                               (want_print and story_data.get('is_illustrated_book', False) and not _bg_product_type)
+                if want_print and _is_cp_pb_bg:
+                    shipping_address_g = story_data.get('shipping_address')
+                    if shipping_address_g and shipping_address_g.get('name') and shipping_address_g.get('street1'):
+                        try:
+                            from services.personalized_books.generation import get_print_title
+                            from services.personalized_books.cp_pdf_service import generate_cw_cover_pdf, generate_cw_content_pdf
+                            from services.cloudprinter_api_service import submit_pb_print_order, get_pdf_public_url
+                            pet_name_g = traits.get('pet_name', '') if traits else ''
+                            book_title_g = get_print_title(book_id, child_name, lang, pet_name=pet_name_g)
+                            cp_shipping_level = story_data.get('shipping_method', 'cp_saver')
+
+                            from services.cloudprinter_api_service import get_pb_chosen_page_count
+                            _chosen_pages = get_pb_chosen_page_count()
+                            production_logger.info(f"[BG-COMPOSE] Generating CP casewrap PDFs for {preview_id} "
+                                                   f"(page_count={_chosen_pages})...")
+                            cp_out_dir = os.path.join("generations", "cloudprinter", preview_id)
+                            os.makedirs(cp_out_dir, exist_ok=True)
+                            cover_pdf_path   = os.path.join(cp_out_dir, "cover.pdf")
+                            content_pdf_path = os.path.join(cp_out_dir, "content.pdf")
+
+                            generate_cw_cover_pdf(
+                                session_id=preview_id,
+                                book_title=book_title_g,
+                                output_path=cover_pdf_path,
+                                page_count=_chosen_pages,
+                            )
+                            generate_cw_content_pdf(
+                                session_id=preview_id,
+                                child_name=child_name,
+                                language=lang,
+                                output_path=content_pdf_path,
+                                page_count=_chosen_pages,
+                            )
+                            cover_pdf_url   = get_pdf_public_url(preview_id, "cover.pdf")
+                            content_pdf_url = get_pdf_public_url(preview_id, "content.pdf")
+                            story_data['cp_cover_pdf_url']   = cover_pdf_url
+                            story_data['cp_content_pdf_url'] = content_pdf_url
+                            production_logger.info(f"[BG-COMPOSE] CP PDFs ready: cover={cover_pdf_url} content={content_pdf_url}")
+
+                            cp_ok, cp_msg, cp_ref = submit_pb_print_order(
+                                preview_id=preview_id,
+                                cover_pdf_path=cover_pdf_path,
+                                cover_pdf_url=cover_pdf_url,
+                                content_pdf_path=content_pdf_path,
+                                content_pdf_url=content_pdf_url,
+                                customer_data={"email": customer_email or ""},
+                                shipping_address=shipping_address_g,
+                                shipping_level=cp_shipping_level,
+                            )
+                            if cp_ok:
+                                story_data['cp_pb_order_ref'] = cp_ref
+                                story_data['cp_order_status'] = 'submitted'
+                                production_logger.info(f"[BG-COMPOSE] CP PB order submitted! Ref: {cp_ref}")
+                                try:
+                                    from services.email_service import send_cp_pb_admin_notification
+                                    send_cp_pb_admin_notification(
+                                        preview_id=preview_id,
+                                        cp_order_ref=cp_ref or '',
+                                        title=book_title_g,
+                                        customer_email=customer_email or '',
+                                        shipping_address=shipping_address_g,
+                                        cover_pdf_url=cover_pdf_url,
+                                        content_pdf_url=content_pdf_url,
+                                        visor_url=story_data.get('visor_url', ''),
+                                        paid_amount=f"${story_data.get('customer_total_usd', 0):.2f} USD" if story_data.get('customer_total_usd') else '',
+                                        cp_cost_eur=float(story_data.get('cp_cost_eur', 0)),
+                                        print_cost_eur=float(story_data.get('print_cost_eur', 0)),
+                                    )
+                                    production_logger.info(f"[BG-COMPOSE] Admin notification sent for CP order {cp_ref}")
+                                except Exception as admin_notif_err:
+                                    production_logger.error(f"[BG-COMPOSE] CP PB admin notification failed: {admin_notif_err}")
+                            else:
+                                story_data['cp_order_status'] = 'failed'
+                                story_data['cp_order_error']  = cp_msg
+                                production_logger.error(f"[BG-COMPOSE] CP PB order failed: {cp_msg}")
+                        except Exception as cp_submit_err:
+                            production_logger.error(f"[BG-COMPOSE] CP PB submission error: {cp_submit_err}")
+                            story_data['cp_order_status'] = 'error'
+
+                # Email A: PDF imprimible (if ordered) — pdf_dispatch handles it
+                if (want_pdf or story_data.get('pdf_paid') or story_data.get('pdf_order')) and not story_data.get('pdf_email_sent'):
+                    try:
+                        production_logger.info(f"[BG-COMPOSE] PDF imprimible — lanzando dispatch para {preview_id} (pdf_include_gift={_pdf_include_gift})")
+                        import threading as _threading_pdf
+                        _t_pdf = _threading_pdf.Thread(
+                            target=_dispatch_printable_pdf_email,
+                            args=(preview_id, customer_email, lang),
+                            daemon=True
+                        )
+                        _t_pdf.start()
+                    except Exception as _pdf_bg_err:
+                        production_logger.error(f"[BG-COMPOSE] PDF dispatch error: {_pdf_bg_err}")
+
+                _email_b_sent = False
+                _email_c_sent = False
+
+                # Email B: Libro impreso
+                # Solo print (no ebook): send eBook gift + print tracking in one email
+                # Print + eBook: send dedicated print confirmation (eBook goes separately in Email C)
+                if want_print and not want_ebook:
+                    try:
+                        if visor_url:
+                            from services.email_service import send_ebook_email
+                            send_ebook_email(
+                                to_email=customer_email,
+                                story_data=story_data,
+                                visor_url=visor_url,
+                                is_gift=_print_include_gift,
+                                preview_id=preview_id,
+                                is_print_order=True,
+                            )
+                        else:
+                            from services.email_service import send_story_email_with_attachments
+                            send_story_email_with_attachments(
+                                to_email=customer_email,
+                                story_data=story_data,
+                                age_group='personalized',
+                                preview_id=preview_id,
+                            )
+                        _email_b_sent = True
+                        production_logger.info(f"[BG-COMPOSE] Libro email sent to {customer_email} (visor={'yes' if visor_url else 'fallback'}, is_gift={_print_include_gift})")
+                    except Exception as _print_email_err:
+                        production_logger.error(f"[BG-COMPOSE] Libro tracking email failed: {_print_email_err}")
+                elif want_print and want_ebook:
+                    try:
+                        from services.email_service import send_print_order_confirmation_email
+                        send_print_order_confirmation_email(
+                            to_email=customer_email,
+                            story_data=story_data,
+                            preview_id=preview_id,
+                        )
+                        _email_b_sent = True
+                        production_logger.info(f"[BG-COMPOSE] Print order confirmation email sent to {customer_email}")
+                    except Exception as _print_conf_err:
+                        production_logger.error(f"[BG-COMPOSE] Print order confirmation email failed: {_print_conf_err}")
+
+                # Email C: eBook interactivo permanente (if ebook purchased)
+                # is_print_order=False because print info already sent in Email B above
+                if want_ebook:
+                    if visor_url:
+                        try:
+                            from services.email_service import send_ebook_email
+                            send_ebook_email(
+                                to_email=customer_email,
+                                story_data=story_data,
+                                visor_url=visor_url,
+                                is_gift=False,
+                                preview_id=preview_id,
+                                is_print_order=False,
+                            )
+                            _email_c_sent = True
+                            production_logger.info(f"[BG-COMPOSE] eBook permanente email sent to {customer_email}")
+                        except Exception as _ebook_email_err:
+                            production_logger.error(f"[BG-COMPOSE] eBook email failed: {_ebook_email_err}")
+                    else:
+                        production_logger.warning(f"[BG-COMPOSE] eBook email skipped — visor_url not ready for {customer_email}")
+
+                # Admin: ALWAYS gets printable PDF (even if customer didn't buy it)
+                if not story_data.get('admin_pdf_sent'):
+                    try:
+                        safe_name_admin = child_name.replace(' ', '_').replace("'", "")
+                        admin_pdf_dir = f'generations/email/{preview_id}'
+                        os.makedirs(admin_pdf_dir, exist_ok=True)
+                        admin_pdf_path = f'{admin_pdf_dir}/{safe_name_admin}_imprimible.pdf'
+                        if not os.path.exists(admin_pdf_path):
+                            from services.personalized_books.pdf_service import generate_personalized_pdf
+                            generate_personalized_pdf(story_data, admin_pdf_path)
+                            story_data['pdf_printable_path'] = admin_pdf_path
+                            with open(preview_file, 'w', encoding='utf-8') as _f:
+                                json.dump(story_data, _f, ensure_ascii=False, indent=2)
+                            production_logger.info(f"[BG-COMPOSE] Admin PDF generado: {admin_pdf_path}")
+                        from services.email_service import send_ebook_admin_notification
+                        send_ebook_admin_notification(
+                            preview_id=preview_id,
+                            child_name=child_name,
+                            story_name=story_data.get('story_name', ''),
+                            customer_email=customer_email,
+                            product_type=story_data.get('product_type', 'universo_ebook'),
+                            pdf_path=admin_pdf_path,
+                            visor_url=visor_url or '',
+                        )
+                        story_data['admin_pdf_sent'] = True
+                        production_logger.info(f"[BG-COMPOSE] Admin PDF email sent")
+                    except Exception as admin_pdf_err:
+                        production_logger.error(f"[BG-COMPOSE] Admin PDF/notificación fallida (no crítico): {admin_pdf_err}")
+
+                if want_ebook or want_print:
+                    if _email_b_sent or _email_c_sent:
+                        story_data['email_sent'] = True
+                        story_data['email_sent_date'] = datetime.now().isoformat()
+                        production_logger.info(f"[BG-COMPOSE] Customer emails dispatched to {customer_email} (B={_email_b_sent}, C={_email_c_sent})")
+                    else:
+                        production_logger.error(f"[BG-COMPOSE] No customer email was sent for {customer_email} — email_sent NOT set")
+                elif want_pdf:
+                    production_logger.info(f"[BG-COMPOSE] PDF-only order — customer email sent by PDF dispatch")
             except Exception as email_err:
-                production_logger.error(f"[BG-COMPOSE] Email failed: {email_err}")
+                production_logger.error(f"[BG-COMPOSE] Email routing failed: {email_err}")
         
         story_data['scenes_pending'] = False
         story_data['scenes_generating'] = False
@@ -8055,7 +9636,9 @@ def _compose_personalized_book_background(preview_id, **kwargs):
 
         try:
             from services.email_service import send_admin_error_email
-            send_admin_error_email('_compose_personalized_book_background', preview_id, str(e), tb_text)
+            _is_retry_fail = story_data.get('retry_attempted', False)
+            send_admin_error_email('_compose_personalized_book_background', preview_id, str(e), tb_text,
+                                   story_data=story_data, is_retry_failure=_is_retry_fail)
         except Exception:
             pass
 
@@ -8066,11 +9649,20 @@ _post_payment_locks = set()
 _post_payment_lock = threading.Lock()
 _ebook_processing_locks = set()
 _ebook_processing_lock = threading.Lock()
+_pdf_dispatch_locks = set()
+_pdf_dispatch_lock = threading.Lock()
 
 def _process_personalized_book_post_payment(preview_id, customer_email):
     """
-    Background thread: generate Lulu PDFs (300 DPI) + send email after payment.
-    Called from process_payment (client-side) after PayPal confirmation.
+    Background thread: post-payment processing for personalized books.
+
+    For cp_personalized: pre-generates cover.pdf + content.pdf so they are ready
+    when the customer submits their shipping address via /shipping-confirm.
+    Does NOT submit the CP order here — that happens in shipping_confirm.
+
+    For legacy product types (gelato_personalized, personalized_print, universo_print):
+    generates Lulu-format PDFs and sends admin notification.
+
     Uses lock to prevent duplicate concurrent processing.
     """
     with _post_payment_lock:
@@ -8078,12 +9670,6 @@ def _process_personalized_book_post_payment(preview_id, customer_email):
             print(f"[POST-PAYMENT] Already processing {preview_id}, skipping duplicate")
             return
         _post_payment_locks.add(preview_id)
-
-    from services.pdf_service import create_pdf_from_images
-    from services.illustrated_book_service import generate_illustrated_book_pdf, save_cover_as_pdf
-    from services.lulu_storage import create_order_folder, save_interior_pdf, save_cover_pdf
-    from services.email_service import send_story_email_with_attachments
-    from PIL import Image
 
     try:
         preview_file = f'story_previews/{preview_id}.json'
@@ -8093,10 +9679,142 @@ def _process_personalized_book_post_payment(preview_id, customer_email):
 
         with open(preview_file, 'r', encoding='utf-8') as f:
             story_data = json.load(f)
-        
+
+        product_type = story_data.get('product_type', '')
+
+        # ── CP Personalized Book path (photobook_cw_a4_p_fc) ──────────────────
+        if product_type == 'cp_personalized':
+            if story_data.get('cp_pdfs_ready') or story_data.get('cp_pb_order_ref'):
+                reason = 'PDFs already ready' if story_data.get('cp_pdfs_ready') else 'order already submitted'
+                print(f"[POST-PAYMENT] CP PB — {reason} for {preview_id}, skipping")
+                with _post_payment_lock:
+                    _post_payment_locks.discard(preview_id)
+                return
+            try:
+                from services.personalized_books.cp_pdf_service import generate_cw_cover_pdf, generate_cw_content_pdf
+                from services.personalized_books.generation import get_print_title
+                lang = story_data.get('lang', story_data.get('language', 'es'))
+                traits = story_data.get('traits', {})
+                book_id = story_data.get('story_id', '')
+                child_name = story_data.get('child_name', '')
+                pet_name_g = traits.get('pet_name', '') if traits else ''
+                book_title_g = get_print_title(book_id, child_name, lang, pet_name=pet_name_g)
+
+                from services.cloudprinter_api_service import get_pb_chosen_page_count
+                _chosen_pages = get_pb_chosen_page_count()
+                print(f"[POST-PAYMENT] CP PB: pre-generating PDFs for {preview_id} "
+                      f"(page_count={_chosen_pages})...")
+                cp_out_dir = os.path.join("generations", "cloudprinter", preview_id)
+                os.makedirs(cp_out_dir, exist_ok=True)
+                cover_pdf_path   = os.path.join(cp_out_dir, "cover.pdf")
+                content_pdf_path = os.path.join(cp_out_dir, "content.pdf")
+
+                generate_cw_cover_pdf(
+                    session_id=preview_id,
+                    book_title=book_title_g,
+                    output_path=cover_pdf_path,
+                    page_count=_chosen_pages,
+                )
+                generate_cw_content_pdf(
+                    session_id=preview_id,
+                    child_name=child_name,
+                    language=lang,
+                    output_path=content_pdf_path,
+                    page_count=_chosen_pages,
+                )
+
+                story_data['cp_pdfs_ready']       = True
+                story_data['cp_cover_pdf_path']   = cover_pdf_path
+                story_data['cp_content_pdf_path'] = content_pdf_path
+                print(f"[POST-PAYMENT] CP PB PDFs pre-generated for {preview_id}.")
+
+                # Submit CP order immediately if shipping address is already available
+                existing_shipping = story_data.get('shipping_address')
+                if existing_shipping and not story_data.get('cp_pb_order_ref'):
+                    try:
+                        from services.cloudprinter_api_service import submit_pb_print_order, get_pdf_public_url
+                        cp_shipping_level = story_data.get('shipping_method', 'cp_saver')
+                        cover_pdf_url   = get_pdf_public_url(preview_id, "cover.pdf")
+                        content_pdf_url = get_pdf_public_url(preview_id, "content.pdf")
+                        story_data['cp_cover_pdf_url']   = cover_pdf_url
+                        story_data['cp_content_pdf_url'] = content_pdf_url
+                        cp_ok, cp_msg, cp_ref = submit_pb_print_order(
+                            preview_id=preview_id,
+                            cover_pdf_path=cover_pdf_path,
+                            cover_pdf_url=cover_pdf_url,
+                            content_pdf_path=content_pdf_path,
+                            content_pdf_url=content_pdf_url,
+                            customer_data={"email": customer_email or ""},
+                            shipping_address=existing_shipping,
+                            shipping_level=cp_shipping_level,
+                        )
+                        if cp_ok:
+                            story_data['cp_pb_order_ref']  = cp_ref
+                            story_data['cp_order_status']  = 'submitted'
+                            print(f"[POST-PAYMENT] CP PB order submitted for {preview_id}: {cp_ref}")
+                            try:
+                                from services.email_service import send_cp_pb_admin_notification
+                                send_cp_pb_admin_notification(
+                                    preview_id=preview_id,
+                                    cp_order_ref=cp_ref,
+                                    title=book_title_g,
+                                    customer_email=customer_email,
+                                    shipping_address=existing_shipping,
+                                    cover_pdf_url=cover_pdf_url,
+                                    content_pdf_url=content_pdf_url,
+                                    visor_url=story_data.get('visor_url', ''),
+                                    paid_amount=f"${story_data.get('customer_total_usd', 0):.2f} USD" if story_data.get('customer_total_usd') else '',
+                                    cp_cost_eur=float(story_data.get('cp_cost_eur', 0)),
+                                    print_cost_eur=float(story_data.get('print_cost_eur', 0)),
+                                )
+                            except Exception as adm_err:
+                                print(f"[POST-PAYMENT] CP admin notification error: {adm_err}")
+                        else:
+                            print(f"[POST-PAYMENT] CP PB order submission failed: {cp_msg}")
+                            story_data['cp_order_error'] = cp_msg
+                    except Exception as sub_err:
+                        print(f"[POST-PAYMENT] CP PB order submission exception: {sub_err}")
+                        import traceback; traceback.print_exc()
+                else:
+                    print(f"[POST-PAYMENT] CP PB shipping address not yet available for {preview_id}; "
+                          f"order will be submitted at shipping-confirm step.")
+            except Exception as cp_pdf_err:
+                print(f"[POST-PAYMENT] CP PB PDF pre-generation failed for {preview_id}: {cp_pdf_err}")
+                import traceback
+                traceback.print_exc()
+                story_data['cp_pdf_error'] = str(cp_pdf_err)
+            finally:
+                with open(preview_file, 'w', encoding='utf-8') as f:
+                    json.dump(story_data, f, ensure_ascii=False, indent=2)
+                with _post_payment_lock:
+                    _post_payment_locks.discard(preview_id)
+            return
+
+        # ── Legacy Lulu / Gelato path ──────────────────────────────────────────
         if story_data.get('admin_notified'):
             print(f"[POST-PAYMENT] Already processed {preview_id}, skipping")
             return
+
+    except Exception as early_err:
+        print(f"[POST-PAYMENT] Early error for {preview_id}: {early_err}")
+        with _post_payment_lock:
+            _post_payment_locks.discard(preview_id)
+        return
+
+    from services.pdf_service import create_pdf_from_images
+    from services.illustrated_book_service import generate_illustrated_book_pdf, save_cover_as_pdf
+    from services.email_service import send_story_email_with_attachments
+    from PIL import Image
+
+    def _create_pb_folder(pid):
+        """Create a folder for personalized book PDFs."""
+        folder = os.path.join('generations', 'pb_orders', pid)
+        os.makedirs(folder, exist_ok=True)
+        return folder
+
+    try:
+        with open(preview_file, 'r', encoding='utf-8') as f:
+            story_data = json.load(f)
 
         child_name = story_data.get('child_name', 'Historia')
         safe_name = child_name.replace(' ', '_').replace("'", "")
@@ -8130,7 +9848,8 @@ def _process_personalized_book_post_payment(preview_id, customer_email):
                 "furry_love": "static/images/fixed_pages/furry_love_baby_back_cover.png",
                 "furry_love_adventure": "static/images/fixed_pages/furry_love_adventure_back_cover.png",
                 "furry_love_teen": "static/images/fixed_pages/furry_love_teen_back_cover.png",
-                "furry_love_adult": "static/images/fixed_pages/furry_love_adult_back_cover.png"
+                "furry_love_adult": "static/images/fixed_pages/furry_love_adult_back_cover.png",
+                "centinela_aurora": "static/images/fixed_pages/centinela_aurora_back_cover.png"
             }
             back_cover = fixed_back_covers.get(book_id, 'static/images/fixed_pages/back_cover.png')
 
@@ -8158,7 +9877,7 @@ def _process_personalized_book_post_payment(preview_id, customer_email):
 
         lulu_folder = story_data.get('lulu_order_folder', '')
         if not lulu_folder or not os.path.exists(lulu_folder):
-            lulu_folder = create_order_folder(preview_id, child_name, customer_email)
+            lulu_folder = _create_pb_folder(preview_id)
             story_data['lulu_order_folder'] = lulu_folder
 
         if all_pages:
@@ -8218,6 +9937,186 @@ def _process_personalized_book_post_payment(preview_id, customer_email):
             _post_payment_locks.discard(preview_id)
 
 
+def _dispatch_printable_pdf_email(preview_id, customer_email, lang='es'):
+    """
+    Background thread: wait for book composition to complete,
+    generate an A4 printable PDF + instructions PDF, and deliver
+    them as email attachments to the customer. Also notifies pay@ admin.
+    """
+    import time as _pdf_time
+    with _pdf_dispatch_lock:
+        if preview_id in _pdf_dispatch_locks:
+            print(f"[PDF-DISPATCH] Duplicate call suppressed (in-flight) for {preview_id}")
+            return
+        _pdf_dispatch_locks.add(preview_id)
+    preview_file = f'story_previews/{preview_id}.json'
+    if os.path.exists(preview_file):
+        try:
+            with open(preview_file, 'r', encoding='utf-8') as _f:
+                _sd = json.load(_f)
+            if _sd.get('printable_pdf_sent') and _sd.get('printable_pdf_admin_sent'):
+                print(f"[PDF-DISPATCH] Already delivered for {preview_id} — skipping (persisted idempotency)")
+                with _pdf_dispatch_lock:
+                    _pdf_dispatch_locks.discard(preview_id)
+                return
+        except Exception:
+            pass
+    print(f"[PDF-DISPATCH] Starting PDF delivery for {preview_id} → {customer_email}")
+
+    max_wait = 900
+    wait_interval = 5
+    waited = 0
+    while waited < max_wait:
+        if not os.path.exists(preview_file):
+            _pdf_time.sleep(wait_interval)
+            waited += wait_interval
+            continue
+        with open(preview_file, 'r', encoding='utf-8') as f:
+            story_data = json.load(f)
+        if story_data.get('pages_composed', False):
+            print(f"[PDF-DISPATCH] Composition done for {preview_id}, continuing...")
+            break
+        _pdf_time.sleep(wait_interval)
+        waited += wait_interval
+    else:
+        print(f"[PDF-DISPATCH] Timed out waiting for composition for {preview_id}")
+        return
+
+    try:
+        with open(preview_file, 'r', encoding='utf-8') as f:
+            story_data = json.load(f)
+
+        book_id    = story_data.get('story_id', '')
+        child_name = story_data.get('child_name', '')
+        gender     = story_data.get('gender', story_data.get('child_gender', 'nino'))
+        lang       = story_data.get('lang', lang)
+
+        from services.personalized_books.generation import get_print_title
+        pet_name   = (story_data.get('traits') or {}).get('pet_name', '')
+        book_title = get_print_title(book_id, child_name, lang, pet_name=pet_name)
+
+        _fc_path = story_data.get('front_cover_path', '') or ''
+        _bc_path = story_data.get('back_cover_path', '') or ''
+
+        from services.personalized_books.printable_pdf import generate_personalized_printable_pdf
+        printable_pdf_path = None
+        for _attempt in range(2):
+            try:
+                printable_pdf_path = generate_personalized_printable_pdf(
+                    book_session_id=preview_id,
+                    child_name=child_name,
+                    gender=gender,
+                    language=lang,
+                    book_id=book_id,
+                    book_title=book_title,
+                    force_regenerate=(_attempt > 0),
+                    front_cover_path=_fc_path or None,
+                    back_cover_path=_bc_path or None,
+                )
+                print(f"[PDF-DISPATCH] A4 printable PDF generated (attempt {_attempt + 1}): {printable_pdf_path}")
+                break
+            except Exception as _pdf_err:
+                print(f"[PDF-DISPATCH] PDF generation attempt {_attempt + 1} failed for {preview_id}: {_pdf_err}")
+                if _attempt == 0:
+                    _pdf_time.sleep(10)
+        if not printable_pdf_path:
+            raise RuntimeError(f"Failed to generate printable PDF after 2 attempts for {preview_id}")
+
+        base_url  = (os.environ.get('SITE_DOMAIN')
+                     or os.environ.get('REPLIT_DEV_DOMAIN')
+                     or 'magicmemoriesbooks.com')
+        pdf_filename = os.path.basename(printable_pdf_path)
+        visor_url = story_data.get('visor_url', '')
+        # Use flag set by compose background to know if gift ebook goes in this PDF email
+        _include_gift = story_data.get('pdf_include_gift_ebook', True)
+
+        local_pdf_path = os.path.join('generated', 'gelato', preview_id, pdf_filename)
+        if not os.path.exists(local_pdf_path):
+            raise FileNotFoundError(f"[PDF-DISPATCH] PDF not found at expected path: {local_pdf_path} (absolute was: {printable_pdf_path})")
+
+        instructions_path = None
+        try:
+            instructions_path = os.path.join('generated', 'gelato', preview_id, f'{preview_id}_instrucciones.pdf')
+            from services.pdf_service import generate_print_instructions_pdf
+            generate_print_instructions_pdf(instructions_path, language=lang)
+            print(f"[PDF-DISPATCH] Print instructions PDF generated: {instructions_path}")
+        except Exception as _instr_err:
+            print(f"[PDF-DISPATCH] WARNING: could not generate instructions PDF: {_instr_err}")
+            instructions_path = None
+
+        pdf_url = f"https://{base_url}/preview-pdf/gelato/{preview_id}/{pdf_filename}"
+
+        story_data['printable_pdf_path'] = printable_pdf_path
+        story_data['printable_pdf_url']  = pdf_url
+        with open(preview_file, 'w', encoding='utf-8') as f:
+            json.dump(story_data, f, ensure_ascii=False, indent=2)
+
+        from services.email_service import (
+            send_story_email_with_attachments,
+            send_personalized_pdf_admin_email,
+        )
+        customer_sent = False
+        if customer_email:
+            customer_result = send_story_email_with_attachments(
+                to_email=customer_email,
+                story_data=story_data,
+                pdf_printable_path=local_pdf_path,
+                instructions_path=instructions_path,
+                age_group='personalized',
+                preview_id=preview_id,
+                visor_url=visor_url if _include_gift else None,
+                is_pdf_purchase=_include_gift,
+                give_gift_ebook=_include_gift,
+            )
+            customer_sent = customer_result.get('success', False)
+            print(f"[PDF-DISPATCH] Customer PDF email {'sent' if customer_sent else 'FAILED'} for {customer_email} (gift_ebook={_include_gift})")
+            # Dedicated gift eBook email so customer gets a standalone visor-access email
+            if _include_gift and visor_url:
+                try:
+                    from services.email_service import send_ebook_email
+                    send_ebook_email(
+                        to_email=customer_email,
+                        story_data=story_data,
+                        visor_url=visor_url,
+                        is_gift=True,
+                        preview_id=preview_id,
+                        is_print_order=False,
+                    )
+                    print(f"[PDF-DISPATCH] Dedicated gift eBook email sent to {customer_email}")
+                except Exception as _ebook_err:
+                    print(f"[PDF-DISPATCH] Dedicated gift eBook email failed: {_ebook_err}")
+
+        admin_result = send_personalized_pdf_admin_email(
+            preview_id=preview_id,
+            customer_email=customer_email or '(unknown)',
+            book_title=book_title,
+            pdf_url=pdf_url,
+            visor_url=visor_url,
+            child_name=child_name,
+            book_id=book_id,
+            customer_email_sent=customer_sent,
+        )
+        admin_sent = admin_result.get('success', False)
+        print(f"[PDF-DISPATCH] Admin notification {'sent' if admin_sent else 'FAILED'} for {preview_id}")
+
+        story_data['printable_pdf_sent']       = customer_sent
+        story_data['printable_pdf_admin_sent'] = admin_sent
+        if customer_sent:
+            story_data['email_sent'] = True
+            story_data['email_sent_date'] = datetime.now().isoformat()
+            print(f"[PDF-DISPATCH] email_sent flag set for {preview_id}")
+        with open(preview_file, 'w', encoding='utf-8') as f:
+            json.dump(story_data, f, ensure_ascii=False, indent=2)
+
+    except Exception as e:
+        print(f"[PDF-DISPATCH] Error generating/sending printable PDF for {preview_id}: {e}")
+        import traceback
+        print(traceback.format_exc())
+    finally:
+        with _pdf_dispatch_lock:
+            _pdf_dispatch_locks.discard(preview_id)
+
+
 def _process_ebook_generation(preview_id, customer_email):
     """
     Background thread: prepare visor files, generate printable PDF + instructions,
@@ -8244,27 +10143,36 @@ def _process_ebook_generation(preview_id, customer_email):
             print(f"[EBOOK] Already uploaded to visor for {preview_id}, skipping")
             return
         
+        import time as _ebook_time
         max_wait = 600
-        wait_interval = 10
+        wait_interval = 3
         waited = 0
         while waited < max_wait:
+            qs_task = task_queue.get_status(f"scene_gen_{preview_id}")
+            if qs_task and qs_task.get('status') == 'completed':
+                print(f"[EBOOK] Scene generation task completed for {preview_id} (waited {waited}s)")
+                break
+            if qs_task and qs_task.get('status') == 'failed':
+                print(f"[EBOOK] Scene generation task failed for {preview_id} (waited {waited}s), proceeding anyway")
+                break
             with open(preview_file, 'r', encoding='utf-8') as f:
                 story_data = json.load(f)
-            
             scenes_pending = story_data.get('scenes_pending', False)
             scenes_generating = story_data.get('scenes_generating', False)
-            
-            if not scenes_pending and not scenes_generating:
-                print(f"[EBOOK] Scenes ready for {preview_id} (waited {waited}s)")
+            qs_text_composed = story_data.get('qs_text_composed', False)
+            if not scenes_pending and not scenes_generating and qs_text_composed:
+                print(f"[EBOOK] Scenes ready (flags) for {preview_id} (waited {waited}s)")
                 break
-            
-            print(f"[EBOOK] Waiting for scenes to complete for {preview_id} ({waited}s elapsed, pending={scenes_pending}, generating={scenes_generating})")
-            import time
-            time.sleep(wait_interval)
+            if not qs_task and not scenes_pending and not scenes_generating and waited > 30:
+                print(f"[EBOOK] No task found and no pending flags for {preview_id} (waited {waited}s), proceeding")
+                break
+            task_state = qs_task.get('status') if qs_task else 'not_found'
+            print(f"[EBOOK] Waiting for {preview_id} ({waited}s elapsed, task={task_state}, pending={scenes_pending}, text_composed={qs_text_composed})")
+            _ebook_time.sleep(wait_interval)
             waited += wait_interval
-        
+
         if waited >= max_wait:
-            print(f"[EBOOK] WARNING: Timed out waiting for scenes after {max_wait}s for {preview_id}, proceeding anyway")
+            print(f"[EBOOK] WARNING: Timed out waiting after {max_wait}s for {preview_id}, proceeding anyway")
         
         with open(preview_file, 'r', encoding='utf-8') as f:
             story_data = json.load(f)
@@ -8279,7 +10187,10 @@ def _process_ebook_generation(preview_id, customer_email):
         
         from services.quick_stories.checkout import is_quick_story as check_qs
         is_qs = check_qs(story_id)
-        is_digital_purchase = product_type in ('qs_digital', '') and is_qs and not is_gift
+        # is_digital_purchase: QS stories with ebook/qs_digital/legacy product types get printable PDF here.
+        # universo_ebook (Personalized Books) PDF generation is handled separately in
+        # _compose_personalized_book_background, which runs after book composition completes.
+        is_digital_purchase = product_type in ('qs_digital', '', 'ebook') and is_qs and not is_gift
         
         print(f"[EBOOK] Preparing visor upload for {preview_id} (is_gift={is_gift}, is_digital={is_digital_purchase})")
         
@@ -8320,20 +10231,38 @@ def _process_ebook_generation(preview_id, customer_email):
                 generate_print_instructions_pdf(instructions_path, language=lang)
                 print(f"[EBOOK] Instructions PDF generated: {instructions_path}")
                 
+                with open(preview_file, 'r', encoding='utf-8') as f:
+                    story_data = json.load(f)
                 story_data['pdf_printable_path'] = pdf_printable_path
                 story_data['instructions_path'] = instructions_path
                 with open(preview_file, 'w', encoding='utf-8') as f:
                     json.dump(story_data, f, ensure_ascii=False, indent=2)
-                    
+
+                try:
+                    from services.email_service import send_ebook_admin_notification
+                    send_ebook_admin_notification(
+                        preview_id=preview_id,
+                        child_name=child_name,
+                        story_name=story_data.get('story_name', ''),
+                        customer_email=customer_email or story_data.get('customer_email', ''),
+                        product_type=product_type or 'ebook',
+                        pdf_path=pdf_printable_path,
+                        visor_url=visor_url,
+                    )
+                except Exception as notif_err:
+                    print(f"[EBOOK] Admin notification failed (non-fatal): {notif_err}")
+
             except Exception as pdf_err:
                 print(f"[EBOOK] PDF generation failed (non-fatal): {pdf_err}")
                 import traceback
                 traceback.print_exc()
-        
+
+        with open(preview_file, 'r', encoding='utf-8') as f:
+            story_data = json.load(f)
         story_data['assets_ready'] = True
         with open(preview_file, 'w', encoding='utf-8') as f:
             json.dump(story_data, f, ensure_ascii=False, indent=2)
-        
+
         print(f"[EBOOK] Assets ready for {preview_id}, awaiting user approval to send email")
 
     except Exception as e:
@@ -8352,7 +10281,10 @@ def _process_ebook_generation(preview_id, customer_email):
             pass
         try:
             from services.email_service import send_admin_error_email
-            send_admin_error_email('_process_ebook_generation', preview_id, str(e), tb_text)
+            _sd_err = locals().get('story_data', None)
+            _is_retry_ebook = bool(_sd_err.get('retry_attempted', False)) if _sd_err else False
+            send_admin_error_email('_process_ebook_generation', preview_id, str(e), tb_text,
+                                   story_data=_sd_err, is_retry_failure=_is_retry_ebook)
         except Exception:
             pass
     finally:
@@ -8362,13 +10294,18 @@ def _process_ebook_generation(preview_id, customer_email):
 
 def _process_quick_story_print(preview_id, customer_email):
     """
-    Background thread: generate Lulu PDFs for Quick Story saddle stitch printing.
+    Background thread: generate Cloudprinter PDF for Quick Story saddle-stitch printing.
     Called when want_print=true after payment.
+    Product: magazine_sas_a4_p_fc (210×297mm A4, 16 pages saddle-stitch)
     """
-    from services.quick_stories.pdf_service import generate_quick_story_lulu_pdfs
-    from services.lulu_storage import create_order_folder, save_interior_pdf, save_cover_pdf
+    from services.quick_stories.pdf_service import generate_quick_story_cloudprinter_pdf
+    from services.cloudprinter_api_service import submit_print_order as cp_submit, get_pdf_public_url
+    from services.email_service import send_cp_order_notification, send_cp_failure_email, send_cp_failure_admin_email
+
+    preview_file = f'story_previews/{preview_id}.json'
+    cp_folder = f'generations/cloudprinter/{preview_id}'
+
     try:
-        preview_file = f'story_previews/{preview_id}.json'
         if not os.path.exists(preview_file):
             print(f"[QS-PRINT] Preview file not found: {preview_file}")
             return
@@ -8376,19 +10313,24 @@ def _process_quick_story_print(preview_id, customer_email):
         with open(preview_file, 'r', encoding='utf-8') as f:
             story_data = json.load(f)
 
-        if story_data.get('lulu_submitted'):
-            print(f"[QS-PRINT] Already submitted to Lulu for {preview_id}, skipping")
+        if story_data.get('cp_submitted'):
+            print(f"[QS-PRINT] Already submitted to Cloudprinter for {preview_id}, skipping")
             return
 
         child_name = story_data.get('child_name', 'Historia')
         story_name = story_data.get('story_name', 'Quick Story')
         shipping_address = story_data.get('shipping_address', {})
+        qs_lang = story_data.get('lang', story_data.get('language', 'es'))
+        is_admin_gift_qs = story_data.get('admin_gift', False)
+        story_id = story_data.get('story_id', '')
+        is_birthday = story_id.startswith('birthday_celebration_')
+        log_prefix = "[QS-PRINT-BIRTHDAY]" if is_birthday else "[QS-PRINT]"
 
-        print(f"[QS-PRINT] Processing Quick Story print for {preview_id} ({child_name})")
+        print(f"{log_prefix} Processing Quick Story print for {preview_id} ({child_name})")
 
         scene_paths = story_data.get('original_scene_paths', story_data.get('scene_paths', []))
         cover_image = story_data.get('original_cover', story_data.get('front_cover_path', story_data.get('cover_image', '')))
-        
+
         if cover_image and cover_image.startswith('/'):
             cover_image = cover_image[1:]
 
@@ -8398,156 +10340,108 @@ def _process_quick_story_print(preview_id, customer_email):
                 clean_scenes.append(p.lstrip('/'))
 
         if not clean_scenes:
-            print(f"[QS-PRINT] No scene images found for {preview_id}")
+            print(f"{log_prefix} No scene images found for {preview_id}")
             return
 
-        back_cover = 'static/images/quick_story_back_cover.png'
-        if not os.path.exists(back_cover):
-            back_cover = 'static/images/fixed_pages/back_cover.png'
+        os.makedirs(cp_folder, exist_ok=True)
+        pdf_output = os.path.join(cp_folder, 'book.pdf')
 
-        lulu_folder = f'generations/lulu/{preview_id}'
-        os.makedirs(lulu_folder, exist_ok=True)
-
-        interior_output = os.path.join(lulu_folder, 'interior.pdf')
-        cover_output = os.path.join(lulu_folder, 'cover.pdf')
-
-        print(f"[QS-PRINT] Generating Lulu PDFs: {len(clean_scenes)} scenes")
-        interior_path, cover_path = generate_quick_story_lulu_pdfs(
+        print(f"{log_prefix} Generating Cloudprinter PDF: {len(clean_scenes)} scenes")
+        pdf_path = generate_quick_story_cloudprinter_pdf(
             story_data=story_data,
             images=clean_scenes,
             front_cover_path=cover_image,
-            back_cover_path=back_cover,
-            interior_output=interior_output,
-            cover_output=cover_output,
-            skip_sanitize=True
+            output_path=pdf_output
         )
+        print(f"{log_prefix} PDF generated: {pdf_path}")
 
-        print(f"[QS-PRINT] PDFs generated: interior={interior_path}, cover={cover_path}")
+        pdf_url = get_pdf_public_url(preview_id, 'book.pdf')
+        print(f"{log_prefix} PDF URL: {pdf_url}")
 
-        lulu_folder_name = f'qs_{preview_id[:8]}'
-        order_folder = create_order_folder(lulu_folder_name, child_name, customer_email)
-        save_interior_pdf(order_folder, interior_path)
-        save_cover_pdf(order_folder, cover_path)
+        cp_success = False
+        cp_order_ref = None
+        cp_msg = ''
 
-        from services.lulu_api_service import get_public_file_url
-        interior_url = get_public_file_url(order_folder, 'interior.pdf')
-        cover_url = get_public_file_url(order_folder, 'cover.pdf')
-
-        QS_POD_PACKAGE_ID = '0850X0850FCPRESS080CW444GXX'
-        
-        lulu_job_id = None
-        lulu_success = False
-        is_admin_gift_qs = story_data.get('admin_gift', False)
         if shipping_address and shipping_address.get('name') and shipping_address.get('street1') and not is_admin_gift_qs:
-            from services.lulu_api_service import submit_print_order
-            
-            lulu_shipping = {
-                'name': shipping_address.get('name', ''),
-                'street1': shipping_address.get('street1', ''),
-                'street2': shipping_address.get('street2', ''),
-                'city': shipping_address.get('city', ''),
-                'state_code': shipping_address.get('state_code', ''),
-                'postal_code': shipping_address.get('postcode', shipping_address.get('postal_code', '')),
-                'country_code': shipping_address.get('country_code', 'US'),
-                'email': customer_email,
-                'phone_number': shipping_address.get('phone_number', '')
-            }
-            
-            shipping_level = story_data.get('shipping_method', 'MAIL')
-            print(f"[QS-PRINT] Submitting to Lulu with pod_package_id={QS_POD_PACKAGE_ID}, shipping={shipping_level}")
-            lulu_success, lulu_msg, lulu_job_id = submit_print_order(
-                order_folder=order_folder,
-                title=f"{story_name} - {child_name}",
-                shipping_address=lulu_shipping,
-                shipping_level=shipping_level,
-                pod_package_id=QS_POD_PACKAGE_ID,
-                interior_url=interior_url,
-                cover_url=cover_url
+            print(f"{log_prefix} Submitting to Cloudprinter for {preview_id}")
+            cp_success, cp_msg, cp_order_ref = cp_submit(
+                preview_id=preview_id,
+                pdf_path=pdf_path,
+                pdf_url=pdf_url,
+                customer_data={'email': customer_email or ''},
+                shipping_address=shipping_address
             )
-            print(f"[QS-PRINT] Lulu submit result: success={lulu_success}, msg={lulu_msg}, job_id={lulu_job_id}")
+            print(f"{log_prefix} CP result: success={cp_success}, ref={cp_order_ref}, msg={cp_msg}")
         elif is_admin_gift_qs:
-            print(f"[QS-PRINT] Admin gift order — skipping Lulu submission, PDFs will be emailed to admin")
-            lulu_job_id = 'ADMIN-GIFT (pedido manual)'
+            print(f"{log_prefix} Admin gift order — skipping CP submission, PDF available at {pdf_url}")
+            cp_order_ref = 'ADMIN-GIFT'
+            cp_success = True
         else:
-            print(f"[QS-PRINT] WARNING: No valid shipping address, skipping Lulu submission")
+            print(f"{log_prefix} WARNING: No valid shipping address, skipping CP submission")
 
-        from services.email_service import send_lulu_order_notification, send_lulu_customer_notification
         qs_book_title = f"{story_name} - {child_name} (Quick Story Print)"
-        admin_result = send_lulu_order_notification(
-            order_folder=lulu_folder_name,
-            lulu_job_id=lulu_job_id or 'N/A',
+        cp_cost_eur = story_data.get('cp_cost_eur', 0)
+        print_cost_eur = story_data.get('print_cost_eur', 0)
+        customer_total_usd = story_data.get('customer_total_usd', 0)
+        admin_result = send_cp_order_notification(
+            preview_id=preview_id,
+            cp_order_ref=cp_order_ref or 'N/A',
             title=qs_book_title,
             customer_email=customer_email,
             shipping_address=shipping_address,
-            interior_url=interior_url or '',
-            cover_url=cover_url or ''
+            pdf_url=pdf_url,
+            cp_cost_eur=cp_cost_eur,
+            print_cost_eur=print_cost_eur,
+            customer_total_usd=customer_total_usd,
+            cp_success=cp_success,
+            cp_error=cp_msg if not cp_success else ''
         )
-        if customer_email and lulu_success:
-            qs_lang = story_data.get('lang', 'es')
-            send_lulu_customer_notification(
-                to_email=customer_email,
-                child_name=child_name,
-                book_title=qs_book_title,
-                shipping_address=shipping_address,
-                shipping_method=shipping_level,
-                lang=qs_lang
-            )
-
         with open(preview_file, 'r', encoding='utf-8') as f:
             story_data = json.load(f)
-        
-        story_data['lulu_submitted'] = lulu_success
-        story_data['lulu_submitted_date'] = datetime.now().isoformat()
-        story_data['lulu_job_id'] = lulu_job_id
-        story_data['lulu_interior_url'] = interior_url
-        story_data['lulu_cover_url'] = cover_url
-        story_data['lulu_needs_refresh'] = False
-        story_data['lulu_order_folder'] = order_folder
+
+        story_data['cp_submitted'] = cp_success
+        story_data['cp_submitted_date'] = datetime.now().isoformat()
+        story_data['cp_order_ref'] = cp_order_ref
+        story_data['cp_pdf_url'] = pdf_url
+        story_data['cp_needs_refresh'] = False
         story_data['admin_notified'] = admin_result.get('success', False) or admin_result.get('simulated', False)
 
-        if lulu_success:
-            story_data['lulu_status'] = 'sent'
-            import shutil as _shutil_qs
-            _shutil_qs.rmtree(lulu_folder, ignore_errors=True)
+        if cp_success:
+            story_data['cp_status'] = 'sent'
         elif shipping_address and shipping_address.get('name'):
-            story_data['lulu_status'] = 'failed'
-            story_data['lulu_error'] = lulu_msg or 'Unknown error'
-            
+            story_data['cp_status'] = 'failed'
+            story_data['cp_error'] = cp_msg or 'Unknown error'
             if customer_email:
                 try:
-                    from services.email_service import send_lulu_failure_email
-                    qs_lang = story_data.get('lang', story_data.get('language', 'es'))
-                    send_lulu_failure_email(
+                    send_cp_failure_email(
                         to_email=customer_email,
                         child_name=child_name,
-                        error_message=lulu_msg or 'Unknown error',
+                        error_message=cp_msg or 'Unknown error',
                         lang=qs_lang,
                         preview_id=preview_id
                     )
                 except Exception as fail_email_err:
-                    print(f"[QS-PRINT] Failed to send Lulu failure email: {fail_email_err}")
-            
+                    print(f"[QS-PRINT] Failed to send CP failure email: {fail_email_err}")
             try:
-                from services.email_service import send_lulu_failure_admin_email
-                send_lulu_failure_admin_email(
+                send_cp_failure_admin_email(
                     preview_id=preview_id,
                     child_name=child_name,
-                    error_message=lulu_msg or 'Unknown error',
+                    error_message=cp_msg or 'Unknown error',
                     customer_email=customer_email or '',
                     shipping_address=shipping_address,
-                    story_id=story_data.get('story_id', ''),
-                    product_type='quick_story'
+                    story_id=story_id,
+                    product_type='Quick Story Print'
                 )
-            except Exception as admin_err:
-                print(f"[QS-PRINT] Failed to send admin failure email: {admin_err}")
+            except Exception as admin_fail_err:
+                print(f"[QS-PRINT] Failed to send CP failure ADMIN email: {admin_fail_err}")
 
         with open(preview_file, 'w', encoding='utf-8') as f:
             json.dump(story_data, f, ensure_ascii=False, indent=2)
 
-        print(f"[QS-PRINT] COMPLETE for {preview_id}")
-        print(f"[QS-PRINT]   Interior URL: {interior_url}")
-        print(f"[QS-PRINT]   Cover URL: {cover_url}")
-        print(f"[QS-PRINT]   Admin notified: {story_data.get('admin_notified')}")
+        print(f"{log_prefix} COMPLETE for {preview_id}")
+        print(f"{log_prefix}   CP order ref: {cp_order_ref}")
+        print(f"{log_prefix}   PDF URL: {pdf_url}")
+        print(f"{log_prefix}   Admin notified: {story_data.get('admin_notified')}")
 
     except Exception as e:
         print(f"[QS-PRINT] ERROR for {preview_id}: {e}")
@@ -8562,6 +10456,18 @@ def _process_quick_story_print(preview_id, customer_email):
                 json.dump(story_data, f, ensure_ascii=False, indent=2)
         except:
             pass
+        try:
+            from services.email_service import send_cp_failure_admin_email as _admin_fail
+            _admin_fail(
+                preview_id=preview_id,
+                child_name=story_data.get('child_name', preview_id) if isinstance(story_data, dict) else preview_id,
+                error_message=f"Error crítico en generación/envío: {e}",
+                customer_email=customer_email or '',
+                shipping_address=story_data.get('shipping_address', {}) if isinstance(story_data, dict) else {},
+                product_type='Quick Story Print - ERROR CRÍTICO'
+            )
+        except Exception as notify_err:
+            print(f"[QS-PRINT] Failed to send critical error admin email: {notify_err}")
 
 
 
@@ -8571,33 +10477,36 @@ def _process_quick_story_print(preview_id, customer_email):
 @app.route('/print-order/<preview_id>')
 def print_order_page(preview_id):
     lang = session.get('lang', 'es')
-    translations = get_translation(lang)
     preview_file = f'story_previews/{preview_id}.json'
     child_name = 'tu hijo/a'
     email = ''
+    is_qs = False
     if os.path.exists(preview_file):
         with open(preview_file, 'r', encoding='utf-8') as f:
             story_data = json.load(f)
         child_name = story_data.get('child_name', child_name)
         email = story_data.get('customer_email', '')
+        is_qs = not story_data.get('is_illustrated_book', False)
     from config import Config as C
-    base_price = round(C.PERSONALIZED_BASE_PRICE / 100.0, 2)
+    if is_qs:
+        base_price = round(C.QS_PRINT_BASE_PRICE / 100.0, 2)
+    else:
+        base_price = round(C.PERSONALIZED_BASE_PRICE / 100.0, 2)
     return render_template('print_order.html',
         lang=lang,
-        translations=translations,
         preview_id=preview_id,
         child_name=child_name,
         email=email,
         base_price=base_price,
+        is_qs=is_qs,
         paypal_client_id=Config.PAYPAL_CLIENT_ID
     )
 
 @app.route('/print-order-success')
 def print_order_success():
     lang = session.get('lang', 'es')
-    translations = get_translation(lang)
     email = request.args.get('email', '')
-    return render_template('print_order_success.html', lang=lang, translations=translations, email=email)
+    return render_template('print_order_success.html', lang=lang, email=email)
 
 @app.route('/api/paypal/create-print-order', methods=['POST'])
 def paypal_create_print_order():
@@ -8610,7 +10519,7 @@ def paypal_create_print_order():
         import requests as req_lib
         order_payload = {
             'intent': 'CAPTURE',
-            'purchase_units': [{'amount': {'currency_code': 'USD', 'value': f'{amount:.2f}'}, 'description': 'Libro Impreso - Magic Memories Books'}],
+            'purchase_units': [{'amount': {'currency_code': 'USD', 'value': f'{amount:.2f}'}, 'description': 'Libro Impreso 21×21 cm - Magic Memories Books'}],
             'application_context': {
                 'brand_name': 'Magic Memories Books',
                 'shipping_preference': 'NO_SHIPPING'
@@ -8670,11 +10579,13 @@ def paypal_capture_print_order():
         )
         db.session.add(pr)
         db.session.commit()
+        _po_is_qs = data.get('is_qs', False)
+        _po_type_label = 'Cuento Mágico Express (16p, magazine A4)' if _po_is_qs else 'Cuento FotoMágico (26p, tapa dura A4)'
         try:
             from services.email_service import send_admin_notification_email
             send_admin_notification_email(
                 subject=f'[NUEVO PEDIDO IMPRESO] {pr.child_name} — {pr.customer_email}',
-                body=f'Nuevo pedido de libro impreso.\nPedido ID: {pr.id}\nCliente: {pr.customer_email}\nNiño/a: {pr.child_name}\nImporte: ${pr.amount_paid}\nDirección: {pr.shipping_street}, {pr.shipping_city}, {pr.shipping_country}\nPreview ID: {pr.preview_id}'
+                body=f'Nuevo pedido de libro impreso.\nTipo: {_po_type_label}\nPedido ID: {pr.id}\nCliente: {pr.customer_email}\nNiño/a: {pr.child_name}\nImporte: ${pr.amount_paid}\nDirección: {pr.shipping_street}, {pr.shipping_city}, {pr.shipping_country}\nPreview ID: {pr.preview_id}\nMétodo envío: {pr.shipping_method}'
             )
         except Exception:
             pass
@@ -8693,90 +10604,10 @@ def admin_print_requests():
 
 @app.route('/api/admin/send-to-lulu/<int:req_id>', methods=['POST'])
 def admin_send_to_lulu(req_id):
+    """Legacy route — Lulu has been replaced by Cloudprinter for QS and Gelato for Universos."""
     if not session.get('admin_logged_in'):
         return jsonify({'error': 'Unauthorized'}), 401
-    pr = PrintOrderRequest.query.get_or_404(req_id)
-    try:
-        preview_file = f'story_previews/{pr.preview_id}.json'
-        story_data = {}
-        if os.path.exists(preview_file):
-            with open(preview_file, 'r', encoding='utf-8') as f:
-                story_data = json.load(f)
-
-        lulu_order_folder = story_data.get('lulu_order_folder', '')
-        if not lulu_order_folder or not os.path.exists(lulu_order_folder):
-            return jsonify({'error': 'PDF folder not found — genera los PDFs primero desde la página de admin preview.'}), 400
-
-        shipping_address = {
-            'name': pr.shipping_name,
-            'street1': pr.shipping_street,
-            'city': pr.shipping_city,
-            'state_code': pr.shipping_state,
-            'postal_code': pr.shipping_postal,
-            'country_code': pr.shipping_country,
-            'phone_number': pr.shipping_phone or '',
-            'email': pr.customer_email
-        }
-
-        child_name = story_data.get('child_name', pr.child_name or 'Unknown')
-        story_id = story_data.get('story_id', '')
-        lang = story_data.get('lang', story_data.get('language', 'es'))
-        _is_illustrated = story_data.get('is_illustrated_book', False)
-        _pod_id = '0827X1169FCPRECW080CW444GXX' if _is_illustrated else '0850X0850FCPRESS080CW444GXX'
-
-        try:
-            from services.personalized_books.generation import get_lulu_title
-            pb_traits = story_data.get('traits', {})
-            pet_name_lulu = pb_traits.get('pet_name', '') if pb_traits else ''
-            book_title = get_lulu_title(story_id, child_name, lang, pet_name=pet_name_lulu)
-        except Exception:
-            book_title = story_data.get('story_name', story_data.get('title', child_name or 'Mi Libro'))
-
-        from services.lulu_api_service import submit_print_order, get_public_file_url
-        interior_url = get_public_file_url(lulu_order_folder, "interior.pdf")
-        cover_url = get_public_file_url(lulu_order_folder, "cover.pdf")
-        shipping_level = pr.shipping_method or story_data.get('shipping_method', 'MAIL')
-
-        success, message, lulu_job_id = submit_print_order(
-            order_folder=lulu_order_folder,
-            title=book_title,
-            shipping_address=shipping_address,
-            shipping_level=shipping_level,
-            pod_package_id=_pod_id,
-            interior_url=interior_url,
-            cover_url=cover_url
-        )
-        if not success:
-            return jsonify({'error': message}), 500
-
-        pr.lulu_print_job_id = str(lulu_job_id) if lulu_job_id else None
-        pr.status = 'sent_to_lulu'
-        db.session.commit()
-        story_data['lulu_job_id'] = lulu_job_id
-        story_data['lulu_submitted'] = True
-        story_data['lulu_interior_url'] = interior_url
-        story_data['lulu_cover_url'] = cover_url
-        with open(preview_file, 'w', encoding='utf-8') as f:
-            json.dump(story_data, f, ensure_ascii=False, indent=2)
-        try:
-            from services.email_service import send_lulu_order_notification
-            _customer_email = story_data.get('customer_email', pr.customer_email or 'pay@magicmemoriesbooks.com')
-            send_lulu_order_notification(
-                order_folder=lulu_order_folder,
-                lulu_job_id=lulu_job_id,
-                title=book_title,
-                customer_email=_customer_email,
-                shipping_address=shipping_address,
-                interior_url=interior_url,
-                cover_url=cover_url
-            )
-        except Exception:
-            pass
-        return jsonify({'success': True, 'lulu_job_id': lulu_job_id})
-    except Exception as e:
-        print(f"[ADMIN] send-to-lulu error: {e}")
-        import traceback; traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+    return jsonify({'error': 'Lulu has been replaced. Use Cloudprinter for Quick Stories (/admin/retry-cp/<preview_id>) or Gelato for personalized books.'}), 410
 
 @app.route('/api/admin/send-tracking/<int:req_id>', methods=['POST'])
 def admin_send_tracking(req_id):
