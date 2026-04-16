@@ -1,10 +1,12 @@
 # Personalized Books Checkout Configuration
-# $30 base + Lulu shipping (dynamic pricing)
+# Impreso tapa dura: $33 base + Gelato shipping (dynamic pricing)
+# PDF Imprimible: $30 fixed (no shipping)
 
-PERSONALIZED_BOOK_PRICE = 30
+PERSONALIZED_BOOK_PRICE = 33
+PERSONALIZED_PDF_PRICE = 30
 
 PERSONALIZED_BOOK_CONFIG = {
-    'price': 30,
+    'price': 33,
     'currency': 'USD',
     'includes_shipping': True,
     'includes_print': True,
@@ -28,7 +30,8 @@ PERSONALIZED_BOOK_IDS = [
     'furry_love_illustrated',
     'furry_love_adventure_illustrated',
     'furry_love_teen_illustrated',
-    'furry_love_adult_illustrated'
+    'furry_love_adult_illustrated',
+    'centinela_aurora_illustrated'
 ]
 
 
