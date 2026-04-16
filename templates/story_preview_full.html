@@ -482,14 +482,23 @@ function doRegenerateScene(sceneIndex, btn) {
     var warning = document.querySelector('.review-warning-fixed');
     if (!warning) return;
     var spacer = warning.nextElementSibling;
-    if (!spacer || !spacer.classList.contains('review-warning-spacer')) return;
-    function updateSpacer() {
-        spacer.style.height = warning.offsetHeight + 'px';
+    if (!spacer || !spacer.classList.contains('review-warning-spacer')) spacer = null;
+    function updatePosition() {
+        var navbar = document.getElementById('sticky-header');
+        var navH = navbar ? navbar.offsetHeight : 0;
+        warning.style.top = navH + 'px';
+        warning.style.zIndex = '110';
+        if (spacer) spacer.style.height = warning.offsetHeight + 'px';
     }
-    updateSpacer();
-    window.addEventListener('resize', updateSpacer);
-    var obs = new MutationObserver(updateSpacer);
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    var obs = new MutationObserver(updatePosition);
     obs.observe(warning, { childList: true, subtree: true, attributes: true });
+    var navbar = document.getElementById('sticky-header');
+    if (navbar) {
+        var navObs = new MutationObserver(updatePosition);
+        navObs.observe(navbar, { childList: true, subtree: true, attributes: true });
+    }
 })();
 </script>
 {% endblock %}
