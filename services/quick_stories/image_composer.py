@@ -80,7 +80,7 @@ def compose_baby_text_on_image(image, text, language='es'):
     first_char = clean_text[0].upper()
     rest_text = clean_text[1:]
 
-    margin_side = int(img_w * 0.093)
+    margin_side = int(img_w * 0.185)
     box_padding_h = int(img_w * 0.023)
     box_padding_v = int(img_h * 0.019)
 
@@ -347,13 +347,14 @@ def compose_kids_text_on_image(image, text_above, text_below, language='es'):
 
     scale = img_w / 2550.0
 
-    body_size = max(12, int(66 * scale))
+    body_size = max(12, int(70 * scale))
     line_height = int(body_size * 1.4)
 
     body_font = _load_font('fredoka', body_size)
 
     padding_inner = max(6, int(35 * scale))
-    margin_safe = max(8, int(150 * scale))
+    margin_safe = max(8, int(471 * scale))
+    margin_v = max(8, int(237 * scale))
 
     parchment_w = img_w - (margin_safe * 2)
     parchment_x = margin_safe
@@ -473,7 +474,7 @@ def compose_kids_text_on_image(image, text_above, text_below, language='es'):
         total_text_h = cap_area_h + len(extra_lines) * line_height
         parchment_h = total_text_h + (padding_inner * 2)
 
-        parchment_y = margin_safe
+        parchment_y = margin_v
 
         result = _draw_parchment_with_texture(
             result, parchment_x, parchment_y, parchment_w, parchment_h,
@@ -509,7 +510,7 @@ def compose_kids_text_on_image(image, text_above, text_below, language='es'):
         total_lines_below = len(below_lines)
 
         parchment_h_b = (total_lines_below * line_height) + (padding_inner * 2)
-        parchment_y_b = img_h - margin_safe - parchment_h_b
+        parchment_y_b = img_h - margin_v - parchment_h_b
 
         result = _draw_parchment_with_texture(
             result, parchment_x, parchment_y_b, parchment_w, parchment_h_b,
@@ -561,7 +562,7 @@ def compose_kids_text_on_image(image, text_above, text_below, language='es'):
         all_render_lines = [built_first_line] + remaining_lines
 
         parchment_h_b = (len(all_render_lines) * line_height) + (padding_inner * 2)
-        parchment_y_b = img_h - margin_safe - parchment_h_b
+        parchment_y_b = img_h - margin_v - parchment_h_b
 
         result_clean = result.copy()
         result = _draw_parchment_with_texture(
