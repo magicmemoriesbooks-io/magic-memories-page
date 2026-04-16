@@ -114,6 +114,7 @@ def get_detailed_character_prompt(traits, name, gender, story_theme=None):
     hair_colors_en = {
         'black': 'JET BLACK (very dark, almost blue-black)',
         'brown': 'CHESTNUT BROWN (warm medium brown)',
+        'light_brown': 'WARM LIGHT BROWN / CARAMEL-HONEY (clearly lighter than chestnut, warm caramel tone)',
         'blonde': 'BRIGHT GOLDEN BLONDE (yellow-gold, NOT brown)',
         'light_blonde': 'PALE PLATINUM BLONDE / WHITE-BLONDE (very light, almost white, like Elsa from Frozen)',
         'red': 'VIBRANT RED/GINGER (orange-red)',
@@ -166,7 +167,7 @@ HAIR (MOST IMPORTANT - MUST BE EXACTLY THE SAME):
 - COLOR: {hair_color} hair - THIS IS THE EXACT COLOR, NEVER CHANGE IT
 - STYLE: {hair_type} hair texture
 - LENGTH: {hair_length} - ALWAYS show hair at this exact length
-- REMINDER: If the hair is BLONDE or LIGHT BLONDE, it must be YELLOW/GOLD colored, NOT brown!
+- REMINDER: If BLONDE, hair must be a natural dark honey-blonde tone. If LIGHT BLONDE, hair must be a warm light golden blonde.
 
 FACIAL FEATURES:
 - EYES: Large expressive {eyes} eyes with visible iris color
@@ -180,9 +181,9 @@ EXPRESSION & OUTFIT:
 
 !!! ABSOLUTE REQUIREMENT - HAIR COLOR !!!
 The character's {hair_color} {hair_length} {hair_type} hair MUST appear EXACTLY the same in this illustration as in all other illustrations. 
-If BLONDE: Hair must be YELLOW-GOLD colored.
-If LIGHT BLONDE: Hair must be PALE WHITE-BLONDE, almost white like Elsa from Frozen.
-DO NOT make blonde hair look brown. DO NOT vary the hair in any way."""
+If BLONDE: Hair must be a natural dark honey-blonde, warm and not too bright.
+If LIGHT BLONDE: Hair must be light golden blonde, natural warm tone.
+DO NOT vary the hair color or style in any way."""
 
 def generate_story_text(order, story_template=None):
     client = get_openai_client()
