@@ -5,7 +5,11 @@
 {% block content %}
 <div id="infoModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div class="bg-gradient-to-r from-purple-600 to-pink-500 p-6 rounded-t-3xl">
+        <div class="bg-gradient-to-r from-purple-600 to-pink-500 p-6 rounded-t-3xl relative">
+            <button onclick="window.history.back()" class="absolute left-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white flex items-center gap-1 text-sm font-medium transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                {% if lang == 'es' %}Atrás{% else %}Back{% endif %}
+            </button>
             <h2 class="text-white text-2xl font-bold text-center">
                 {% if lang == 'es' %}Antes de Comenzar{% else %}Before You Start{% endif %}
             </h2>
@@ -71,6 +75,9 @@
                     class="w-full py-4 bg-gray-300 text-gray-500 font-bold rounded-xl cursor-not-allowed transition-all">
                 {% if lang == 'es' %}Continuar{% else %}Continue{% endif %}
             </button>
+            <button onclick="window.history.back()" class="w-full py-2.5 text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors">
+                ← {% if lang == 'es' %}No, regresar a la categoría{% else %}No, go back to category{% endif %}
+            </button>
         </div>
     </div>
 </div>
@@ -80,6 +87,10 @@
         {% if is_birthday %}
         <a href="{% if age_range == '1-3' %}{{ url_for('birthday_1_3') }}{% elif age_range == '4-6' %}{{ url_for('birthday_4_6') }}{% elif age_range == '7-9' %}{{ url_for('birthday_7_9') }}{% else %}{{ url_for('birthday_selection') }}{% endif %}" class="text-purple-600 hover:text-purple-700 mb-4 inline-block">
             ← {% if lang == 'es' %}Volver a categorías{% else %}Back to categories{% endif %}
+        </a>
+        {% elif is_illustrated_book %}
+        <a href="{{ url_for('personalized_books') }}" class="text-purple-600 hover:text-purple-700 mb-4 inline-block">
+            ← {% if lang == 'es' %}Volver al catálogo{% else %}Back to catalog{% endif %}
         </a>
         {% else %}
         <a href="{% if is_baby %}{{ url_for('stories_0_1') }}{% else %}{{ url_for('stories_3_8') }}{% endif %}" class="text-purple-600 hover:text-purple-700 mb-4 inline-block">
@@ -94,6 +105,41 @@
 
     <div class="grid lg:grid-cols-2 gap-8">
         <div class="space-y-6">
+            {% if is_illustrated_book %}
+            <div class="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg p-6 md:p-8" id="photoUploadSection">
+                <h2 class="font-display text-xl font-bold text-purple-800 mb-1">
+                    {% if lang == 'es' %}📸 Foto del Protagonista{% else %}📸 Protagonist Photo{% endif %}
+                    <span class="text-sm font-normal text-gray-400 ml-2">({% if lang == 'es' %}opcional{% else %}optional{% endif %})</span>
+                </h2>
+                <p class="text-gray-500 text-sm mb-4">
+                    {% if lang == 'es' %}Sube una foto del niño/a para que el preview y las ilustraciones se parezcan más a él/ella. La foto se elimina automáticamente tras generar el libro.{% else %}Upload a photo of the child so the preview and illustrations resemble them. The photo is automatically deleted after the book is generated.{% endif %}
+                </p>
+                <div id="photoUploadStatus" class="hidden mb-3 p-3 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3">
+                    <img id="photoThumb" src="" alt="Photo" class="w-14 h-14 object-cover rounded-lg border border-green-300">
+                    <div>
+                        <p class="text-green-800 text-sm font-semibold">{% if lang == 'es' %}✅ Foto subida — se usará en el preview{% else %}✅ Photo uploaded — will be used in preview{% endif %}</p>
+                        <button type="button" onclick="removeChildPhoto()" class="text-xs text-red-500 underline mt-1">{% if lang == 'es' %}Eliminar{% else %}Remove{% endif %}</button>
+                    </div>
+                </div>
+                <div id="photoUploadForm">
+                    <label class="flex items-center gap-2 mb-3 cursor-pointer">
+                        <input type="checkbox" id="photoConsentCheck" class="w-4 h-4 accent-purple-600">
+                        <span class="text-xs text-gray-600">
+                            {% if lang == 'es' %}Doy mi consentimiento para el procesamiento temporal de esta foto con fines de generación de ilustraciones (eliminada tras el proceso).{% else %}I consent to the temporary processing of this photo for illustration generation purposes (deleted after processing).{% endif %}
+                        </span>
+                    </label>
+                    <label id="photoUploadLabel" class="block w-full py-3 px-4 bg-purple-50 border-2 border-dashed border-purple-200 rounded-xl text-center text-purple-600 text-sm font-medium cursor-not-allowed opacity-50 transition-all">
+                        <input type="file" id="photoFileInput" accept=".jpg,.jpeg,.png,.webp" class="hidden" disabled onchange="handleChildPhotoUpload(this)">
+                        📁 {% if lang == 'es' %}Elegir foto (JPG, PNG, WEBP){% else %}Choose photo (JPG, PNG, WEBP){% endif %}
+                    </label>
+                    <div id="photoUploadProgress" class="hidden mt-2 text-sm text-purple-600 text-center">
+                        {% if lang == 'es' %}Subiendo foto...{% else %}Uploading photo...{% endif %}
+                    </div>
+                    <div id="photoUploadError" class="hidden mt-2 text-sm text-red-600 text-center"></div>
+                </div>
+            </div>
+            {% endif %}
+
             <div class="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg p-6 md:p-8">
                 <h2 class="font-display text-xl font-bold text-purple-800 mb-2">{% if lang == 'es' %}Características del Personaje{% else %}Character Features{% endif %}</h2>
                 <p class="text-gray-500 text-sm mb-6">{% if lang == 'es' %}Personaliza cómo se verá tu protagonista{% else %}Customize how your protagonist will look{% endif %}</p>
@@ -167,15 +213,15 @@
                             </label>
                             <label class="cursor-pointer">
                                 <input type="radio" name="hair_color" value="light_brown" class="peer sr-only">
-                                <div class="w-10 h-10 rounded-full border-2 border-gray-700 peer-checked:border-purple-500 peer-checked:ring-2 peer-checked:ring-purple-300 transition-all hover:scale-110" style="background-color: #A67B5B;" title="{% if lang == 'es' %}Castaño Claro{% else %}Light Brown{% endif %}"></div>
+                                <div class="w-10 h-10 rounded-full border-2 border-gray-700 peer-checked:border-purple-500 peer-checked:ring-2 peer-checked:ring-purple-300 transition-all hover:scale-110" style="background-color: #A2803D;" title="{% if lang == 'es' %}Castaño Claro{% else %}Light Brown{% endif %}"></div>
                             </label>
                             <label class="cursor-pointer">
                                 <input type="radio" name="hair_color" value="blonde" class="peer sr-only">
-                                <div class="w-10 h-10 rounded-full border-2 border-gray-700 peer-checked:border-purple-500 peer-checked:ring-2 peer-checked:ring-purple-300 transition-all hover:scale-110" style="background-color: #D4B96A;" title="{% if lang == 'es' %}Rubio{% else %}Blonde{% endif %}"></div>
+                                <div class="w-10 h-10 rounded-full border-2 border-gray-700 peer-checked:border-purple-500 peer-checked:ring-2 peer-checked:ring-purple-300 transition-all hover:scale-110" style="background-color: #C4A44E;" title="{% if lang == 'es' %}Rubio{% else %}Blonde{% endif %}"></div>
                             </label>
                             <label class="cursor-pointer">
                                 <input type="radio" name="hair_color" value="very_light_blonde" class="peer sr-only">
-                                <div class="w-10 h-10 rounded-full border-2 border-gray-700 peer-checked:border-purple-500 peer-checked:ring-2 peer-checked:ring-purple-300 transition-all hover:scale-110" style="background-color: #F5E6C8;" title="{% if lang == 'es' %}Rubio Muy Claro{% else %}Very Light Blonde{% endif %}"></div>
+                                <div class="w-10 h-10 rounded-full border-2 border-gray-700 peer-checked:border-purple-500 peer-checked:ring-2 peer-checked:ring-purple-300 transition-all hover:scale-110" style="background-color: #E8D5A0;" title="{% if lang == 'es' %}Rubio Muy Claro{% else %}Very Light Blonde{% endif %}"></div>
                             </label>
                             <label class="cursor-pointer">
                                 <input type="radio" name="hair_color" value="red" class="peer sr-only">
@@ -217,6 +263,12 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">{% if lang == 'es' %}Longitud del cabello{% else %}Hair length{% endif %} *</label>
                         <div class="flex gap-2">
+                            <label class="cursor-pointer flex-1">
+                                <input type="radio" name="hair_length" value="bald" class="peer sr-only">
+                                <div class="border-2 border-gray-200 rounded-xl py-2 px-3 text-center transition-all peer-checked:border-purple-500 peer-checked:bg-purple-50 hover:border-purple-300 text-sm">
+                                    <span class="text-xs">{% if lang == 'es' %}Calvo{% else %}Bald{% endif %}</span>
+                                </div>
+                            </label>
                             {% if is_baby %}
                             <label class="cursor-pointer flex-1">
                                 <input type="radio" name="hair_length" value="very_little" class="peer sr-only">
@@ -225,6 +277,12 @@
                                 </div>
                             </label>
                             {% endif %}
+                            <label class="cursor-pointer flex-1">
+                                <input type="radio" name="hair_length" value="very_short" class="peer sr-only">
+                                <div class="border-2 border-gray-200 rounded-xl py-2 px-3 text-center transition-all peer-checked:border-purple-500 peer-checked:bg-purple-50 hover:border-purple-300 text-sm">
+                                    <span class="text-xs">{% if lang == 'es' %}Muy corto{% else %}Very short{% endif %}</span>
+                                </div>
+                            </label>
                             <label class="cursor-pointer flex-1">
                                 <input type="radio" name="hair_length" value="short" class="peer sr-only">
                                 <div class="border-2 border-gray-200 rounded-xl py-2 px-3 text-center transition-all peer-checked:border-purple-500 peer-checked:bg-purple-50 hover:border-purple-300 text-sm">
@@ -294,6 +352,14 @@
                         </div>
                     </div>
 
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">{% if lang == 'es' %}¿Lleva gafas de ver?{% else %}Does the child wear glasses?{% endif %}</label>
+                        <label class="inline-flex items-center gap-3 cursor-pointer select-none">
+                            <input type="checkbox" name="glasses" id="glasses_check" value="yes" class="w-5 h-5 accent-purple-600 rounded">
+                            <span class="text-sm text-gray-700">{% if lang == 'es' %}Sí, lleva gafas graduadas{% else %}Yes, wears prescription glasses{% endif %}</span>
+                        </label>
+                    </div>
+
                     <div class="flex gap-3">
                         <button type="button" id="viewStoryTextBtn" class="flex-1 inline-flex items-center justify-center px-4 py-3 bg-white text-purple-600 font-semibold rounded-full hover:bg-purple-50 transition-all border-2 border-purple-300">
                             📖 {% if lang == 'es' %}Ver Texto{% else %}View Text{% endif %}
@@ -331,6 +397,7 @@
                     </div>
                 </div>
             </div>
+
         </div>
 
         <div class="space-y-6">
@@ -361,13 +428,14 @@
                     
                     <div class="space-y-3 text-sm mb-6">
                         {% if is_illustrated_book %}
-                        <p class="flex items-center gap-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}{{ page_count }} páginas ilustradas{% else %}{{ page_count }} illustrated pages{% endif %}</p>
-                        <p class="flex items-center gap-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}19 ilustraciones profesionales{% else %}19 professional illustrations{% endif %}</p>
-                        <p class="flex items-center gap-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}PDF digital + imprimible{% else %}Digital + printable PDF{% endif %}</p>
+                        <p class="flex items-center gap-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}26 páginas ilustradas tapa dura A4{% else %}26 illustrated pages hardcover A4{% endif %}</p>
+                        <p class="flex items-center gap-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}19 ilustraciones únicas personalizadas{% else %}19 unique personalized illustrations{% endif %}</p>
+                        <p class="flex items-center gap-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}2 páginas para colorear incluidas{% else %}2 coloring pages included{% endif %}</p>
+                        <p class="flex items-center gap-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}eBook digital + PDF imprimible{% else %}Digital eBook + printable PDF{% endif %}</p>
                         {% else %}
                         <p class="flex items-center gap-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}{{ illustration_count }} ilustraciones únicas{% else %}{{ illustration_count }} unique illustrations{% endif %}</p>
                         <p class="flex items-center gap-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}PDF digital entrega inmediata{% else %}Digital PDF immediate delivery{% endif %}</p>
-                        <p class="flex items-center gap-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}Opción impresa: 12 páginas 8.5" × 8.5"{% else %}Print option: 12 pages 8.5" × 8.5"{% endif %}</p>
+                        <p class="flex items-center gap-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}Opción impresa: 16 páginas A4{% else %}Print option: 16 pages A4{% endif %}</p>
                         {% endif %}
                     </div>
 
@@ -408,6 +476,8 @@
 <script>
 let characterGenerated = false;
 let currentCharacterData = null;
+let previewRegenCount = 0;
+const MAX_PREVIEW_REGEN = 3;
 
 document.getElementById('child_name').addEventListener('input', function() {
     const summaryEl = document.getElementById('summaryName');
@@ -425,10 +495,22 @@ document.getElementById('dedication').addEventListener('input', function() {
     }
 });
 
-document.getElementById('generateCharacterBtn').addEventListener('click', generateCharacterPreview);
-document.getElementById('regenerateBtn').addEventListener('click', generateCharacterPreview);
+document.getElementById('generateCharacterBtn').addEventListener('click', () => generateCharacterPreview((typeof childPhotoPath !== 'undefined' ? childPhotoPath : null)));
+document.getElementById('regenerateBtn').addEventListener('click', () => {
+    if (previewRegenCount >= MAX_PREVIEW_REGEN) return;
+    previewRegenCount++;
+    const remaining = MAX_PREVIEW_REGEN - previewRegenCount;
+    const btn = document.getElementById('regenerateBtn');
+    if (remaining <= 0) {
+        btn.classList.add('hidden');
+    } else {
+        btn.textContent = '{% if lang == "es" %}Regenerar Preview ({% else %}Regenerate Preview ({% endif %}' + remaining + '{% if lang == "es" %} restantes){% else %} remaining){% endif %}';
+    }
+    const refPath = (currentCharacterData && currentCharacterData.character_image) ? currentCharacterData.character_image : null;
+    generateCharacterPreview(refPath);
+});
 
-async function generateCharacterPreview() {
+async function generateCharacterPreview(referenceImage) {
     const btn = document.getElementById('generateCharacterBtn');
     const btnText = document.getElementById('charBtnText');
     const btnLoading = document.getElementById('charBtnLoading');
@@ -441,6 +523,8 @@ async function generateCharacterPreview() {
     const eyeColor = document.querySelector('input[name="eye_color"]:checked').value;
     const skinTone = document.querySelector('input[name="skin_tone"]:checked').value;
     const childAge = document.getElementById('child_age').value;
+    const glassesEl = document.getElementById('glasses_check');
+    const glasses = (glassesEl && glassesEl.checked) ? 'yes' : '';
     
     if (!childName) {
         showError('{% if lang == "es" %}Por favor, ingresa el nombre del personaje{% else %}Please enter the character name{% endif %}');
@@ -453,7 +537,7 @@ async function generateCharacterPreview() {
     
     try {
         const storyTemplate = '{{ story_id }}';
-        const FIXED_STORIES = ['baby_soft_world', 'baby_puppy_love', 'baby_first_pet', 'baby_guardian_light', 'dragon_friend', 'dragon_garden_illustrated', 'magic_chef_illustrated', 'magic_inventor_illustrated', 'star_keeper_illustrated', 'space_astronaut', 'zebra_stripes', 'superhero_light', 'chronicles_valley', 'sunset_map', 'star_guardian', 'dog_forever', 'birthday_celebration_1_3', 'birthday_celebration_4_6', 'birthday_celebration_7_9'];
+        const FIXED_STORIES = ['baby_soft_world', 'baby_puppy_love', 'baby_first_pet', 'baby_guardian_light', 'dragon_friend', 'dragon_garden_illustrated', 'magic_chef_illustrated', 'magic_inventor_illustrated', 'star_keeper_illustrated', 'centinela_aurora_illustrated', 'space_astronaut', 'zebra_stripes', 'superhero_light', 'chronicles_valley', 'sunset_map', 'star_guardian', 'dog_forever', 'birthday_celebration_1_3', 'birthday_celebration_4_6', 'birthday_celebration_7_9'];
         const isFixedStory = FIXED_STORIES.includes(storyTemplate);
         const previewEndpoint = isFixedStory ? '/api/generate-baby-preview' : '/api/generate-character-preview';
         
@@ -468,14 +552,10 @@ async function generateCharacterPreview() {
             hair_length: hairLength,
             eye_color: eyeColor,
             skin_tone: skinTone,
-            story_id: storyTemplate,
-            hair_color: hairColor,
-            hair_type: hairType,
-            hair_length: hairLength,
-            eye_color: eyeColor,
-            skin_tone: skinTone,
+            glasses: glasses,
             admin_gift: isAdminGift ? 1 : 0,
-            user_email: userEmail
+            user_email: userEmail,
+            child_photo_path: (typeof childPhotoPath !== 'undefined' && childPhotoPath) ? childPhotoPath : ''
         } : {
             child_name: childName,
             child_gender: childGender,
@@ -485,12 +565,16 @@ async function generateCharacterPreview() {
             hair_length: hairLength,
             eye_color: eyeColor,
             skin_tone: skinTone,
+            glasses: glasses,
             story_template: storyTemplate,
             admin_gift: isAdminGift ? 1 : 0
         };
         
         if (isAdminGift) {
             requestBody.admin_gift_email = 'pay@magicmemoriesbooks.com';
+        }
+        if (referenceImage) {
+            requestBody.reference_image = referenceImage;
         }
         
         const response = await fetch(previewEndpoint, {
@@ -522,7 +606,8 @@ async function generateCharacterPreview() {
                 story_name: '{{ story_name }}',
                 character_image: data.image_url,
                 admin_gift: isAdminGift ? 1 : 0,
-                admin_gift_email: requestBody.admin_gift_email || ''
+                admin_gift_email: requestBody.admin_gift_email || '',
+                glasses: glasses
             };
             
             const storyBtn = document.getElementById('generateStoryBtn');
@@ -555,7 +640,7 @@ document.getElementById('generateStoryBtn').addEventListener('click', async func
     
     try {
         const storyTemplate = '{{ story_id }}';
-        const FIXED_STORIES = ['baby_soft_world', 'baby_puppy_love', 'baby_first_pet', 'baby_guardian_light', 'dragon_friend', 'dragon_garden_illustrated', 'magic_chef_illustrated', 'magic_inventor_illustrated', 'star_keeper_illustrated', 'space_astronaut', 'zebra_stripes', 'superhero_light', 'chronicles_valley', 'sunset_map', 'star_guardian', 'dog_forever', 'birthday_celebration_1_3', 'birthday_celebration_4_6', 'birthday_celebration_7_9'];
+        const FIXED_STORIES = ['baby_soft_world', 'baby_puppy_love', 'baby_first_pet', 'baby_guardian_light', 'dragon_friend', 'dragon_garden_illustrated', 'magic_chef_illustrated', 'magic_inventor_illustrated', 'star_keeper_illustrated', 'centinela_aurora_illustrated', 'space_astronaut', 'zebra_stripes', 'superhero_light', 'chronicles_valley', 'sunset_map', 'star_guardian', 'dog_forever', 'birthday_celebration_1_3', 'birthday_celebration_4_6', 'birthday_celebration_7_9'];
         const isFixedStory = FIXED_STORIES.includes(storyTemplate);
         const apiEndpoint = isFixedStory ? '/api/generate-fixed-story' : '/api/generate-full-story';
         
@@ -569,13 +654,15 @@ document.getElementById('generateStoryBtn').addEventListener('click', async func
             hair_length: currentCharacterData.hair_length || 'medium',
             eye_color: currentCharacterData.eye_color,
             skin_tone: currentCharacterData.skin_tone,
+            glasses: currentCharacterData.glasses || '',
             author_name: authorName,
             dedication: dedication,
             character_image: currentCharacterData.character_image,
             story_lang: storyLang,
             admin_gift: currentCharacterData.admin_gift ? 1 : 0,
             admin_gift_email: currentCharacterData.admin_gift_email || '',
-            user_email: userEmail
+            user_email: userEmail,
+            child_photo_path: (typeof childPhotoPath !== 'undefined' && childPhotoPath) ? childPhotoPath : ''
         } : {
             ...currentCharacterData,
             dedication: dedication,
@@ -611,6 +698,63 @@ function showError(message) {
     document.getElementById('errorMessage').textContent = message;
     document.getElementById('errorModal').classList.remove('hidden');
 }
+
+{% if is_illustrated_book %}
+let childPhotoPath = null;
+
+document.getElementById('photoConsentCheck').addEventListener('change', function() {
+    const fileInput = document.getElementById('photoFileInput');
+    const label = document.getElementById('photoUploadLabel');
+    if (this.checked) {
+        fileInput.disabled = false;
+        label.classList.remove('cursor-not-allowed', 'opacity-50');
+        label.classList.add('cursor-pointer', 'hover:bg-purple-100', 'hover:border-purple-400');
+    } else {
+        fileInput.disabled = true;
+        label.classList.add('cursor-not-allowed', 'opacity-50');
+        label.classList.remove('cursor-pointer', 'hover:bg-purple-100', 'hover:border-purple-400');
+        if (childPhotoPath) removeChildPhoto();
+    }
+});
+
+async function handleChildPhotoUpload(input) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    document.getElementById('photoUploadProgress').classList.remove('hidden');
+    document.getElementById('photoUploadError').classList.add('hidden');
+    const formData = new FormData();
+    formData.append('photo', file);
+    formData.append('type', 'child');
+    formData.append('consent', 'true');
+    formData.append('lang', '{{ lang }}');
+    try {
+        const resp = await fetch('/api/upload-furry-photo', { method: 'POST', body: formData });
+        const data = await resp.json();
+        if (data.success) {
+            childPhotoPath = data.path;
+            const thumb = document.getElementById('photoThumb');
+            thumb.src = URL.createObjectURL(file);
+            document.getElementById('photoUploadStatus').classList.remove('hidden');
+            document.getElementById('photoUploadForm').classList.add('hidden');
+        } else {
+            document.getElementById('photoUploadError').textContent = data.error || '{% if lang == "es" %}Error al subir la foto{% else %}Error uploading photo{% endif %}';
+            document.getElementById('photoUploadError').classList.remove('hidden');
+        }
+    } catch (e) {
+        document.getElementById('photoUploadError').textContent = '{% if lang == "es" %}Error de conexión{% else %}Connection error{% endif %}';
+        document.getElementById('photoUploadError').classList.remove('hidden');
+    }
+    document.getElementById('photoUploadProgress').classList.add('hidden');
+    input.value = '';
+}
+
+function removeChildPhoto() {
+    childPhotoPath = null;
+    document.getElementById('photoUploadStatus').classList.add('hidden');
+    document.getElementById('photoUploadForm').classList.remove('hidden');
+    document.getElementById('photoThumb').src = '';
+}
+{% endif %}
 
 </script>
 
