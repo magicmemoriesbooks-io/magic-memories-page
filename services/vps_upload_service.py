@@ -259,7 +259,7 @@ def prepare_book_for_visor(story_data, preview_id, book_uuid=None, is_gift=False
     pages = []
     page_num = 0
 
-    def add_image_page(img_path, text='', narration=''):
+    def add_image_page(img_path, text='', narration='', clean_src=None):
         nonlocal page_num
         clean_path = img_path.lstrip('/')
         if not os.path.exists(clean_path):
@@ -276,6 +276,18 @@ def prepare_book_for_visor(story_data, preview_id, book_uuid=None, is_gift=False
         except Exception as e:
             print(f"[VISOR] Error converting image {clean_path}: {e}")
             return
+        if clean_src:
+            _cs = clean_src.lstrip('/')
+            if os.path.exists(_cs):
+                try:
+                    _clean_out = os.path.join(local_dir, f'clean_page_{page_num}.png')
+                    _ci = Image.open(_cs)
+                    if _ci.mode in ('RGBA', 'P'):
+                        _ci = _ci.convert('RGB')
+                    _ci.save(_clean_out, 'PNG')
+                    _ci.close()
+                except Exception as _ce:
+                    print(f"[VISOR] Error saving clean page {page_num}: {_ce}")
         page_entry = {'image': output_filename, 'text': text}
         if narration:
             page_entry['narration'] = narration
@@ -291,16 +303,35 @@ def prepare_book_for_visor(story_data, preview_id, book_uuid=None, is_gift=False
     if front_cover:
         add_image_page(front_cover)
 
-    ded_title = "Dedicatoria" if language == 'es' else "Dedication"
-    add_text_page(f'page_{page_num + 1}.jpg',
-                  bg_color='#FFFBF5', title_text=ded_title, title_color='#8B6914',
-                  body_text=dedication, body_color='#4A3728', border=True)
-
+    # --- page_2: portadilla (story title) — matches printable_pdf.py page_spec order ---
     add_text_page(f'page_{page_num + 1}.jpg',
                   bg_color='#FFFBF5', title_text=story_name, title_color='#8B6914',
                   subtitle_text='Magic Memories Books')
 
+    # --- page_3: Dedication page — rich golden-border style ---
+    _ded_filename = f'page_{page_num + 1}.jpg'
+    _ded_output   = os.path.join(local_dir, _ded_filename)
+    try:
+        from services.illustrated_book_service import generate_dedication_page as _gen_ded
+        _author_name = story_data.get('author_name', '') or story_data.get('dedication_author', '') or child_name
+        _ded_img = _gen_ded(dedication, img_size=ref_size, language=language, author_name=_author_name)
+        if _ded_img.mode in ('RGBA', 'P'):
+            _ded_img = _ded_img.convert('RGB')
+        _ded_img.save(_ded_output, 'JPEG', quality=90)
+        _ded_img.close()
+        page_num += 1
+        pages.append({'image': _ded_filename, 'text': ''})
+        print(f"[VISOR] Dedication page generated: {_ded_output}")
+    except Exception as _ded_err:
+        print(f"[VISOR] Dedication page fallback to _generate_text_page: {_ded_err}")
+        ded_title = "Dedicatoria" if language == 'es' else "Dedication"
+        add_text_page(_ded_filename,
+                      bg_color='#FFFBF5', title_text=ded_title, title_color='#8B6914',
+                      body_text=dedication, body_color='#4A3728', border=True)
+
     text_composed = story_data.get('qs_text_composed', False)
+
+    composed_dir_for_clean = f'generated/composed_{preview_id}'
 
     text_idx = 0
     for img_path in scene_images:
@@ -309,9 +340,14 @@ def prepare_book_for_visor(story_data, preview_id, book_uuid=None, is_gift=False
         if '_preview' in str(img_path):
             continue
         raw_text = _get_scene_text(story_data, text_idx)
+        clean_src_path = None
+        if is_illustrated:
+            _cs_candidate = os.path.join(composed_dir_for_clean, f'clean_scene_{text_idx}.png')
+            if os.path.exists(_cs_candidate):
+                clean_src_path = _cs_candidate
         text_idx += 1
         if is_illustrated or text_composed:
-            add_image_page(img_path, narration=raw_text)
+            add_image_page(img_path, narration=raw_text, clean_src=clean_src_path)
         else:
             add_image_page(img_path, text=raw_text)
 
@@ -454,8 +490,69 @@ def upload_to_vps(book_uuid, local_dir):
 
 
 def _get_visor_base_url(visor_type='visor'):
-    site_domain = os.environ.get('SITE_DOMAIN', 'magicmemoriesbooks.com')
+    site_domain = os.environ.get('SITE_DOMAIN', '') or os.environ.get('REPLIT_DEV_DOMAIN', 'magicmemoriesbooks.com')
     return f'https://{site_domain}/{visor_type}'
+
+
+def make_ebook_permanent(preview_id):
+    """Remove ebook expiry: update local metadata.json and push to VPS."""
+    local_dir = os.path.join('generations', 'visor_pb', preview_id)
+    metadata_path = os.path.join(local_dir, 'metadata.json')
+
+    if not os.path.exists(metadata_path):
+        print(f"[VISOR] make_ebook_permanent: no metadata found for {preview_id}")
+        return False
+
+    try:
+        with open(metadata_path, 'r', encoding='utf-8') as f:
+            metadata = json.load(f)
+        metadata['expires_at'] = None
+        metadata['is_gift'] = False
+        with open(metadata_path, 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, ensure_ascii=False, indent=2)
+        print(f"[VISOR] make_ebook_permanent: local metadata updated for {preview_id}")
+    except Exception as e:
+        print(f"[VISOR] make_ebook_permanent: failed to update local metadata: {e}")
+        return False
+
+    if LOCAL_VISOR_MODE or not VPS_HOST or not VPS_USER:
+        local_visor_meta = os.path.join(VPS_VISOR_PATH, preview_id, 'metadata.json')
+        local_visor_dir = os.path.dirname(local_visor_meta)
+        if os.path.isdir(local_visor_dir):
+            try:
+                shutil.copy2(metadata_path, local_visor_meta)
+                print(f"[VISOR] make_ebook_permanent: local VPS copy updated for {preview_id}")
+            except Exception as e:
+                print(f"[VISOR] make_ebook_permanent: local copy failed: {e}")
+        return True
+
+    try:
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        connect_kwargs = {
+            'hostname': VPS_HOST,
+            'username': VPS_USER,
+            'port': int(os.environ.get('VPS_PORT', 22))
+        }
+        if VPS_KEY_PATH and os.path.exists(VPS_KEY_PATH):
+            connect_kwargs['key_filename'] = VPS_KEY_PATH
+        elif VPS_PASSWORD:
+            connect_kwargs['password'] = VPS_PASSWORD
+        else:
+            print(f"[VISOR] make_ebook_permanent: no VPS auth configured")
+            return False
+
+        ssh.connect(**connect_kwargs)
+        sftp = ssh.open_sftp()
+        remote_file = f'{VPS_VISOR_PATH}/{preview_id}/metadata.json'
+        sftp.put(metadata_path, remote_file)
+        sftp.close()
+        ssh.close()
+        print(f"[VISOR] make_ebook_permanent: VPS metadata updated for {preview_id}")
+        return True
+    except Exception as e:
+        print(f"[VISOR] make_ebook_permanent: VPS update failed: {e}")
+        return False
 
 
 def prepare_and_upload(story_data, preview_id, is_gift=False):
