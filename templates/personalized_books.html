@@ -61,7 +61,7 @@
             {% if lang == 'es' %}Libros Personalizados{% else %}Personalized Books{% endif %}
         </h1>
         <p class="text-lg text-emerald-600">
-            {% if lang == 'es' %}24 páginas ilustradas con tu hijo/a como protagonista{% else %}24 illustrated pages with your child as the star{% endif %}
+            {% if lang == 'es' %}26 páginas ilustradas con tu hijo/a como protagonista{% else %}26 illustrated pages with your child as the star{% endif %}
         </p>
     </div>
 
@@ -113,7 +113,7 @@
                             {% if lang == 'es' %}Una aventura mágica en un jardín encantado{% else %}A magical adventure in an enchanted garden{% endif %}
                         </p>
                         <div class="flex flex-wrap gap-1">
-                            <span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs">24 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
+                            <span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs">19 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
                             <span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs">{% if lang == 'es' %}Amistad{% else %}Friendship{% endif %}</span>
                         </div>
                     </div>
@@ -141,7 +141,7 @@
                             {% if lang == 'es' %}Una aventura culinaria con Dulcín{% else %}A culinary adventure with Sweetie{% endif %}
                         </p>
                         <div class="flex flex-wrap gap-1">
-                            <span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-xs">24 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
+                            <span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-xs">19 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
                             <span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-xs">{% if lang == 'es' %}Cocina{% else %}Cooking{% endif %}</span>
                         </div>
                     </div>
@@ -169,7 +169,7 @@
                             {% if lang == 'es' %}Una aventura de inventos con BOLT{% else %}An invention adventure with BOLT{% endif %}
                         </p>
                         <div class="flex flex-wrap gap-1">
-                            <span class="bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded-full text-xs">24 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
+                            <span class="bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded-full text-xs">19 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
                             <span class="bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded-full text-xs">{% if lang == 'es' %}Inventos{% else %}Inventions{% endif %}</span>
                             <span class="bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded-full text-xs">6-8 {% if lang == 'es' %}años{% else %}years{% endif %}</span>
                         </div>
@@ -198,12 +198,41 @@
                             {% if lang == 'es' %}Una aventura celestial con LUNA{% else %}A celestial adventure with LUNA{% endif %}
                         </p>
                         <div class="flex flex-wrap gap-1">
-                            <span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs">24 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
+                            <span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs">19 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
                             <span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs">{% if lang == 'es' %}Estrellas{% else %}Stars{% endif %}</span>
                             <span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs">6-7 {% if lang == 'es' %}años{% else %}years{% endif %}</span>
                         </div>
                     </div>
                     <button id="personalizeBtnStarKeeper" class="select-btn mt-3 w-full bg-gray-200 text-gray-500 py-2 rounded-lg text-sm font-medium transition-all" disabled>
+                        {% if lang == 'es' %}Escribe el nombre arriba{% else %}Enter name above{% endif %}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Centinela Aurora Book Card -->
+        <div class="story-card bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all cursor-pointer" onclick="selectBook('centinela_aurora')">
+            <div class="flex">
+                <div class="w-1/3 flex-shrink-0">
+                    <div class="relative aspect-[3/4] bg-sky-100 flex items-center justify-center">
+                        <img src="/static/images/cover_centinela_aurora.jpg" alt="El Centinela de la Aurora" class="w-full h-full object-cover"
+                             onerror="this.style.display='none';this.parentElement.innerHTML='<span style=\'font-size:2.5rem;\'>🦊</span>'">
+                    </div>
+                </div>
+                <div class="w-2/3 p-4 flex flex-col justify-between">
+                    <div>
+                        <h3 id="storyTitleCentinelaAurora" class="text-lg font-bold text-sky-700 mb-1">
+                            {% if lang == 'es' %}[Nombre] y el Centinela de la Aurora{% else %}[Name] and the Aurora Sentinel{% endif %}
+                        </h3>
+                        <p class="text-sm text-gray-600 mb-2">
+                            {% if lang == 'es' %}Una aventura de magia con ASTRO{% else %}A magical adventure with ASTRO{% endif %}
+                        </p>
+                        <div class="flex flex-wrap gap-1">
+                            <span class="bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full text-xs">19 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
+                            <span class="bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full text-xs">{% if lang == 'es' %}Magia{% else %}Magic{% endif %}</span>
+                        </div>
+                    </div>
+                    <button id="personalizeBtnCentinelaAurora" class="select-btn mt-3 w-full bg-gray-200 text-gray-500 py-2 rounded-lg text-sm font-medium transition-all" disabled>
                         {% if lang == 'es' %}Escribe el nombre arriba{% else %}Enter name above{% endif %}
                     </button>
                 </div>
@@ -228,6 +257,7 @@ const titleTemplateDragon = lang === 'es' ? '{name} y el Jardín del Dragón' : 
 const titleTemplateChef = lang === 'es' ? '{name} El Chef Mágico' : '{name} The Magic Chef';
 const titleTemplateInventor = lang === 'es' ? '{name} y el Taller del Inventor' : '{name} and the Inventor Workshop';
 const titleTemplateStarKeeper = lang === 'es' ? '{name} y el Guardián de Estrellas' : '{name} The Star Keeper';
+const titleTemplateCentinelaAurora = lang === 'es' ? '{name} y el Centinela de la Aurora' : '{name} and the Aurora Sentinel';
 
 function updateTitle() {
     const name = document.getElementById('childName').value.trim();
@@ -237,21 +267,23 @@ function updateTitle() {
     document.getElementById('storyTitleChef').textContent = titleTemplateChef.replace('{name}', displayName);
     document.getElementById('storyTitleInventor').textContent = titleTemplateInventor.replace('{name}', displayName);
     document.getElementById('storyTitleStarKeeper').textContent = titleTemplateStarKeeper.replace('{name}', displayName);
+    document.getElementById('storyTitleCentinelaAurora').textContent = titleTemplateCentinelaAurora.replace('{name}', displayName);
     
     const btn = document.getElementById('personalizeBtn');
     const btnChef = document.getElementById('personalizeBtnChef');
     const btnInventor = document.getElementById('personalizeBtnInventor');
     const btnStarKeeper = document.getElementById('personalizeBtnStarKeeper');
+    const btnCentinelaAurora = document.getElementById('personalizeBtnCentinelaAurora');
     
     if (name.length >= 2) {
-        [{el: btn, from: 'emerald', to: 'teal'}, {el: btnChef, from: 'amber', to: 'orange'}, {el: btnInventor, from: 'cyan', to: 'blue'}, {el: btnStarKeeper, from: 'indigo', to: 'purple'}].forEach(({el, from, to}) => {
+        [{el: btn, from: 'emerald', to: 'teal'}, {el: btnChef, from: 'amber', to: 'orange'}, {el: btnInventor, from: 'cyan', to: 'blue'}, {el: btnStarKeeper, from: 'indigo', to: 'purple'}, {el: btnCentinelaAurora, from: 'sky', to: 'blue'}].forEach(({el, from, to}) => {
             el.disabled = false;
             el.textContent = lang === 'es' ? 'Personalizar →' : 'Personalize →';
             el.classList.remove('bg-gray-300', 'text-gray-500');
             el.classList.add('bg-gradient-to-r', `from-${from}-500`, `to-${to}-500`, 'text-white', 'hover:shadow-lg');
         });
     } else {
-        [btn, btnChef, btnInventor, btnStarKeeper].forEach(el => {
+        [btn, btnChef, btnInventor, btnStarKeeper, btnCentinelaAurora].forEach(el => {
             el.disabled = true;
             el.textContent = lang === 'es' ? 'Escribe nombre' : 'Enter name';
             el.classList.add('bg-gray-300', 'text-gray-500');
@@ -268,6 +300,7 @@ function selectBook(bookType = 'dragon') {
             'magic_chef': 'magic_chef_illustrated',
             'magic_inventor': 'magic_inventor_illustrated',
             'star_keeper': 'star_keeper_illustrated',
+            'centinela_aurora': 'centinela_aurora_illustrated',
             'dragon': 'dragon_garden_illustrated'
         };
         const storyId = storyMap[bookType] || 'dragon_garden_illustrated';
