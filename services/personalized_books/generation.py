@@ -78,7 +78,7 @@ def generate_full_book_preview(book_id: str, child_name: str, gender: str,
         logo = logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
         
         margin = int(back_cover.width * 0.05)
-        logo_x = margin
+        logo_x = back_cover.width - logo_size - margin
         logo_y = back_cover.height - logo_size - margin
         
         if back_cover.mode != 'RGBA':
@@ -142,17 +142,20 @@ def get_personalized_book_id(story_id: str) -> str:
         return 'furry_love_adventure'
     elif 'furry_love' in story_id:
         return 'furry_love'
+    elif 'centinela_aurora' in story_id:
+        return 'centinela_aurora'
     else:
         return 'dragon_garden'
 
 
 def is_personalized_book(story_id: str) -> bool:
     """Check if story is a personalized illustrated book."""
-    return story_id in ['dragon_garden_illustrated', 'magic_chef_illustrated', 'magic_inventor_illustrated', 'star_keeper_illustrated', 'furry_love_illustrated', 'furry_love_adventure_illustrated', 'furry_love_teen_illustrated', 'furry_love_adult_illustrated']
+    return story_id in ['dragon_garden_illustrated', 'magic_chef_illustrated', 'magic_inventor_illustrated', 'star_keeper_illustrated', 'furry_love_illustrated', 'furry_love_adventure_illustrated', 'furry_love_teen_illustrated', 'furry_love_adult_illustrated', 'centinela_aurora_illustrated']
 
 
-def get_lulu_title(book_id: str, child_name: str, lang: str = 'es', pet_name: str = '') -> str:
-    """Get the Lulu book title for a given book_id. Centralized to avoid duplication."""
+def get_book_title(book_id: str, child_name: str, lang: str = 'es', pet_name: str = '') -> str:
+    """Get the book title for a given book_id. Centralized to avoid duplication."""
+    book_id = get_personalized_book_id(book_id)
     if book_id == 'furry_love' and pet_name:
         titles_furry = {
             'es': f"El día que {pet_name} conoció a {child_name}",
@@ -213,3 +216,9 @@ def get_lulu_title(book_id: str, child_name: str, lang: str = 'es', pet_name: st
     }
     book_titles = titles.get(book_id, titles['dragon_garden'])
     return book_titles.get(lang, book_titles['en'])
+
+
+def get_print_title(book_id: str, child_name: str, lang: str = 'es', pet_name: str = '') -> str:
+    """Return the human-readable print title for a book. Used by Gelato/print routes."""
+    return get_book_title(book_id, child_name, lang, pet_name)
+
