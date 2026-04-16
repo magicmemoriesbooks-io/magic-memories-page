@@ -151,7 +151,7 @@ MAGIC_INVENTOR_SCENES = [
         "text_es": "{name} volvió a casa con el corazón lleno de ideas y la certeza de que la magia vive en cada invento creado con amor. Y colorín colorado, este cuento de inventores ha terminado.",
         "text_en": "{name} returned home with a heart full of ideas and the certainty that magic lives in every invention created with love. And they all lived happily ever after. The End.",
         "prompt": "Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, warm smile, looking back over shoulder waving goodbye. OUTFIT: {outfit_desc}. ACTION: {gender_word} walks along a cobblestone path toward home, carrying a small glowing copper box. SETTING: Winding cobblestone path WIDE VIEW, warm sunset sky in golden and purple, workshop in background with chimney puffing golden smoke, fireflies and mechanical butterflies. ATMOSPHERE: Peaceful sunset, warm goodbye, golden and purple tones. STRICT: Only ONE {gender_word}, NO robot, {gender_word} is 100% human child, no duplicates. {style}",
-        "text_position": "bottom"
+        "text_position": "split"
     }
 ]
 
@@ -179,7 +179,9 @@ def get_outfit_desc(gender: str) -> str:
 
 def get_hair_action(traits: dict) -> str:
     hair_length = traits.get('hair_length', 'medium')
-    if hair_length == 'long':
+    if hair_length in ('bald', 'very_little', 'very_short'):
+        return "very short hair neat and still"
+    elif hair_length == 'long':
         return "long hair flowing beautifully in the wind"
     elif hair_length == 'short':
         return "short hair ruffled by the gentle breeze"
@@ -187,19 +189,31 @@ def get_hair_action(traits: dict) -> str:
         return "hair gently moving in the wind"
 
 
-def build_scene_prompt(scene: dict, child_name: str, gender: str, age: int, traits: dict) -> str:
-    from services.fixed_stories import get_hair_description, get_eye_description
+def build_scene_prompt(scene: dict, child_name: str, gender: str, age: int, traits: dict, has_photo: bool = False) -> str:
+    from services.fixed_stories import get_hair_description, get_eye_description, get_hair_strict
     from services.replicate_service import get_unified_skin_description
 
     outfit_desc = get_outfit_desc(gender)
     hair_action = get_hair_action(traits)
-    hair_desc = get_hair_description(traits)
+    if has_photo:
+        hair_desc = "hair exactly as shown in the reference photo"
+        hair_strict = "HAIR STRICT: match hair exactly to the reference photo."
+    else:
+        hair_desc = get_hair_description(traits)
+        hair_strict = get_hair_strict(traits)
     eye_desc = get_eye_description(traits)
+    _gl = traits.get('glasses', '')
+    if _gl:
+        eye_desc = eye_desc + ", wearing round glasses"
     skin_tone = get_unified_skin_description(traits.get('skin_tone', 'light'))
     gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
-    age_display = f"{age} year old" if age and age > 0 else "6 year old"
+    _age = age if age and age > 0 else 6
+    age_display = f"{_age} year old"
+    no_animal = f"The {gender_word} is a fully human child: no mechanical parts, no robot features on the {gender_word}."
 
-    prompt = scene.get('prompt', '')
+    raw_prompt = scene.get('prompt', '')
+    has_character = '{hair_desc}' in raw_prompt
+    prompt = raw_prompt
     prompt = prompt.replace('{outfit_desc}', outfit_desc)
     prompt = prompt.replace('{hair_action}', hair_action)
     prompt = prompt.replace('{hair_desc}', hair_desc)
@@ -208,7 +222,10 @@ def build_scene_prompt(scene: dict, child_name: str, gender: str, age: int, trai
     prompt = prompt.replace('{gender_word}', gender_word)
     prompt = prompt.replace('{age_display}', age_display)
     prompt = prompt.replace('{BOLT_INLINE}', BOLT_INLINE)
-    prompt = prompt.replace('{style}', STYLE_BASE)
+    if has_character:
+        prompt = prompt.replace('{style}', f"{hair_strict} {no_animal} {STYLE_BASE}")
+    else:
+        prompt = prompt.replace('{style}', STYLE_BASE)
     prompt = prompt.replace('{name}', child_name)
     prompt = prompt.replace('{child_name}', child_name)
 
