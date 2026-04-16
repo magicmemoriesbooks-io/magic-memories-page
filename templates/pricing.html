@@ -1,202 +1,265 @@
 {% extends "base.html" %}
 
 {% block title %}{% if lang == 'es' %}Precios — Magic Memories Books{% else %}Pricing — Magic Memories Books{% endif %}{% endblock %}
-{% block meta_description %}{% if lang == 'es' %}Descubre nuestros productos digitales personalizados con IA. Desde $7 el eBook interactivo hasta $20 el PDF imprimible. Entrega inmediata.{% else %}Explore our AI-personalized digital products. From $7 interactive ebook to $20 printable PDF. Immediate delivery.{% endif %}{% endblock %}
+{% block meta_description %}{% if lang == 'es' %}Todos nuestros productos: eBooks digitales desde $6, PDF Imprimible desde $15, libros físicos tapa dura desde $26 + envío. Entrega inmediata.{% else %}All our products: digital eBooks from $6, Printable PDF from $15, hardcover books from $26 + shipping. Immediate delivery.{% endif %}{% endblock %}
 {% block og_title %}{% if lang == 'es' %}Precios — Magic Memories Books{% else %}Pricing — Magic Memories Books{% endif %}{% endblock %}
-{% block og_description %}{% if lang == 'es' %}Cuentos personalizados desde $7. eBook interactivo y PDF imprimible con entrega inmediata.{% else %}Personalized stories from $7. Interactive ebook and printable PDF with immediate delivery.{% endif %}{% endblock %}
-{% block og_image %}{{ url_for('static', filename='images/personalize_result.jpg', _external=True) }}{% endblock %}
+{% block og_description %}{% if lang == 'es' %}Cuentos personalizados desde $6. eBook, PDF Imprimible y libro físico. Entrega inmediata.{% else %}Personalized stories from $6. eBook, Printable PDF and printed book. Immediate delivery.{% endif %}{% endblock %}
 
 {% block content %}
-<section class="py-10 px-4 max-w-5xl mx-auto">
+<style>
+    .price-hero { background: linear-gradient(135deg, #5B3A8C 0%, #7c3aed 50%, #9333ea 100%); }
+    .pcard { background:#fff; border-radius:20px; box-shadow:0 4px 24px rgba(124,58,237,0.08); border:1.5px solid #f3e8ff; overflow:hidden; display:flex; flex-direction:column; transition:transform 0.2s, box-shadow 0.2s; }
+    .pcard:hover { transform:translateY(-4px); box-shadow:0 10px 40px rgba(124,58,237,0.14); }
+    .pcard-header { padding:22px 22px 14px; }
+    .pcard-body { padding:0 22px 22px; flex:1; display:flex; flex-direction:column; }
+    .pcard-price { font-family:'Playfair Display',serif; font-size:2.4rem; font-weight:700; line-height:1; }
+    .pcard-from { font-family:'Quicksand',sans-serif; font-size:12px; color:#9ca3af; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-top:4px; }
+    .pcard-badge { display:inline-block; font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; margin-bottom:10px; }
+    .feature-row { display:flex; align-items:flex-start; gap:8px; margin-bottom:7px; font-size:13.5px; color:#374151; font-family:'Quicksand',sans-serif; font-weight:600; line-height:1.4; }
+    .feature-icon { font-size:15px; flex-shrink:0; margin-top:1px; }
+    .cat-divider { display:flex; align-items:center; gap:16px; margin:40px 0 10px; }
+    .cat-divider::before, .cat-divider::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,transparent,#d8b4fe,transparent); }
+    .cat-divider-text { font-family:'Playfair Display',serif; font-size:1.25rem; font-weight:700; color:#7c3aed; white-space:nowrap; }
+    .cta-btn { display:block; text-align:center; background:linear-gradient(135deg,#D4AF37,#B8860B); color:#fff; font-family:'Quicksand',sans-serif; font-weight:700; font-size:14px; padding:11px 16px; border-radius:12px; text-decoration:none; margin-top:auto; box-shadow:0 4px 14px rgba(212,175,55,0.3); transition:all 0.2s; }
+    .cta-btn:hover { box-shadow:0 6px 20px rgba(212,175,55,0.45); transform:translateY(-1px); }
+    .cta-btn-purple { background:linear-gradient(135deg,#7c3aed,#9333ea); box-shadow:0 4px 14px rgba(124,58,237,0.3); }
+    .cta-btn-purple:hover { box-shadow:0 6px 20px rgba(124,58,237,0.45); }
+    .included-tag { font-size:11px; font-weight:700; color:#16a34a; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:20px; padding:2px 8px; display:inline-block; margin-left:4px; }
+    .shipping-note { font-size:11.5px; color:#9ca3af; font-family:'Quicksand',sans-serif; text-align:center; margin-top:8px; }
+    .coloring-highlight { background:linear-gradient(135deg,#fef3c7,#fde68a); border:1.5px solid #f59e0b; border-radius:12px; padding:10px 14px; margin:12px 0; font-size:12.5px; color:#92400e; font-family:'Quicksand',sans-serif; font-weight:700; }
+</style>
 
-    <div class="text-center mb-12">
-        <h1 class="font-display text-4xl md:text-5xl font-bold text-purple-800 mb-4">
-            {% if lang == 'es' %}Nuestros Productos{% else %}Our Products{% endif %}
-        </h1>
-        <p class="text-lg text-purple-600 max-w-2xl mx-auto">
+<div class="price-hero" style="padding:48px 20px 40px; text-align:center; position:relative; overflow:hidden;">
+    <div style="position:absolute;inset:0;background:radial-gradient(circle at 20% 20%,rgba(255,255,255,0.12) 0%,transparent 50%),radial-gradient(circle at 80% 80%,rgba(255,255,255,0.08) 0%,transparent 50%);"></div>
+    <div style="position:relative;z-index:1;">
+        <p style="font-family:'Quicksand',sans-serif;font-size:12px;font-weight:700;color:rgba(255,255,255,0.7);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;">{% if lang == 'es' %}TODOS NUESTROS PRODUCTOS{% else %}ALL OUR PRODUCTS{% endif %}</p>
+        <h1 style="font-family:'Playfair Display',serif;font-size:clamp(2rem,5vw,3rem);font-weight:700;color:#fff;margin-bottom:12px;">{% if lang == 'es' %}Precios Transparentes{% else %}Transparent Pricing{% endif %}</h1>
+        <p style="font-family:'Quicksand',sans-serif;font-size:16px;color:rgba(255,255,255,0.85);max-width:560px;margin:0 auto 20px;">{% if lang == 'es' %}Sin suscripciones. Sin sorpresas. Pagas una vez y tu cuento es tuyo para siempre.{% else %}No subscriptions. No surprises. Pay once and your story is yours forever.{% endif %}</p>
+        <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:30px;padding:8px 20px;">
+            <span style="font-size:16px;">⚡</span>
+            <span style="font-family:'Quicksand',sans-serif;font-size:13px;font-weight:700;color:#fff;">{% if lang == 'es' %}10% de descuento — Precio de lanzamiento{% else %}10% off — Launch price{% endif %}</span>
+        </div>
+    </div>
+</div>
+
+<div style="max-width:1080px;margin:0 auto;padding:40px 20px 60px;">
+
+    <!-- CUENTOS MÁGICOS EXPRESS -->
+    <div class="cat-divider"><span class="cat-divider-text">✨ {% if lang == 'es' %}Cuentos Mágicos Express{% else %}Magic Express Stories{% endif %}</span></div>
+    <p style="text-align:center;font-family:'Quicksand',sans-serif;font-size:14px;color:#6b7280;margin-bottom:28px;">{% if lang == 'es' %}16 páginas · Cuentos rápidos con ilustraciones mágicas · Entrega inmediata{% else %}16 pages · Quick stories with magical illustrations · Immediate delivery{% endif %}</p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-bottom:12px;">
+
+        <!-- eBook 12p -->
+        <div class="pcard">
+            <div class="pcard-header" style="background:linear-gradient(135deg,#f0f9ff,#e0f2fe);">
+                <span class="pcard-badge" style="background:#bfdbfe;color:#1e40af;">📱 {% if lang == 'es' %}eBook Interactivo{% else %}Interactive eBook{% endif %}</span>
+                <div class="pcard-price" style="color:#1e40af;">$6 <span style="font-size:1rem;color:#6b7280;">USD</span></div>
+                <div class="pcard-from">{% if lang == 'es' %}Entrega inmediata por email{% else %}Immediate email delivery{% endif %}</div>
+            </div>
+            <div class="pcard-body" style="padding-top:16px;">
+                <p style="font-family:'Quicksand',sans-serif;font-size:13px;color:#6b7280;margin-bottom:14px;">{% if lang == 'es' %}Visor flipbook interactivo con narración de voz y música de fondo. Acceso permanente por link.{% else %}Interactive flipbook viewer with voice narration and background music. Permanent access via link.{% endif %}</p>
+                <div class="feature-row"><span class="feature-icon">📖</span><span>{% if lang == 'es' %}16 páginas personalizadas con el nombre del niño/a{% else %}16 personalized pages with child's name{% endif %}</span></div>
+                <div class="feature-row"><span class="feature-icon">🎵</span><span>{% if lang == 'es' %}Narración de voz + música de fondo mágica{% else %}Voice narration + magical background music{% endif %}</span></div>
+                <div class="feature-row"><span class="feature-icon">🔗</span><span>{% if lang == 'es' %}Acceso permanente · Se ve en cualquier dispositivo{% else %}Permanent access · Works on any device{% endif %}</span></div>
+                <div class="feature-row"><span class="feature-icon">⚡</span><span>{% if lang == 'es' %}Recibes el link en minutos por email{% else %}Receive the link within minutes by email{% endif %}</span></div>
+                <a href="{{ url_for('express_catalog') }}" class="cta-btn" style="margin-top:20px;">{% if lang == 'es' %}Crear mi cuento Express{% else %}Create my Express story{% endif %} →</a>
+            </div>
+        </div>
+
+        <!-- PDF Imprimible 12p -->
+        <div class="pcard">
+            <div class="pcard-header" style="background:linear-gradient(135deg,#fefce8,#fef9c3);">
+                <span class="pcard-badge" style="background:#fde68a;color:#92400e;">🖨️ {% if lang == 'es' %}PDF Imprimible{% else %}Printable PDF{% endif %}</span>
+                <div class="pcard-price" style="color:#92400e;">$15 <span style="font-size:1rem;color:#6b7280;">USD</span></div>
+                <div class="pcard-from">{% if lang == 'es' %}Entrega inmediata · Imprime en casa{% else %}Immediate delivery · Print at home{% endif %}</div>
+            </div>
+            <div class="pcard-body" style="padding-top:16px;">
+                <p style="font-family:'Quicksand',sans-serif;font-size:13px;color:#6b7280;margin-bottom:14px;">{% if lang == 'es' %}PDF de alta resolución 8.5" × 8.5". Imprime en casa o en cualquier imprenta.{% else %}High-resolution 8.5" × 8.5" PDF. Print at home or at any print shop.{% endif %}</p>
+                <div class="feature-row"><span class="feature-icon">📄</span><span>{% if lang == 'es' %}16 páginas en formato A4{% else %}16 pages in A4 format{% endif %}</span></div>
+                <div class="feature-row"><span class="feature-icon">🎨</span><span>{% if lang == 'es' %}Alta resolución · Colores perfectos al imprimir{% else %}High resolution · Perfect colors when printed{% endif %}</span></div>
+                <div class="feature-row"><span class="feature-icon">✂️</span><span>{% if lang == 'es' %}Listo para imprimir en casa, Staples, FedEx, etc.{% else %}Ready to print at home, Staples, FedEx, etc.{% endif %}</span></div>
+                <div class="feature-row"><span class="feature-icon">📱</span><span>{% if lang == 'es' %}Incluye eBook gratis {% else %}Includes free eBook {% endif %}<span class="included-tag">GRATIS</span></span></div>
+                <a href="{{ url_for('express_catalog') }}" class="cta-btn" style="margin-top:20px;">{% if lang == 'es' %}Crear mi PDF Imprimible{% else %}Create my Printable PDF{% endif %} →</a>
+            </div>
+        </div>
+
+        <!-- Libro Físico 12p Engrapable -->
+        <div class="pcard">
+            <div class="pcard-header" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);">
+                <span class="pcard-badge" style="background:#bbf7d0;color:#166534;">📦 {% if lang == 'es' %}Libro Físico Engrapable{% else %}Stapled Physical Book{% endif %}</span>
+                <div class="pcard-price" style="color:#166534;">$15 <span style="font-size:1rem;color:#6b7280;">+ {% if lang == 'es' %}envío{% else %}shipping{% endif %}</span></div>
+                <div class="pcard-from">{% if lang == 'es' %}Impresión profesional · 10–15 días{% else %}Professional printing · 10–15 days{% endif %}</div>
+            </div>
+            <div class="pcard-body" style="padding-top:16px;">
+                <p style="font-family:'Quicksand',sans-serif;font-size:13px;color:#6b7280;margin-bottom:14px;">{% if lang == 'es' %}Libro físico 21×21 cm engrapable, impresión profesional. Enviado directamente a tu puerta.{% else %}Physical 21×21 cm stapled book, professional printing. Shipped directly to your door.{% endif %}</p>
+                <div class="feature-row"><span class="feature-icon">📗</span><span>{% if lang == 'es' %}16 páginas · Formato A4{% else %}16 pages · A4 format{% endif %}</span></div>
+                <div class="feature-row"><span class="feature-icon">🌍</span><span>{% if lang == 'es' %}Envío a +150 países · Producción local{% else %}Ships to 150+ countries · Local production{% endif %}</span></div>
+                <div class="feature-row"><span class="feature-icon">🏭</span><span>{% if lang == 'es' %}Impreso por Gelato — calidad de imprenta{% else %}Printed by Gelato — print shop quality{% endif %}</span></div>
+                <div class="feature-row"><span class="feature-icon">📱</span><span>{% if lang == 'es' %}Incluye eBook gratis {% else %}Includes free eBook {% endif %}<span class="included-tag">GRATIS</span></span></div>
+                <a href="{{ url_for('express_catalog') }}" class="cta-btn" style="margin-top:20px;background:linear-gradient(135deg,#16a34a,#15803d);">{% if lang == 'es' %}Crear mi libro Express{% else %}Create my Express book{% endif %} →</a>
+                <p class="shipping-note">{% if lang == 'es' %}Envío calculado al finalizar la compra{% else %}Shipping calculated at checkout{% endif %}</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- UNIVERSOS ILUSTRADOS -->
+    <div class="cat-divider"><span class="cat-divider-text">📸 {% if lang == 'es' %}Cuentos FotoMágicos{% else %}Photo Magic Stories{% endif %}</span></div>
+    <p style="text-align:center;font-family:'Quicksand',sans-serif;font-size:14px;color:#6b7280;margin-bottom:28px;">{% if lang == 'es' %}26 páginas · Profundamente personalizados con tu foto · Tú eres el protagonista real{% else %}26 pages · Deeply personalized with your photo · You are the real protagonist{% endif %}</p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-bottom:12px;">
+
+        <!-- eBook 30p -->
+        <div class="pcard">
+            <div class="pcard-header" style="background:linear-gradient(135deg,#faf5ff,#f3e8ff);">
+                <span class="pcard-badge" style="background:#e9d5ff;color:#6b21a8;">📱 {% if lang == 'es' %}eBook Interactivo{% else %}Interactive eBook{% endif %}</span>
+                <div class="pcard-price" style="color:#6b21a8;">$9 <span style="font-size:1rem;color:#6b7280;">USD</span></div>
+                <div class="pcard-from">{% if lang == 'es' %}Entrega inmediata por email{% else %}Immediate email delivery{% endif %}</div>
+            </div>
+            <div class="pcard-body" style="padding-top:16px;">
+                <p style="font-family:'Quicksand',sans-serif;font-size:13px;color:#6b7280;margin-bottom:14px;">{% if lang == 'es' %}Visor flipbook interactivo con 26 páginas totalmente personalizadas con tu foto.{% else %}Interactive flipbook viewer with 26 fully personalized pages with your photo.{% endif %}</p>
+                <div class="feature-row"><span class="feature-icon">📖</span><span>{% if lang == 'es' %}26 páginas con el niño/a como protagonista real{% else %}26 pages with the child as the real protagonist{% endif %}</span></div>
+                <div class="feature-row"><span class="feature-icon">📸</span><span>{% if lang == 'es' %}Ilustraciones IA creadas con tu foto{% else %}AI illustrations created with your photo{% endif %}</span></div>
+                <div class="feature-row"><span class="feature-icon">🎵</span><span>{% if lang == 'es' %}Narración de voz + música de fondo{% else %}Voice narration + background music{% endif %}</span></div>
+                <div class="feature-row"><span class="feature-icon">🔗</span><span>{% if lang == 'es' %}Acceso permanente · Cualquier dispositivo{% else %}Permanent access · Any device{% endif %}</span></div>
+                <a href="{{ url_for('universos_catalog') }}" class="cta-btn cta-btn-purple" style="margin-top:20px;">{% if lang == 'es' %}Crear mi Cuento FotoMágico{% else %}Create my Photo Magic Story{% endif %} →</a>
+            </div>
+        </div>
+
+        <!-- PDF Imprimible 30p -->
+        <div class="pcard" style="border-color:#fbbf24;box-shadow:0 4px 24px rgba(251,191,36,0.15);">
+            <div class="pcard-header" style="background:linear-gradient(135deg,#fffbeb,#fef3c7);">
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
+                    <span class="pcard-badge" style="background:#fde68a;color:#92400e;margin-bottom:0;">🖨️ {% if lang == 'es' %}PDF Imprimible A4{% else %}Printable A4 PDF{% endif %}</span>
+                    <span style="font-size:11px;font-weight:700;background:#f59e0b;color:#fff;padding:3px 8px;border-radius:20px;">{% if lang == 'es' %}MÁS POPULAR{% else %}MOST POPULAR{% endif %}</span>
+                </div>
+                <div class="pcard-price" style="color:#92400e;">$24 <span style="font-size:1rem;color:#6b7280;">USD</span></div>
+                <div class="pcard-from">{% if lang == 'es' %}Entrega inmediata por email{% else %}Immediate email delivery{% endif %}</div>
+            </div>
+            <div class="pcard-body" style="padding-top:16px;">
+                <p style="font-family:'Quicksand',sans-serif;font-size:13px;color:#6b7280;margin-bottom:14px;">{% if lang == 'es' %}PDF de alta resolución A4 (210×297 mm) con 26 páginas de cuento + páginas para colorear.{% else %}High-resolution A4 PDF (210×297 mm) with 26 story pages + coloring pages.{% endif %}</p>
+                <div class="feature-row"><span class="feature-icon">📄</span><span>{% if lang == 'es' %}26 páginas A4 de alta resolución{% else %}26 high-resolution A4 pages{% endif %}</span></div>
+                <div class="feature-row"><span class="feature-icon">📸</span><span>{% if lang == 'es' %}Ilustraciones IA con tu foto{% else %}AI illustrations with your photo{% endif %}</span></div>
+                <div class="coloring-highlight">
+                    🎨 {% if lang == 'es' %}Incluye 2 páginas para colorear — versiones en blanco y negro de las ilustraciones del cuento para que los niños pinten{% else %}Includes 2 coloring pages — black and white versions of the story illustrations for kids to color{% endif %}
+                </div>
+                <div class="feature-row"><span class="feature-icon">📱</span><span>{% if lang == 'es' %}Incluye eBook gratis {% else %}Includes free eBook {% endif %}<span class="included-tag">GRATIS</span></span></div>
+                <div class="feature-row"><span class="feature-icon">⚡</span><span>{% if lang == 'es' %}Todo por email en minutos{% else %}Everything by email in minutes{% endif %}</span></div>
+                <a href="{{ url_for('universos_catalog') }}" class="cta-btn" style="margin-top:20px;background:linear-gradient(135deg,#f59e0b,#d97706);">{% if lang == 'es' %}Crear mi PDF Imprimible{% else %}Create my Printable PDF{% endif %} →</a>
+            </div>
+        </div>
+
+        <!-- Libro Físico 30p Tapa Dura -->
+        <div class="pcard">
+            <div class="pcard-header" style="background:linear-gradient(135deg,#fff1f2,#ffe4e6);">
+                <span class="pcard-badge" style="background:#fecdd3;color:#9f1239;">📚 {% if lang == 'es' %}Libro Físico Tapa Dura{% else %}Hardcover Book{% endif %}</span>
+                <div class="pcard-price" style="color:#9f1239;">$26 <span style="font-size:1rem;color:#6b7280;">+ {% if lang == 'es' %}envío{% else %}shipping{% endif %}</span></div>
+                <div class="pcard-from">{% if lang == 'es' %}Impresión profesional · 10–15 días{% else %}Professional printing · 10–15 days{% endif %}</div>
+            </div>
+            <div class="pcard-body" style="padding-top:16px;">
+                <p style="font-family:'Quicksand',sans-serif;font-size:13px;color:#6b7280;margin-bottom:14px;">{% if lang == 'es' %}Libro físico A4 de tapa dura, papel premium. Impresión profesional con Cloudprinter.{% else %}A4 hardcover physical book, premium paper. Professionally printed by Cloudprinter.{% endif %}</p>
+                <div class="feature-row"><span class="feature-icon">📕</span><span>{% if lang == 'es' %}26 páginas A4 · Tapa dura · Papel premium{% else %}26 A4 pages · Hardcover · Premium paper{% endif %}</span></div>
+                <div class="feature-row"><span class="feature-icon">🌍</span><span>{% if lang == 'es' %}Envío a +150 países · Producción local{% else %}Ships to 150+ countries · Local production{% endif %}</span></div>
+                <div class="feature-row"><span class="feature-icon">🏆</span><span>{% if lang == 'es' %}Calidad de librería profesional{% else %}Professional bookstore quality{% endif %}</span></div>
+                <div class="feature-row"><span class="feature-icon">📱</span><span>{% if lang == 'es' %}Incluye eBook gratis {% else %}Includes free eBook {% endif %}<span class="included-tag">GRATIS</span></span></div>
+                <a href="{{ url_for('universos_catalog') }}" class="cta-btn cta-btn-purple" style="margin-top:20px;">{% if lang == 'es' %}Crear mi libro{% else %}Create my book{% endif %} →</a>
+                <p class="shipping-note">{% if lang == 'es' %}Envío calculado al finalizar la compra{% else %}Shipping calculated at checkout{% endif %}</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- COMPARISON TABLE -->
+    <div style="background:#fff;border-radius:20px;padding:28px 24px;box-shadow:0 4px 24px rgba(124,58,237,0.07);border:1.5px solid #f3e8ff;margin-top:44px;overflow-x:auto;">
+        <h3 style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:#5b21b6;text-align:center;margin-bottom:20px;">{% if lang == 'es' %}¿Qué incluye cada formato?{% else %}What's included in each format?{% endif %}</h3>
+        <table style="width:100%;border-collapse:collapse;font-family:'Quicksand',sans-serif;font-size:13px;min-width:520px;">
+            <thead>
+                <tr style="background:#f3e8ff;">
+                    <th style="padding:10px 14px;text-align:left;color:#5b21b6;font-weight:700;border-radius:8px 0 0 8px;"></th>
+                    <th style="padding:10px 8px;text-align:center;color:#1e40af;font-weight:700;">📱 eBook</th>
+                    <th style="padding:10px 8px;text-align:center;color:#92400e;font-weight:700;">🖨️ PDF</th>
+                    <th style="padding:10px 8px;text-align:center;color:#166534;font-weight:700;border-radius:0 8px 8px 0;">📦 {% if lang == 'es' %}Libro{% else %}Book{% endif %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if lang == 'es' %}
+                {% set rows = [
+                    ('Cuento personalizado (nombre)', '✅', '✅', '✅'),
+                    ('Ilustraciones IA con tu foto', '✅', '✅', '✅'),
+                    ('Visor flipbook interactivo', '✅', '✅*', '✅*'),
+                    ('Narración de voz + música', '✅', '✅*', '✅*'),
+                    ('Archivo PDF para imprimir', '❌', '✅', '❌'),
+                    ('Páginas para colorear (solo 30p)', '❌', '✅ 2 págs.', '❌'),
+                    ('Libro físico a tu puerta', '❌', '❌', '✅'),
+                    ('Entrega inmediata', '✅', '✅', '❌ 10–15 días'),
+                ] %}
+                {% else %}
+                {% set rows = [
+                    ('Personalized story (name)', '✅', '✅', '✅'),
+                    ('AI illustrations with your photo', '✅', '✅', '✅'),
+                    ('Interactive flipbook viewer', '✅', '✅*', '✅*'),
+                    ('Voice narration + music', '✅', '✅*', '✅*'),
+                    ('Printable PDF file', '❌', '✅', '❌'),
+                    ('Coloring pages (30p version only)', '❌', '✅ 5 pgs.', '❌'),
+                    ('Physical book delivered at home', '❌', '❌', '✅'),
+                    ('Immediate delivery', '✅', '✅', '❌ 10–15 days'),
+                ] %}
+                {% endif %}
+                {% for row in rows %}
+                <tr style="border-bottom:1px solid #f3e8ff;{% if loop.index is odd %}background:#fafafa;{% endif %}">
+                    <td style="padding:9px 14px;color:#374151;font-weight:600;">{{ row[0] }}</td>
+                    <td style="padding:9px 8px;text-align:center;">{{ row[1] }}</td>
+                    <td style="padding:9px 8px;text-align:center;">{{ row[2] }}</td>
+                    <td style="padding:9px 8px;text-align:center;">{{ row[3] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p style="font-size:11.5px;color:#9ca3af;font-family:'Quicksand',sans-serif;margin-top:12px;text-align:center;">* {% if lang == 'es' %}El eBook digital se incluye gratis (acceso 6 meses) al comprar cualquier otro formato.{% else %}The digital eBook is included free (6 month access) when purchasing any other format.{% endif %}</p>
+    </div>
+
+    <!-- FAQ -->
+    <div style="margin-top:48px;">
+        <h3 style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:#5b21b6;text-align:center;margin-bottom:24px;">{% if lang == 'es' %}Preguntas frecuentes{% else %}Frequently asked questions{% endif %}</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;">
             {% if lang == 'es' %}
-                Cuentos infantiles personalizados con inteligencia artificial. Entrega digital inmediata, sin esperas.
+            {% set faqs = [
+                ('¿Cuánto tarda en llegar el eBook?', 'En minutos. En cuanto se procesa el pago, recibes el link en tu email y puedes leerlo de inmediato en cualquier dispositivo.'),
+                ('¿El PDF Imprimible incluye páginas para colorear?', 'Sí. El PDF Imprimible de 26 páginas incluye 2 páginas para colorear — versiones en blanco y negro de las ilustraciones del cuento, perfectas para que los niños las pinten.'),
+                ('¿Puedo imprimir el PDF en cualquier sitio?', 'Sí. El PDF es compatible con impresoras domésticas y cualquier imprenta (Staples, FedEx, imprenta local, etc.).'),
+                ('¿El libro físico es de buena calidad?', 'Sí. Impresión profesional con papel premium, impreso con Cloudprinter (red global de imprentas). Calidad de librería.'),
+                ('¿Qué diferencia hay entre Express y Universos?', 'Los Cuentos Express tienen 16 páginas con personajes basados en el nombre. Los Universos Ilustrados tienen 26 páginas y usan tu foto real para crear ilustraciones que se parecen al niño/a.'),
+                ('¿Puedo cambiar el cuento antes de pagar?', 'Sí. Durante el proceso de creación puedes regenerar escenas e ilustraciones hasta que estés satisfecho, y solo pagas al final.'),
+            ] %}
             {% else %}
-                AI-personalized children's stories. Immediate digital delivery, no waiting.
+            {% set faqs = [
+                ("How long does the eBook take to arrive?", "Minutes. As soon as payment is processed, you receive the link by email and can read it immediately on any device."),
+                ("Does the Printable PDF include coloring pages?", "Yes. The 26-page Printable PDF includes 2 coloring pages — black and white versions of the story illustrations, perfect for kids to color."),
+                ("Can I print the PDF anywhere?", "Yes. The PDF is compatible with home printers and any print shop (Staples, FedEx, local printer, etc.)."),
+                ("Is the physical book good quality?", "Yes. Professional printing on premium paper, printed by Cloudprinter (global print network). Bookstore quality."),
+                ("What's the difference between Express and Universes?", "Express Stories have 16 pages with characters based on the name. Illustrated Universes have 26 pages and use your real photo to create illustrations that look like the child."),
+                ("Can I change the story before paying?", "Yes. During the creation process you can regenerate scenes and illustrations until you're happy, and you only pay at the end."),
+            ] %}
             {% endif %}
-        </p>
-    </div>
-
-    <!-- Grid de productos -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12 max-w-5xl mx-auto">
-
-        <!-- 1. eBook Interactivo -->
-        <div class="bg-white rounded-3xl shadow-lg overflow-hidden flex flex-col border border-purple-100 hover:shadow-xl transition-shadow duration-300">
-            <div class="relative">
-                <img src="{{ url_for('static', filename='images/flipbook_scene_10.jpg') }}" alt="eBook interactivo" class="w-full h-48 object-cover">
-                <div class="absolute top-3 right-3 bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full">
-                    {% if lang == 'es' %}¡MÁS ECONÓMICO!{% else %}BEST VALUE!{% endif %}
-                </div>
+            {% for q, a in faqs %}
+            <div style="background:#fff;border-radius:14px;padding:18px 20px;box-shadow:0 2px 12px rgba(124,58,237,0.06);border:1px solid #f3e8ff;">
+                <p style="font-family:'Playfair Display',serif;font-size:14px;font-weight:700;color:#5b21b6;margin-bottom:8px;">{{ q }}</p>
+                <p style="font-family:'Quicksand',sans-serif;font-size:13px;color:#6b7280;line-height:1.6;">{{ a }}</p>
             </div>
-            <div class="p-6 flex flex-col flex-grow">
-                <div class="text-4xl mb-1">📱</div>
-                <h2 class="font-display text-2xl font-bold text-purple-800 mb-1">
-                    {% if lang == 'es' %}eBook Interactivo{% else %}Interactive eBook{% endif %}
-                </h2>
-                <div class="flex items-baseline gap-1 mb-3">
-                    <span class="text-4xl font-bold text-fuchsia-600">$7</span>
-                    <span class="text-gray-400 text-sm">USD</span>
-                </div>
-                <ul class="text-sm text-gray-600 space-y-2 mb-6 flex-grow">
-                    <li class="flex items-start gap-2"><span class="text-purple-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Visor flipbook animado{% else %}Animated flipbook viewer{% endif %}</li>
-                    <li class="flex items-start gap-2"><span class="text-purple-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Música y efectos de sonido{% else %}Music & sound effects{% endif %}</li>
-                    <li class="flex items-start gap-2"><span class="text-purple-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Acceso online 180 días{% else %}Online access for 180 days{% endif %}</li>
-                    <li class="flex items-start gap-2"><span class="text-purple-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Disponible al instante{% else %}Available instantly{% endif %}</li>
-                    <li class="flex items-start gap-2"><span class="text-purple-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Se ve en cualquier dispositivo{% else %}Works on any device{% endif %}</li>
-                </ul>
-                <a href="{{ url_for('story_selection') }}" class="block text-center bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-2xl transition-colors">
-                    {% if lang == 'es' %}Ver cuentos{% else %}Browse stories{% endif %}
-                </a>
-            </div>
-        </div>
-
-        <!-- 2. Cuento Express Digital PDF -->
-        <div class="bg-white rounded-3xl shadow-lg overflow-hidden flex flex-col border border-fuchsia-100 hover:shadow-xl transition-shadow duration-300">
-            <div class="relative">
-                <img src="{{ url_for('static', filename='images/magic_express_scene_2.jpg') }}" alt="Cuento Express Digital PDF" class="w-full h-48 object-cover">
-                <div class="absolute top-3 right-3 bg-fuchsia-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                    {% if lang == 'es' %}MÁS POPULAR{% else %}MOST POPULAR{% endif %}
-                </div>
-            </div>
-            <div class="p-6 flex flex-col flex-grow">
-                <div class="text-4xl mb-1">🖨️</div>
-                <h2 class="font-display text-2xl font-bold text-purple-800 mb-1">
-                    {% if lang == 'es' %}Cuento Express Digital{% else %}Express Story Digital{% endif %}
-                </h2>
-                <p class="text-xs text-gray-400 mb-2">{% if lang == 'es' %}Cuentos Mágicos Express{% else %}Magic Express Stories{% endif %}</p>
-                <div class="flex items-baseline gap-1 mb-3">
-                    <span class="text-4xl font-bold text-fuchsia-600">$20</span>
-                    <span class="text-gray-400 text-sm">USD</span>
-                </div>
-                <ul class="text-sm text-gray-600 space-y-2 mb-6 flex-grow">
-                    <li class="flex items-start gap-2"><span class="text-fuchsia-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}PDF de alta calidad{% else %}High-quality PDF{% endif %}</li>
-                    <li class="flex items-start gap-2"><span class="text-fuchsia-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}PDF imprimible con instrucciones{% else %}Printable PDF with instructions{% endif %}</li>
-                    <li class="flex items-start gap-2"><span class="text-fuchsia-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}12 páginas con el nombre e imagen de tu hijo/a{% else %}12 pages with your child's name & image{% endif %}</li>
-                    <li class="flex items-start gap-2"><span class="text-fuchsia-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Descarga inmediata por email{% else %}Instant email delivery{% endif %}</li>
-                    <li class="flex items-start gap-2"><span class="text-fuchsia-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}eBook interactivo de regalo (6 meses){% else %}Gift interactive eBook (6 months){% endif %}</li>
-                </ul>
-                <a href="{{ url_for('story_selection') }}" class="block text-center bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold py-3 rounded-2xl transition-colors">
-                    {% if lang == 'es' %}Ver cuentos{% else %}Browse stories{% endif %}
-                </a>
-            </div>
-        </div>
-
-        <!-- 3. Libro Impreso -->
-        <div class="bg-white rounded-3xl shadow-lg overflow-hidden flex flex-col border border-amber-100 hover:shadow-xl transition-shadow duration-300">
-            <div class="relative">
-                <img src="{{ url_for('static', filename='images/personalize_result.jpg') }}" alt="Libro impreso en papel" class="w-full h-48 object-cover">
-                <div class="absolute top-3 right-3 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                    {% if lang == 'es' %}REGALO ESPECIAL{% else %}SPECIAL GIFT{% endif %}
-                </div>
-            </div>
-            <div class="p-6 flex flex-col flex-grow">
-                <div class="text-4xl mb-1">📖</div>
-                <h2 class="font-display text-2xl font-bold text-purple-800 mb-1">
-                    {% if lang == 'es' %}Libro Impreso{% else %}Printed Book{% endif %}
-                </h2>
-                <p class="text-xs text-gray-400 mb-2">{% if lang == 'es' %}Tapa dura, 24 páginas a color{% else %}Hardcover, 24 full-color pages{% endif %}</p>
-                <div class="flex items-baseline gap-1 mb-3">
-                    <span class="text-2xl font-bold text-amber-600">{% if lang == 'es' %}Desde{% else %}From{% endif %}</span>
-                    <span class="text-4xl font-bold text-amber-600">$30</span>
-                    <span class="text-gray-400 text-sm">USD</span>
-                </div>
-                <p class="text-xs text-gray-500 mb-3">{% if lang == 'es' %}+ envío según destino (sin impuestos){% else %}+ shipping by destination (no taxes){% endif %}</p>
-                <ul class="text-sm text-gray-600 space-y-2 mb-6 flex-grow">
-                    <li class="flex items-start gap-2"><span class="text-amber-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Tapa dura de calidad profesional{% else %}Professional quality hardcover{% endif %}</li>
-                    <li class="flex items-start gap-2"><span class="text-amber-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Impresión a color de alta resolución{% else %}High-resolution full-color printing{% endif %}</li>
-                    <li class="flex items-start gap-2"><span class="text-amber-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Enviado a tu domicilio en 7-15 días{% else %}Delivered to your door in 7-15 days{% endif %}</li>
-                    <li class="flex items-start gap-2"><span class="text-amber-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Disponible tras compra del cuento digital{% else %}Available after digital story purchase{% endif %}</li>
-                    <li class="flex items-start gap-2"><span class="text-amber-500 font-bold mt-0.5">✓</span> {% if lang == 'es' %}Impreso por Lulu Press (imprenta global){% else %}Printed by Lulu Press (global printer){% endif %}</li>
-                </ul>
-                <a href="{{ url_for('story_selection') }}" class="block text-center bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-2xl transition-colors">
-                    {% if lang == 'es' %}Crear mi cuento{% else %}Create my story{% endif %}
-                </a>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- Pago seguro -->
-    <div class="bg-blue-50 border border-blue-200 rounded-2xl p-5 max-w-3xl mx-auto mb-10 text-center">
-        <p class="text-blue-800 font-semibold">
-            🔒 {% if lang == 'es' %}Pago 100% seguro con PayPal — Aceptamos PayPal y todas las tarjetas principales (Visa, Mastercard, American Express){% else %}100% secure payment with PayPal — We accept PayPal and all major cards (Visa, Mastercard, American Express){% endif %}
-        </p>
-    </div>
-
-    <!-- FAQ rápida -->
-    <div class="max-w-3xl mx-auto mb-10">
-        <h2 class="font-display text-2xl font-bold text-purple-800 text-center mb-6">
-            {% if lang == 'es' %}Preguntas frecuentes{% else %}Frequently Asked Questions{% endif %}
-        </h2>
-        <div class="space-y-4">
-            <div class="bg-white rounded-2xl p-5 shadow-sm border border-purple-50">
-                <h3 class="font-bold text-purple-800 mb-1">
-                    {% if lang == 'es' %}¿Cuándo recibo mi cuento?{% else %}When do I receive my story?{% endif %}
-                </h3>
-                <p class="text-gray-600 text-sm">
-                    {% if lang == 'es' %}
-                        Al instante. Una vez completado el pago, recibirás el PDF en tu email en minutos.
-                    {% else %}
-                        Immediately. Once payment is complete, you'll receive the PDF in your email within minutes.
-                    {% endif %}
-                </p>
-            </div>
-            <div class="bg-white rounded-2xl p-5 shadow-sm border border-purple-50">
-                <h3 class="font-bold text-purple-800 mb-1">
-                    {% if lang == 'es' %}¿Puedo añadir el eBook al Cuento Express?{% else %}Can I add the eBook to an Express Story?{% endif %}
-                </h3>
-                <p class="text-gray-600 text-sm">
-                    {% if lang == 'es' %}
-                        Sí. Al comprar el Cuento Express Digital ($20) recibes el eBook interactivo de regalo por 6 meses.
-                    {% else %}
-                        Yes. When you buy the Express Digital Story ($20), you get the interactive eBook as a gift for 6 months.
-                    {% endif %}
-                </p>
-            </div>
-            <div class="bg-white rounded-2xl p-5 shadow-sm border border-purple-50">
-                <h3 class="font-bold text-purple-800 mb-1">
-                    {% if lang == 'es' %}¿Hay algún coste oculto?{% else %}Are there any hidden fees?{% endif %}
-                </h3>
-                <p class="text-gray-600 text-sm">
-                    {% if lang == 'es' %}
-                        No. El precio mostrado es el total que pagas. No hay suscripciones ni cargos adicionales.
-                    {% else %}
-                        No. The displayed price is the total you pay. No subscriptions or additional charges.
-                    {% endif %}
-                </p>
-            </div>
-            <div class="bg-white rounded-2xl p-5 shadow-sm border border-purple-50">
-                <h3 class="font-bold text-purple-800 mb-1">
-                    {% if lang == 'es' %}¿Puedo obtener el libro impreso en papel?{% else %}Can I get the book printed on paper?{% endif %}
-                </h3>
-                <p class="text-gray-600 text-sm">
-                    {% if lang == 'es' %}
-                        Sí. Después de tu compra digital, aparecerá un botón para pedir el libro impreso. Tapa dura de calidad profesional, desde $30 (sin impuestos) + gastos de envío según destino. Entrega en 7-15 días.
-                    {% else %}
-                        Yes. After your digital purchase, a button will appear to order the printed book. Professional hardcover from $30 (no taxes) + shipping by destination. Delivered in 7-15 days.
-                    {% endif %}
-                </p>
-            </div>
+            {% endfor %}
         </div>
     </div>
 
     <!-- CTA final -->
-    <div class="text-center py-8">
-        <p class="text-gray-600 mb-4">
-            {% if lang == 'es' %}¿Tienes más preguntas?{% else %}Have more questions?{% endif %}
-        </p>
-        <a href="{{ url_for('faq') }}" class="inline-block mr-3 px-6 py-3 border-2 border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white font-bold rounded-2xl transition-colors">
-            {% if lang == 'es' %}Ver todas las FAQs{% else %}See all FAQs{% endif %}
-        </a>
-        <a href="{{ url_for('contact') }}" class="inline-block px-6 py-3 border-2 border-fuchsia-500 text-fuchsia-600 hover:bg-fuchsia-500 hover:text-white font-bold rounded-2xl transition-colors">
-            {% if lang == 'es' %}Contactar{% else %}Contact Us{% endif %}
-        </a>
+    <div style="text-align:center;margin-top:52px;padding:40px 24px;background:linear-gradient(135deg,#faf5ff,#f3e8ff);border-radius:24px;border:1.5px solid #e9d5ff;">
+        <h2 style="font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;color:#5b21b6;margin-bottom:10px;">{% if lang == 'es' %}Empieza a crear ahora{% else %}Start creating now{% endif %}</h2>
+        <p style="font-family:'Quicksand',sans-serif;font-size:15px;color:#7c3aed;margin-bottom:24px;">{% if lang == 'es' %}Personalización siempre gratis. Solo pagas cuando te enamoras del resultado.{% else %}Personalization is always free. You only pay when you fall in love with the result.{% endif %}</p>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+            <a href="{{ url_for('universos_catalog') }}" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#7c3aed,#9333ea);color:#fff;font-family:'Quicksand',sans-serif;font-weight:700;font-size:15px;padding:14px 28px;border-radius:14px;text-decoration:none;box-shadow:0 6px 20px rgba(124,58,237,0.35);">🌟 {% if lang == 'es' %}Universos Ilustrados{% else %}Illustrated Universes{% endif %}</a>
+            <a href="{{ url_for('express_catalog') }}" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#D4AF37,#B8860B);color:#fff;font-family:'Quicksand',sans-serif;font-weight:700;font-size:15px;padding:14px 28px;border-radius:14px;text-decoration:none;box-shadow:0 6px 20px rgba(212,175,55,0.35);">✨ {% if lang == 'es' %}Cuentos Express{% else %}Express Stories{% endif %}</a>
+        </div>
     </div>
 
-</section>
+</div>
 {% endblock %}
