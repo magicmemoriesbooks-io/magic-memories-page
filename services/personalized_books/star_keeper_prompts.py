@@ -152,7 +152,7 @@ STAR_KEEPER_SCENES = [
         "text_es": "{name} volvió a casa abrazando la luz de LUNA en su pecho. Desde esa noche, una estrella nueva brilla en el cielo con el nombre de un guardián muy especial. Y colorín colorado, este cuento estelar ha terminado.",
         "text_en": "{name} returned home holding LUNA's light close to their heart. From that night on, a new star shines in the sky bearing the name of a very special guardian. And they all lived happily ever after. The End.",
         "prompt": "Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, warm grateful smile, looking back over shoulder waving goodbye. OUTFIT: {outfit_desc}. ACTION: {gender_word} walks along a path toward home, one hand pressed to chest holding a warm silver glow. SETTING: Winding path WIDE VIEW, lighthouse visible on cliff in background, warm sunset-to-night sky, brilliant stars, one special star shining extra bright above, fireflies accompanying. ATMOSPHERE: Peaceful magical homecoming, warm starlit night. STRICT: Only ONE {gender_word}, NO star companion, {gender_word} is 100% human child, no duplicates, NO wings on {gender_word}. {style}",
-        "text_position": "bottom"
+        "text_position": "split"
     }
 ]
 
@@ -180,7 +180,9 @@ def get_outfit_desc(gender: str) -> str:
 
 def get_hair_action(traits: dict) -> str:
     hair_length = traits.get('hair_length', 'medium')
-    if hair_length == 'long':
+    if hair_length in ('bald', 'very_little', 'very_short'):
+        return "very short hair neat and still"
+    elif hair_length == 'long':
         return "long hair flowing beautifully in the starlight breeze"
     elif hair_length == 'short':
         return "short hair ruffled by the gentle night wind"
@@ -188,19 +190,31 @@ def get_hair_action(traits: dict) -> str:
         return "hair gently moving in the celestial breeze"
 
 
-def build_scene_prompt(scene: dict, child_name: str, gender: str, age: int, traits: dict) -> str:
-    from services.fixed_stories import get_hair_description, get_eye_description
+def build_scene_prompt(scene: dict, child_name: str, gender: str, age: int, traits: dict, has_photo: bool = False) -> str:
+    from services.fixed_stories import get_hair_description, get_eye_description, get_hair_strict
     from services.replicate_service import get_unified_skin_description
 
     outfit_desc = get_outfit_desc(gender)
     hair_action = get_hair_action(traits)
-    hair_desc = get_hair_description(traits)
+    if has_photo:
+        hair_desc = "hair exactly as shown in the reference photo"
+        hair_strict = "HAIR STRICT: match hair exactly to the reference photo."
+    else:
+        hair_desc = get_hair_description(traits)
+        hair_strict = get_hair_strict(traits)
     eye_desc = get_eye_description(traits)
+    _gl = traits.get('glasses', '')
+    if _gl:
+        eye_desc = eye_desc + ", wearing round glasses"
     skin_tone = get_unified_skin_description(traits.get('skin_tone', 'light'))
     gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
-    age_display = f"{age} year old" if age and age > 0 else "6 year old"
+    _age = age if age and age > 0 else 6
+    age_display = f"{_age} year old"
+    no_animal = f"The {gender_word} is a fully human child: no wings, no star features, no glowing features on the {gender_word}."
 
-    prompt = scene.get('prompt', '')
+    raw_prompt = scene.get('prompt', '')
+    has_character = '{hair_desc}' in raw_prompt
+    prompt = raw_prompt
     prompt = prompt.replace('{outfit_desc}', outfit_desc)
     prompt = prompt.replace('{hair_action}', hair_action)
     prompt = prompt.replace('{hair_desc}', hair_desc)
@@ -209,7 +223,10 @@ def build_scene_prompt(scene: dict, child_name: str, gender: str, age: int, trai
     prompt = prompt.replace('{gender_word}', gender_word)
     prompt = prompt.replace('{age_display}', age_display)
     prompt = prompt.replace('{LUNA_INLINE}', LUNA_INLINE)
-    prompt = prompt.replace('{style}', STYLE_BASE)
+    if has_character:
+        prompt = prompt.replace('{style}', f"{hair_strict} {no_animal} {STYLE_BASE}")
+    else:
+        prompt = prompt.replace('{style}', STYLE_BASE)
     prompt = prompt.replace('{name}', child_name)
     prompt = prompt.replace('{child_name}', child_name)
 
