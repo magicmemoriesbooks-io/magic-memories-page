@@ -38,25 +38,25 @@
         <div class="col-md-6">
             <div class="card mb-4">
                 <div class="card-header text-white" style="background: linear-gradient(135deg, #10B981, #059669);">
-                    <h5 class="mb-0">Archivos para Lulu</h5>
+                    <h5 class="mb-0">Archivos para Gelato (Libro Personalizado)</h5>
                 </div>
                 <div class="card-body">
                     {% if interior_exists and cover_exists %}
-                    <p class="text-success mb-3"><strong>Los PDFs están listos para enviar a Lulu.</strong></p>
+                    <p class="text-success mb-3"><strong>Los PDFs están listos.</strong></p>
                     
                     <div class="d-grid gap-2">
-                        <a href="/admin/lulu-orders/{{ folder_name }}/interior.pdf" class="btn btn-lg btn-primary" download>
+                        <a href="/admin/pb-files/{{ folder_name }}/interior.pdf" class="btn btn-lg btn-primary" download>
                             📄 Descargar Interior PDF
                         </a>
-                        <a href="/admin/lulu-orders/{{ folder_name }}/cover.pdf" class="btn btn-lg btn-success" download>
+                        <a href="/admin/pb-files/{{ folder_name }}/cover.pdf" class="btn btn-lg btn-success" download>
                             📕 Descargar Cover PDF
                         </a>
                     </div>
                     
                     <div class="alert alert-info mt-3">
                         <small>
-                            <strong>Instrucciones:</strong><br>
-                            1. Ve a <a href="https://www.lulu.com/create/revision-upload" target="_blank">lulu.com</a><br>
+                            <strong>Instrucciones (Gelato):</strong><br>
+                            1. Ve a <a href="https://www.gelato.com" target="_blank">gelato.com</a><br>
                             2. Sube el Interior PDF como contenido<br>
                             3. Sube el Cover PDF como portada<br>
                             4. Configura: Hardcover, A4, Color<br>
