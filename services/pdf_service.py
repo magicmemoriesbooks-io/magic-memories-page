@@ -704,10 +704,24 @@ BABY_PRINT_SIZE = 180 * mm  # 18 cm square format for baby books
 BABY_PRINT_BLEED = 3 * mm
 BABY_PRINT_WITH_BLEED = BABY_PRINT_SIZE + (BABY_PRINT_BLEED * 2)  # 186mm with bleed
 
-QUICK_STORY_LULU_SIZE = 8.5 * inch  # 21.59cm square for Lulu saddle stitch
-QUICK_STORY_LULU_BLEED = 0.125 * inch  # 1/8 inch bleed required by Lulu
+QUICK_STORY_LULU_SIZE = 8.5 * inch  # legacy constant (kept for reference)
+QUICK_STORY_LULU_BLEED = 0.125 * inch  # legacy constant (kept for reference)
 QUICK_STORY_LULU_WITH_BLEED = QUICK_STORY_LULU_SIZE + (QUICK_STORY_LULU_BLEED * 2)
 QUICK_STORY_LULU_SAFETY = 0.5 * inch  # safety margin for text
+
+# DEPRECATED: magazine_sas_s210_s_fc (legacy square product — superseded by A4 below)
+# Retained only for backward compatibility; do NOT use for new Cloudprinter flows.
+QUICK_STORY_CP_TRIM_MM = 210.0
+QUICK_STORY_CP_BLEED_MM = 3.0
+QUICK_STORY_CP_SIZE = (QUICK_STORY_CP_TRIM_MM + 2 * QUICK_STORY_CP_BLEED_MM) / 25.4 * inch  # 216mm = ~8.504"
+
+# Cloudprinter product: magazine_sas_a4_p_fc (NEW A4 saddle-stitch portrait)
+# Trim: 210×297mm; 3mm bleed each side → page with bleed = 216×303mm
+QUICK_STORY_CP_A4_W_MM = 210.0 + 2 * 3.0   # 216mm
+QUICK_STORY_CP_A4_H_MM = 297.0 + 2 * 3.0   # 303mm
+QUICK_STORY_CP_A4_W = QUICK_STORY_CP_A4_W_MM / 25.4 * inch   # ≈ 612.28pt
+QUICK_STORY_CP_A4_H = QUICK_STORY_CP_A4_H_MM / 25.4 * inch   # ≈ 858.90pt
+QUICK_STORY_CP_A4_BACK_COVER = 'static/images/qs_back_cover_a4.png'
 
 
 def generate_baby_cover_spread_pdf(front_cover_path, back_cover_path, output_path, skip_sanitize=False):
@@ -778,13 +792,13 @@ def generate_baby_cover_spread_pdf(front_cover_path, back_cover_path, output_pat
     return output_path
 
 
-def create_quick_story_lulu_cover(front_cover_path, back_cover_path, output_path, skip_sanitize=False, title='', author=''):
+def create_quick_story_cp_cover(front_cover_path, back_cover_path, output_path, skip_sanitize=False, title='', author=''):
     """
-    Quick Story COVER SPREAD PDF for Lulu saddle stitch printing.
+    Quick Story COVER SPREAD PDF for Cloudprinter saddle stitch printing.
     No spine for saddle stitch - back cover + front cover side by side.
     
-    Lulu template specs for 8.5" x 8.5" saddle stitch:
-    - Trim size per cover: 8.5" x 8.5"
+    Cloudprinter specs for 210x210mm saddle stitch (magazine_sas_s210_s_fc):
+    - Trim size per cover: 8.5" x 8.5" (~216mm with 3mm bleed)
     - Bleed: 0.125" on outer edges only (no bleed between covers at fold)
     - Total spread: 17.25" x 8.75" (438.15mm x 222.25mm)
     - Safety margin: 0.5" from trim edge
@@ -792,8 +806,8 @@ def create_quick_story_lulu_cover(front_cover_path, back_cover_path, output_path
     Layout: [Bleed 0.125"] [Back Cover 8.5"] [Front Cover 8.5"] [Bleed 0.125"]
     Height:  [Bleed 0.125"] [Cover 8.5"] [Bleed 0.125"]
     """
-    cover_trim = QUICK_STORY_LULU_SIZE
-    bleed = QUICK_STORY_LULU_BLEED
+    cover_trim = QUICK_STORY_CP_SIZE
+    bleed = QUICK_STORY_CP_BLEED_MM / 25.4 * inch  # 3mm bleed
     
     total_w = bleed + cover_trim + cover_trim + bleed
     total_h = bleed + cover_trim + bleed
@@ -801,8 +815,8 @@ def create_quick_story_lulu_cover(front_cover_path, back_cover_path, output_path
     back_w = bleed + cover_trim
     front_w = cover_trim + bleed
     
-    print(f"[LULU QS COVER] Spread: {total_w/inch:.2f}\" x {total_h/inch:.2f}\" ({total_w:.1f} x {total_h:.1f} pt)")
-    print(f"[LULU QS COVER] Expected: 17.25\" x 8.75\" (1242.0 x 630.0 pt)")
+    print(f"[CP QS COVER] Spread: {total_w/inch:.2f}\" x {total_h/inch:.2f}\" ({total_w:.1f} x {total_h:.1f} pt)")
+    print(f"[CP QS COVER] Expected: 17.25\" x 8.75\" (1242.0 x 630.0 pt)")
     
     c = canvas.Canvas(output_path, pagesize=(total_w, total_h))
     set_pdf_metadata(c, "Cover Spread - Magic Memories Books")
@@ -824,7 +838,7 @@ def create_quick_story_lulu_cover(front_cover_path, back_cover_path, output_path
             c.drawImage(ImageReader(back_buffer), 0, 0,
                        width=back_w, height=total_h)
         except Exception as e:
-            print(f"[LULU QS COVER] Error loading back cover: {e}")
+            print(f"[CP QS COVER] Error loading back cover: {e}")
             c.setFillColor(HexColor('#FEF3C7'))
             c.rect(0, 0, back_w, total_h, fill=True)
     else:
@@ -849,7 +863,7 @@ def create_quick_story_lulu_cover(front_cover_path, back_cover_path, output_path
             c.drawImage(ImageReader(front_buffer), front_x, 0,
                        width=front_w, height=total_h)
         except Exception as e:
-            print(f"[LULU QS COVER] Error loading front cover: {e}")
+            print(f"[CP QS COVER] Error loading front cover: {e}")
             c.setFillColor(HexColor('#E8F4FD'))
             c.rect(front_x, 0, front_w, total_h, fill=True)
     else:
@@ -861,7 +875,7 @@ def create_quick_story_lulu_cover(front_cover_path, back_cover_path, output_path
     if not skip_sanitize:
         sanitize_pdf_with_ghostscript(output_path)
     
-    print(f"[LULU QS COVER] Cover spread PDF saved: {output_path}")
+    print(f"[CP QS COVER] Cover spread PDF saved: {output_path}")
     return output_path
 
 
@@ -886,30 +900,65 @@ def _draw_full_page_image(c, image_path, page_width, page_height):
 
 def _draw_cover_title_overlay(c, title, author, page_width, page_height, fonts):
     from reportlab.lib.colors import Color
-    
+
     if not title:
         return
-    
+
     title_font = fonts.get('title', fonts.get('dropcap', 'Helvetica'))
     author_font = fonts.get('body', 'Helvetica')
-    
+
+    margin_4cm = 4 * 28.3465
+    max_title_w = page_width - (margin_4cm * 2)
+
     title_size = 28
     title_y = page_height - 40
-    
+
     pastel_purple = Color(0.71, 0.51, 0.82, alpha=1.0)
     white_border = Color(1, 1, 1, alpha=1.0)
-    
     border_offsets = [(-2,0),(2,0),(0,-2),(0,2),(-1,-1),(1,-1),(-1,1),(1,1)]
-    for dx, dy in border_offsets:
-        c.saveState()
-        c.setFillColor(white_border)
-        c.setFont(title_font, title_size)
-        c.drawCentredString(page_width / 2 + dx, title_y + dy, title)
-        c.restoreState()
-    
-    c.setFillColor(pastel_purple)
+
+    def _draw_line_with_border(text, y, size):
+        for dx, dy in border_offsets:
+            c.saveState()
+            c.setFillColor(white_border)
+            c.setFont(title_font, size)
+            c.drawCentredString(page_width / 2 + dx, y + dy, text)
+            c.restoreState()
+        c.setFillColor(pastel_purple)
+        c.setFont(title_font, size)
+        c.drawCentredString(page_width / 2, y, text)
+
     c.setFont(title_font, title_size)
-    c.drawCentredString(page_width / 2, title_y, title)
+    if c.stringWidth(title, title_font, title_size) <= max_title_w:
+        _draw_line_with_border(title, title_y, title_size)
+    else:
+        words = title.split()
+        best_split = None
+        best_max_w = float('inf')
+        for sz in range(title_size, 15, -1):
+            for split_at in range(1, len(words)):
+                l1 = ' '.join(words[:split_at])
+                l2 = ' '.join(words[split_at:])
+                w1 = c.stringWidth(l1, title_font, sz)
+                w2 = c.stringWidth(l2, title_font, sz)
+                if w1 <= max_title_w and w2 <= max_title_w:
+                    max_w = max(w1, w2)
+                    if max_w < best_max_w:
+                        best_max_w = max_w
+                        best_split = (sz, l1, l2)
+            if best_split:
+                title_size = best_split[0]
+                break
+        if best_split:
+            line1, line2 = best_split[1], best_split[2]
+        else:
+            line1, line2 = title, ''
+        line_h = title_size * 1.35
+        y1 = title_y + line_h / 2
+        y2 = title_y - line_h / 2
+        _draw_line_with_border(line1, y1, title_size)
+        if line2:
+            _draw_line_with_border(line2, y2, title_size)
     
     if author and author.strip():
         author_text = f"Autor: {author}"
@@ -990,25 +1039,25 @@ def _draw_text_overlay(c, text, page_width, page_height, fonts, language='es'):
         body_font = fonts.get('body', 'Helvetica')
         dropcap_font = fonts.get('dropcap', 'Helvetica')
     
-    body_size = 24
+    body_size = 25
     dropcap_size = 52
     line_height = body_size * 1.3
-    
+
     body_color = HexColor('#2d2c2c')
     dropcap_color = HexColor('#5e17eb')
-    
+
     clean_text = text.replace('\n', ' ').strip()
     while '  ' in clean_text:
         clean_text = clean_text.replace('  ', ' ')
-    
+
     if not clean_text:
         return
-    
+
     first_char = clean_text[0].upper()
     rest_text = clean_text[1:]
-    
-    cm2 = 2 * 28.3465
-    margin_side = cm2
+
+    cm4 = 4 * 28.3465
+    margin_side = cm4
     box_padding_h = 0.5 * 28.3465
     box_padding_v = 0.4 * 28.3465
     
@@ -1084,7 +1133,7 @@ def _draw_text_overlay(c, text, page_width, page_height, fonts, language='es'):
     box_width = page_width - (margin_side * 2)
     
     box_x = margin_side
-    box_y = cm2
+    box_y = 2 * 28.3465
     
     _draw_gradient_box(c, box_x, box_y, box_width, box_height, radius=35)
     
@@ -1115,6 +1164,614 @@ def _draw_text_overlay(c, text, page_width, page_height, fonts, language='es'):
         c.drawString(below_left_x, line_y, line.strip())
 
 
+def _build_qs_cp_a4_drawing_page_image(image_path, page_w_pt, page_h_pt):
+    """Convert a raw scene image to a coloring-book drawing page (PIL Image).
+
+    Primary: FLUX Kontext Pro (clean black outlines on white).
+    Fallback: PIL brightness ×1.6 + desaturate ×0.5.
+    Then adds title bar 'Dibuja tu propia historia!' and ruled guide lines in bottom 40%.
+    Returns a PIL Image in RGB mode.
+    """
+    from PIL import Image as _PIL, ImageEnhance, ImageDraw, ImageFont, ImageFilter
+    import gc
+
+    dpi = 300
+    w_px = int(page_w_pt / 72 * dpi)
+    h_px = int(page_h_pt / 72 * dpi)
+
+    path = image_path.lstrip('/') if image_path else ''
+    if path and os.path.exists(path):
+        from PIL import ImageOps as _ImpOps
+        raw = _PIL.open(path).convert('RGB')
+        scene = _ImpOps.fit(raw, (w_px, h_px), _PIL.Resampling.LANCZOS)
+        raw.close()
+    else:
+        scene = _PIL.new('RGB', (w_px, h_px), '#E0E8F0')
+
+    coloring = None
+
+    try:
+        import io, requests, replicate, httpx
+        _client = replicate.Client(timeout=httpx.Timeout(connect=30.0, read=300.0, write=120.0, pool=30.0))
+        buf = io.BytesIO()
+        scene.save(buf, format='PNG')
+        buf.seek(0)
+        output = _client.run(
+            'black-forest-labs/flux-kontext-pro',
+            input={
+                'input_image': buf,
+                'prompt': (
+                    'Transform this illustration into a children coloring book page. '
+                    'Keep the exact same characters, poses and composition. '
+                    'Convert to clean black outlines on pure white background. '
+                    'Remove ALL text, captions, words, letters, and overlaid text completely. '
+                    'No color, no shading, no gradients, no text anywhere. '
+                    'Simple thick black outlines suitable for a child to color in. '
+                    'Clean line art only.'
+                ),
+                'guidance': 3.5,
+                'steps': 20,
+                'output_format': 'png',
+            }
+        )
+        url = str(output)
+        resp = requests.get(url, timeout=60)
+        coloring = _PIL.open(io.BytesIO(resp.content)).convert('RGB')
+        coloring = coloring.resize((w_px, h_px), _PIL.Resampling.LANCZOS)
+        print(f'[QS DRAWING] FLUX Kontext Pro coloring page: {coloring.size}')
+    except Exception as fe:
+        print(f'[QS DRAWING] FLUX failed: {fe}. Using PIL fallback (×1.6 brightness).')
+
+    if coloring is None:
+        enh1 = ImageEnhance.Brightness(scene)
+        tmp = enh1.enhance(1.6)
+        enh2 = ImageEnhance.Color(tmp)
+        coloring = enh2.enhance(0.5)
+        tmp.close()
+
+    scene.close()
+    gc.collect()
+
+    from PIL import Image as _PIL2
+
+    draw = ImageDraw.Draw(coloring)
+    title_box_h = int(h_px * 0.13)
+    draw.rectangle([(0, 0), (w_px, title_box_h)], fill=(255, 255, 255))
+
+    title = '¡Dibuja tu propia historia!'
+    font = None
+    for fp in [
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+        '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
+    ]:
+        try:
+            if os.path.exists(fp):
+                font = ImageFont.truetype(fp, int(h_px * 0.037))
+                break
+        except Exception:
+            pass
+    if font is None:
+        font = ImageFont.load_default()
+
+    bb = draw.textbbox((0, 0), title, font=font)
+    tw, th = bb[2] - bb[0], bb[3] - bb[1]
+    draw.text(((w_px - tw) // 2, (title_box_h - th) // 2), title, font=font, fill=(90, 55, 145))
+
+    merged = coloring.convert('RGB')
+    coloring.close()
+
+    gc.collect()
+    return merged
+
+
+def _draw_pil_image_full_page(c, pil_img, page_width, page_height):
+    """Embed a PIL Image as a full-page element in a ReportLab canvas."""
+    from io import BytesIO
+    from reportlab.lib.utils import ImageReader
+    buf = BytesIO()
+    pil_img.convert('RGB').save(buf, format='JPEG', quality=92)
+    buf.seek(0)
+    c.drawImage(ImageReader(buf), 0, 0, width=page_width, height=page_height)
+
+
+def _draw_qs_cp_a4_portadilla(c, story_data, fonts, pw, ph):
+    """Draw the portadilla page for A4 CP format on the ReportLab canvas c.
+
+    Layout:
+      - Cream background (#FFFBF5)
+      - Child name as line 1, subtitle as line 2 (gold-olive color)
+      - FLUX portadilla image centered (from static/images/portadilla/{story_id}.png)
+        with a thin gold border
+      - MMB footer (4 lines) at ~83% height
+    """
+    from reportlab.lib.utils import ImageReader
+    from io import BytesIO
+    from PIL import Image as _PIL
+
+    c.setFillColor(HexColor('#FFFBF5'))
+    c.rect(0, 0, pw, ph, fill=True, stroke=False)
+
+    story_id = story_data.get('story_id', '')
+    child_name = story_data.get('child_name', '')
+    story_name = story_data.get('story_name', child_name)
+    language = story_data.get('lang', story_data.get('language', 'es'))
+
+    title_font = fonts.get('dropcap', 'Helvetica')
+    body_font = fonts.get('body', 'Helvetica')
+
+    parts = story_name.split(' ', 1)
+    line1 = parts[0] if parts else child_name
+    line2_raw = parts[1] if len(parts) > 1 else ''
+    if line2_raw and ' ' not in line2_raw:
+        line2 = ('el ' if language == 'es' else 'the ') + line2_raw[0].upper() + line2_raw[1:]
+    elif line2_raw:
+        line2 = line2_raw[0].upper() + line2_raw[1:]
+    else:
+        line2 = ''
+
+    gold_color = HexColor('#50290F')
+    margin = pw * 0.07
+    max_text_w = pw - margin * 2
+
+    title_y = ph * 0.90
+
+    font_size_1 = 28
+    while font_size_1 > 12 and c.stringWidth(line1, title_font, font_size_1) > max_text_w:
+        font_size_1 -= 1
+    c.setFillColor(gold_color)
+    c.setFont(title_font, font_size_1)
+    c.drawCentredString(pw / 2, title_y, line1)
+
+    title_y -= font_size_1 * 1.5
+    if line2:
+        font_size_2 = 22
+        while font_size_2 > 10 and c.stringWidth(line2, title_font, font_size_2) > max_text_w:
+            font_size_2 -= 1
+        c.setFont(title_font, font_size_2)
+        c.drawCentredString(pw / 2, title_y, line2)
+        title_y -= font_size_2 * 1.5
+
+    if story_id.startswith('birthday_celebration_'):
+        portadilla_img_path = 'static/images/portadilla/cumpleanos.png'
+    else:
+        portadilla_img_path = f'static/images/portadilla/{story_id}.png'
+    if not os.path.exists(portadilla_img_path):
+        portadilla_img_path = 'static/images/portadilla/space_astronaut.png'
+
+    img_area_top_pt = ph * 0.26
+    img_area_bot_pt = ph * 0.74
+    img_area_w = pw * 0.68
+    img_area_h = img_area_bot_pt - img_area_top_pt
+    img_area_x = (pw - img_area_w) / 2
+
+    if os.path.exists(portadilla_img_path):
+        try:
+            pimg = _PIL.open(portadilla_img_path).convert('RGB')
+            cw, ch = pimg.size
+            scale = min(img_area_w / cw, img_area_h / ch)
+            nw, nh = int(cw * scale), int(ch * scale)
+            pimg = pimg.resize((nw, nh), _PIL.Resampling.LANCZOS)
+            cx = img_area_x + (img_area_w - nw) / 2
+            cy = img_area_top_pt + (img_area_h - nh) / 2
+
+            border = 6
+            c.setFillColor(HexColor('#C4B08A'))
+            c.rect(cx - border, cy - border, nw + border * 2, nh + border * 2, fill=True, stroke=False)
+
+            buf = BytesIO()
+            pimg.save(buf, format='JPEG', quality=92)
+            buf.seek(0)
+            c.drawImage(ImageReader(buf), cx, cy, width=nw, height=nh)
+            pimg.close()
+        except Exception as pe:
+            print(f'[QS CP PORTADILLA] Image error: {pe}')
+    else:
+        c.setFillColor(HexColor('#D4C4A8'))
+        c.rect(img_area_x, img_area_top_pt, img_area_w, img_area_h, fill=True, stroke=False)
+
+    footer_lines = [
+        'Magic Memories Books',
+        'By Isabel Ojeda',
+        'www.magicmemoriesbooks.com',
+        'info@magicmemoriesbooks.com',
+    ]
+    footer_color = HexColor('#645035')
+    footer_size = 9
+    c.setFillColor(footer_color)
+    c.setFont(body_font, footer_size)
+    footer_y = ph * 0.20
+    for fl in footer_lines:
+        c.drawCentredString(pw / 2, footer_y, fl)
+        footer_y -= footer_size * 1.6
+
+
+def _draw_qs_cp_a4_dedicatoria(c, dedication, language, fonts, pw, ph):
+    """Draw the dedicatoria page for A4 CP format.
+
+    Cream background. 'Dedicatoria' title in gold-olive. Dedication text centered.
+    No decorative frame (as per A4 CP spec).
+    """
+    c.setFillColor(HexColor('#FFFBF5'))
+    c.rect(0, 0, pw, ph, fill=True, stroke=False)
+
+    title_font = fonts.get('dropcap', 'Helvetica')
+    body_font = fonts.get('body', 'Helvetica')
+
+    ded_label = 'Dedicatoria' if language == 'es' else 'Dedication'
+    label_size = 26
+    max_w = pw * 0.82
+    while label_size > 14 and c.stringWidth(ded_label, title_font, label_size) > max_w:
+        label_size -= 1
+    c.setFillColor(HexColor('#8B7028'))
+    c.setFont(title_font, label_size)
+    c.drawCentredString(pw / 2, ph * 0.76, ded_label)
+
+    c.setStrokeColor(HexColor('#D4A574'))
+    c.setLineWidth(0.8)
+    c.line(pw * 0.28, ph * 0.72, pw * 0.72, ph * 0.72)
+
+    ded_text = dedication or (
+        'Con todo nuestro amor.' if language == 'es' else 'With all our love.'
+    )
+
+    from reportlab.lib.utils import simpleSplit
+    body_size = 14
+    max_ded_w = pw * 0.72
+    raw_lines = ded_text.replace('\r', '').split('\n')
+    wrapped = []
+    for rl in raw_lines:
+        rl = rl.strip()
+        if not rl:
+            wrapped.append('')
+            continue
+        for wl in simpleSplit(rl, body_font, body_size, max_ded_w):
+            wrapped.append(wl)
+
+    c.setFillColor(HexColor('#4A3728'))
+    c.setFont(body_font, body_size)
+    ded_y = ph * 0.55
+    line_gap = body_size * 1.7
+    for wl in wrapped:
+        c.drawCentredString(pw / 2, ded_y, wl)
+        ded_y -= line_gap
+
+
+def _create_qs_cp_a4_kids_pdf(story_data, images, output_path, skip_sanitize=False):
+    """
+    Create 16-page A4 portrait PDF for kids QS Cloudprinter (magazine_sas_a4_p_fc).
+
+    Structure:
+      p1  portada (cover image)
+      p2  blanco
+      p3  portadilla (cream + title + FLUX image + footer)
+      p4  dedicatoria (cream + Dedicatoria label + text)
+      p5-p11  7 scene pages with split text overlay
+      p12 closing page (protagonist image + message)
+      p13 drawing page (FLUX coloring style, scene 0)
+      p14 drawing page (FLUX coloring style, scene 3)
+      p15 blanco
+      p16 contraportada (static/images/qs_back_cover_a4.png)
+    """
+    pw = QUICK_STORY_CP_A4_W
+    ph = QUICK_STORY_CP_A4_H
+
+    c = canvas.Canvas(output_path, pagesize=(pw, ph))
+
+    fonts = register_baby_book_fonts()
+    child_name = story_data.get('child_name', 'Niño')
+    title = story_data.get('story_name', f'La Aventura de {child_name}')
+    language = story_data.get('lang', story_data.get('language', 'es'))
+    dedication = story_data.get('dedication', '')
+    closing_image = story_data.get('closing_image', '')
+    closing_message = story_data.get('closing_message', '')
+
+    set_pdf_metadata(c, f'{title} - {child_name}')
+
+    cover_image = story_data.get('cover_image', '')
+    if cover_image and cover_image.startswith('/'):
+        cover_image = cover_image[1:]
+    if not _draw_full_page_image(c, cover_image, pw, ph):
+        c.setFillColor(HexColor('#E8F4FD'))
+        c.rect(0, 0, pw, ph, fill=True)
+    c.showPage()
+
+    c.setFillColor(HexColor('#FFFFFF'))
+    c.rect(0, 0, pw, ph, fill=True)
+    c.showPage()
+
+    _draw_qs_cp_a4_portadilla(c, story_data, fonts, pw, ph)
+    c.showPage()
+
+    _draw_qs_cp_a4_dedicatoria(c, dedication, language, fonts, pw, ph)
+    c.showPage()
+
+    num_scenes = min(len(images), 7)
+
+    for i in range(num_scenes):
+        img_path = images[i]
+        if img_path and os.path.exists(img_path):
+            _draw_full_page_image(c, img_path, pw, ph)
+        else:
+            c.setFillColor(HexColor('#FEFEFE'))
+            c.rect(0, 0, pw, ph, fill=True)
+        c.showPage()
+
+    closing_img_path = closing_image.lstrip('/') if closing_image else ''
+    if closing_img_path and os.path.exists(closing_img_path):
+        _draw_full_page_image(c, closing_img_path, pw, ph)
+    else:
+        c.setFillColor(HexColor('#E8F4FD'))
+        c.rect(0, 0, pw, ph, fill=True)
+    c.showPage()
+
+    raw_originals = story_data.get('original_scene_paths', story_data.get('original_images', []))
+    raw_originals = [p.lstrip('/') if p else '' for p in raw_originals]
+
+    draw_src_indices = [0, 3]
+    for di in draw_src_indices:
+        if di < len(raw_originals) and raw_originals[di] and os.path.exists(raw_originals[di]):
+            src_path = raw_originals[di]
+            print(f'[QS CP A4 KIDS] Drawing page {di}: using original (text-free) image')
+        else:
+            src_path = images[di] if di < len(images) and images[di] else (images[0] if images else None)
+            print(f'[QS CP A4 KIDS] Drawing page {di}: using composed image (no original found)')
+        print(f'[QS CP A4 KIDS] Generating drawing page from scene {di}...')
+        drawing_pil = _build_qs_cp_a4_drawing_page_image(src_path, pw, ph)
+        if drawing_pil:
+            _draw_pil_image_full_page(c, drawing_pil, pw, ph)
+            drawing_pil.close()
+        else:
+            c.setFillColor(HexColor('#F8F8F8'))
+            c.rect(0, 0, pw, ph, fill=True)
+        c.showPage()
+
+    c.setFillColor(HexColor('#FFFFFF'))
+    c.rect(0, 0, pw, ph, fill=True)
+    c.showPage()
+
+    back_cover = story_data.get('cp_back_cover_override', '') or QUICK_STORY_CP_A4_BACK_COVER
+    if not os.path.exists(back_cover):
+        back_cover = QUICK_STORY_BACK_COVER
+    if not _draw_full_page_image(c, back_cover, pw, ph):
+        c.setFillColor(HexColor('#FDF6E3'))
+        c.rect(0, 0, pw, ph, fill=True)
+    c.showPage()
+
+    c.save()
+
+    if not skip_sanitize:
+        sanitize_pdf_with_ghostscript(output_path)
+
+    print(f'[QS CP A4 KIDS] 16-page A4 PDF saved: {output_path}')
+    return output_path
+
+
+def _draw_baby_notes_page(c, fonts, pw, ph, language='es', title_text=None):
+    """Draw a decorative lined notes page for baby books (p14 / p15)."""
+    is_es = (language == 'es')
+
+    c.setFillColor(HexColor('#FFFBF5'))
+    c.rect(0, 0, pw, ph, fill=True, stroke=False)
+
+    c.setStrokeColor(HexColor('#F9A8D4'))
+    c.setLineWidth(1.8)
+    c.roundRect(22, 22, pw - 44, ph - 44, 12, fill=False, stroke=True)
+    c.setStrokeColor(HexColor('#FDE68A'))
+    c.setLineWidth(0.7)
+    c.roundRect(32, 32, pw - 64, ph - 64, 8, fill=False, stroke=True)
+
+    c.setFillColor(HexColor('#FBCFE8'))
+    for x, y in [(55, ph - 55), (pw - 55, ph - 55), (55, 55), (pw - 55, 55)]:
+        c.circle(x, y, 6, fill=True, stroke=False)
+    c.setFillColor(HexColor('#FDE68A'))
+    for x, y in [(55, ph - 55), (pw - 55, ph - 55), (55, 55), (pw - 55, 55)]:
+        c.circle(x, y, 3, fill=True, stroke=False)
+
+    if title_text is None:
+        title_text = 'Mis recuerdos...' if is_es else 'My memories...'
+    c.setFont(fonts.get('fin', 'Helvetica'), 22)
+    c.setFillColor(HexColor('#C084FC'))
+    c.drawCentredString(pw / 2, ph - 85, title_text)
+
+    c.setStrokeColor(HexColor('#E9D5FF'))
+    c.setLineWidth(1)
+    c.line(pw / 2 - 100, ph - 100, pw / 2 + 100, ph - 100)
+
+    left = 68.0
+    right = pw - 68.0
+    line_start_y = ph - 148.0
+    num_lines = 10
+    line_spacing = (line_start_y - 72.0) / (num_lines - 1)
+
+    for i in range(num_lines):
+        y = line_start_y - i * line_spacing
+        c.setStrokeColor(HexColor('#E5E7EB'))
+        c.setLineWidth(0.6)
+        c.line(left, y, right, y)
+
+    c.setFont(fonts.get('body', 'Helvetica'), 16)
+    c.setFillColor(HexColor('#FBCFE8'))
+    c.drawCentredString(pw / 2, 55, '* * *')
+
+
+def _draw_baby_data_sheet(c, story_data, fonts, pw, ph, language='es'):
+    """Draw a beautiful fill-in keepsake data page for baby books (p13)."""
+    is_es = (language == 'es')
+    child_name = story_data.get('child_name', 'Bebe')
+
+    c.setFillColor(HexColor('#FFFBF5'))
+    c.rect(0, 0, pw, ph, fill=True, stroke=False)
+
+    c.setStrokeColor(HexColor('#F9A8D4'))
+    c.setLineWidth(1.8)
+    c.roundRect(22, 22, pw - 44, ph - 44, 12, fill=False, stroke=True)
+    c.setStrokeColor(HexColor('#FDE68A'))
+    c.setLineWidth(0.7)
+    c.roundRect(32, 32, pw - 64, ph - 64, 8, fill=False, stroke=True)
+
+    c.setFillColor(HexColor('#FBCFE8'))
+    for x, y in [(55, ph - 55), (pw - 55, ph - 55), (55, 55), (pw - 55, 55)]:
+        c.circle(x, y, 6, fill=True, stroke=False)
+    c.setFillColor(HexColor('#FDE68A'))
+    for x, y in [(55, ph - 55), (pw - 55, ph - 55), (55, 55), (pw - 55, 55)]:
+        c.circle(x, y, 3, fill=True, stroke=False)
+
+    title_text = 'Mi historia comienza...' if is_es else 'My story begins...'
+    c.setFont(fonts.get('fin', 'Helvetica'), 26)
+    c.setFillColor(HexColor('#C084FC'))
+    c.drawCentredString(pw / 2, ph - 85, title_text)
+
+    c.setStrokeColor(HexColor('#E9D5FF'))
+    c.setLineWidth(1)
+    c.line(pw / 2 - 120, ph - 100, pw / 2 + 120, ph - 100)
+
+    name_label = 'Mi nombre es:' if is_es else 'My name is:'
+    c.setFont(fonts.get('body', 'Helvetica'), 13)
+    c.setFillColor(HexColor('#9CA3AF'))
+    c.drawCentredString(pw / 2, ph - 130, name_label)
+
+    c.setFont(fonts.get('title', 'Helvetica'), 38)
+    c.setFillColor(HexColor('#7C3AED'))
+    c.drawCentredString(pw / 2, ph - 178, child_name)
+
+    underline_w = min(max(len(child_name) * 24, 140), pw - 140)
+    c.setStrokeColor(HexColor('#C084FC'))
+    c.setLineWidth(2)
+    c.line(pw / 2 - underline_w / 2, ph - 190, pw / 2 + underline_w / 2, ph - 190)
+
+    if is_es:
+        fields = [
+            'Fecha de nacimiento:',
+            'Lugar de nacimiento:',
+            'Peso al nacer:',
+            'Longitud / Talla:',
+            'Un mensaje especial:',
+        ]
+    else:
+        fields = [
+            'Date of birth:',
+            'Birthplace:',
+            'Birth weight:',
+            'Birth length:',
+            'A special message:',
+        ]
+
+    dot_colors = ['#F9A8D4', '#86EFAC', '#93C5FD', '#FDE68A', '#C4B5FD']
+    left = 68.0
+    right = pw - 68.0
+    y_start = ph - 238.0
+    spacing = (y_start - 80.0) / len(fields)
+
+    for i, label in enumerate(fields):
+        y = y_start - i * spacing
+
+        c.setFillColor(HexColor(dot_colors[i]))
+        c.circle(left - 10, y + 4, 5, fill=True, stroke=False)
+
+        c.setFont(fonts.get('body', 'Helvetica'), 13)
+        c.setFillColor(HexColor('#6B7280'))
+        c.drawString(left, y, label)
+
+        line_y = y - 18
+        c.setStrokeColor(HexColor('#D1D5DB'))
+        c.setLineWidth(0.8)
+        c.line(left, line_y, right, line_y)
+
+        if i == len(fields) - 1:
+            c.line(left, line_y - 26, right, line_y - 26)
+
+    c.setFont(fonts.get('body', 'Helvetica'), 16)
+    c.setFillColor(HexColor('#FBCFE8'))
+    c.drawCentredString(pw / 2, 55, '* * *')
+
+
+def _create_qs_cp_a4_baby_pdf(story_data, images, output_path, skip_sanitize=False):
+    """
+    Create 16-page A4 portrait PDF for baby QS Cloudprinter (magazine_sas_a4_p_fc).
+
+    Structure:
+      p1  portada
+      p2  blanco
+      p3  portadilla
+      p4  dedicatoria
+      p5-p12  8 scene pages with text overlay
+      p13 baby data sheet (keepsake fill-in page)
+      p14 blanco
+      p15 blanco
+      p16 contraportada
+    """
+    pw = QUICK_STORY_CP_A4_W
+    ph = QUICK_STORY_CP_A4_H
+
+    c = canvas.Canvas(output_path, pagesize=(pw, ph))
+
+    fonts = register_baby_book_fonts()
+    child_name = story_data.get('child_name', 'Bebé')
+    title = story_data.get('story_name', f'{child_name} y el mundo suave')
+    language = story_data.get('lang', story_data.get('language', 'es'))
+    dedication = story_data.get('dedication', '')
+
+    set_pdf_metadata(c, f'{title} - {child_name}')
+
+    cover_image = story_data.get('cover_image', '')
+    if cover_image and cover_image.startswith('/'):
+        cover_image = cover_image[1:]
+    if not _draw_full_page_image(c, cover_image, pw, ph):
+        c.setFillColor(HexColor('#E8F4FD'))
+        c.rect(0, 0, pw, ph, fill=True)
+    c.showPage()
+
+    c.setFillColor(HexColor('#FFFFFF'))
+    c.rect(0, 0, pw, ph, fill=True)
+    c.showPage()
+
+    _draw_qs_cp_a4_portadilla(c, story_data, fonts, pw, ph)
+    c.showPage()
+
+    _draw_qs_cp_a4_dedicatoria(c, dedication, language, fonts, pw, ph)
+    c.showPage()
+
+    num_scenes = min(len(images), 8)
+
+    for i in range(num_scenes):
+        img_path = images[i]
+        if img_path and os.path.exists(img_path):
+            _draw_full_page_image(c, img_path, pw, ph)
+        else:
+            c.setFillColor(HexColor('#FFFBF5'))
+            c.rect(0, 0, pw, ph, fill=True)
+        c.showPage()
+
+    print(f'[QS CP A4 BABY] Drawing baby data sheet (p13)...')
+    _draw_baby_data_sheet(c, story_data, fonts, pw, ph, language)
+    c.showPage()
+
+    print(f'[QS CP A4 BABY] Drawing notes page (p14)...')
+    _draw_baby_notes_page(c, fonts, pw, ph, language)
+    c.showPage()
+
+    print(f'[QS CP A4 BABY] Drawing notes page (p15)...')
+    _draw_baby_notes_page(c, fonts, pw, ph, language,
+                          title_text='Notas especiales...' if language == 'es' else 'Special notes...')
+    c.showPage()
+
+    back_cover = story_data.get('cp_back_cover_override', '') or QUICK_STORY_CP_A4_BACK_COVER
+    if not os.path.exists(back_cover):
+        back_cover = QUICK_STORY_BACK_COVER
+    if not _draw_full_page_image(c, back_cover, pw, ph):
+        c.setFillColor(HexColor('#FDF6E3'))
+        c.rect(0, 0, pw, ph, fill=True)
+    c.showPage()
+
+    c.save()
+
+    if not skip_sanitize:
+        sanitize_pdf_with_ghostscript(output_path)
+
+    print(f'[QS CP A4 BABY] 16-page A4 PDF saved: {output_path}')
+    return output_path
+
+
 def create_baby_quick_story_pdf(story_data, images, output_path, format_type='digital', skip_sanitize=False):
     """
     Create PDF for baby Quick Stories (0-2 years) - 12 PAGE LAYOUT.
@@ -1138,6 +1795,9 @@ def create_baby_quick_story_pdf(story_data, images, output_path, format_type='di
     2. Dedication with decorative frame
     3-10. 8 scene illustrations with text overlay
     """
+    if format_type == 'cloudprinter':
+        return _create_qs_cp_a4_baby_pdf(story_data, images, output_path, skip_sanitize)
+
     page_size = QUICK_STORY_DIGITAL_SIZE
     if format_type == 'lulu':
         page_size = QUICK_STORY_LULU_WITH_BLEED
@@ -1155,7 +1815,7 @@ def create_baby_quick_story_pdf(story_data, images, output_path, format_type='di
     
     set_pdf_metadata(c, f"{title} - {child_name}")
     
-    if format_type != 'lulu':
+    if format_type not in ('lulu', 'cloudprinter'):
         cover_image = story_data.get('cover_image', '')
         if cover_image and cover_image.startswith('/'):
             cover_image = cover_image[1:]
@@ -1276,7 +1936,7 @@ def create_baby_quick_story_pdf(story_data, images, output_path, format_type='di
         
         c.showPage()
     
-    if format_type != 'lulu':
+    if format_type not in ('lulu', 'cloudprinter'):
         back_cover = QUICK_STORY_BACK_COVER
         if not _draw_full_page_image(c, back_cover, page_width, page_height):
             c.setFillColor(HexColor('#FDF6E3'))
@@ -1291,7 +1951,7 @@ def create_baby_quick_story_pdf(story_data, images, output_path, format_type='di
     if not skip_sanitize:
         sanitize_pdf_with_ghostscript(output_path)
     
-    if format_type == 'lulu':
+    if format_type in ('lulu', 'cloudprinter'):
         page_count = 10
     else:
         page_count = 12
@@ -1307,14 +1967,14 @@ def _draw_kids_split_text_overlay(c, text_above, text_below, page_width, page_he
     
     body_font = fonts.get('body', 'Helvetica')
     dropcap_font = fonts.get('dropcap', 'Helvetica')
-    body_size = 14
+    body_size = 15
     dropcap_size = int(body_size * 2.5)
     line_height = body_size * 1.35
-    
+
     padding_h = 18
     padding_v = 8
-    margin_x = page_width * 0.06
-    max_text_width = page_width * 0.82
+    margin_x = 4 * 28.3465
+    max_text_width = page_width - (2 * margin_x) - (2 * padding_h)
     
     dropcap_margin_right = 4
     
@@ -1419,8 +2079,8 @@ def _draw_kids_split_text_overlay(c, text_above, text_below, page_width, page_he
         box_w_content = max_text_width + (padding_h * 2)
         
         box_x = margin_x
-        cm_1_5_top = 1.5 * 28.3465
-        box_y = page_height - box_h - cm_1_5_top
+        cm_top = 2.0 * 28.3465
+        box_y = page_height - box_h - cm_top
         
         c.saveState()
         c.setFillColor(bg_color)
@@ -1455,9 +2115,9 @@ def _draw_kids_split_text_overlay(c, text_above, text_below, page_width, page_he
         box_h = box_content_h + (padding_v * 2)
         box_w_content = max_text_width + (padding_h * 2)
         
-        cm_1_5 = 1.5 * 28.3465
+        cm_bot = 2.0 * 28.3465
         box_x = margin_x
-        box_y = cm_1_5
+        box_y = cm_bot
         
         c.saveState()
         c.setFillColor(bg_color)
@@ -1615,6 +2275,9 @@ def create_kids_quick_story_pdf(story_data, images, output_path, format_type='di
     3-9. 7 scene illustrations with split text overlay
     10. Closing (protagonist image + message)
     """
+    if format_type == 'cloudprinter':
+        return _create_qs_cp_a4_kids_pdf(story_data, images, output_path, skip_sanitize)
+
     page_size = QUICK_STORY_DIGITAL_SIZE
     if format_type == 'lulu':
         page_size = QUICK_STORY_LULU_WITH_BLEED
@@ -2257,7 +2920,7 @@ def create_birthday_printable_pdf(story_data, images, output_path, skip_sanitize
 def generate_print_instructions_pdf(output_path, language='es'):
     """
     Generate a unified PDF with printing instructions for all Quick Stories
-    and Birthday books (8.5" x 8.5" / 21.59 cm x 21.59 cm square format).
+    and Birthday books (A4 210x297mm, 16 pages saddle-stitch).
     """
     from reportlab.lib.pagesizes import A4
     
@@ -2289,10 +2952,10 @@ def generate_print_instructions_pdf(output_path, language='es'):
         instructions = [
             ("Especificaciones del Libro:", True),
             ("", False),
-            ("• Tamaño final: 8.5\" x 8.5\" (21.59 cm x 21.59 cm) - Formato cuadrado", False),
-            ("• Total de páginas: 12 páginas (incluye portada y contraportada)", False),
-            ("• Formato: Cuadrado", False),
-            ("• Encuadernación: Grapado (saddle stitch)", False),
+            ("• Tamaño final: A4 — 210 x 297 mm (con sangrado 216 x 303 mm)", False),
+            ("• Total de páginas: 16 páginas (incluye portada y contraportada)", False),
+            ("• Formato: A4 retrato", False),
+            ("• Encuadernación: Grapado por el lomo (saddle stitch)", False),
             ("", False),
             ("Recomendaciones para la Imprenta:", True),
             ("", False),
@@ -2303,39 +2966,39 @@ def generate_print_instructions_pdf(output_path, language='es'):
             ("• Resolución: 300 DPI mínimo", False),
             ("• Imprimir a sangre completa (sin márgenes blancos)", False),
             ("", False),
-            ("Estructura del PDF (12 páginas):", True),
+            ("Estructura del PDF (16 páginas):", True),
             ("", False),
             ("Página 1: Portada (imagen de cubierta)", False),
-            ("Página 2: Portadilla (página de título)", False),
-            ("Página 3: Dedicatoria", False),
-            ("Páginas 4-10: 7 escenas ilustradas con texto", False),
-            ("Página 11: Ilustración de cierre con mensaje", False),
-            ("Página 12: Contraportada", False),
+            ("Página 2: Página en blanco", False),
+            ("Página 3: Portadilla (página de título con imagen)", False),
+            ("Página 4: Dedicatoria", False),
+            ("Páginas 5-12: Escenas ilustradas con texto (7 u 8 según versión)", False),
+            ("Páginas 13-14: Páginas para dibujar", False),
+            ("Página 15: Página en blanco", False),
+            ("Página 16: Contraportada", False),
             ("", False),
             ("Instrucciones de Armado:", True),
             ("", False),
-            ("1. Imprima la página 1 (portada) y la página 12 (contraportada)", False),
-            ("   en cartulina gruesa de 8.5\" x 8.5\"", False),
-            ("2. Imprima las páginas 2-11 (interiores) a doble cara", False),
-            ("   en papel 8.5\" x 8.5\"", False),
-            ("3. Apile las páginas en orden numérico", False),
-            ("4. Grape por el lomo (2-3 grapas en el centro)", False),
-            ("5. Doble por la línea del lomo", False),
+            ("1. Imprima todas las páginas en papel A4 a sangre completa", False),
+            ("2. Portada (p.1) y contraportada (p.16): cartulina 200-250 g/m²", False),
+            ("3. Páginas interiores (p.2-15): papel 120 g/m² a doble cara", False),
+            ("4. Apile las páginas en orden numérico", False),
+            ("5. Grape por el lomo (2-3 grapas en el centro)", False),
+            ("6. Doble por la línea del lomo", False),
             ("", False),
             ("Notas Importantes:", True),
             ("", False),
-            ("• Si su impresora no admite papel cuadrado, imprima en papel", False),
-            ("  8.5\" x 11\" (carta) y recorte a 8.5\" x 8.5\"", False),
+            ("• El PDF ya incluye el sangrado de 3 mm en cada borde", False),
             ("• Para mejor calidad, use una imprenta profesional", False),
         ]
     else:
         instructions = [
             ("Book Specifications:", True),
             ("", False),
-            ("• Final size: 8.5\" x 8.5\" (21.59 cm x 21.59 cm) - Square format", False),
-            ("• Total pages: 12 pages (includes front and back covers)", False),
-            ("• Format: Square", False),
-            ("• Binding: Saddle stitch (stapled)", False),
+            ("• Final size: A4 — 210 x 297 mm (with bleed: 216 x 303 mm)", False),
+            ("• Total pages: 16 pages (includes front and back covers)", False),
+            ("• Format: A4 portrait", False),
+            ("• Binding: Saddle stitch (stapled along the spine)", False),
             ("", False),
             ("Print Shop Recommendations:", True),
             ("", False),
@@ -2346,29 +3009,29 @@ def generate_print_instructions_pdf(output_path, language='es'):
             ("• Resolution: 300 DPI minimum", False),
             ("• Print full bleed (no white margins)", False),
             ("", False),
-            ("PDF Structure (12 pages):", True),
+            ("PDF Structure (16 pages):", True),
             ("", False),
             ("Page 1: Front cover", False),
-            ("Page 2: Title page", False),
-            ("Page 3: Dedication", False),
-            ("Pages 4-10: 7 illustrated scenes with text", False),
-            ("Page 11: Closing illustration with message", False),
-            ("Page 12: Back cover", False),
+            ("Page 2: Blank page", False),
+            ("Page 3: Title page (portadilla with illustration)", False),
+            ("Page 4: Dedication", False),
+            ("Pages 5-12: Illustrated scenes with text (7 or 8 depending on version)", False),
+            ("Pages 13-14: Drawing pages", False),
+            ("Page 15: Blank page", False),
+            ("Page 16: Back cover", False),
             ("", False),
             ("Assembly Instructions:", True),
             ("", False),
-            ("1. Print page 1 (front cover) and page 12 (back cover)", False),
-            ("   on heavy cardstock, 8.5\" x 8.5\"", False),
-            ("2. Print pages 2-11 (interiors) double-sided", False),
-            ("   on 8.5\" x 8.5\" paper", False),
-            ("3. Stack pages in numerical order", False),
-            ("4. Staple along the spine (2-3 staples in the center)", False),
-            ("5. Fold along the spine line", False),
+            ("1. Print all pages on A4 paper, full bleed", False),
+            ("2. Cover (p.1) and back cover (p.16): cardstock 200-250 gsm", False),
+            ("3. Interior pages (p.2-15): 120 gsm paper, double-sided", False),
+            ("4. Stack pages in numerical order", False),
+            ("5. Staple along the spine (2-3 staples in the center)", False),
+            ("6. Fold along the spine line", False),
             ("", False),
             ("Important Notes:", True),
             ("", False),
-            ("• If your printer doesn't support square paper, print on", False),
-            ("  8.5\" x 11\" (letter) paper and trim to 8.5\" x 8.5\"", False),
+            ("• The PDF already includes 3mm bleed on each edge", False),
             ("• For best quality, use a professional print shop", False),
         ]
     
