@@ -2,6 +2,145 @@
 
 {% block title %}{% if lang == 'es' %}Pago{% else %}Checkout{% endif %} - {{ translations.site_title }}{% endblock %}
 
+{% macro cp_country_options(placeholder_es='Selecciona tu país', placeholder_en='Select your country') %}
+<option value="">{% if lang == 'es' %}{{ placeholder_es }}{% else %}{{ placeholder_en }}{% endif %}</option>
+<option value="SA">{% if lang == 'es' %}Arabia Saudita{% else %}Saudi Arabia{% endif %}</option>
+<option value="AR">{% if lang == 'es' %}Argentina{% else %}Argentina{% endif %}</option>
+<option value="AU">{% if lang == 'es' %}Australia{% else %}Australia{% endif %}</option>
+<option value="AT">{% if lang == 'es' %}Austria{% else %}Austria{% endif %}</option>
+<option value="BE">{% if lang == 'es' %}Bélgica{% else %}Belgium{% endif %}</option>
+<option value="BR">{% if lang == 'es' %}Brasil{% else %}Brazil{% endif %}</option>
+<option value="BG">{% if lang == 'es' %}Bulgaria{% else %}Bulgaria{% endif %}</option>
+<option value="CL">{% if lang == 'es' %}Chile{% else %}Chile{% endif %}</option>
+<option value="CY">{% if lang == 'es' %}Chipre{% else %}Cyprus{% endif %}</option>
+<option value="CO">{% if lang == 'es' %}Colombia{% else %}Colombia{% endif %}</option>
+<option value="KR">{% if lang == 'es' %}Corea del Sur{% else %}South Korea{% endif %}</option>
+<option value="HR">{% if lang == 'es' %}Croacia{% else %}Croatia{% endif %}</option>
+<option value="DK">{% if lang == 'es' %}Dinamarca{% else %}Denmark{% endif %}</option>
+<option value="EG">{% if lang == 'es' %}Egipto{% else %}Egypt{% endif %}</option>
+<option value="AE">{% if lang == 'es' %}Emiratos Árabes Unidos{% else %}United Arab Emirates{% endif %}</option>
+<option value="SK">{% if lang == 'es' %}Eslovaquia{% else %}Slovakia{% endif %}</option>
+<option value="SI">{% if lang == 'es' %}Eslovenia{% else %}Slovenia{% endif %}</option>
+<option value="ES">{% if lang == 'es' %}España{% else %}Spain{% endif %}</option>
+<option value="US">{% if lang == 'es' %}Estados Unidos{% else %}United States{% endif %}</option>
+<option value="EE">{% if lang == 'es' %}Estonia{% else %}Estonia{% endif %}</option>
+<option value="PH">{% if lang == 'es' %}Filipinas{% else %}Philippines{% endif %}</option>
+<option value="FI">{% if lang == 'es' %}Finlandia{% else %}Finland{% endif %}</option>
+<option value="FR">{% if lang == 'es' %}Francia{% else %}France{% endif %}</option>
+<option value="GH">{% if lang == 'es' %}Ghana{% else %}Ghana{% endif %}</option>
+<option value="GR">{% if lang == 'es' %}Grecia{% else %}Greece{% endif %}</option>
+<option value="NL">{% if lang == 'es' %}Holanda{% else %}Netherlands{% endif %}</option>
+<option value="HU">{% if lang == 'es' %}Hungría{% else %}Hungary{% endif %}</option>
+<option value="IN">{% if lang == 'es' %}India{% else %}India{% endif %}</option>
+<option value="ID">{% if lang == 'es' %}Indonesia{% else %}Indonesia{% endif %}</option>
+<option value="IE">{% if lang == 'es' %}Irlanda{% else %}Ireland{% endif %}</option>
+<option value="IL">{% if lang == 'es' %}Israel{% else %}Israel{% endif %}</option>
+<option value="IT">{% if lang == 'es' %}Italia{% else %}Italy{% endif %}</option>
+<option value="KE">{% if lang == 'es' %}Kenia{% else %}Kenya{% endif %}</option>
+<option value="LV">{% if lang == 'es' %}Letonia{% else %}Latvia{% endif %}</option>
+<option value="LT">{% if lang == 'es' %}Lituania{% else %}Lithuania{% endif %}</option>
+<option value="LU">{% if lang == 'es' %}Luxemburgo{% else %}Luxembourg{% endif %}</option>
+<option value="MY">{% if lang == 'es' %}Malasia{% else %}Malaysia{% endif %}</option>
+<option value="MA">{% if lang == 'es' %}Marruecos{% else %}Morocco{% endif %}</option>
+<option value="MT">{% if lang == 'es' %}Malta{% else %}Malta{% endif %}</option>
+<option value="MX">{% if lang == 'es' %}México{% else %}Mexico{% endif %}</option>
+<option value="NG">{% if lang == 'es' %}Nigeria{% else %}Nigeria{% endif %}</option>
+<option value="NO">{% if lang == 'es' %}Noruega{% else %}Norway{% endif %}</option>
+<option value="NZ">{% if lang == 'es' %}Nueva Zelanda{% else %}New Zealand{% endif %}</option>
+<option value="PE">{% if lang == 'es' %}Perú{% else %}Peru{% endif %}</option>
+<option value="PL">{% if lang == 'es' %}Polonia{% else %}Poland{% endif %}</option>
+<option value="PT">{% if lang == 'es' %}Portugal{% else %}Portugal{% endif %}</option>
+<option value="GB">{% if lang == 'es' %}Reino Unido{% else %}United Kingdom{% endif %}</option>
+<option value="CZ">{% if lang == 'es' %}República Checa{% else %}Czech Republic{% endif %}</option>
+<option value="RO">{% if lang == 'es' %}Rumania{% else %}Romania{% endif %}</option>
+<option value="SE">{% if lang == 'es' %}Suecia{% else %}Sweden{% endif %}</option>
+<option value="CH">{% if lang == 'es' %}Suiza{% else %}Switzerland{% endif %}</option>
+<option value="ZA">{% if lang == 'es' %}Sudáfrica{% else %}South Africa{% endif %}</option>
+<option value="TH">{% if lang == 'es' %}Tailandia{% else %}Thailand{% endif %}</option>
+<option value="TZ">{% if lang == 'es' %}Tanzania{% else %}Tanzania{% endif %}</option>
+<option value="UA">{% if lang == 'es' %}Ucrania{% else %}Ukraine{% endif %}</option>
+<option value="DE">{% if lang == 'es' %}Alemania{% else %}Germany{% endif %}</option>
+<option value="VN">{% if lang == 'es' %}Vietnam{% else %}Vietnam{% endif %}</option>
+<option value="SG">{% if lang == 'es' %}Singapur{% else %}Singapore{% endif %}</option>
+{% endmacro %}
+
+{% macro gelato_country_options(placeholder_es='Selecciona tu país', placeholder_en='Select your country') %}
+<option value="">{% if lang == 'es' %}{{ placeholder_es }}{% else %}{{ placeholder_en }}{% endif %}</option>
+<option value="AL">{% if lang == 'es' %}Albania{% else %}Albania{% endif %}</option>
+<option value="DE">{% if lang == 'es' %}Alemania{% else %}Germany{% endif %}</option>
+<option value="SA">{% if lang == 'es' %}Arabia Saudita{% else %}Saudi Arabia{% endif %}</option>
+<option value="AR">{% if lang == 'es' %}Argentina{% else %}Argentina{% endif %}</option>
+<option value="AU">{% if lang == 'es' %}Australia{% else %}Australia{% endif %}</option>
+<option value="AT">{% if lang == 'es' %}Austria{% else %}Austria{% endif %}</option>
+<option value="BE">{% if lang == 'es' %}Bélgica{% else %}Belgium{% endif %}</option>
+<option value="BO">{% if lang == 'es' %}Bolivia{% else %}Bolivia{% endif %}</option>
+<option value="BR">{% if lang == 'es' %}Brasil{% else %}Brazil{% endif %}</option>
+<option value="BG">{% if lang == 'es' %}Bulgaria{% else %}Bulgaria{% endif %}</option>
+<option value="CA">{% if lang == 'es' %}Canadá{% else %}Canada{% endif %}</option>
+<option value="CL">{% if lang == 'es' %}Chile{% else %}Chile{% endif %}</option>
+<option value="CY">{% if lang == 'es' %}Chipre{% else %}Cyprus{% endif %}</option>
+<option value="CO">{% if lang == 'es' %}Colombia{% else %}Colombia{% endif %}</option>
+<option value="KR">{% if lang == 'es' %}Corea del Sur{% else %}South Korea{% endif %}</option>
+<option value="CR">{% if lang == 'es' %}Costa Rica{% else %}Costa Rica{% endif %}</option>
+<option value="HR">{% if lang == 'es' %}Croacia{% else %}Croatia{% endif %}</option>
+<option value="CU">{% if lang == 'es' %}Cuba{% else %}Cuba{% endif %}</option>
+<option value="DK">{% if lang == 'es' %}Dinamarca{% else %}Denmark{% endif %}</option>
+<option value="EC">{% if lang == 'es' %}Ecuador{% else %}Ecuador{% endif %}</option>
+<option value="SV">{% if lang == 'es' %}El Salvador{% else %}El Salvador{% endif %}</option>
+<option value="AE">{% if lang == 'es' %}Emiratos Árabes Unidos{% else %}United Arab Emirates{% endif %}</option>
+<option value="SK">{% if lang == 'es' %}Eslovaquia{% else %}Slovakia{% endif %}</option>
+<option value="SI">{% if lang == 'es' %}Eslovenia{% else %}Slovenia{% endif %}</option>
+<option value="ES">{% if lang == 'es' %}España{% else %}Spain{% endif %}</option>
+<option value="US">{% if lang == 'es' %}Estados Unidos{% else %}United States{% endif %}</option>
+<option value="EE">{% if lang == 'es' %}Estonia{% else %}Estonia{% endif %}</option>
+<option value="PH">{% if lang == 'es' %}Filipinas{% else %}Philippines{% endif %}</option>
+<option value="FI">{% if lang == 'es' %}Finlandia{% else %}Finland{% endif %}</option>
+<option value="FR">{% if lang == 'es' %}Francia{% else %}France{% endif %}</option>
+<option value="GE">{% if lang == 'es' %}Georgia{% else %}Georgia{% endif %}</option>
+<option value="GR">{% if lang == 'es' %}Grecia{% else %}Greece{% endif %}</option>
+<option value="GT">{% if lang == 'es' %}Guatemala{% else %}Guatemala{% endif %}</option>
+<option value="HN">{% if lang == 'es' %}Honduras{% else %}Honduras{% endif %}</option>
+<option value="HK">{% if lang == 'es' %}Hong Kong{% else %}Hong Kong{% endif %}</option>
+<option value="HU">{% if lang == 'es' %}Hungría{% else %}Hungary{% endif %}</option>
+<option value="IN">{% if lang == 'es' %}India{% else %}India{% endif %}</option>
+<option value="ID">{% if lang == 'es' %}Indonesia{% else %}Indonesia{% endif %}</option>
+<option value="IE">{% if lang == 'es' %}Irlanda{% else %}Ireland{% endif %}</option>
+<option value="IL">{% if lang == 'es' %}Israel{% else %}Israel{% endif %}</option>
+<option value="IT">{% if lang == 'es' %}Italia{% else %}Italy{% endif %}</option>
+<option value="JP">{% if lang == 'es' %}Japón{% else %}Japan{% endif %}</option>
+<option value="LV">{% if lang == 'es' %}Letonia{% else %}Latvia{% endif %}</option>
+<option value="LT">{% if lang == 'es' %}Lituania{% else %}Lithuania{% endif %}</option>
+<option value="LU">{% if lang == 'es' %}Luxemburgo{% else %}Luxembourg{% endif %}</option>
+<option value="MY">{% if lang == 'es' %}Malasia{% else %}Malaysia{% endif %}</option>
+<option value="MT">{% if lang == 'es' %}Malta{% else %}Malta{% endif %}</option>
+<option value="MX">{% if lang == 'es' %}México{% else %}Mexico{% endif %}</option>
+<option value="NI">{% if lang == 'es' %}Nicaragua{% else %}Nicaragua{% endif %}</option>
+<option value="NO">{% if lang == 'es' %}Noruega{% else %}Norway{% endif %}</option>
+<option value="NZ">{% if lang == 'es' %}Nueva Zelanda{% else %}New Zealand{% endif %}</option>
+<option value="NL">{% if lang == 'es' %}Países Bajos{% else %}Netherlands{% endif %}</option>
+<option value="PA">{% if lang == 'es' %}Panamá{% else %}Panama{% endif %}</option>
+<option value="PY">{% if lang == 'es' %}Paraguay{% else %}Paraguay{% endif %}</option>
+<option value="PE">{% if lang == 'es' %}Perú{% else %}Peru{% endif %}</option>
+<option value="PL">{% if lang == 'es' %}Polonia{% else %}Poland{% endif %}</option>
+<option value="PT">{% if lang == 'es' %}Portugal{% else %}Portugal{% endif %}</option>
+<option value="PR">{% if lang == 'es' %}Puerto Rico{% else %}Puerto Rico{% endif %}</option>
+<option value="GB">{% if lang == 'es' %}Reino Unido{% else %}United Kingdom{% endif %}</option>
+<option value="CZ">{% if lang == 'es' %}República Checa{% else %}Czech Republic{% endif %}</option>
+<option value="DO">{% if lang == 'es' %}República Dominicana{% else %}Dominican Republic{% endif %}</option>
+<option value="RO">{% if lang == 'es' %}Rumania{% else %}Romania{% endif %}</option>
+<option value="RS">{% if lang == 'es' %}Serbia{% else %}Serbia{% endif %}</option>
+<option value="SG">{% if lang == 'es' %}Singapur{% else %}Singapore{% endif %}</option>
+<option value="ZA">{% if lang == 'es' %}Sudáfrica{% else %}South Africa{% endif %}</option>
+<option value="SE">{% if lang == 'es' %}Suecia{% else %}Sweden{% endif %}</option>
+<option value="CH">{% if lang == 'es' %}Suiza{% else %}Switzerland{% endif %}</option>
+<option value="TH">{% if lang == 'es' %}Tailandia{% else %}Thailand{% endif %}</option>
+<option value="TR">{% if lang == 'es' %}Turquía{% else %}Turkey{% endif %}</option>
+<option value="UA">{% if lang == 'es' %}Ucrania{% else %}Ukraine{% endif %}</option>
+<option value="UY">{% if lang == 'es' %}Uruguay{% else %}Uruguay{% endif %}</option>
+<option value="VE">{% if lang == 'es' %}Venezuela{% else %}Venezuela{% endif %}</option>
+<option value="VN">{% if lang == 'es' %}Vietnam{% else %}Vietnam{% endif %}</option>
+{% endmacro %}
+
 {% block content %}
 <section class="py-8 px-4 max-w-2xl mx-auto">
     <div class="mb-6">
@@ -25,7 +164,7 @@
 
     <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
         <h3 class="font-display text-lg font-bold text-gray-800 mb-4">
-            {% if checkout_config.allow_digital and checkout_config.allow_print %}
+            {% if (checkout_config.allow_digital and checkout_config.allow_print) or checkout_config.allow_pdf %}
                 {% if lang == 'es' %}Elige tu formato{% else %}Choose your format{% endif %}
             {% else %}
                 {% if lang == 'es' %}Resumen del Pedido{% else %}Order Summary{% endif %}
@@ -49,11 +188,37 @@
             </div>
         </div>
 
+        {% if checkout_config.allow_print %}
+        <div class="mb-4 pb-4 border-b border-gray-200">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+                {% if lang == 'es' %}¿Desde dónde compras?{% else %}Where are you ordering from?{% endif %} <span class="text-red-500">*</span>
+            </label>
+            <select id="buyerCountry" onchange="onBuyerCountryChange(this.value)"
+                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                {% if checkout_config.get('print_product_type') in ('qs_print', 'cp_personalized') %}
+                    {{ cp_country_options() }}
+                {% else %}
+                    {{ gelato_country_options() }}
+                {% endif %}
+            </select>
+            {% if checkout_config.get('print_product_type') in ('qs_print', 'cp_personalized') %}
+            <p class="text-xs text-gray-500 mt-1">
+                {% if lang == 'es' %}Si tu país no aparece, no podemos enviar el libro impreso. Puedes elegir el <strong>PDF imprimible</strong> para imprimirlo en tu imprenta de confianza.{% else %}If your country is not listed, we cannot ship the printed book. You can choose the <strong>Printable PDF</strong> to print it at your local print shop.{% endif %}
+            </p>
+            {% else %}
+            <p id="countryShipWarning" class="text-xs text-amber-600 mt-1 hidden">
+                {% if lang == 'es' %}El envío de libro impreso no está disponible para tu país. Puedes elegir PDF imprimible o eBook.{% else %}Printed book shipping is not available for your country. You can choose printable PDF or eBook.{% endif %}
+            </p>
+            {% endif %}
+        </div>
+        {% endif %}
+
         {% if checkout_config.allow_digital or checkout_config.allow_ebook or checkout_config.allow_print %}
         <div class="space-y-3 mt-4">
             {% if checkout_config.allow_ebook %}
-            <label class="flex items-start gap-3 p-4 border-2 border-gray-200 bg-white rounded-xl cursor-pointer transition-all hover:border-purple-300" id="optionEbook">
-                <input type="checkbox" name="formatOption" value="ebook" onchange="toggleFormat()"
+            {% set ebook_preselected = checkout_config.allow_ebook and not checkout_config.allow_digital %}
+            <label class="flex items-start gap-3 p-4 border-2 {{ 'border-purple-500 bg-purple-50' if ebook_preselected else 'border-gray-200 bg-white' }} rounded-xl cursor-pointer transition-all hover:border-purple-300" id="optionEbook">
+                <input type="checkbox" name="formatOption" value="ebook" {{ 'checked' if ebook_preselected else '' }} onchange="toggleFormat(this)"
                     class="mt-1 w-5 h-5 text-purple-600 focus:ring-purple-500 cursor-pointer rounded">
                 <div class="flex-1">
                     <div class="flex justify-between items-start">
@@ -73,7 +238,7 @@
 
             {% if checkout_config.allow_digital %}
             <label class="flex items-start gap-3 p-4 border-2 border-purple-500 bg-purple-50 rounded-xl cursor-pointer transition-all" id="optionDigital">
-                <input type="checkbox" name="formatOption" value="digital" checked onchange="toggleFormat()"
+                <input type="checkbox" name="formatOption" value="digital" checked onchange="toggleFormat(this)"
                     class="mt-1 w-5 h-5 text-purple-600 focus:ring-purple-500 cursor-pointer rounded">
                 <div class="flex-1">
                     <div class="flex justify-between items-start">
@@ -94,19 +259,47 @@
             </label>
             {% endif %}
 
+            {% if checkout_config.allow_pdf %}
+            <label class="flex items-start gap-3 p-4 border-2 border-gray-200 bg-white rounded-xl cursor-pointer transition-all hover:border-green-400" id="optionPdf">
+                <input type="checkbox" name="formatOption" value="pdf" onchange="toggleFormat(this)"
+                    class="mt-1 w-5 h-5 text-green-600 focus:ring-green-500 cursor-pointer rounded">
+                <div class="flex-1">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-bold text-gray-800">
+                                {% if lang == 'es' %}PDF Imprimible 🖨️{% else %}Printable PDF 🖨️{% endif %}
+                            </p>
+                            <p class="text-sm text-gray-600 mt-1">
+                                {% if lang == 'es' %}{{ checkout_config.pdf_description_es }}{% else %}{{ checkout_config.pdf_description_en }}{% endif %}
+                            </p>
+                            <p class="text-xs text-green-600 font-medium mt-1">
+                                {% if lang == 'es' %}+ eBook interactivo de regalo (6 meses){% else %}+ Gift interactive eBook (6 months){% endif %}
+                            </p>
+                        </div>
+                        <p class="font-bold text-lg text-green-700 ml-4 whitespace-nowrap">${{ checkout_config.pdf_base_price }} USD</p>
+                    </div>
+                </div>
+            </label>
+            {% endif %}
+
             {% if checkout_config.allow_print %}
             <label class="flex items-start gap-3 p-4 border-2 border-gray-200 bg-white rounded-xl cursor-pointer transition-all hover:border-amber-300" id="optionPrint">
-                <input type="checkbox" name="formatOption" value="print" onchange="toggleFormat()"
+                <input type="checkbox" name="formatOption" value="print" onchange="toggleFormat(this)"
                     class="mt-1 w-5 h-5 text-amber-600 focus:ring-amber-500 cursor-pointer rounded">
                 <div class="flex-1">
                     <div class="flex justify-between items-start">
                         <div>
                             <p class="font-bold text-gray-800">
-                                {% if lang == 'es' %}Libro Impreso + Envío{% else %}Printed Book + Shipping{% endif %} 📖
+                                {% if lang == 'es' %}Libro Impreso{% else %}Printed Book{% endif %} 📖
                             </p>
                             <p class="text-sm text-gray-600 mt-1">
                                 {% if lang == 'es' %}{{ checkout_config.print_description_es }}{% else %}{{ checkout_config.print_description_en }}{% endif %}
                             </p>
+                            {% if checkout_config.get('print_product_type') in ('qs_print', 'cp_personalized') %}
+                            <p class="text-xs text-amber-700 font-medium mt-1">
+                                {% if lang == 'es' %}Impresión incluida · Envío calculado por país{% else %}Print included · Shipping calculated by country{% endif %}
+                            </p>
+                            {% endif %}
                             <p class="text-xs text-green-600 font-medium mt-1" id="printEbookGift">
                                 {% if lang == 'es' %}+ eBook interactivo de regalo (6 meses){% else %}+ Gift interactive eBook (6 months){% endif %}
                             </p>
@@ -124,7 +317,7 @@
 
         <div class="mt-4 pt-4 border-t border-gray-200">
             <div class="flex justify-between items-center text-base">
-                <span class="text-gray-600">{% if lang == 'es' %}Precio del libro:{% else %}Book price:{% endif %}</span>
+                <span class="text-gray-600">{% if lang == 'es' %}Total de su compra:{% else %}Your total:{% endif %}</span>
                 <span class="font-semibold text-gray-800" id="basePriceDisplay">
                     {% if checkout_config.allow_digital and not checkout_config.allow_print %}
                         ${{ checkout_config.digital_base_price }} USD
@@ -135,11 +328,8 @@
                     {% endif %}
                 </span>
             </div>
-            <div id="shippingCostLine" class="flex justify-between items-center text-base mt-1 {{ 'hidden' if checkout_config.allow_digital or checkout_config.allow_ebook else '' }}">
-                <span class="text-gray-600" id="shippingCostLabel">{% if lang == 'es' %}Impresión + envío:{% else %}Printing + shipping:{% endif %}</span>
-                <span class="font-semibold text-gray-800" id="shippingCostDisplay">
-                    {% if lang == 'es' %}Pendiente{% else %}Pending{% endif %}
-                </span>
+            <div id="shippingCostLine" class="hidden">
+                <span id="shippingCostDisplay"></span>
             </div>
         </div>
     </div>
@@ -164,19 +354,20 @@
                 <label class="block text-sm font-medium text-gray-700 mb-2">
                     {% if lang == 'es' %}Dirección (Línea 1){% else %}Address Line 1{% endif %} <span class="text-red-500">*</span>
                 </label>
-                <input type="text" id="shippingStreet" name="street1" maxlength="35"
+                <input type="text" id="shippingStreet" name="street1" maxlength="40"
                     class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     placeholder="{% if lang == 'es' %}Calle Principal 123{% else %}123 Main Street{% endif %}">
-                <p class="text-xs text-gray-500 mt-1">{% if lang == 'es' %}Máximo 35 caracteres{% else %}Maximum 35 characters{% endif %}</p>
+                <p class="text-xs text-gray-500 mt-1">{% if lang == 'es' %}Máximo 40 caracteres{% else %}Maximum 40 characters{% endif %}</p>
             </div>
             
             <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 mb-2">
                     {% if lang == 'es' %}Dirección (Línea 2){% else %}Address Line 2{% endif %}
                 </label>
-                <input type="text" id="shippingStreet2" name="street2" maxlength="35"
+                <input type="text" id="shippingStreet2" name="street2" maxlength="40"
                     class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="{% if lang == 'es' %}Apartamento, piso, etc. (opcional){% else %}Apartment, floor, etc. (optional){% endif %}">
+                    placeholder="{% if lang == 'es' %}Portal, piso, bloque (opcional){% else %}Apartment, floor, etc. (optional){% endif %}">
+                <p class="text-xs text-gray-500 mt-1">{% if lang == 'es' %}Portal, escalera, piso — si cabe todo en la línea 1, ponlo allí directamente{% else %}If the full address fits in 40 chars, put it all on line 1{% endif %}</p>
             </div>
             
             <div>
@@ -189,12 +380,15 @@
             </div>
             
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">
+                <label id="stateLabel" class="block text-sm font-medium text-gray-700 mb-2">
                     {% if lang == 'es' %}Estado/Provincia{% else %}State/Province{% endif %}
                 </label>
-                <input type="text" id="shippingState" name="state_code" maxlength="50"
+                <input type="text" id="shippingState" name="state_code" maxlength="10"
                     class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="{% if lang == 'es' %}Comunidad de Madrid{% else %}NY{% endif %}">
+                    placeholder="{% if lang == 'es' %}Comunidad Autónoma{% else %}NY{% endif %}">
+                <p id="stateCodeHint" class="text-xs text-blue-600 mt-1 hidden">
+                    {% if lang == 'es' %}Código de 2 letras: GA = Georgia, TX = Texas, CA = California, FL = Florida, NY = New York...{% else %}2-letter code: GA = Georgia, TX = Texas, CA = California, FL = Florida, NY = New York...{% endif %}
+                </p>
             </div>
             
             <div>
@@ -204,6 +398,7 @@
                 <input type="text" id="shippingPostal" name="postcode" maxlength="20"
                     class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     placeholder="28001">
+                <p id="zipStatus" class="text-xs mt-1 hidden"></p>
             </div>
             
             <div>
@@ -212,38 +407,26 @@
                 </label>
                 <select id="shippingCountry" name="country_code"
                     class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                    <option value="">{% if lang == 'es' %}Selecciona país{% else %}Select country{% endif %}</option>
-                    <option value="US">{% if lang == 'es' %}Estados Unidos{% else %}United States{% endif %}</option>
-                    <option value="ES">{% if lang == 'es' %}España{% else %}Spain{% endif %}</option>
-                    <option value="MX">{% if lang == 'es' %}México{% else %}Mexico{% endif %}</option>
-                    <option value="AR">Argentina</option>
-                    <option value="CO">Colombia</option>
-                    <option value="CL">Chile</option>
-                    <option value="PE">{% if lang == 'es' %}Perú{% else %}Peru{% endif %}</option>
-                    <option value="GB">{% if lang == 'es' %}Reino Unido{% else %}United Kingdom{% endif %}</option>
-                    <option value="CA">{% if lang == 'es' %}Canadá{% else %}Canada{% endif %}</option>
-                    <option value="FR">{% if lang == 'es' %}Francia{% else %}France{% endif %}</option>
-                    <option value="DE">{% if lang == 'es' %}Alemania{% else %}Germany{% endif %}</option>
-                    <option value="IT">{% if lang == 'es' %}Italia{% else %}Italy{% endif %}</option>
-                    <option value="PT">Portugal</option>
-                    <option value="BR">{% if lang == 'es' %}Brasil{% else %}Brazil{% endif %}</option>
-                    <option value="AU">Australia</option>
-                    <option value="NL">{% if lang == 'es' %}Países Bajos{% else %}Netherlands{% endif %}</option>
-                    <option value="BE">{% if lang == 'es' %}Bélgica{% else %}Belgium{% endif %}</option>
-                    <option value="CH">{% if lang == 'es' %}Suiza{% else %}Switzerland{% endif %}</option>
-                    <option value="AT">Austria</option>
-                    <option value="IE">{% if lang == 'es' %}Irlanda{% else %}Ireland{% endif %}</option>
-                    <option value="PL">{% if lang == 'es' %}Polonia{% else %}Poland{% endif %}</option>
-                    <option value="SE">{% if lang == 'es' %}Suecia{% else %}Sweden{% endif %}</option>
-                    <option value="NO">{% if lang == 'es' %}Noruega{% else %}Norway{% endif %}</option>
-                    <option value="DK">{% if lang == 'es' %}Dinamarca{% else %}Denmark{% endif %}</option>
-                    <option value="FI">{% if lang == 'es' %}Finlandia{% else %}Finland{% endif %}</option>
-                    <option value="JP">{% if lang == 'es' %}Japón{% else %}Japan{% endif %}</option>
-                    <option value="KR">{% if lang == 'es' %}Corea del Sur{% else %}South Korea{% endif %}</option>
-                    <option value="NZ">{% if lang == 'es' %}Nueva Zelanda{% else %}New Zealand{% endif %}</option>
+                    {% if checkout_config.get('print_product_type') in ('qs_print', 'cp_personalized') %}
+                        {{ cp_country_options(placeholder_es='Selecciona país', placeholder_en='Select country') }}
+                    {% else %}
+                        {{ gelato_country_options(placeholder_es='Selecciona país', placeholder_en='Select country') }}
+                    {% endif %}
                 </select>
             </div>
-            
+
+            {% if checkout_config.get('is_gelato_book') %}
+            <div class="md:col-span-2">
+                <button type="button" onclick="fetchShippingRates()"
+                    class="w-full py-2 px-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors">
+                    {% if lang == 'es' %}Calcular envío{% else %}Calculate shipping{% endif %}
+                </button>
+                <p class="text-xs text-gray-500 mt-1">
+                    {% if lang == 'es' %}Pulsa para ver las opciones de envío con tu código postal{% else %}Click to see shipping options with your postal code{% endif %}
+                </p>
+            </div>
+            {% endif %}
+
             <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 mb-2">
                     {% if lang == 'es' %}Teléfono{% else %}Phone{% endif %} <span class="text-red-500">*</span>
@@ -310,20 +493,22 @@
             </div>
     </div>
 
-    <div class="bg-yellow-50 border border-yellow-300 rounded-xl p-4 mb-4">
-        <p class="text-sm font-bold text-yellow-800 mb-2">🎟️ {% if lang == 'es' %}¿Tienes un código de descuento?{% else %}Have a discount code?{% endif %}</p>
-        <div class="flex gap-2">
-            <input type="text" id="couponInput" placeholder="{% if lang == 'es' %}Ej: MAGIC20{% else %}E.g. MAGIC20{% endif %}"
-                   style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid #D4AF37;font-size:14px;text-transform:uppercase;"
-                   oninput="this.value=this.value.toUpperCase()">
-            <button onclick="applyCoupon()" id="applyCouponBtn"
-                    style="background:linear-gradient(135deg,#D4AF37,#B8860B);color:white;font-weight:700;font-size:13px;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;">
-                {% if lang == 'es' %}Aplicar{% else %}Apply{% endif %}
-            </button>
-            <button onclick="removeCoupon()" id="removeCouponBtn" style="display:none;background:#EF4444;color:white;font-weight:700;font-size:13px;padding:8px 12px;border-radius:8px;border:none;cursor:pointer;">✕</button>
-        </div>
-        <p id="couponMsg" style="font-size:12px;margin-top:6px;display:none;"></p>
+    <div class="bg-green-50 border border-green-300 rounded-xl p-4 mb-3">
+        <p class="text-sm font-bold text-green-800 mb-1">
+            {% if lang == 'es' %}Oferta de inauguración — 10% de descuento para todos{% else %}Inauguration offer — 10% off for everyone{% endif %}
+        </p>
+        <p class="text-xs text-green-700 mb-2">
+            {% if lang == 'es' %}Usa el código <strong>APERTURA10</strong> al comprar. Válido por tiempo limitado.{% else %}Use code <strong>APERTURA10</strong> at checkout. Limited time offer.{% endif %}
+        </p>
+        <button onclick="document.getElementById('couponInput').value='APERTURA10';applyCoupon();"
+                style="background:linear-gradient(135deg,#16a34a,#15803d);color:white;font-weight:700;font-size:12px;padding:5px 12px;border-radius:6px;border:none;cursor:pointer;">
+            {% if lang == 'es' %}Aplicar 10% descuento{% else %}Apply 10% discount{% endif %}
+        </button>
     </div>
+
+    <input type="hidden" id="couponInput">
+    <button id="removeCouponBtn" onclick="removeCoupon()" style="display:none;"></button>
+    <p id="couponMsg" style="font-size:12px;margin-top:6px;display:none;"></p>
 
     <div class="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-6" id="totalSection">
         <div class="flex justify-between items-center text-lg font-bold">
@@ -367,12 +552,17 @@
         </div>
         <div id="paypal-button-container" class="min-h-[50px]"></div>
         <p class="text-xs text-red-500 mt-2 hidden text-center" id="paypalError"></p>
+
     </div>
     
     <p class="text-center text-gray-500 text-sm mt-6">
         {% if lang == 'es' %}Al pagar, aceptas nuestros{% else %}By paying, you accept our{% endif %}
         <a href="/terms" class="text-purple-600 underline">{% if lang == 'es' %}términos y condiciones{% else %}terms and conditions{% endif %}</a>
     </p>
+
+<div id="cartAddToast" class="hidden fixed bottom-6 right-6 z-50 font-semibold py-3 px-5 rounded-xl shadow-xl text-sm bg-purple-700 text-white">
+    🛒 <span id="cartAddToastMsg"></span>
+</div>
 </section>
 
 <div id="addressConfirmModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
@@ -440,17 +630,100 @@ const CFG = {
     allowDigital: {{ 'true' if checkout_config.allow_digital else 'false' }},
     allowPrint: {{ 'true' if checkout_config.allow_print else 'false' }},
     allowEbook: {{ 'true' if checkout_config.allow_ebook else 'false' }},
-    digitalBasePrice: {{ checkout_config.digital_base_price|default(0) }},
-    printBasePrice: {{ checkout_config.print_base_price|default(0) }},
-    ebookBasePrice: {{ checkout_config.ebook_base_price|default(7) }},
-    printProductType: '{{ checkout_config.print_product_type|default("personalized") }}',
-    digitalProductType: '{{ checkout_config.digital_product_type|default("qs_digital") }}',
+    allowPdf: {{ 'true' if checkout_config.get('allow_pdf') else 'false' }},
+    digitalBasePrice: {{ checkout_config.get('digital_base_price', 0) }},
+    printBasePrice: {{ checkout_config.get('print_base_price', 0) }},
+    ebookBasePrice: {{ checkout_config.get('ebook_base_price', 6) }},
+    pdfBasePrice: {{ checkout_config.get('pdf_base_price', 0) }},
+    printProductType: '{{ checkout_config.get("print_product_type", "personalized") }}',
+    digitalProductType: '{{ checkout_config.get("digital_product_type", "qs_digital") }}',
+    pdfProductType: '{{ checkout_config.get("pdf_product_type", "personalized_pdf") }}',
+    ebookProductType: '{{ checkout_config.get("ebook_product_type", "ebook") }}',
+    excludedCountries: {{ excluded_countries|default([])|tojson }},
+    cpCountries: {{ cp_countries|default([])|tojson }},
+    isGelatoBook: {{ 'true' if checkout_config.get('is_gelato_book') else 'false' }},
+    isQsPrint: {{ 'true' if checkout_config.get('print_product_type') == 'qs_print' else 'false' }},
+    isCpPb: {{ 'true' if checkout_config.get('print_product_type') == 'cp_personalized' else 'false' }},
 };
+const cantShipCountriesSet = CFG.isGelatoBook ? new Set() :
+    ((CFG.isQsPrint || CFG.isCpPb) && CFG.cpCountries.length > 0)
+        ? new Set()  // CP products: only CP countries shown in dropdown, all listed are valid
+        : new Set([...CFG.excludedCountries, 'EC', 'BO', 'PY', 'UY', 'PA', 'CR', 'GT', 'DO', 'HN', 'SV', 'NI', 'PR', 'OTHER']);
+let printDisabledByCountry = true;
 
-let currentTotal = CFG.allowDigital ? CFG.digitalBasePrice : (CFG.allowEbook ? CFG.ebookBasePrice : CFG.printBasePrice);
-let currentPlatformFee = currentTotal; // platform fee only, excluding Lulu shipping/printing
+(function initPrintDisabled() {
+    document.addEventListener('DOMContentLoaded', function() {
+        const printOption = document.getElementById('optionPrint');
+        const printCheckbox = printOption ? printOption.querySelector('input[value="print"]') : null;
+        if (printOption) { printOption.style.opacity = '0.4'; printOption.style.pointerEvents = 'none'; }
+        if (printCheckbox) printCheckbox.disabled = true;
+    });
+})();
+
+function onBuyerCountryChange(countryCode) {
+    const warning = document.getElementById('countryShipWarning');
+    const printOption = document.getElementById('optionPrint');
+    const printCheckbox = printOption ? printOption.querySelector('input[value="print"]') : null;
+    const shippingCountry = document.getElementById('shippingCountry');
+    const stateHint = document.getElementById('stateCodeHint');
+    const stateLabel = document.getElementById('stateLabel');
+    const stateInput = document.getElementById('shippingState');
+
+    const needsStateCode = (countryCode === 'US' || countryCode === 'AU');
+    if (stateHint) { if (needsStateCode) stateHint.classList.remove('hidden'); else stateHint.classList.add('hidden'); }
+    if (stateInput && needsStateCode) {
+        stateInput.placeholder = countryCode === 'US' ? 'GA' : 'NSW';
+        stateInput.maxLength = 3;
+    } else if (stateInput) {
+        stateInput.placeholder = CFG.lang === 'es' ? 'Comunidad Autónoma' : 'NY';
+        stateInput.maxLength = 10;
+    }
+    if (stateLabel && needsStateCode) {
+        stateLabel.textContent = CFG.lang === 'es' ? 'Estado (código 2 letras) *' : 'State code (2 letters) *';
+    } else if (stateLabel) {
+        stateLabel.textContent = CFG.lang === 'es' ? 'Estado/Provincia' : 'State/Province';
+    }
+
+    if (!countryCode) {
+        if (warning) warning.classList.add('hidden');
+        if (printOption) { printOption.style.opacity = '0.4'; printOption.style.pointerEvents = 'none'; }
+        if (printCheckbox) { printCheckbox.disabled = true; if (printCheckbox.checked) { printCheckbox.checked = false; toggleFormat(); } }
+        printDisabledByCountry = true;
+        return;
+    }
+
+    const cantShip = cantShipCountriesSet.has(countryCode);
+
+    if (cantShip) {
+        if (warning) warning.classList.remove('hidden');
+        if (printCheckbox && printCheckbox.checked) { printCheckbox.checked = false; toggleFormat(); }
+        if (printOption) { printOption.style.opacity = '0.4'; printOption.style.pointerEvents = 'none'; }
+        if (printCheckbox) printCheckbox.disabled = true;
+        printDisabledByCountry = true;
+        const _ss = document.getElementById('shippingSection');
+        const _sms = document.getElementById('shippingMethodSection');
+        if (_ss) _ss.classList.add('hidden');
+        if (_sms) _sms.classList.add('hidden');
+        selectedShippingCost = 0;
+        selectedShippingMethod = null;
+        updatePriceDisplay();
+    } else {
+        if (warning) warning.classList.add('hidden');
+        if (printOption) { printOption.style.opacity = '1'; printOption.style.pointerEvents = 'auto'; }
+        if (printCheckbox) printCheckbox.disabled = false;
+        printDisabledByCountry = false;
+        if (shippingCountry) {
+            const opt = shippingCountry.querySelector(`option[value="${countryCode}"]`);
+            if (opt) { shippingCountry.value = countryCode; resetAddressValidation(); fetchShippingRates(); updateTaxIdForCountry(countryCode); }
+        }
+    }
+}
+
+let currentTotal = CFG.allowDigital ? CFG.digitalBasePrice : (CFG.allowEbook ? CFG.ebookBasePrice : (CFG.allowPdf ? 0 : CFG.printBasePrice));
+let currentPlatformFee = currentTotal; // platform fee only, excluding printing/shipping
 let selectedFormats = CFG.allowDigital ? ['digital'] : (CFG.allowEbook ? ['ebook'] : []);
 let selectedShippingMethod = null;
+let shippingOptionsData = {};
 let selectedShippingCost = 0;
 let checkoutDataGlobal = null;
 let addressValidated = false;
@@ -467,7 +740,7 @@ async function applyCoupon() {
     const resp = await fetch('/api/validate-coupon', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({code: code, buyer_email: email})
+        body: JSON.stringify({code: code, buyer_email: email, lang: CFG.lang})
     });
     const result = await resp.json();
     const msgEl = document.getElementById('couponMsg');
@@ -475,21 +748,25 @@ async function applyCoupon() {
     if (result.valid) {
         appliedCoupon = result.code;
         appliedDiscountPct = result.discount_pct;
-        // Discount applies ONLY on platform fee (your cost: $7, $20, $30) — NOT on Lulu printing/shipping
+        // Discount applies ONLY on platform fee (your cost: $6, $15, $26) — NOT on printing/shipping
         appliedDiscount = Math.round(currentPlatformFee * appliedDiscountPct) / 100;
         const origEl = document.getElementById('originalPrice');
-        if (origEl) { origEl.textContent = '$' + (currentPlatformFee + selectedShippingCost).toFixed(2) + ' USD'; origEl.style.display = 'inline'; }
-        currentTotal = Math.max(Math.round((currentPlatformFee - appliedDiscount) * 100) / 100, 1) + selectedShippingCost;
+        const _activeShipping = selectedFormats.includes('print') ? selectedShippingCost : 0;
+        if (origEl) { origEl.textContent = '$' + (currentPlatformFee + _activeShipping).toFixed(2) + ' USD'; origEl.style.display = 'inline'; }
+        currentTotal = Math.max(Math.round((currentPlatformFee - appliedDiscount) * 100) / 100, 1) + _activeShipping;
         const totEl = document.getElementById('totalAmount');
         if (totEl) totEl.textContent = '$' + currentTotal.toFixed(2) + ' USD';
         msgEl.style.color = 'green';
-        msgEl.textContent = '✅ ' + result.discount_pct + '% descuento aplicado!';
-        document.getElementById('applyCouponBtn').style.display = 'none';
-        document.getElementById('removeCouponBtn').style.display = 'inline-block';
+        msgEl.textContent = '✅ ' + result.discount_pct + (CFG.lang === 'es' ? '% descuento aplicado!' : '% discount applied!');
+        const applyBtn = document.getElementById('applyCouponBtn');
+        const removeBtn = document.getElementById('removeCouponBtn');
+        if (applyBtn) applyBtn.style.display = 'none';
+        if (removeBtn) removeBtn.style.display = 'inline-block';
         document.getElementById('couponInput').disabled = true;
+        updatePriceDisplay();
     } else {
         msgEl.style.color = 'red';
-        msgEl.textContent = '❌ ' + (result.error || 'Código inválido');
+        msgEl.textContent = '❌ ' + (result.error || (CFG.lang === 'es' ? 'Código inválido' : 'Invalid code'));
     }
 }
 
@@ -497,7 +774,7 @@ function removeCoupon() {
     appliedCoupon = null;
     appliedDiscountPct = 0;
     appliedDiscount = 0;
-    currentTotal = currentPlatformFee + selectedShippingCost;
+    currentTotal = currentPlatformFee + (selectedFormats.includes('print') ? selectedShippingCost : 0);
     const totEl = document.getElementById('totalAmount');
     if (totEl) totEl.textContent = '$' + currentTotal.toFixed(2) + ' USD';
     const origEl = document.getElementById('originalPrice');
@@ -505,12 +782,15 @@ function removeCoupon() {
     document.getElementById('couponMsg').style.display = 'none';
     document.getElementById('couponInput').value = '';
     document.getElementById('couponInput').disabled = false;
-    document.getElementById('applyCouponBtn').style.display = 'inline-block';
-    document.getElementById('removeCouponBtn').style.display = 'none';
+    const applyBtn2 = document.getElementById('applyCouponBtn');
+    const removeBtn2 = document.getElementById('removeCouponBtn');
+    if (applyBtn2) applyBtn2.style.display = 'inline-block';
+    if (removeBtn2) removeBtn2.style.display = 'none';
+    updatePriceDisplay();
 }
 
 // ── format toggles ──────────────────────────────────────────────────────────
-function toggleFormat() {
+function toggleFormat(changedEl) {
     const checkboxes = document.querySelectorAll('input[name="formatOption"]');
     selectedFormats = Array.from(checkboxes).filter(c => c.checked).map(c => c.value);
     
@@ -520,22 +800,25 @@ function toggleFormat() {
     if (shippingSection) shippingSection.classList.toggle('hidden', !wantPrint);
     if (shippingMethodSection) shippingMethodSection.classList.toggle('hidden', !wantPrint || !selectedShippingMethod);
     updatePriceDisplay();
+    if (wantPrint && selectedShippingMethod && !addressValidated) autoValidateAddress();
 }
 
 function updatePriceDisplay() {
     const wantPrint = selectedFormats.includes('print');
     const hasEbook = selectedFormats.includes('ebook');
     const hasDigital = selectedFormats.includes('digital');
-    
+    const hasPdf = selectedFormats.includes('pdf');
+    const isEs = CFG.lang === 'es';
+
     let base = 0;
     if (hasDigital) base += CFG.digitalBasePrice;
-    if (hasEbook && !hasDigital) base += CFG.ebookBasePrice;
+    if (hasEbook) base += CFG.ebookBasePrice;
+    if (hasPdf) base += CFG.pdfBasePrice;
     if (wantPrint) base += CFG.printBasePrice;
-    
-    currentPlatformFee = base; // keep Lulu cost separate
+
+    currentPlatformFee = base;
     let shipping = wantPrint ? selectedShippingCost : 0;
-    
-    // Re-apply coupon discount to the (possibly updated) platform fee only
+
     if (appliedCoupon && appliedDiscountPct > 0) {
         appliedDiscount = Math.round(currentPlatformFee * appliedDiscountPct) / 100;
         currentTotal = Math.max(Math.round((currentPlatformFee - appliedDiscount) * 100) / 100, 1) + shipping;
@@ -545,18 +828,38 @@ function updatePriceDisplay() {
         appliedDiscount = 0;
         currentTotal = base + shipping;
     }
-    
+
     const totalEl = document.getElementById('totalAmount');
     if (totalEl) totalEl.textContent = '$' + currentTotal.toFixed(2) + ' USD';
-    
+
     const basePriceEl = document.getElementById('basePriceDisplay');
     if (basePriceEl) basePriceEl.textContent = '$' + base.toFixed(2) + ' USD';
-    
-    const shippingLine = document.getElementById('shippingCostLine');
-    if (shippingLine) shippingLine.classList.toggle('hidden', !wantPrint);
-    const shippingDisplay = document.getElementById('shippingCostDisplay');
-    if (shippingDisplay && wantPrint) {
-        shippingDisplay.textContent = selectedShippingCost > 0 ? '$' + selectedShippingCost.toFixed(2) + ' USD' : (CFG.lang === 'es' ? 'Pendiente' : 'Pending');
+
+    // Build itemized breakdown for #totalBreakdown
+    const bdEl = document.getElementById('totalBreakdown');
+    if (bdEl) {
+        const row = (label, val) => `<div class="flex justify-between text-xs text-gray-600 mt-0.5"><span>${label}</span><span class="font-medium">${val}</span></div>`;
+        const boldRow = (label, val) => `<div class="flex justify-between text-sm font-semibold text-gray-800 mt-1"><span>${label}</span><span>${val}</span></div>`;
+        const discRow = (label, val) => `<div class="flex justify-between text-xs text-green-700 mt-0.5"><span>${label}</span><span class="font-medium">${val}</span></div>`;
+        let html = '';
+        if (hasEbook) html += row(isEs ? 'eBook Interactivo' : 'Interactive eBook', '$' + CFG.ebookBasePrice.toFixed(2));
+        if (hasPdf) html += row(isEs ? 'PDF Imprimible' : 'Printable PDF', '$' + CFG.pdfBasePrice.toFixed(2));
+        if (hasDigital) html += row(isEs ? 'PDF Digital' : 'Digital PDF', '$' + CFG.digitalBasePrice.toFixed(2));
+        if (wantPrint) html += row(isEs ? 'Libro impreso' : 'Printed book', '$' + CFG.printBasePrice.toFixed(2));
+        if (wantPrint) {
+            const shippingLabel = shipping > 0 ? '$' + shipping.toFixed(2) : (isEs ? 'Pendiente' : 'Pending');
+            html += row(isEs ? 'Envío' : 'Shipping', shippingLabel);
+        }
+        if (html) html += '<div class="border-t border-gray-200 my-1"></div>';
+        if (appliedCoupon && appliedDiscount > 0) {
+            const subtotal = currentPlatformFee + shipping;
+            html += row(isEs ? 'Subtotal' : 'Subtotal', '$' + subtotal.toFixed(2));
+            html += discRow(isEs ? `Descuento ${appliedDiscountPct}%` : `Discount ${appliedDiscountPct}%`, '-$' + appliedDiscount.toFixed(2));
+            html += boldRow(isEs ? 'Total a pagar' : 'Total to pay', '$' + currentTotal.toFixed(2));
+        } else if (html) {
+            html += boldRow(isEs ? 'Total' : 'Total', '$' + currentTotal.toFixed(2));
+        }
+        bdEl.innerHTML = html;
     }
 }
 
@@ -575,8 +878,13 @@ function getShippingAddress() {
     };
 }
 
-async function validateShippingWithLulu() {
+async function validateShippingAddress() {
     const addr = getShippingAddress();
+    if (CFG.isGelatoBook) {
+        addressValidated = true;
+        validatedAddress = addr;
+        return true;
+    }
     try {
         const resp = await fetch('/api/validate-address', {
             method: 'POST',
@@ -592,14 +900,37 @@ async function validateShippingWithLulu() {
             return true;
         }
 
-        if (!result.valid && result.suggested_address) {
+        if (result.valid && result.suggested_address && !result.auto_corrected) {
             showAddressConfirmModal(addr, result.suggested_address);
             return new Promise(resolve => { addressValidationResolve = resolve; });
         }
 
         if (!result.valid && !result.suggested_address) {
-            showPaypalError(result.message || (CFG.lang === 'es' ? 'Dirección no válida.' : 'Invalid address.'));
+            const msg = CFG.lang === 'es'
+                ? (result.message_es || result.message || 'Dirección no válida.')
+                : (result.message || 'Invalid address.');
+            showPaypalError(msg);
+            const statusEl = document.getElementById('zipStatus');
+            if (statusEl) {
+                statusEl.textContent = msg;
+                statusEl.className = 'text-xs mt-1 text-red-500';
+                statusEl.classList.remove('hidden');
+            }
             return false;
+        }
+
+        if (result.valid && result.warning) {
+            const warnMsg = CFG.lang === 'es'
+                ? (result.message_es || result.message || '')
+                : (result.message || '');
+            if (warnMsg) {
+                const statusEl = document.getElementById('zipStatus');
+                if (statusEl) {
+                    statusEl.textContent = '⚠ ' + warnMsg;
+                    statusEl.className = 'text-xs mt-1 text-amber-600';
+                    statusEl.classList.remove('hidden');
+                }
+            }
         }
 
         addressValidated = true;
@@ -662,25 +993,41 @@ function resetAddressValidation() {
 async function fetchShippingRates() {
     const country = document.getElementById('shippingCountry')?.value;
     if (!country) return;
+    const postalCode = (document.getElementById('shippingPostal')?.value || '').trim();
     const shippingMethodSection = document.getElementById('shippingMethodSection');
     const shippingLoading = document.getElementById('shippingLoading');
     const shippingOptions = document.getElementById('shippingOptions');
     if (shippingMethodSection) shippingMethodSection.classList.remove('hidden');
     if (shippingLoading) shippingLoading.classList.remove('hidden');
     if (shippingOptions) shippingOptions.classList.add('hidden');
-    
+
     try {
-        const resp = await fetch('/api/calculate-dynamic-price', {
+        let endpoint, body;
+        if (CFG.isGelatoBook) {
+            endpoint = '/api/gelato-quote';
+            body = { country_code: country, postal_code: postalCode || undefined };
+        } else {
+            const stateCode = (document.getElementById('shippingState')?.value || '').trim().toUpperCase();
+            endpoint = '/api/calculate-dynamic-price';
+            body = { product_type: CFG.printProductType, country_code: country };
+            if (stateCode) body.state_code = stateCode;
+        }
+        const resp = await fetch(endpoint, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                product_type: CFG.printProductType,
-                country_code: country
-            })
+            body: JSON.stringify(body)
         });
         const data = await resp.json();
         if (data.options) {
             renderShippingOptions(data.options);
+        } else if (data.error) {
+            const msg = CFG.lang === 'es' ? (data.message_es || data.error) : (data.message_en || data.error);
+            renderShippingOptions({});
+            const container = document.getElementById('shippingOptions');
+            if (container) {
+                container.innerHTML = `<p class="text-sm text-red-600 py-2">⚠️ ${msg}</p>`;
+                container.classList.remove('hidden');
+            }
         }
     } catch(e) {
         console.error('Shipping calc error:', e);
@@ -692,24 +1039,42 @@ function renderShippingOptions(options) {
     const container = document.getElementById('shippingOptions');
     if (!container) return;
     container.innerHTML = '';
-    const sorted = Object.entries(options).sort((a, b) => a[1].customer_total - b[1].customer_total);
+    shippingOptionsData = options;
+    const entries = Object.entries(options);
+    if (entries.length === 0) {
+        selectedShippingMethod = null;
+        selectedShippingCost = 0;
+        updatePriceDisplay();
+        container.innerHTML = `<p class="text-sm text-amber-600 py-2">${CFG.lang === 'es' ? 'No hay opciones de envío disponibles para este destino.' : 'No shipping options available for this destination.'}</p>`;
+        container.classList.remove('hidden');
+        return;
+    }
+    const sorted = entries.sort((a, b) => {
+        const ta = a[1].total ?? a[1].customer_total ?? 0;
+        const tb = b[1].total ?? b[1].customer_total ?? 0;
+        return ta - tb;
+    });
     sorted.forEach(([method, opt], idx) => {
-        const price = opt.lulu_cost.toFixed(2);
         const name = CFG.lang === 'es' ? opt.name_es : opt.name_en;
+        const days = CFG.lang === 'es' ? (opt.days_es || opt.days || '') : (opt.days_en || opt.days || '');
+        const shippingCost = parseFloat(opt.cp_cost ?? opt.gelato_cost ?? opt.lulu_cost ?? 0);
+        const totalPrice = parseFloat(opt.total ?? opt.customer_total ?? 0);
+        const bookBase = parseFloat(opt.book_base_price ?? opt.base_price ?? (totalPrice - shippingCost) ?? 0);
         const div = document.createElement('label');
         div.className = 'flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-purple-300 transition-all';
         div.innerHTML = `
-            <input type="radio" name="shippingMethod" value="${method}" data-cost="${opt.lulu_cost}" data-total="${opt.customer_total}" class="w-5 h-5 text-purple-600" ${idx===0?'checked':''}>
+            <input type="radio" name="shippingMethod" value="${method}" data-cost="${shippingCost}" data-total="${totalPrice}" class="w-5 h-5 text-purple-600" ${idx===0?'checked':''}>
             <div class="flex-1">
                 <span class="font-medium text-gray-800">${name}</span>
-                <span class="text-xs text-gray-500 ml-2">${opt.days}</span>
+                <span class="text-xs text-gray-500 ml-2">${days}</span>
+                <div class="text-xs text-gray-400 mt-0.5">${CFG.lang === 'es' ? 'Impresión' : 'Printing'}: $${shippingCost.toFixed(2)}</div>
             </div>
-            <span class="font-bold text-purple-700">$${price} USD</span>
+            <span class="font-bold text-purple-700">$${shippingCost.toFixed(2)} USD</span>
         `;
         container.appendChild(div);
         if (idx === 0) {
             selectedShippingMethod = method;
-            selectedShippingCost = parseFloat(opt.lulu_cost);
+            selectedShippingCost = shippingCost;
             updatePriceDisplay();
         }
     });
@@ -735,7 +1100,59 @@ async function autoValidateAddress() {
     const country = document.getElementById('shippingCountry')?.value;
     if (!name || !street || !city || !postal || !country) return;
     if (!selectedShippingMethod) return;
-    await validateShippingWithLulu();
+    await validateShippingAddress();
+}
+
+// ── US ZIP auto-fill via Nominatim / OpenStreetMap (free, no API key) ────────
+let _zipFillLast = '';
+async function zipAutoFill(zip) {
+    const country = document.getElementById('shippingCountry')?.value || '';
+    if (country !== 'US') return;
+    const clean = zip.replace(/\D/g, '');
+    if (clean.length !== 5) return;
+    if (clean === _zipFillLast) return;
+    _zipFillLast = clean;
+
+    const statusEl = document.getElementById('zipStatus');
+    const isEs = CFG.lang === 'es';
+    if (statusEl) { statusEl.textContent = isEs ? '⏳ Verificando...' : '⏳ Verifying...'; statusEl.className = 'text-xs mt-1 text-gray-400'; statusEl.classList.remove('hidden'); }
+
+    try {
+        const url = `https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(clean)}&country=US&format=json&limit=1&addressdetails=1&email=support@magicmemories.com`;
+        const r = await fetch(url);
+        const d = await r.json();
+        if (!Array.isArray(d) || d.length === 0) throw new Error('not found');
+
+        const addr  = d[0].address || {};
+        const city  = addr.city || addr.town || addr.village || addr.county || '';
+        const iso   = addr['ISO3166-2-lvl4'] || '';
+        const state = iso.includes('-') ? iso.split('-').pop() : '';
+
+        const cityEl  = document.getElementById('shippingCity');
+        const stateEl = document.getElementById('shippingState');
+
+        if (cityEl && !cityEl.value.trim())   cityEl.value  = city;
+        if (stateEl && !stateEl.value.trim()) stateEl.value = state;
+        if (stateEl && state && stateEl.value.trim().toUpperCase() !== state.toUpperCase()) stateEl.value = state;
+
+        if (statusEl) {
+            statusEl.textContent = city
+                ? (isEs ? `✓ ${city}, ${state}` : `✓ ${city}, ${state}`)
+                : (isEs ? '✓ Código postal verificado' : '✓ Postal code verified');
+            statusEl.className = 'text-xs mt-1 text-green-600';
+        }
+
+        if (selectedFormats.includes('print') && state) {
+            const stateInput = document.getElementById('shippingState');
+            if (stateInput) stateInput.dispatchEvent(new Event('blur'));
+        }
+    } catch(e) {
+        _zipFillLast = '';
+        if (statusEl) {
+            statusEl.textContent = isEs ? '✗ ZIP no encontrado' : '✗ ZIP not found';
+            statusEl.className = 'text-xs mt-1 text-red-500';
+        }
+    }
 }
 
 // ── country change ──────────────────────────────────────────────────────────
@@ -745,6 +1162,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (countrySelect) {
         countrySelect.addEventListener('change', () => {
             resetAddressValidation();
+            _zipFillLast = '';
+            document.getElementById('zipStatus')?.classList.add('hidden');
             if (selectedFormats.includes('print')) fetchShippingRates();
             updateTaxIdForCountry(countrySelect.value);
         });
@@ -754,9 +1173,30 @@ document.addEventListener('DOMContentLoaded', () => {
         if (el) el.addEventListener('input', resetAddressValidation);
     });
     const postalEl = document.getElementById('shippingPostal');
-    if (postalEl) postalEl.addEventListener('blur', () => autoValidateAddress());
+    if (postalEl) {
+        postalEl.addEventListener('blur', () => {
+            zipAutoFill(postalEl.value.trim());
+            autoValidateAddress();
+        });
+        postalEl.addEventListener('input', () => {
+            const v = postalEl.value.replace(/\D/g,'');
+            const country = document.getElementById('shippingCountry')?.value || '';
+            if (country === 'US' && v.length === 5) zipAutoFill(v);
+        });
+    }
     const countryEl = document.getElementById('shippingCountry');
     if (countryEl) countryEl.addEventListener('blur', () => autoValidateAddress());
+    // For QS print and CP personalized, re-fetch shipping rates when state changes (US and AU require state)
+    if (CFG.isQsPrint || CFG.isCpPb) {
+        const stateEl = document.getElementById('shippingState');
+        if (stateEl) {
+            stateEl.addEventListener('blur', () => {
+                const country = document.getElementById('shippingCountry')?.value;
+                const state = stateEl.value.trim();
+                if (country && state && selectedFormats.includes('print')) fetchShippingRates();
+            });
+        }
+    }
 });
 
 // ── start checkout (called by form submit) ───────────────────────────────────
@@ -811,6 +1251,16 @@ function clearPaypalError() {
 async function buildCheckoutData() {
     const email = document.getElementById('email')?.value?.trim();
     const wantPrint = selectedFormats.includes('print');
+    const hasPdf = selectedFormats.includes('pdf');
+    const selectedOpt = (wantPrint && selectedShippingMethod && shippingOptionsData[selectedShippingMethod]) ? shippingOptionsData[selectedShippingMethod] : null;
+    let productTypeForSave = null;
+    let printProductTypeForSave = null;
+    if (wantPrint) {
+        productTypeForSave = CFG.printProductType;
+        printProductTypeForSave = CFG.printProductType;
+    } else if (hasPdf) {
+        productTypeForSave = CFG.pdfProductType;
+    }
     return {
         email: email,
         want_print: wantPrint,
@@ -818,6 +1268,12 @@ async function buildCheckoutData() {
         shipping_method: wantPrint ? selectedShippingMethod : null,
         shipping_address: wantPrint ? getShippingAddress() : null,
         phone: document.getElementById('shippingPhone')?.value || '',
+        buyer_country: document.getElementById('buyerCountry')?.value || '',
+        cp_cost_eur: selectedOpt ? (selectedOpt.cp_cost_eur ?? selectedOpt.cp_cost ?? 0) : 0,
+        print_cost_eur: selectedOpt ? (selectedOpt.print_cost_eur ?? 0) : 0,
+        customer_total_usd: selectedOpt ? (selectedOpt.customer_total ?? 0) : 0,
+        product_type: productTypeForSave,
+        print_product_type: printProductTypeForSave,
     };
 }
 
@@ -842,7 +1298,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.onclick = async () => {
             if (!validateCheckoutForm()) return;
             if (selectedFormats.includes('print') && !addressValidated) {
-                const valid = await validateShippingWithLulu();
+                const valid = await validateShippingAddress();
                 if (!valid) return;
             }
             const checkoutData = await buildCheckoutData();
@@ -863,7 +1319,7 @@ document.addEventListener('DOMContentLoaded', () => {
         onClick: async function(data, actions) {
             if (!validateCheckoutForm()) return actions.reject();
             if (selectedFormats.includes('print') && !addressValidated) {
-                const valid = await validateShippingWithLulu();
+                const valid = await validateShippingAddress();
                 if (!valid) return actions.reject();
             }
             return actions.resolve();
@@ -872,8 +1328,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const checkoutData = await buildCheckoutData();
             checkoutDataGlobal = checkoutData;
             await saveCheckoutData(checkoutData);
-            const amount = currentTotal > 0 ? currentTotal : CFG.digitalBasePrice;
-            // base_price_usd = platform fee only (no Lulu shipping), backend applies discount on this
+            // Send PRE-discount total to backend so the coupon is applied ONCE (by the backend only).
+            // If we send the post-coupon currentTotal, the backend applies the coupon again → double discount.
+            const _shippingForOrder = selectedFormats.includes('print') ? selectedShippingCost : 0;
+            const _preDiscountTotal = currentPlatformFee + _shippingForOrder;
+            const amount = (_preDiscountTotal > 0 ? _preDiscountTotal : CFG.digitalBasePrice);
+            // base_price_usd = platform fee only (no printing/shipping), backend applies discount on this
             const payload = {amount_usd: amount, base_price_usd: currentPlatformFee, preview_id: CFG.previewId};
             if (appliedCoupon) payload.coupon_code = appliedCoupon;
             const buyerEmail = document.getElementById('email')?.value?.trim() || '';
@@ -908,7 +1368,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
                 const email = document.getElementById('email')?.value?.trim() || captureResult.payer_email || '';
-                handlePayPalSuccess(data.orderID, email, checkoutDataGlobal);
+                // Use the verified captured amount from PayPal instead of the potentially-stale currentTotal
+                const verifiedAmount = captureResult.captured_amount_usd > 0 ? captureResult.captured_amount_usd : currentTotal;
+                handlePayPalSuccess(data.orderID, email, checkoutDataGlobal, verifiedAmount);
             } catch(e) {
                 stopRotatingMessages();
                 document.getElementById('loadingOverlay').classList.add('hidden');
@@ -926,12 +1388,14 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 {% endif %}
 
-function handlePayPalSuccess(orderID, email, checkoutData) {
+function handlePayPalSuccess(orderID, email, checkoutData, verifiedAmountUsd) {
     const wantPrint = selectedFormats.includes('print');
     const hasEbook = selectedFormats.includes('ebook');
     const hasDigital = selectedFormats.includes('digital');
+    const hasPdf = selectedFormats.includes('pdf');
     let productType = CFG.digitalProductType;
-    if (hasEbook && !hasDigital && !wantPrint) productType = 'ebook';
+    if (hasEbook && !hasDigital && !wantPrint && !hasPdf) productType = 'ebook';
+    else if (hasPdf && !wantPrint) productType = CFG.pdfProductType;
     else if (wantPrint) productType = CFG.printProductType;
     
     const payData = checkoutData || {};
@@ -948,9 +1412,9 @@ function handlePayPalSuccess(orderID, email, checkoutData) {
             want_print: wantPrint,
             product_type: productType,
             formats: selectedFormats,
-            amount_usd: currentTotal,
+            amount_usd: verifiedAmountUsd || currentTotal,
             shipping_cost: wantPrint ? selectedShippingCost : 0,
-            format_prices: {digital: CFG.digitalBasePrice, print: CFG.printBasePrice, ebook: CFG.ebookBasePrice}
+            format_prices: {digital: CFG.digitalBasePrice, print: CFG.printBasePrice, ebook: CFG.ebookBasePrice, pdf: CFG.pdfBasePrice}
         })
     })
     .then(r => r.json())
@@ -960,7 +1424,7 @@ function handlePayPalSuccess(orderID, email, checkoutData) {
         } else {
             stopRotatingMessages();
             document.getElementById('loadingOverlay').classList.add('hidden');
-            showPaypalError(result.error || 'Error processing order');
+            showPaypalError(result.error || (CFG.lang === 'es' ? 'Error procesando el pago' : 'Error processing order'));
         }
     })
     .catch(() => {
@@ -993,6 +1457,64 @@ function updateTaxIdForCountry(country) {
     const taxCountries = ['MX', 'BR', 'CL', 'CO', 'PE', 'AR'];
     container.classList.toggle('hidden', !taxCountries.includes(country));
 }
+
+function addCurrentItemToCart() {
+    const wantPrint = selectedFormats.includes('print');
+    const hasPdf = selectedFormats.includes('pdf');
+    let productType;
+    if (hasPdf && !wantPrint) {
+        productType = CFG.pdfProductType;
+    } else if (wantPrint) {
+        productType = CFG.printProductType;
+    } else if (selectedFormats.includes('ebook')) {
+        productType = CFG.ebookProductType;
+    } else {
+        productType = CFG.digitalProductType;
+    }
+    fetch('/api/cart/add', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            preview_id: CFG.previewId,
+            product_type: productType
+        })
+    }).then(r => r.json()).then(data => {
+        if (data.success) {
+            const badge = document.getElementById('cartBadge');
+            if (badge) {
+                badge.textContent = data.item_count;
+                badge.classList.remove('hidden');
+            }
+
+            const toast = document.getElementById('cartAddToast');
+            const msg = document.getElementById('cartAddToastMsg');
+            if (msg) msg.textContent = CFG.lang === 'es' ? '¡Añadido al carrito! → Ver carrito' : 'Added to cart! → View cart';
+            if (toast) {
+                toast.classList.remove('hidden');
+                toast.onclick = () => window.location.href = '/cart';
+                setTimeout(() => toast.classList.add('hidden'), 4000);
+            }
+        }
+    }).catch(console.error);
+}
+</script>
+
+<script src="{{ url_for('static', filename='js/photon_ac.js') }}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    initPhotonAC({
+      streetInput:  'shippingStreet',
+      cityField:    'shippingCity',
+      postField:    'shippingPostal',
+      stateField:   'shippingState',
+      countryField: 'shippingCountry',
+      lang: '{{ lang }}',
+      onSelect: function () {
+        resetAddressValidation();
+        fetchShippingRates();
+      }
+    });
+  });
 </script>
 
 {% endblock %}
