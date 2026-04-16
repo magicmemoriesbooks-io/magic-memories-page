@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'es' %}¡Pedido Completado!{% else %}Order Complete!{% endif %} - {{ translations.site_title }}{% endblock %}
+
+{% block content %}
+<section class="py-12 px-4 max-w-2xl mx-auto">
+    <div class="text-center mb-8">
+        <div class="text-7xl mb-4">🎉</div>
+        <h1 class="font-display text-3xl font-bold text-green-800 mb-3">
+            {% if lang == 'es' %}¡Pago Exitoso!{% else %}Payment Successful!{% endif %}
+        </h1>
+        <p class="text-gray-600 text-lg">
+            {% if lang == 'es' %}Hemos recibido tu pedido. Recibirás un email de confirmación en breve.{% else %}We've received your order. You'll receive a confirmation email shortly.{% endif %}
+        </p>
+        {% if buyer_email %}
+        <p class="text-gray-500 text-sm mt-2">
+            {% if lang == 'es' %}Enviando a:{% else %}Sending to:{% endif %} <strong>{{ buyer_email }}</strong>
+        </p>
+        {% endif %}
+    </div>
+
+    {% if items %}
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        <h2 class="font-display text-lg font-bold text-gray-800 mb-4">
+            {% if lang == 'es' %}Tu pedido ({{ items|length }} {{ 'libro' if items|length == 1 else 'libros' }}){% else %}Your order ({{ items|length }} {{ 'book' if items|length == 1 else 'books' }}){% endif %}
+        </h2>
+        <div class="space-y-4 divide-y divide-gray-100">
+            {% for item in items %}
+            <div class="pt-4 first:pt-0 flex gap-4 items-start">
+                <div class="w-14 h-18 rounded-lg overflow-hidden bg-purple-100 flex-shrink-0">
+                    {% if item.cover_image %}
+                    <img src="{{ item.cover_image if item.cover_image.startswith('/') else '/' ~ item.cover_image }}"
+                         alt="{{ item.story_name }}" class="w-full h-full object-cover">
+                    {% else %}
+                    <div class="w-full h-full flex items-center justify-center text-xl">📚</div>
+                    {% endif %}
+                </div>
+                <div class="flex-1">
+                    <p class="font-bold text-gray-800">{{ item.story_name or '—' }}</p>
+                    <p class="text-sm text-gray-500">
+                        {% if lang == 'es' %}Para{% else %}For{% endif %} {{ item.child_name or '—' }}
+                    </p>
+                    <p class="text-xs mt-1">
+                        {% if item.product_type == 'personalized_pdf' %}
+                        <span class="text-green-600 font-medium">🖨️ {% if lang == 'es' %}PDF Imprimible{% else %}Printable PDF{% endif %}</span>
+                        {% elif item.product_type == 'gelato_personalized' %}
+                        <span class="text-amber-600 font-medium">📖 {% if lang == 'es' %}Libro Impreso{% else %}Printed Book{% endif %}</span>
+                        {% elif item.product_type == 'qs_digital' %}
+                        <span class="text-purple-600 font-medium">💻 {% if lang == 'es' %}PDF Digital{% else %}Digital PDF{% endif %}</span>
+                        {% elif item.product_type == 'qs_print' %}
+                        <span class="text-amber-600 font-medium">📦 {% if lang == 'es' %}Impreso{% else %}Printed{% endif %}</span>
+                        {% elif item.product_type == 'universo_ebook' %}
+                        <span class="text-blue-600 font-medium">📱 eBook</span>
+                        {% else %}
+                        <span class="text-gray-500">{{ item.product_type }}</span>
+                        {% endif %}
+                    </p>
+                    {% if item.get('redirect_url') %}
+                    <a href="{{ item.redirect_url }}" class="inline-block mt-2 text-xs text-purple-600 hover:text-purple-800 font-medium underline">
+                        {% if lang == 'es' %}Ver pedido →{% else %}View order →{% endif %}
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="text-right flex-shrink-0">
+                    <p class="font-semibold text-gray-700">${{ "%.2f"|format(item.price) }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% if total_usd %}
+        <div class="mt-4 pt-4 border-t border-gray-200 flex justify-between">
+            <span class="font-bold text-gray-700">Total:</span>
+            <span class="font-bold text-purple-700">${{ "%.2f"|format(total_usd) }} USD</span>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="bg-purple-50 border border-purple-200 rounded-2xl p-6 mb-6">
+        <h3 class="font-display text-base font-bold text-purple-800 mb-3">
+            {% if lang == 'es' %}¿Qué pasa ahora?{% else %}What happens next?{% endif %}
+        </h3>
+        <ul class="space-y-2 text-sm text-purple-700">
+            <li class="flex gap-2 items-start">
+                <span class="text-lg">📧</span>
+                {% if lang == 'es' %}Recibirás un email de confirmación con todos los detalles.{% else %}You'll receive a confirmation email with all details.{% endif %}
+            </li>
+            <li class="flex gap-2 items-start">
+                <span class="text-lg">📚</span>
+                {% if lang == 'es' %}Los libros digitales y PDFs estarán en tu email en minutos.{% else %}Digital books and PDFs will be in your email within minutes.{% endif %}
+            </li>
+            <li class="flex gap-2 items-start">
+                <span class="text-lg">📦</span>
+                {% if lang == 'es' %}Los libros impresos se producirán y enviarán en 10-20 días hábiles.{% else %}Printed books will be produced and shipped within 10-20 business days.{% endif %}
+            </li>
+        </ul>
+    </div>
+
+    <div class="text-center space-y-3">
+        <a href="{{ url_for('index') }}"
+           class="inline-block py-3 px-8 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl hover:opacity-90 transition-opacity no-underline">
+            {% if lang == 'es' %}Volver al inicio{% else %}Back to home{% endif %}
+        </a>
+    </div>
+</section>
+{% endblock %}
