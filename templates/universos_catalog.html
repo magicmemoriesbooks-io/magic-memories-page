@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'es' %}Cuentos FotoMágicos — Elige tu historia{% else %}Photo Magic Stories — Choose your story{% endif %} - {{ translations.site_title }}{% endblock %}
+{% block meta_description %}{% if lang == 'es' %}Libros personalizados de 26 páginas: tu hijo como protagonista o tú con tu mascota. Ilustraciones únicas generadas con IA.{% else %}26-page personalized books: your child as the hero or you with your pet. Unique AI-generated illustrations.{% endif %}{% endblock %}
+
+{% block content %}
+<style>
+.uni-hero {
+    background: linear-gradient(135deg, #4c1d95 0%, #7c3aed 50%, #f59e0b 100%);
+    padding: 48px 20px 36px;
+    text-align: center;
+    color: #fff;
+}
+.uni-hero h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; margin: 0 0 8px; }
+.uni-hero p  { font-size: 1.05rem; opacity: .88; margin: 0; }
+
+.uni-section { padding: 40px 20px 8px; max-width: 1100px; margin: 0 auto; }
+.uni-section-header { text-align: center; margin-bottom: 28px; }
+.uni-section-header h2 { font-size: 1.6rem; font-weight: 800; margin: 0 0 4px; }
+.uni-section-header p  { font-size: .9rem; margin: 0; }
+
+/* Story cards — horizontal */
+.story-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
+
+.story-card {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 2px 14px rgba(0,0,0,.1);
+    overflow: hidden;
+    display: flex;
+    cursor: pointer;
+    transition: transform .16s, box-shadow .16s;
+}
+.story-card:hover { transform: translateY(-4px); box-shadow: 0 10px 30px rgba(0,0,0,.16); }
+.story-card-img { width: 100px; flex-shrink: 0; }
+.story-card-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.story-card-body { padding: 13px 15px; display: flex; flex-direction: column; justify-content: space-between; flex: 1; }
+.story-card-body h3 { font-size: .95rem; font-weight: 700; margin: 0 0 4px; line-height: 1.3; }
+.story-card-body p  { font-size: .78rem; color: #666; margin: 0 0 8px; }
+.tag { display: inline-block; font-size: .68rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; margin-right: 4px; margin-bottom: 4px; }
+.story-tags { margin-bottom: 10px; }
+
+.btn-create {
+    display: block;
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    color: #fff;
+    font-size: .8rem; font-weight: 700;
+    padding: 8px 14px;
+    border-radius: 10px;
+    text-align: center;
+    text-decoration: none;
+    transition: opacity .15s;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+}
+.btn-create:hover { opacity: .88; }
+.btn-create.furry { background: linear-gradient(135deg, #e11d48, #f43f5e); }
+
+.section-divider {
+    max-width: 1100px; margin: 36px auto 0;
+    border: none; border-top: 2px dashed #e5e7eb;
+}
+.back-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: rgba(255,255,255,.85); font-size: .9rem; font-weight: 500;
+    text-decoration: none; margin-bottom: 16px;
+    transition: color .15s;
+}
+.back-link:hover { color: #fff; }
+</style>
+
+<div class="uni-hero">
+    <a href="{{ url_for('story_selection') }}" class="back-link">
+        ← {% if lang == 'es' %}Volver{% else %}Back{% endif %}
+    </a>
+    <h1>📸 {% if lang == 'es' %}Cuentos FotoMágicos{% else %}Photo Magic Stories{% endif %}</h1>
+    <p>{% if lang == 'es' %}26 páginas · 19 ilustraciones · Con o sin foto real{% else %}26 pages · 19 illustrations · With or without real photo{% endif %}</p>
+</div>
+
+<!-- ===== AVENTURAS A TU MEDIDA ===== -->
+<div class="uni-section">
+    <div class="uni-section-header">
+        <h2 style="color:#7c3aed;">🌟 {% if lang == 'es' %}Aventuras a tu Medida{% else %}Adventures Your Way{% endif %}</h2>
+        <p style="color:#6d28d9;">{% if lang == 'es' %}El niño/a como protagonista — personalizamos su apariencia, nombre y aventura épica{% else %}The child as the hero — we personalize their looks, name and epic adventure{% endif %}</p>
+    </div>
+    <div class="story-grid">
+
+        <div class="story-card" onclick="window.location.href='/personalize-story?story=dragon_garden_illustrated'">
+            <div class="story-card-img">
+                <img src="/static/images/cover_dragon_garden.jpg" alt="Jardín del Dragón"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#d1fae5;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>🐉</div>'">
+            </div>
+            <div class="story-card-body">
+                <div>
+                    <h3 style="color:#065f46;">{% if lang == 'es' %}[Nombre] y el Jardín del Dragón{% else %}[Name] and the Dragon Garden{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Una aventura mágica en un jardín encantado{% else %}A magical adventure in an enchanted garden{% endif %}</p>
+                    <div class="story-tags">
+                        <span class="tag" style="background:#d1fae5;color:#065f46;">19 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
+                        <span class="tag" style="background:#d1fae5;color:#065f46;">{% if lang == 'es' %}Amistad{% else %}Friendship{% endif %}</span>
+                    </div>
+                </div>
+                <a href="/personalize-story?story=dragon_garden_illustrated" class="btn-create" onclick="event.stopPropagation()">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+        <div class="story-card" onclick="window.location.href='/personalize-story?story=magic_chef_illustrated'">
+            <div class="story-card-img">
+                <img src="/static/images/cover_magic_chef.jpg" alt="Chef Mágico"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#fef9c3;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>👨‍🍳</div>'">
+            </div>
+            <div class="story-card-body">
+                <div>
+                    <h3 style="color:#92400e;">{% if lang == 'es' %}[Nombre] El Chef Mágico{% else %}[Name] The Magic Chef{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Una aventura culinaria con Dulcín{% else %}A culinary adventure with Sweetie{% endif %}</p>
+                    <div class="story-tags">
+                        <span class="tag" style="background:#fef9c3;color:#92400e;">19 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
+                        <span class="tag" style="background:#fef9c3;color:#92400e;">{% if lang == 'es' %}Cocina{% else %}Cooking{% endif %}</span>
+                    </div>
+                </div>
+                <a href="/personalize-story?story=magic_chef_illustrated" class="btn-create" onclick="event.stopPropagation()">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+        <div class="story-card" onclick="window.location.href='/personalize-story?story=magic_inventor_illustrated'">
+            <div class="story-card-img">
+                <img src="/static/images/cover_magic_inventor.jpg" alt="Taller del Inventor"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#e0f2fe;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>⚙️</div>'">
+            </div>
+            <div class="story-card-body">
+                <div>
+                    <h3 style="color:#0e7490;">{% if lang == 'es' %}[Nombre] y el Taller del Inventor{% else %}[Name] and the Inventor Workshop{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Una aventura de inventos con BOLT{% else %}An invention adventure with BOLT{% endif %}</p>
+                    <div class="story-tags">
+                        <span class="tag" style="background:#e0f2fe;color:#0e7490;">19 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
+                        <span class="tag" style="background:#e0f2fe;color:#0e7490;">{% if lang == 'es' %}Inventos{% else %}Inventions{% endif %}</span>
+                    </div>
+                </div>
+                <a href="/personalize-story?story=magic_inventor_illustrated" class="btn-create" onclick="event.stopPropagation()">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+        <div class="story-card" onclick="window.location.href='/personalize-story?story=star_keeper_illustrated'">
+            <div class="story-card-img">
+                <img src="/static/images/cover_star_keeper.jpg" alt="Guardián de Estrellas"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#ede9fe;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>⭐</div>'">
+            </div>
+            <div class="story-card-body">
+                <div>
+                    <h3 style="color:#4c1d95;">{% if lang == 'es' %}[Nombre] y el Guardián de Estrellas{% else %}[Name] The Star Keeper{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Una aventura celestial con LUNA{% else %}A celestial adventure with LUNA{% endif %}</p>
+                    <div class="story-tags">
+                        <span class="tag" style="background:#ede9fe;color:#4c1d95;">19 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
+                        <span class="tag" style="background:#ede9fe;color:#4c1d95;">{% if lang == 'es' %}Estrellas{% else %}Stars{% endif %}</span>
+                    </div>
+                </div>
+                <a href="/personalize-story?story=star_keeper_illustrated" class="btn-create" onclick="event.stopPropagation()">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+        <div class="story-card" onclick="window.location.href='/personalize-story?story=centinela_aurora_illustrated'">
+            <div class="story-card-img">
+                <img src="/static/images/cover_centinela_aurora.jpg" alt="Centinela de la Aurora"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#e0f2fe;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>🦊</div>'">
+            </div>
+            <div class="story-card-body">
+                <div>
+                    <h3 style="color:#0369a1;">{% if lang == 'es' %}[Nombre] y el Centinela de la Aurora{% else %}[Name] and the Aurora Sentinel{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Una aventura de magia con ASTRO{% else %}A magical adventure with ASTRO{% endif %}</p>
+                    <div class="story-tags">
+                        <span class="tag" style="background:#e0f2fe;color:#0369a1;">19 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
+                        <span class="tag" style="background:#e0f2fe;color:#0369a1;">{% if lang == 'es' %}Magia{% else %}Magic{% endif %}</span>
+                    </div>
+                </div>
+                <a href="/personalize-story?story=centinela_aurora_illustrated" class="btn-create" onclick="event.stopPropagation()">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<hr class="section-divider">
+
+<!-- ===== TU Y TU AMOR PELUDO ===== -->
+<div class="uni-section" style="padding-bottom:60px;">
+    <div class="uni-section-header">
+        <h2 style="color:#e11d48;">🐾 {% if lang == 'es' %}Tú y tu Amor Peludo{% else %}You & Your Furry Love{% endif %}</h2>
+        <p style="color:#be123c;">{% if lang == 'es' %}2 personajes: tú (apariencia, rasgos) + tu mascota (raza, color, nombre) · 19 ilustraciones{% else %}2 characters: you (looks, traits) + your pet (breed, color, name) · 19 illustrations{% endif %}</p>
+    </div>
+    <div class="story-grid">
+
+        <div class="story-card" onclick="window.location.href='/personalize-furry-love?story=furry_love'">
+            <div class="story-card-img">
+                <img src="/static/images/cover_furry_love.jpg" alt="Amor Peludo"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#fce7f3;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>🐶</div>'">
+            </div>
+            <div class="story-card-body">
+                <div>
+                    <h3 style="color:#9f1239;">{% if lang == 'es' %}El día que [Mascota] conoció a [Nombre]{% else %}The Day [Pet] Met [Name]{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Un bebé llega a casa y su mascota lo espera. La tierna historia de sus primeros momentos juntos.{% else %}A baby arrives home and their pet is waiting. The tender story of their first moments together.{% endif %}</p>
+                    <div class="story-tags">
+                        <span class="tag" style="background:#fce7f3;color:#9f1239;">19 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
+                        <span class="tag" style="background:#fce7f3;color:#9f1239;">{% if lang == 'es' %}Bebés{% else %}Babies{% endif %}</span>
+                    </div>
+                </div>
+                <a href="/personalize-furry-love?story=furry_love" class="btn-create furry" onclick="event.stopPropagation()">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+        <div class="story-card" onclick="window.location.href='/personalize-furry-love?story=furry_love_adventure'">
+            <div class="story-card-img">
+                <img src="/static/images/cover_furry_love_adventure.jpg" alt="Aventuras"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#fce7f3;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>🌳</div>'">
+            </div>
+            <div class="story-card-body">
+                <div>
+                    <h3 style="color:#9f1239;">{% if lang == 'es' %}Las aventuras de [Mascota] y [Nombre]{% else %}The Adventures of [Pet] and [Name]{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Un parque, huellas misteriosas y un mapa del tesoro. La aventura de dos mejores amigos.{% else %}A park, mysterious footprints and a treasure map. The adventure of two best friends.{% endif %}</p>
+                    <div class="story-tags">
+                        <span class="tag" style="background:#fce7f3;color:#9f1239;">19 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
+                        <span class="tag" style="background:#d1fae5;color:#065f46;">3-8 {% if lang == 'es' %}años{% else %}years{% endif %}</span>
+                    </div>
+                </div>
+                <a href="/personalize-furry-love?story=furry_love_adventure" class="btn-create furry" onclick="event.stopPropagation()">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+        <div class="story-card" onclick="window.location.href='/personalize-furry-love?story=furry_love_teen'">
+            <div class="story-card-img">
+                <img src="/static/images/cover_furry_love_teen.jpg" alt="Compañero Fiel"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#fce7f3;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>🧑</div>'">
+            </div>
+            <div class="story-card-body">
+                <div>
+                    <h3 style="color:#9f1239;">{% if lang == 'es' %}[Nombre] y su compañero fiel [Mascota]{% else %}[Name] and Their Faithful Companion [Pet]{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Un adolescente redescubre el amor incondicional de su mascota.{% else %}A teenager rediscovers the unconditional love of their pet.{% endif %}</p>
+                    <div class="story-tags">
+                        <span class="tag" style="background:#fce7f3;color:#9f1239;">19 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
+                        <span class="tag" style="background:#e0e7ff;color:#3730a3;">10-19 {% if lang == 'es' %}años{% else %}years{% endif %}</span>
+                    </div>
+                </div>
+                <a href="/personalize-furry-love?story=furry_love_teen" class="btn-create furry" onclick="event.stopPropagation()">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+        <div class="story-card" onclick="window.location.href='/personalize-furry-love?story=furry_love_adult'">
+            <div class="story-card-img">
+                <img src="/static/images/cover_furry_love_adult.jpg" alt="Gran Aventura"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#fce7f3;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>🏔️</div>'">
+            </div>
+            <div class="story-card-body">
+                <div>
+                    <h3 style="color:#9f1239;">{% if lang == 'es' %}La Gran Aventura de [Nombre] y [Mascota]{% else %}The Great Adventure of [Name] and [Pet]{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Una aventura en la montaña: senderos, ríos y el vínculo inquebrantable entre un adulto y su perro.{% else %}A mountain adventure: trails, rivers and the unbreakable bond between an adult and their dog.{% endif %}</p>
+                    <div class="story-tags">
+                        <span class="tag" style="background:#fce7f3;color:#9f1239;">19 {% if lang == 'es' %}ilustraciones{% else %}illustrations{% endif %}</span>
+                        <span class="tag" style="background:#fef3c7;color:#92400e;">18-75 {% if lang == 'es' %}años{% else %}years{% endif %}</span>
+                    </div>
+                </div>
+                <a href="/personalize-furry-love?story=furry_love_adult" class="btn-create furry" onclick="event.stopPropagation()">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
