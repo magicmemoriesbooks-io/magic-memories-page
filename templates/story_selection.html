@@ -1,176 +1,618 @@
 {% extends "base.html" %}
 
-{% block title %}{% if lang == 'es' %}Escoge tu Historia{% else %}Choose Your Story{% endif %} - {{ translations.site_title }}{% endblock %}
-{% block meta_description %}{% if lang == 'es' %}Elige el cuento perfecto para tu hijo/a. Cuentos personalizables para bebés y niños de 3 a 8 años con el nombre y foto real de tu pequeño como protagonista.{% else %}Choose the perfect personalizable story for your child. Stories for babies and children 3-8 years old with their name and real photo as the hero.{% endif %}{% endblock %}
+{% block title %}{% if lang == 'es' %}Elige tu Cuento{% else %}Choose Your Story{% endif %} - {{ translations.site_title }}{% endblock %}
+{% block meta_description %}{% if lang == 'es' %}Cuentos personalizados únicos para niños. Grandes Aventuras, Cumpleaños, Aventuras a tu Medida y Tú y tu Amor Peludo. Desde $6.{% else %}Unique personalized children's books. Great Adventures, Birthday, Adventures Your Way, and You & Your Furry Love. From $6.{% endif %}{% endblock %}
 {% block og_title %}{% if lang == 'es' %}Elige tu Cuento Personalizado — Magic Memories Books{% else %}Choose Your Personalized Story — Magic Memories Books{% endif %}{% endblock %}
-{% block og_description %}{% if lang == 'es' %}Cuentos personalizables para bebés y niños de 3 a 8 años con el nombre y foto real de tu pequeño como protagonista de la aventura.{% else %}Personalizable stories for babies and children 3-8 years with their name and real photo as the hero of the adventure.{% endif %}{% endblock %}
 {% block og_image %}{{ url_for('static', filename='images/personalize_form.jpg', _external=True) }}{% endblock %}
 
 {% block content %}
-<section class="py-8 px-4 max-w-7xl mx-auto">
-    <a href="{{ url_for('index') }}" class="inline-flex items-center text-purple-600 hover:text-purple-800 font-medium mb-4 transition-colors">
-        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-        {% if lang == 'es' %}Volver al inicio{% else %}Back to Home{% endif %}
-    </a>
-    {% if is_change_mode %}
-    <div class="bg-amber-50 border-2 border-amber-400 rounded-2xl p-4 mb-6 shadow-lg max-w-4xl mx-auto">
-        <div class="flex items-start gap-3">
-            <div class="text-3xl">⚠️</div>
+
+<style>
+    .sel-page {
+        background: #f5f0fb;
+        min-height: 100vh;
+    }
+    .sel-hero {
+        background: linear-gradient(180deg, #5B3A8C 0%, #7B52B0 40%, #9B72CC 100%);
+        padding: 38px 16px 50px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    .sel-hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image:
+            radial-gradient(circle at 20% 50%, rgba(255,215,0,0.08) 0%, transparent 50%),
+            radial-gradient(circle at 80% 30%, rgba(255,255,255,0.06) 0%, transparent 40%);
+        pointer-events: none;
+    }
+    .sel-hero-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: rgba(255,255,255,0.75);
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+        margin-bottom: 20px;
+        transition: color 0.2s;
+    }
+    .sel-hero-back:hover { color: white; }
+    .sel-hero h1 {
+        font-size: clamp(24px, 5vw, 40px);
+        font-weight: 900;
+        color: white;
+        margin: 0 0 8px;
+        line-height: 1.15;
+    }
+    .sel-hero p {
+        font-size: clamp(14px, 2vw, 17px);
+        color: rgba(255,255,255,0.82);
+        margin: 0;
+    }
+
+    /* MAIN LAYOUT — 2 bloques lado a lado */
+    .sel-main {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 32px 16px 60px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 28px;
+        align-items: start;
+    }
+    @media (max-width: 760px) {
+        .sel-main { grid-template-columns: 1fr; gap: 22px; padding: 22px 12px 48px; }
+    }
+
+    /* BLOQUE COMPLETO */
+    .sel-block {
+        background: white;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 6px 28px rgba(80,30,120,0.13);
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* ENCABEZADO DORADO — Express */
+    .hdr-gold {
+        background:
+            radial-gradient(ellipse at 25% 40%, rgba(255,255,255,0.28) 0%, transparent 55%),
+            radial-gradient(ellipse at 80% 70%, rgba(212,175,55,0.2) 0%, transparent 50%),
+            linear-gradient(135deg, #C9A227 0%, #F0D060 45%, #B8860B 100%);
+        padding: 18px 20px 15px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .hdr-gold .hdr-title {
+        font-size: clamp(16px, 2.2vw, 20px);
+        font-weight: 900;
+        color: #1a0800;
+        margin: 0 0 2px;
+        line-height: 1.2;
+        text-shadow: 0 1px 2px rgba(255,255,255,0.25);
+    }
+    .hdr-gold .hdr-sub {
+        font-size: 12px;
+        color: rgba(30,10,0,0.62);
+        font-weight: 600;
+        margin: 0;
+    }
+    .badge-pages-purple {
+        background: #6D28D9;
+        color: white;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        padding: 5px 14px;
+        border-radius: 50px;
+        white-space: nowrap;
+        box-shadow: 0 2px 10px rgba(109,40,217,0.5);
+        border: 1px solid rgba(255,255,255,0.25);
+        flex-shrink: 0;
+    }
+
+    /* ENCABEZADO MORADO — Universos */
+    .hdr-purple {
+        background:
+            radial-gradient(ellipse at 70% 35%, rgba(255,255,255,0.22) 0%, transparent 55%),
+            radial-gradient(ellipse at 20% 75%, rgba(180,120,255,0.18) 0%, transparent 50%),
+            linear-gradient(135deg, #5B3A8C 0%, #9333EA 45%, #4C1D95 100%);
+        padding: 18px 20px 15px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .hdr-purple .hdr-title {
+        font-size: clamp(16px, 2.2vw, 20px);
+        font-weight: 900;
+        color: white;
+        margin: 0 0 2px;
+        line-height: 1.2;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    .hdr-purple .hdr-sub {
+        font-size: 12px;
+        color: rgba(255,255,255,0.72);
+        font-weight: 600;
+        margin: 0;
+    }
+    .badge-pages-gold {
+        background: linear-gradient(135deg, #D4AF37, #B8860B);
+        color: white;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        padding: 5px 14px;
+        border-radius: 50px;
+        white-space: nowrap;
+        box-shadow: 0 2px 10px rgba(180,130,0,0.5);
+        border: 1px solid rgba(255,255,255,0.25);
+        flex-shrink: 0;
+    }
+
+    /* IMÁGENES LADO A LADO */
+    .dual-imgs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0;
+    }
+    .dual-img-wrap {
+        position: relative;
+        height: 180px;
+        overflow: hidden;
+    }
+    .dual-img-wrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        transition: transform 0.4s;
+    }
+    .sel-block:hover .dual-img-wrap img { transform: scale(1.04); }
+    .dual-img-label {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(0deg, rgba(0,0,0,0.65) 0%, transparent 100%);
+        color: white;
+        font-size: 11px;
+        font-weight: 800;
+        padding: 8px 10px 7px;
+        letter-spacing: 0.3px;
+        line-height: 1.3;
+    }
+    .dual-img-label span {
+        display: block;
+        font-size: 10px;
+        font-weight: 600;
+        opacity: 0.85;
+        margin-top: 1px;
+    }
+    .dual-img-divider {
+        width: 1px;
+        background: rgba(255,255,255,0.3);
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        z-index: 2;
+        pointer-events: none;
+    }
+
+    /* CUERPO DEL BLOQUE */
+    .block-body {
+        padding: 18px 20px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        flex: 1;
+    }
+
+    /* FEATURES */
+    .feat-list {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .feat-list li {
+        font-size: 14px;
+        color: #2d1a4a;
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        line-height: 1.5;
+    }
+    .feat-list li .fi { flex-shrink: 0; font-size: 16px; line-height: 1.4; }
+    .feat-list li.feat-star { color: #6D28D9; font-style: italic; font-weight: 700; font-size: 14px; }
+    .feat-list li strong { font-weight: 700; color: #1a0a30; }
+
+    /* PRECIOS */
+    .prices-block {
+        border-top: 1px solid #ede5f8;
+        padding-top: 13px;
+    }
+    .prices-label {
+        font-size: 10px;
+        font-weight: 800;
+        color: #9B72CC;
+        text-transform: uppercase;
+        letter-spacing: 0.7px;
+        margin-bottom: 7px;
+    }
+    .price-rows {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        margin-bottom: 16px;
+    }
+    .price-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+    .price-name-cell { font-size: 13px; color: #444; font-weight: 500; line-height: 1.4; }
+    .price-val-cell  { font-size: 15px; font-weight: 800; color: #5B3A8C; white-space: nowrap; }
+
+    /* CTA */
+    .block-cta {
+        display: block;
+        width: 100%;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 800;
+        padding: 12px 16px;
+        border-radius: 50px;
+        color: white;
+        text-decoration: none;
+        transition: opacity 0.2s, transform 0.15s;
+    }
+    .block-cta:hover { opacity: 0.88; transform: scale(1.02); }
+    .cta-gold   { background: linear-gradient(135deg, #D4AF37, #B8860B); box-shadow: 0 4px 18px rgba(180,130,0,0.4); }
+    .cta-purple { background: linear-gradient(135deg, #7C3AED, #5B3A8C); box-shadow: 0 4px 18px rgba(100,50,200,0.4); }
+
+    /* HOW IT WORKS */
+    .hiw-step {
+        position: relative;
+        text-align: center;
+        padding: 20px 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        transition: transform 0.4s ease, box-shadow 0.4s ease;
+        border-radius: 16px;
+    }
+    .hiw-cta-block {
+        grid-column: 1 / -1;
+        text-align: center;
+        margin-top: 0;
+    }
+    @media (min-width: 1024px) {
+        .hiw-cta-block { grid-column: 3 / 6; align-self: start; margin-top: -160px; }
+    }
+    .hiw-step:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.06); }
+    .hiw-step.hiw-active { transform: scale(1.04); }
+    .hiw-num {
+        width: 40px; height: 40px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; font-weight: 700; font-size: 1rem;
+        flex-shrink: 0; font-family: 'Playfair Display', serif;
+    }
+    .hiw-visual {
+        width: 100%; max-width: 150px; border-radius: 14px;
+        overflow: hidden; position: relative;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .hiw-visual img { width: 100%; display: block; }
+    @keyframes regen-cycle   { 0%,30%{opacity:1} 33%,96%{opacity:0} 100%{opacity:1} }
+    @keyframes regen-cycle-2 { 0%,30%{opacity:0} 33%,63%{opacity:1} 66%,100%{opacity:0} }
+    @keyframes regen-cycle-3 { 0%,63%{opacity:0} 66%,96%{opacity:1} 100%{opacity:0} }
+    .regen-img-1 { animation: regen-cycle   6s ease-in-out infinite; }
+    .regen-img-2 { animation: regen-cycle-2 6s ease-in-out infinite; }
+    .regen-img-3 { animation: regen-cycle-3 6s ease-in-out infinite; }
+    @keyframes hiw-glow-pulse { 0%,100%{opacity:0.4;transform:scale(1)} 50%{opacity:0.7;transform:scale(1.05)} }
+    .hiw-magic-glow {
+        position:absolute; top:10px; left:50%; transform:translateX(-50%);
+        width:130px; height:130px; border-radius:50%;
+        background:radial-gradient(circle,rgba(212,175,55,0.18) 0%,transparent 70%);
+        animation:hiw-glow-pulse 3s ease-in-out infinite;
+        pointer-events:none; z-index:0;
+    }
+    #hiw-path-svg-sel { display:none; }
+    @media (min-width:1024px) { #hiw-path-svg-sel { display:block; } }
+    @media (prefers-reduced-motion:reduce) {
+        .regen-img-1,.regen-img-2,.regen-img-3 { animation:none !important; }
+        .regen-img-2,.regen-img-3 { display:none; }
+        .regen-img-1 { opacity:1; }
+        .hiw-magic-glow { animation:none !important; opacity:0.4; }
+        .hiw-step:hover { transform:none; }
+    }
+</style>
+
+<div class="sel-page">
+
+<div class="sel-hero">
+    <div>
+        <a href="{{ url_for('index') }}" class="sel-hero-back">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+            {% if lang == 'es' %}Volver al inicio{% else %}Back to Home{% endif %}
+        </a>
+    </div>
+    <h1>✨ {% if lang == 'es' %}Elige tu cuento mágico{% else %}Choose your magic story{% endif %}</h1>
+    <p>{% if lang == 'es' %}Personalización detallada · No son figuras prefabricadas · Hecho solo para ti{% else %}Detailed personalization · Not premade figures · Made just for you{% endif %}</p>
+</div>
+
+<div class="sel-main">
+
+    <!-- ===== BLOQUE 1: CUENTOS MÁGICOS EXPRESS ===== -->
+    <div class="sel-block">
+
+        <!-- Encabezado dorado, badge morado -->
+        <div class="hdr-gold">
             <div>
-                <p class="text-amber-800 font-bold mb-1">
-                    {% if lang == 'es' %}Esta es tu UNICA oportunidad de cambio{% else %}This is your ONLY change opportunity{% endif %}
-                </p>
-                <p class="text-amber-700 text-sm">
-                    {% if lang == 'es' %}
-                    Puedes elegir cualquier Cuento R&aacute;pido (beb&eacute;s o ni&ntilde;os). Tu pago ya est&aacute; aplicado. <strong>Despu&eacute;s de esto no podr&aacute;s hacer m&aacute;s cambios.</strong>
-                    {% else %}
-                    You can choose any Quick Story (babies or kids). Your payment is already applied. <strong>After this you cannot make any more changes.</strong>
-                    {% endif %}
-                </p>
+                <h2 class="hdr-title">{% if lang == 'es' %}Cuentos Mágicos Express{% else %}Express Magic Stories{% endif %}</h2>
+                <p class="hdr-sub">{% if lang == 'es' %}Entrega digital inmediata · Impreso en 10–15 días{% else %}Instant digital delivery · Printed in 10–15 days{% endif %}</p>
+            </div>
+            <span class="badge-pages-purple">⚡ {% if lang == 'es' %}16 páginas{% else %}16 pages{% endif %}</span>
+        </div>
+
+        <!-- 2 imágenes lado a lado -->
+        <div class="dual-imgs" style="position:relative;">
+            <div class="dual-img-wrap">
+                <img src="{{ url_for('static', filename='images/hero_express.jpg') }}" alt="{% if lang == 'es' %}Grandes Aventuras{% else %}Great Adventures{% endif %}">
+                <div class="dual-img-label">
+                    🗺️ {% if lang == 'es' %}Grandes Aventuras{% else %}Great Adventures{% endif %}
+                    <span>{% if lang == 'es' %}0–9 años{% else %}0–9 years{% endif %}</span>
+                </div>
+            </div>
+            <div class="dual-img-wrap">
+                <img src="{{ url_for('static', filename='images/cover_birthday_celebration.jpg') }}" alt="{% if lang == 'es' %}Cumpleaños{% else %}Birthday{% endif %}">
+                <div class="dual-img-label">
+                    🎂 {% if lang == 'es' %}Cumpleaños{% else %}Birthday Tales{% endif %}
+                    <span>{% if lang == 'es' %}1–9 años{% else %}1–9 years{% endif %}</span>
+                </div>
             </div>
         </div>
-    </div>
-    {% endif %}
 
-    <div class="text-center mb-10">
-        <h1 class="font-display text-4xl md:text-5xl font-bold text-purple-800 mb-3">
-            {% if lang == 'es' %}Cuentos Mágicos{% else %}Magical Stories{% endif %}
-        </h1>
-        <p class="text-xl text-purple-600">
-            {% if lang == 'es' %}Elige la edad de tu pequeño lector{% else %}Choose your little reader's age{% endif %}
-        </p>
+        <!-- Cuerpo: descripción + precios + CTA -->
+        <div class="block-body">
+            <ul class="feat-list">
+                <li><span class="fi">📖</span><span>{% if lang == 'es' %}<strong>16 páginas</strong> completamente ilustradas, el nombre del niño/a en cada escena{% else %}<strong>16 pages</strong> fully illustrated, the child's name in every scene{% endif %}</span></li>
+                <li><span class="fi">🎨</span><span>{% if lang == 'es' %}<strong>10 ilustraciones full color</strong> a 300 dpi — calidad profesional de imprenta{% else %}<strong>10 full color illustrations</strong> at 300 dpi — professional print quality{% endif %}</span></li>
+                <li><span class="fi">👶</span><span>{% if lang == 'es' %}<strong>El niño/a es el/la protagonista</strong> — personalizamos su apariencia, nombre, edad y aventura{% else %}<strong>The child is the main character</strong> — we personalize their looks, name, age and adventure{% endif %}</span></li>
+                <li><span class="fi">✏️</span><span>{% if lang == 'es' %}<strong>Historias mágicas pre-escritas</strong> — tú personalizas el nombre del autor y la dedicatoria{% else %}<strong>Pre-written magic stories</strong> — you personalize the author name and dedication{% endif %}</span></li>
+                <li><span class="fi">📝</span><span>{% if lang == 'es' %}<strong>Dedicatoria especial:</strong> recuerda escribir tu mensaje personal al final del libro{% else %}<strong>Special dedication:</strong> remember to write your personal message at the end of the book{% endif %}</span></li>
+                <li><span class="fi">👁️</span><span>{% if lang == 'es' %}<strong>Revisa el texto y el personaje</strong> antes de crear tu historia — aprueba todo antes de pagar{% else %}<strong>Review text and character</strong> before creating your story — approve everything before paying{% endif %}</span></li>
+                <li><span class="fi">🚚</span><span>{% if lang == 'es' %}<strong>Envío físico a nivel mundial</strong> — disponible en la mayoría de países. Si tu país no tiene cobertura de envío, recibirás el PDF imprimible sin coste adicional{% else %}<strong>Worldwide physical shipping</strong> — available in most countries. If your country has no shipping coverage, you'll receive the printable PDF at no extra cost{% endif %}</span></li>
+                <li class="feat-star"><span class="fi">✨</span><span>{% if lang == 'es' %}Personalización detallada — ilustraciones creadas únicas para ti, no son figuras prefabricadas{% else %}Detailed personalization — illustrations created uniquely for you, not premade figures{% endif %}</span></li>
+            </ul>
+
+            <div class="prices-block">
+                <p class="prices-label">{% if lang == 'es' %}Desde{% else %}From{% endif %}</p>
+                <div class="price-rows">
+                    <div class="price-row">
+                        <span class="price-name-cell">📱 eBook — {% if lang == 'es' %}visor interactivo, acceso permanente{% else %}interactive viewer, permanent access{% endif %}</span>
+                        <span class="price-val-cell">$6</span>
+                    </div>
+                    <div class="price-row">
+                        <span class="price-name-cell">🖨️ PDF {% if lang == 'es' %}imprimible{% else %}printable{% endif %} 8.5"×8.5" + {% if lang == 'es' %}instrucciones{% else %}instructions{% endif %}</span>
+                        <span class="price-val-cell">$15</span>
+                    </div>
+                    <div class="price-row">
+                        <span class="price-name-cell">📚 {% if lang == 'es' %}Cuento impreso y enviado a tu puerta{% else %}Printed book shipped to your door{% endif %} 21×21 cm</span>
+                        <span class="price-val-cell">$15<span style="font-size:10px;font-weight:600;opacity:0.6;">+</span></span>
+                    </div>
+                </div>
+                <a href="{{ url_for('story_selection_express') }}" class="block-cta cta-gold">
+                    {% if lang == 'es' %}Crear mi cuento Express →{% else %}Create my Express story →{% endif %}
+                </a>
+            </div>
+        </div>
+
     </div>
 
-    <div class="bg-amber-50 border-l-4 border-amber-400 p-4 mb-8 max-w-4xl mx-auto rounded-r-lg">
-        <div class="flex items-start">
-            <span class="text-2xl mr-3">⚠️</span>
+    <!-- ===== BLOQUE 2: UNIVERSOS ILUSTRADOS ===== -->
+    <div class="sel-block">
+
+        <!-- Encabezado morado, badge dorado -->
+        <div class="hdr-purple">
             <div>
-                {% if lang == 'es' %}
-                <h4 class="font-bold text-amber-800 mb-2">Aviso importante – Cuentos rápidos</h4>
-                <p class="text-amber-700 text-sm leading-relaxed">
-                    Los cuentos rápidos son historias pre-hechas, creadas con ayuda de inteligencia artificial (IA).
-                    Te recomendamos leer el texto y revisar la imagen de personalización antes de generar el cuento, ya que eso es lo que recibirás.
-                </p>
-                <p class="text-amber-700 text-sm leading-relaxed mt-2">
-                    Debido al uso de IA, pueden existir pequeñas variaciones en las características del personaje.
-                    Si esta historia no es lo que buscas, puedes elegir otra de las opciones disponibles o crear tu propia historia en nuestro <a href="{{ url_for('haz_tu_historia_form') }}" class="text-purple-600 underline font-semibold hover:text-purple-800">sección de Haz tu Historia</a>.
-                </p>
-                {% else %}
-                <h4 class="font-bold text-amber-800 mb-2">Important Notice – Quick Stories</h4>
-                <p class="text-amber-700 text-sm leading-relaxed">
-                    Quick stories are pre-made stories created with the help of artificial intelligence (AI).
-                    We recommend reading the text and reviewing the personalization image before generating the story, as that is what you will receive.
-                </p>
-                <p class="text-amber-700 text-sm leading-relaxed mt-2">
-                    Due to the use of AI, there may be small variations in the character's features.
-                    If this story is not what you're looking for, you can choose another from the available options or create your own story in our <a href="{{ url_for('haz_tu_historia_form') }}" class="text-purple-600 underline font-semibold hover:text-purple-800">Make Your Story section</a>.
-                </p>
-                {% endif %}
+                <h2 class="hdr-title">{% if lang == 'es' %}Cuentos FotoMágicos{% else %}Photo Magic Stories{% endif %}</h2>
+                <p class="hdr-sub">{% if lang == 'es' %}Con o sin foto real · Libro tapa dura disponible{% else %}With or without real photo · Hardcover available{% endif %}</p>
+            </div>
+            <span class="badge-pages-gold">🌟 {% if lang == 'es' %}26 páginas{% else %}26 pages{% endif %}</span>
+        </div>
+
+        <!-- 2 imágenes lado a lado -->
+        <div class="dual-imgs" style="position:relative;">
+            <div class="dual-img-wrap">
+                <img src="{{ url_for('static', filename='images/hero_adventures.jpg') }}" alt="{% if lang == 'es' %}Aventuras a tu Medida{% else %}Adventures Your Way{% endif %}">
+                <div class="dual-img-label">
+                    🗺️ {% if lang == 'es' %}Aventuras a tu Medida{% else %}Adventures Your Way{% endif %}
+                    <span>{% if lang == 'es' %}3–9 años{% else %}3–9 years{% endif %}</span>
+                </div>
+            </div>
+            <div class="dual-img-wrap">
+                <img src="{{ url_for('static', filename='images/hero_furry.jpg') }}" alt="{% if lang == 'es' %}Tú y tu Amor Peludo{% else %}You & Your Furry Love{% endif %}">
+                <div class="dual-img-label">
+                    🐾 {% if lang == 'es' %}Tú y tu Amor Peludo{% else %}You & Your Furry Love{% endif %}
+                    <span>{% if lang == 'es' %}Todas las edades{% else %}All ages{% endif %}</span>
+                </div>
             </div>
         </div>
+
+        <!-- Cuerpo: descripción + precios + CTA -->
+        <div class="block-body">
+            <ul class="feat-list">
+                <li><span class="fi">📖</span><span>{% if lang == 'es' %}<strong>26 páginas</strong> completamente ilustradas — el doble que un cuento Express{% else %}<strong>26 pages</strong> fully illustrated — double the content of an Express story{% endif %}</span></li>
+                <li><span class="fi">🎨</span><span>{% if lang == 'es' %}<strong>19 ilustraciones full color</strong> a 300 dpi — experiencia visual premium{% else %}<strong>19 full color illustrations</strong> at 300 dpi — premium visual experience{% endif %}</span></li>
+                <li><span class="fi">✏️</span><span>{% if lang == 'es' %}<strong>2 páginas para colorear</strong> con su personaje personalizado{% else %}<strong>2 coloring pages</strong> with their personalized character{% endif %}</span></li>
+                <li><span class="fi">👤</span><span>{% if lang == 'es' %}<strong>Aventuras a tu Medida:</strong> el niño/a como protagonista — personalizamos apariencia, nombre y aventura épica{% else %}<strong>Adventures Your Way:</strong> the child as the hero — we personalize their looks, name and epic adventure{% endif %}</span></li>
+                <li><span class="fi">🐾</span><span>{% if lang == 'es' %}<strong>Tú y tu Amor Peludo: 2 personajes personalizados</strong> — tú (apariencia, nombre, rasgos) y tu mascota (raza, color de pelo, tamaño, nombre). Los dos protagonistas del cuento{% else %}<strong>You & Your Furry Love: 2 personalized characters</strong> — you (looks, name, traits) and your pet (breed, fur color, size, name). Both the main characters{% endif %}</span></li>
+                <li><span class="fi">📸</span><span>{% if lang == 'es' %}<strong>Sube tu foto</strong> (opcional) para que el personaje tenga tu parecido real{% else %}<strong>Upload your photo</strong> (optional) for the character to have your real likeness{% endif %}</span></li>
+                <li><span class="fi">✏️</span><span>{% if lang == 'es' %}<strong>Historias mágicas pre-escritas</strong> — tú personalizas el nombre del autor y la dedicatoria{% else %}<strong>Pre-written magic stories</strong> — you personalize the author name and dedication{% endif %}</span></li>
+                <li><span class="fi">📝</span><span>{% if lang == 'es' %}<strong>Dedicatoria especial:</strong> recuerda escribir tu mensaje personal al final del libro{% else %}<strong>Special dedication:</strong> remember to write your personal message at the end of the book{% endif %}</span></li>
+                <li><span class="fi">👁️</span><span>{% if lang == 'es' %}<strong>Revisa el texto y el personaje</strong> antes de crear tu historia — aprueba todo antes de pagar{% else %}<strong>Review text and character</strong> before creating your story — approve everything before paying{% endif %}</span></li>
+                <li><span class="fi">🌍</span><span>{% if lang == 'es' %}<strong>El libro impreso se envía a través de Gelato (impresión local)</strong> — envío a todo el mundo{% else %}<strong>Printed book ships via Gelato (local printing)</strong> — worldwide shipping{% endif %}</span></li>
+                <li class="feat-star"><span class="fi">✨</span><span>{% if lang == 'es' %}Personalización detallada — ilustraciones creadas únicas para ti, no son figuras prefabricadas{% else %}Detailed personalization — illustrations created uniquely for you, not premade figures{% endif %}</span></li>
+            </ul>
+
+            <div class="prices-block">
+                <p class="prices-label">{% if lang == 'es' %}Desde{% else %}From{% endif %}</p>
+                <div class="price-rows">
+                    <div class="price-row">
+                        <span class="price-name-cell">📱 eBook — {% if lang == 'es' %}visor interactivo, acceso permanente{% else %}interactive viewer, permanent access{% endif %}</span>
+                        <span class="price-val-cell">$9</span>
+                    </div>
+                    <div class="price-row">
+                        <span class="price-name-cell">📚 {% if lang == 'es' %}Libro tapa dura enviado a tu puerta{% else %}Hardcover book shipped to your door{% endif %} A4</span>
+                        <span class="price-val-cell">$30<span style="font-size:10px;font-weight:600;opacity:0.6;">+ envío</span></span>
+                    </div>
+                </div>
+                <a href="{{ url_for('story_selection_universos') }}" class="block-cta cta-purple">
+                    {% if lang == 'es' %}Crear mi Universo Ilustrado →{% else %}Create my Illustrated Universe →{% endif %}
+                </a>
+            </div>
+        </div>
+
     </div>
 
-    <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-        
-        <div class="group cursor-pointer" onclick="selectAge('0-2')">
-            <div class="relative bg-gradient-to-br from-yellow-100 to-amber-200 rounded-3xl p-6 shadow-xl transform transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl border-4 border-transparent group-hover:border-yellow-400">
-                <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-amber-500 text-white px-6 py-2 rounded-full font-bold text-lg shadow-lg">
-                    0-2 {% if lang == 'es' %}años{% else %}years{% endif %}
-                </div>
-                
-                <div class="mt-6 mb-4">
-                    <div class="rounded-2xl overflow-hidden shadow-lg aspect-square">
-                        <img src="{{ url_for('static', filename='images/age_0_1.jpg') }}" alt="0-2 años" class="w-full h-full object-cover">
-                    </div>
-                </div>
-                
-                <h3 class="text-xl font-bold text-amber-700 text-center mb-2">
-                    {% if lang == 'es' %}Mis Primeros Sueños{% else %}My First Dreams{% endif %}
-                </h3>
-                <p class="text-amber-600 text-center text-sm">
-                    {% if lang == 'es' %}Ilustraciones suaves, palabras simples{% else %}Soft illustrations, simple words{% endif %}
-                </p>
-                
-                <div class="mt-4 flex justify-center gap-2">
-                    <span class="bg-amber-300/50 text-amber-700 px-3 py-1 rounded-full text-xs font-medium">{% if lang == 'es' %}8 páginas{% else %}8 pages{% endif %}</span>
-                    <span class="bg-amber-300/50 text-amber-700 px-3 py-1 rounded-full text-xs font-medium">{% if lang == 'es' %}Sensorial{% else %}Sensory{% endif %}</span>
-                </div>
-            </div>
+</div><!-- /sel-main -->
+</div><!-- /sel-page -->
+
+<!-- ===== CÓMO FUNCIONA ===== -->
+<section id="how-it-works-sel" class="py-16 md:py-20 px-4" style="background:#F9F9FB;">
+    <div class="mx-auto" style="max-width:1280px;position:relative;">
+        <div class="text-center mb-14">
+            <p style="font-family:'Quicksand',sans-serif;font-size:13px;color:#D4AF37;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">{% if lang == 'es' %}La Ruta de la Magia{% else %}The Path of Magic{% endif %}</p>
+            <h2 style="font-family:'Playfair Display',serif;font-size:2.2rem;color:#333;font-weight:700;margin-bottom:8px;">{% if lang == 'es' %}¿Cómo Funciona?{% else %}How Does It Work?{% endif %}</h2>
+            <p style="font-family:'Quicksand',sans-serif;font-size:15px;color:#888;max-width:500px;margin:0 auto;">{% if lang == 'es' %}En 5 simples pasos, creas un recuerdo que durará para siempre.{% else %}In 5 simple steps, you create a memory that lasts forever.{% endif %}</p>
         </div>
 
-        <div class="group cursor-pointer" onclick="selectAge('3-5')">
-            <div class="relative bg-gradient-to-br from-purple-100 to-purple-200 rounded-3xl p-6 shadow-xl transform transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl border-4 border-transparent group-hover:border-purple-400">
-                <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-purple-500 text-white px-6 py-2 rounded-full font-bold text-lg shadow-lg">
-                    3-5 {% if lang == 'es' %}años{% else %}years{% endif %}
+        <svg id="hiw-path-svg-sel" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;" preserveAspectRatio="none">
+            <path id="hiw-curve-sel" fill="none" stroke="url(#hiw-gold-grad-sel)" stroke-width="2" stroke-dasharray="8,6" opacity="0.4"/>
+            <defs>
+                <linearGradient id="hiw-gold-grad-sel" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#D4AF37" stop-opacity="0.2"/>
+                    <stop offset="50%" stop-color="#D4AF37" stop-opacity="0.6"/>
+                    <stop offset="100%" stop-color="#D4AF37" stop-opacity="0.2"/>
+                </linearGradient>
+            </defs>
+        </svg>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-6" style="position:relative;z-index:1;">
+
+            <div class="hiw-step" id="selStep1">
+                <div class="hiw-num" style="background:linear-gradient(135deg,#B8860B,#D4AF37);">1</div>
+                <div class="hiw-visual">
+                    <img src="{{ url_for('static', filename='images/how_step_1_form.jpg') }}" alt="{% if lang == 'es' %}Personaliza{% else %}Personalize{% endif %}" loading="lazy">
                 </div>
-                
-                <div class="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold transform rotate-12 shadow">
-                    {% if lang == 'es' %}Popular{% else %}Popular{% endif %}
+                <h3 style="font-family:'Playfair Display',serif;font-size:15px;color:#B8860B;font-weight:700;">{% if lang == 'es' %}Elige y Personaliza{% else %}Choose & Personalize{% endif %}</h3>
+                <p style="font-family:'Quicksand',sans-serif;font-size:12px;color:#666;line-height:1.5;">{% if lang == 'es' %}Escoge una historia, ajusta pelo, ojos, piel y nombre.{% else %}Pick a story, adjust hair, eyes, skin and name.{% endif %}</p>
+                <p style="font-family:'Quicksand',sans-serif;font-size:11px;color:#B8860B;margin-top:2px;">{% if lang == 'es' %}100% gratis{% else %}100% free{% endif %}</p>
+            </div>
+
+            <div class="hiw-step" id="selStep2">
+                <div class="hiw-num" style="background:linear-gradient(135deg,#B8860B,#D4AF37);">2</div>
+                <div class="hiw-visual">
+                    <img src="{{ url_for('static', filename='images/how_step_2_review.jpg') }}" alt="{% if lang == 'es' %}Revisa{% else %}Review{% endif %}" loading="lazy">
                 </div>
-                
-                <div class="mt-6 mb-4">
-                    <div class="rounded-2xl overflow-hidden shadow-lg aspect-square">
-                        <img src="{{ url_for('static', filename='images/age_3_5.jpg') }}" alt="3-5 años" class="w-full h-full object-cover">
+                <h3 style="font-family:'Playfair Display',serif;font-size:15px;color:#B8860B;font-weight:700;">{% if lang == 'es' %}Revisa tu Cuento{% else %}Review Your Story{% endif %}</h3>
+                <p style="font-family:'Quicksand',sans-serif;font-size:12px;color:#666;line-height:1.5;">{% if lang == 'es' %}Ve tu portada, el resumen y los textos generados con IA.{% else %}See your cover, summary and AI-generated texts.{% endif %}</p>
+                <p style="font-family:'Quicksand',sans-serif;font-size:11px;color:#B8860B;margin-top:2px;">{% if lang == 'es' %}Aprueba antes de pagar{% else %}Approve before paying{% endif %}</p>
+            </div>
+
+            <div class="hiw-step" id="selStep3">
+                <div class="hiw-num" style="background:linear-gradient(135deg,#B8860B,#D4AF37);">3</div>
+                <div class="hiw-visual" style="max-width:120px;background:linear-gradient(135deg,#FEFCE8,#FEF3C7);border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(212,175,55,0.1);">
+                    <svg class="w-12 h-12 mx-auto" style="color:#B8860B;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                    <div class="flex justify-center gap-1 mt-3">
+                        <div style="width:24px;height:15px;border-radius:3px;background:linear-gradient(135deg,#1a1f71,#2557d6);opacity:0.5;"></div>
+                        <div style="width:24px;height:15px;border-radius:3px;background:linear-gradient(135deg,#eb001b,#f79e1b);opacity:0.5;"></div>
                     </div>
                 </div>
-                
-                <h3 class="text-xl font-bold text-purple-700 text-center mb-2">
-                    {% if lang == 'es' %}Aventuras Mágicas{% else %}Magical Adventures{% endif %}
-                </h3>
-                <p class="text-purple-600 text-center text-sm">
-                    {% if lang == 'es' %}Historias con imaginación y magia{% else %}Stories with imagination and magic{% endif %}
-                </p>
-                
-                <div class="mt-4 flex justify-center gap-2">
-                    <span class="bg-purple-300/50 text-purple-700 px-3 py-1 rounded-full text-xs font-medium">{% if lang == 'es' %}10 páginas{% else %}10 pages{% endif %}</span>
-                    <span class="bg-purple-300/50 text-purple-700 px-3 py-1 rounded-full text-xs font-medium">{% if lang == 'es' %}Interactivo{% else %}Interactive{% endif %}</span>
-                </div>
+                <h3 style="font-family:'Playfair Display',serif;font-size:15px;color:#B8860B;font-weight:700;">{% if lang == 'es' %}Paga Seguro{% else %}Pay Securely{% endif %}</h3>
+                <p style="font-family:'Quicksand',sans-serif;font-size:12px;color:#666;line-height:1.5;">{% if lang == 'es' %}Desde $6 eBook, desde $15 PDF imprimible, desde $15 libro impreso.{% else %}From $6 eBook, from $15 printable PDF, from $15 printed book.{% endif %}</p>
             </div>
-        </div>
 
-        <div class="group cursor-pointer" onclick="selectAge('6-8')">
-            <div class="relative bg-gradient-to-br from-blue-100 to-blue-200 rounded-3xl p-6 shadow-xl transform transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl border-4 border-transparent group-hover:border-blue-400">
-                <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-6 py-2 rounded-full font-bold text-lg shadow-lg">
-                    6-8 {% if lang == 'es' %}años{% else %}years{% endif %}
-                </div>
-                
-                <div class="mt-6 mb-4">
-                    <div class="rounded-2xl overflow-hidden shadow-lg aspect-square">
-                        <img src="{{ url_for('static', filename='images/age_5_7.jpg') }}" alt="6-8 años" class="w-full h-full object-cover">
+            <div class="hiw-step" id="selStep4" style="position:relative;">
+                <div class="hiw-magic-glow"></div>
+                <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:10px;">
+                    <div class="hiw-num" style="background:linear-gradient(135deg,#B8860B,#D4AF37);box-shadow:0 0 20px rgba(212,175,55,0.3);">4</div>
+                    <div class="hiw-visual" style="max-width:150px;aspect-ratio:1;position:relative;">
+                        <img src="{{ url_for('static', filename='images/how_step_4_scene.jpg') }}" alt="{% if lang == 'es' %}Escena original{% else %}Original scene{% endif %}" class="regen-img-1" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy">
+                        <img src="{{ url_for('static', filename='images/how_step_4_regen.jpg') }}" alt="{% if lang == 'es' %}Regenerar{% else %}Regenerate{% endif %}" class="regen-img-2" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy">
+                        <img src="{{ url_for('static', filename='images/how_step_4_result.jpg') }}" alt="{% if lang == 'es' %}Resultado{% else %}Result{% endif %}" class="regen-img-3" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy">
                     </div>
-                </div>
-                
-                <h3 class="text-xl font-bold text-blue-700 text-center mb-2">
-                    {% if lang == 'es' %}Grandes Aventuras{% else %}Great Adventures{% endif %}
-                </h3>
-                <p class="text-blue-600 text-center text-sm">
-                    {% if lang == 'es' %}Historias con más texto y detalles{% else %}Stories with more text and details{% endif %}
-                </p>
-                
-                <div class="mt-4 flex justify-center gap-2">
-                    <span class="bg-blue-300/50 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">{% if lang == 'es' %}10 páginas{% else %}10 pages{% endif %}</span>
-                    <span class="bg-blue-300/50 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">{% if lang == 'es' %}Educativo{% else %}Educational{% endif %}</span>
+                    <h3 style="font-family:'Playfair Display',serif;font-size:15px;color:#B8860B;font-weight:700;">{% if lang == 'es' %}Tú Tienes el Control{% else %}You're in Control{% endif %}</h3>
+                    <p style="font-family:'Quicksand',sans-serif;font-size:11px;color:#555;line-height:1.6;">{% if lang == 'es' %}Regenera cualquier escena. 1 cambio de historia. Al confirmar, se envía.{% else %}Regenerate any scene. 1 story switch. Once confirmed, it ships.{% endif %}</p>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <div class="mt-12 text-center">
-        <p class="text-gray-500 text-sm">
-            {% if lang == 'es' %}Cuentos para niños de 0-8 años con ilustraciones personalizadas{% else %}Stories for children 0-8 years with personalized illustrations{% endif %}
-        </p>
+            <div class="hiw-step" id="selStep5">
+                <div class="hiw-num" style="background:linear-gradient(135deg,#B8860B,#D4AF37);">5</div>
+                <div class="hiw-visual">
+                    <img src="{{ url_for('static', filename='images/how_step_5_ebook.jpg') }}" alt="eBook" loading="lazy">
+                </div>
+                <h3 style="font-family:'Playfair Display',serif;font-size:15px;color:#B8860B;font-weight:700;">{% if lang == 'es' %}Recibe tu Libro{% else %}Receive Your Book{% endif %}</h3>
+                <p style="font-family:'Quicksand',sans-serif;font-size:12px;color:#666;line-height:1.5;">{% if lang == 'es' %}eBook instantáneo por email. Libro en tapa dura en 7-14 días.{% else %}Instant eBook by email. Hardcover book in 7-14 days.{% endif %}</p>
+                <p style="font-family:'Quicksand',sans-serif;font-size:11px;color:#B8860B;margin-top:2px;">{% if lang == 'es' %}Digital + impreso{% else %}Digital + printed{% endif %}</p>
+            </div>
+
+            <div class="hiw-cta-block" style="display:flex;flex-direction:column;align-items:center;">
+                <p style="font-family:'Playfair Display',serif;font-size:1rem;color:#B8860B;font-weight:600;line-height:1.5;">{% if lang == 'es' %}No olvides escribir tu dedicatoria especial y el nombre del autor{% else %}Don't forget to write your special dedication and the author's name{% endif %}</p>
+                <p style="font-family:'Quicksand',sans-serif;font-size:12px;color:#888;margin-top:2px;">{% if lang == 'es' %}Tu libro llevará un toque personal único{% else %}Your book will have a unique personal touch{% endif %}</p>
+                <div style="margin-top:10px;">
+                    <a href="{{ url_for('story_selection') }}" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#D4AF37,#B8860B);color:#fff;font-family:'Quicksand',sans-serif;font-weight:700;font-size:15px;padding:12px 32px;border-radius:30px;text-decoration:none;transition:all 0.3s;box-shadow:0 4px 16px rgba(212,175,55,0.25);" onmouseover="this.style.boxShadow='0 6px 24px rgba(212,175,55,0.4)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='0 4px 16px rgba(212,175,55,0.25)';this.style.transform='none'">
+                        {% if lang == 'es' %}Comenzar Ahora{% else %}Start Now{% endif %}
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                    </a>
+                    <p style="font-family:'Quicksand',sans-serif;font-size:11px;color:#AAA;margin-top:6px;">{% if lang == 'es' %}Sin tarjeta de crédito para personalizar. Pago seguro con PayPal.{% else %}No credit card needed to personalize. Secure payment with PayPal.{% endif %}</p>
+                </div>
+            </div>
+
+        </div>
     </div>
 </section>
-
 <script>
-function selectAge(ageGroup) {
-    if (ageGroup === '0-2') {
-        window.location.href = '/stories-0-1';
-    } else if (ageGroup === '3-5' || ageGroup === '6-8') {
-        window.location.href = '/stories-3-8';
-    } else {
-        alert('Próximamente: Cuentos para ' + ageGroup + ' años');
+(function(){
+    function drawHiwPath(){
+        if(window.innerWidth<1024)return;
+        var svg=document.getElementById('hiw-path-svg-sel');
+        var curve=document.getElementById('hiw-curve-sel');
+        if(!svg||!curve)return;
+        var section=document.getElementById('how-it-works-sel');
+        var sr=section.getBoundingClientRect();
+        var pts=[];
+        for(var i=1;i<=5;i++){
+            var el=document.getElementById('selStep'+i);
+            if(el){var r=el.getBoundingClientRect();pts.push({x:r.left-sr.left+r.width/2,y:r.top-sr.top+40});}
+        }
+        if(pts.length<2)return;
+        var d='M '+pts[0].x+' '+pts[0].y;
+        for(var j=0;j<pts.length-1;j++){
+            var cx=(pts[j].x+pts[j+1].x)/2;
+            var cy=pts[j].y+(j%2===0?-20:20);
+            d+=' Q '+cx+' '+cy+' '+pts[j+1].x+' '+pts[j+1].y;
+        }
+        curve.setAttribute('d',d);
     }
-}
+    if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){setTimeout(drawHiwPath,500);});}
+    else{setTimeout(drawHiwPath,500);}
+    window.addEventListener('resize',drawHiwPath);
+})();
 </script>
+
 {% endblock %}
