@@ -45,7 +45,7 @@
             </div>
         </div>
 
-        <div class="text-4xl font-black text-purple-700 mb-2">$7 <span class="text-lg font-normal text-gray-400">USD</span></div>
+        <div class="text-4xl font-black text-purple-700 mb-2">$6 <span class="text-lg font-normal text-gray-400">USD</span></div>
         <p class="text-xs text-gray-400 mb-4">{% if lang == 'es' %}Pago único — acceso para siempre{% else %}One-time payment — access forever{% endif %}</p>
 
         <div class="flex flex-wrap justify-center items-center gap-2 mb-3">
@@ -92,7 +92,7 @@
                 const resp = await fetch('/api/paypal/create-order', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({amount_usd: 7.00, product_type: 'ebook'})
+                    body: JSON.stringify({amount_usd: 6.00, product_type: 'ebook'})
                 });
                 const order = await resp.json();
                 if (order.error) throw new Error(order.error);
