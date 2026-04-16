@@ -14,11 +14,19 @@
 
     <div class="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg p-8 md:p-12">
         <p class="text-gray-700 text-lg leading-relaxed mb-8">
-            {% if lang == 'es' %}Magic Memories Books ("nosotros", "nuestro") se compromete a proteger la privacidad de nuestros usuarios, especialmente la de los menores. Esta política describe cómo recopilamos, usamos, almacenamos y eliminamos la información personal, incluyendo fotografías subidas por los usuarios.{% else %}Magic Memories Books ("we", "our", "us") is committed to protecting the privacy of our users, especially that of minors. This policy describes how we collect, use, store, and delete personal information, including photographs uploaded by users.{% endif %}
+            {% if lang == 'es' %}Magic Memories Books ("nosotros", "nuestro") valora su privacidad y trata sus datos personales con cuidado. Esta política describe qué datos recopilamos cuando utiliza nuestro sitio web <strong>magicmemoriesbooks.com</strong>, cómo los usamos, durante cuánto tiempo los conservamos y qué derechos le asisten, con especial atención a la protección de los menores.{% else %}Magic Memories Books ("we", "our", "us") values your privacy and handles your personal data with care. This policy describes what data we collect when you use our website <strong>magicmemoriesbooks.com</strong>, how we use it, how long we retain it, and what rights you have, with special attention to children's privacy protection.{% endif %}
+        </p>
+        <p class="text-gray-700 text-sm leading-relaxed mb-8 bg-purple-50 p-4 rounded-lg border-l-4 border-purple-400">
+            {% if lang == 'es' %}
+                <strong>Aviso importante:</strong> Nuestros clientes <strong>no crean cuentas</strong> en este sitio web. No existe registro de usuarios. Cada pedido es independiente y anónimo por defecto. Solo conservamos el correo electrónico y los datos estrictamente necesarios para entregar el producto encargado.
+            {% else %}
+                <strong>Important notice:</strong> Our customers <strong>do not create accounts</strong> on this website. There is no user registration. Each order is independent and anonymous by default. We only retain the email address and data strictly necessary to deliver the ordered product.
+            {% endif %}
         </p>
 
         <div class="space-y-8">
 
+            <!-- 1. Responsable -->
             <div class="border-l-4 border-purple-500 pl-6">
                 <h2 class="font-display text-xl font-bold text-purple-800 mb-3">
                     {% if lang == 'es' %}1. Responsable del Tratamiento de Datos{% else %}1. Data Controller{% endif %}
@@ -27,12 +35,14 @@
                     {% if lang == 'es' %}El responsable del tratamiento de sus datos personales es:{% else %}The data controller for your personal data is:{% endif %}
                 </p>
                 <ul class="text-gray-700 space-y-1 ml-4">
-                    <li><strong>{% if lang == 'es' %}Empresa{% else %}Company{% endif %}:</strong> Magic Memories Books</li>
-                    <li><strong>{% if lang == 'es' %}Contacto{% else %}Contact{% endif %}:</strong> <a href="mailto:info@magicmemoriesbooks.com" class="text-purple-600 hover:underline">info@magicmemoriesbooks.com</a></li>
-                    <li><strong>{% if lang == 'es' %}Delegado de Protección de Datos{% else %}Data Protection Officer{% endif %}:</strong> <a href="mailto:privacy@magicmemoriesbooks.com" class="text-purple-600 hover:underline">privacy@magicmemoriesbooks.com</a></li>
+                    <li><strong>{% if lang == 'es' %}Nombre comercial{% else %}Trade name{% endif %}:</strong> Magic Memories Books</li>
+                    <li><strong>{% if lang == 'es' %}Sitio web{% else %}Website{% endif %}:</strong> <a href="https://magicmemoriesbooks.com" class="text-purple-600 hover:underline">magicmemoriesbooks.com</a></li>
+                    <li><strong>{% if lang == 'es' %}Contacto general{% else %}General contact{% endif %}:</strong> <a href="mailto:info@magicmemoriesbooks.com" class="text-purple-600 hover:underline">info@magicmemoriesbooks.com</a></li>
+                    <li><strong>{% if lang == 'es' %}Privacidad y datos{% else %}Privacy and data{% endif %}:</strong> <a href="mailto:contacto@magicmemoriesbooks.com" class="text-purple-600 hover:underline">contacto@magicmemoriesbooks.com</a></li>
                 </ul>
             </div>
 
+            <!-- 2. Menores -->
             <div class="border-l-4 border-red-500 pl-6 bg-red-50 py-4 rounded-r-lg">
                 <h2 class="font-display text-xl font-bold text-red-800 mb-3">
                     {% if lang == 'es' %}2. Protección de Menores (COPPA y GDPR){% else %}2. Children's Protection (COPPA and GDPR){% endif %}
@@ -41,7 +51,7 @@
                     {% if lang == 'es' %}Nuestro servicio crea libros personalizados para niños. Tomamos la privacidad infantil con la máxima seriedad:{% else %}Our service creates personalized books for children. We take children's privacy with the utmost seriousness:{% endif %}
                 </p>
                 <div class="bg-white p-4 rounded-lg mb-3">
-                    <p class="font-medium text-gray-800 mb-2">{% if lang == 'es' %}Cumplimiento COPPA (EE.UU. - Menores de 13 años):{% else %}COPPA Compliance (US - Under 13):{% endif %}</p>
+                    <p class="font-medium text-gray-800 mb-2">{% if lang == 'es' %}Cumplimiento COPPA (EE.UU. — Menores de 13 años):{% else %}COPPA Compliance (US — Under 13):{% endif %}</p>
                     <ul class="text-gray-700 space-y-2 ml-4 text-sm">
                         <li>{% if lang == 'es' %}• No recopilamos información directamente de menores de 13 años.{% else %}• We do not collect information directly from children under 13.{% endif %}</li>
                         <li>{% if lang == 'es' %}• Las fotografías son subidas exclusivamente por padres o tutores legales.{% else %}• Photographs are uploaded exclusively by parents or legal guardians.{% endif %}</li>
@@ -50,173 +60,289 @@
                     </ul>
                 </div>
                 <div class="bg-white p-4 rounded-lg">
-                    <p class="font-medium text-gray-800 mb-2">{% if lang == 'es' %}Cumplimiento GDPR (UE/UK - Menores de 16 años):{% else %}GDPR Compliance (EU/UK - Under 16):{% endif %}</p>
+                    <p class="font-medium text-gray-800 mb-2">{% if lang == 'es' %}Cumplimiento GDPR (UE/UK — Menores de 16 años):{% else %}GDPR Compliance (EU/UK — Under 16):{% endif %}</p>
                     <ul class="text-gray-700 space-y-2 ml-4 text-sm">
                         <li>{% if lang == 'es' %}• Procesamos datos de menores solo con consentimiento parental.{% else %}• We process children's data only with parental consent.{% endif %}</li>
                         <li>{% if lang == 'es' %}• Base legal: Consentimiento explícito (Art. 6.1.a y Art. 8 GDPR).{% else %}• Legal basis: Explicit consent (Art. 6.1.a and Art. 8 GDPR).{% endif %}</li>
-                        <li>{% if lang == 'es' %}• Los usuarios de la UE tienen derecho de acceso, rectificación, supresión, portabilidad y oposición.{% else %}• EU users have the right of access, rectification, erasure, portability, and objection.{% endif %}</li>
-                        <li>{% if lang == 'es' %}• Puede ejercer estos derechos contactando a <a href="mailto:privacy@magicmemoriesbooks.com" class="text-purple-600 hover:underline">privacy@magicmemoriesbooks.com</a>.{% else %}• You can exercise these rights by contacting <a href="mailto:privacy@magicmemoriesbooks.com" class="text-purple-600 hover:underline">privacy@magicmemoriesbooks.com</a>.{% endif %}</li>
+                        <li>{% if lang == 'es' %}• No introduzca datos médicos sensibles ni datos especiales en los campos de texto libre.{% else %}• Do not enter sensitive medical data or special category data in free text fields.{% endif %}</li>
+                        <li>{% if lang == 'es' %}• Puede ejercer los derechos del interesado contactando a <a href="mailto:contacto@magicmemoriesbooks.com" class="text-purple-600 hover:underline">contacto@magicmemoriesbooks.com</a>.{% else %}• You can exercise data subject rights by contacting <a href="mailto:contacto@magicmemoriesbooks.com" class="text-purple-600 hover:underline">contacto@magicmemoriesbooks.com</a>.{% endif %}</li>
                     </ul>
                 </div>
             </div>
 
+            <!-- 3. Datos que recopilamos -->
             <div class="border-l-4 border-blue-500 pl-6 bg-blue-50 py-4 rounded-r-lg">
                 <h2 class="font-display text-xl font-bold text-blue-800 mb-3">
                     {% if lang == 'es' %}3. Datos que Recopilamos{% else %}3. Data We Collect{% endif %}
                 </h2>
                 <div class="bg-white p-4 rounded-lg mb-3">
-                    <p class="font-medium text-gray-800 mb-2">{% if lang == 'es' %}Datos proporcionados por el usuario:{% else %}Data provided by the user:{% endif %}</p>
+                    <p class="font-medium text-gray-800 mb-2">{% if lang == 'es' %}3.1 Datos proporcionados directamente por usted:{% else %}3.1 Data you provide directly:{% endif %}</p>
                     <ul class="text-gray-700 space-y-1 ml-4 text-sm">
                         <li>{% if lang == 'es' %}• <strong>Nombre del niño/a:</strong> Para personalizar el cuento.{% else %}• <strong>Child's name:</strong> To personalize the story.{% endif %}</li>
-                        <li>{% if lang == 'es' %}• <strong>Fotografías:</strong> De la persona y/o mascota para crear ilustraciones con IA.{% else %}• <strong>Photographs:</strong> Of the person and/or pet to create AI illustrations.{% endif %}</li>
-                        <li>{% if lang == 'es' %}• <strong>Características del personaje:</strong> Color de pelo, ojos, tono de piel, edad.{% else %}• <strong>Character traits:</strong> Hair color, eyes, skin tone, age.{% endif %}</li>
-                        <li>{% if lang == 'es' %}• <strong>Correo electrónico:</strong> Para envío del PDF y comunicaciones del pedido.{% else %}• <strong>Email address:</strong> For PDF delivery and order communications.{% endif %}</li>
+                        <li>{% if lang == 'es' %}• <strong>Fotografías:</strong> De la persona y/o mascota para crear ilustraciones con IA (solo en Cuentos FotoMágicos).{% else %}• <strong>Photographs:</strong> Of the person and/or pet to create AI illustrations (Photo Magic Stories only).{% endif %}</li>
+                        <li>{% if lang == 'es' %}• <strong>Características del personaje:</strong> Color de pelo, ojos, tono de piel, edad (datos de personalización).{% else %}• <strong>Character traits:</strong> Hair color, eyes, skin tone, age (personalization data).{% endif %}</li>
+                        <li>{% if lang == 'es' %}• <strong>Correo electrónico:</strong> Para enviar el producto (eBook, PDF) y comunicaciones sobre el pedido.{% else %}• <strong>Email address:</strong> To deliver the product (eBook, PDF) and order communications.{% endif %}</li>
+                        <li>{% if lang == 'es' %}• <strong>Dirección postal:</strong> Solo si solicita un libro físico, para coordinar el envío con Gelato.{% else %}• <strong>Postal address:</strong> Only if you order a physical book, to coordinate delivery with Gelato.{% endif %}</li>
+                        <li>{% if lang == 'es' %}• <strong>Datos de pago:</strong> No son almacenados por nosotros; son gestionados directamente por PayPal.{% else %}• <strong>Payment data:</strong> Not stored by us; managed directly by PayPal.{% endif %}</li>
+                    </ul>
+                </div>
+                <div class="bg-white p-4 rounded-lg mb-3">
+                    <p class="font-medium text-gray-800 mb-2">{% if lang == 'es' %}3.2 Datos recopilados automáticamente:{% else %}3.2 Automatically collected data:{% endif %}</p>
+                    <ul class="text-gray-700 space-y-1 ml-4 text-sm">
+                        <li>{% if lang == 'es' %}• <strong>Datos técnicos:</strong> Dirección IP, tipo de navegador, sistema operativo, dispositivo.{% else %}• <strong>Technical data:</strong> IP address, browser type, operating system, device.{% endif %}</li>
+                        <li>{% if lang == 'es' %}• <strong>Datos de uso:</strong> Páginas visitadas, duración de la visita, interacciones (mediante Google Analytics, ver sección 10).{% else %}• <strong>Usage data:</strong> Pages visited, visit duration, interactions (via Google Analytics, see section 10).{% endif %}</li>
                     </ul>
                 </div>
                 <div class="bg-white p-4 rounded-lg">
-                    <p class="font-medium text-gray-800 mb-2">{% if lang == 'es' %}Datos NO recopilados:{% else %}Data NOT collected:{% endif %}</p>
+                    <p class="font-medium text-red-700 mb-2">{% if lang == 'es' %}Datos que NO recopilamos:{% else %}Data we do NOT collect:{% endif %}</p>
                     <ul class="text-gray-700 space-y-1 ml-4 text-sm">
-                        <li>{% if lang == 'es' %}• No recopilamos datos biométricos permanentes.{% else %}• We do not collect permanent biometric data.{% endif %}</li>
-                        <li>{% if lang == 'es' %}• No creamos perfiles de reconocimiento facial.{% else %}• We do not create facial recognition profiles.{% endif %}</li>
-                        <li>{% if lang == 'es' %}• No almacenamos datos de pago (gestionados de forma segura por PayPal).{% else %}• We do not store payment data (securely managed by PayPal).{% endif %}</li>
+                        <li>{% if lang == 'es' %}• No creamos cuentas de usuario ni contraseñas.{% else %}• We do not create user accounts or passwords.{% endif %}</li>
+                        <li>{% if lang == 'es' %}• No recopilamos datos biométricos permanentes ni creamos perfiles de reconocimiento facial.{% else %}• We do not collect permanent biometric data or create facial recognition profiles.{% endif %}</li>
                     </ul>
                 </div>
             </div>
 
+            <!-- 4. Finalidades -->
+            <div class="border-l-4 border-purple-500 pl-6">
+                <h2 class="font-display text-xl font-bold text-purple-800 mb-3">
+                    {% if lang == 'es' %}4. Finalidades del Tratamiento{% else %}4. Purposes of Processing{% endif %}
+                </h2>
+                <p class="text-gray-700 leading-relaxed mb-3">{% if lang == 'es' %}Procesamos sus datos personales exclusivamente para los siguientes fines:{% else %}We process your personal data exclusively for the following purposes:{% endif %}</p>
+                <ul class="text-gray-700 space-y-2 ml-4 text-sm">
+                    <li>{% if lang == 'es' %}• Procesar, producir y entregar su pedido (eBook, PDF, libro físico).{% else %}• Processing, producing, and delivering your order (eBook, PDF, physical book).{% endif %}</li>
+                    <li>{% if lang == 'es' %}• Generar ilustraciones personalizadas con IA a partir de las fotos que usted sube.{% else %}• Generating personalized AI illustrations from the photos you upload.{% endif %}</li>
+                    <li>{% if lang == 'es' %}• Comunicarnos con usted sobre su pedido, responder a sus consultas y prestar soporte al cliente.{% else %}• Communicating with you about your order, answering inquiries, and providing customer support.{% endif %}</li>
+                    <li>{% if lang == 'es' %}• Enviar confirmaciones de pedido y notificaciones de entrega del producto.{% else %}• Sending order confirmations and product delivery notifications.{% endif %}</li>
+                    <li>{% if lang == 'es' %}• Mejorar nuestros productos, servicios y la funcionalidad del sitio web.{% else %}• Improving our products, services, and website functionality.{% endif %}</li>
+                    <li>{% if lang == 'es' %}• Analizar el uso del sitio web para optimizar la experiencia de usuario (Google Analytics, datos anonimizados en lo posible).{% else %}• Analyzing website usage to optimize user experience (Google Analytics, anonymized where possible).{% endif %}</li>
+                    <li>{% if lang == 'es' %}• Prevenir el fraude y el abuso de nuestros servicios.{% else %}• Preventing fraud and abuse of our services.{% endif %}</li>
+                </ul>
+            </div>
+
+            <!-- 5. Bases legales -->
+            <div class="border-l-4 border-indigo-500 pl-6 bg-indigo-50 py-4 rounded-r-lg">
+                <h2 class="font-display text-xl font-bold text-indigo-800 mb-3">
+                    {% if lang == 'es' %}5. Bases Legales para el Tratamiento (GDPR){% else %}5. Legal Bases for Processing (GDPR){% endif %}
+                </h2>
+                <p class="text-gray-700 leading-relaxed mb-3">{% if lang == 'es' %}Procesamos sus datos basándonos en los siguientes fundamentos legales del GDPR:{% else %}We process your data based on the following GDPR legal grounds:{% endif %}</p>
+                <div class="bg-white p-4 rounded-lg">
+                    <ul class="text-gray-700 space-y-3 text-sm">
+                        <li>
+                            <strong>{% if lang == 'es' %}Ejecución del contrato (Art. 6.1.b GDPR):{% else %}Contract performance (Art. 6.1.b GDPR):{% endif %}</strong>
+                            {% if lang == 'es' %}Para procesar su pedido, generar el producto y comunicarnos sobre la entrega.{% else %}To process your order, generate the product, and communicate about delivery.{% endif %}
+                        </li>
+                        <li>
+                            <strong>{% if lang == 'es' %}Consentimiento (Art. 6.1.a GDPR):{% else %}Consent (Art. 6.1.a GDPR):{% endif %}</strong>
+                            {% if lang == 'es' %}Para el tratamiento de fotografías que usted sube y datos de personalización específicos para crear el libro. Usted otorga este consentimiento al subir las fotos y confirmar sus elecciones. Puede retirar su consentimiento en cualquier momento, sin que ello afecte a la licitud del tratamiento anterior.{% else %}For processing photographs you upload and specific personalization data to create the book. You grant this consent by uploading photos and confirming your choices. You may withdraw consent at any time without affecting the lawfulness of prior processing.{% endif %}
+                        </li>
+                        <li>
+                            <strong>{% if lang == 'es' %}Interés legítimo (Art. 6.1.f GDPR):{% else %}Legitimate interest (Art. 6.1.f GDPR):{% endif %}</strong>
+                            {% if lang == 'es' %}Para la prevención del fraude, la seguridad de los sistemas y la mejora del servicio mediante análisis de uso agregado.{% else %}For fraud prevention, system security, and service improvement through aggregated usage analysis.{% endif %}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 6. Fotografías e IA -->
             <div class="border-l-4 border-green-500 pl-6 bg-green-50 py-4 rounded-r-lg">
                 <h2 class="font-display text-xl font-bold text-green-800 mb-3">
-                    {% if lang == 'es' %}4. Uso de Fotografías e Inteligencia Artificial{% else %}4. Use of Photographs and Artificial Intelligence{% endif %}
+                    {% if lang == 'es' %}6. Uso de Fotografías e Inteligencia Artificial{% else %}6. Use of Photographs and Artificial Intelligence{% endif %}
                 </h2>
                 <p class="text-gray-700 leading-relaxed mb-3">
-                    {% if lang == 'es' %}Las fotografías que usted sube se utilizan <strong>exclusivamente</strong> para:{% else %}The photographs you upload are used <strong>exclusively</strong> for:{% endif %}
+                    {% if lang == 'es' %}Las fotografías que usted sube se utilizan <strong>exclusivamente</strong> para generar ilustraciones artísticas personalizadas mediante modelos de IA y crear una referencia visual para mantener la consistencia en el libro. Al subir imágenes, nos da permiso expreso para procesarlas a través de nuestros sistemas de IA y los de nuestros socios tecnológicos.{% else %}The photographs you upload are used <strong>exclusively</strong> to generate personalized artistic illustrations using AI models and to create a visual reference to maintain consistency in the book. By uploading images, you expressly permit us to process them through our AI systems and those of our carefully selected technology partners.{% endif %}
                 </p>
-                <ul class="text-gray-700 space-y-2 ml-4">
-                    <li>{% if lang == 'es' %}• Generar ilustraciones artísticas personalizadas mediante modelos de IA (FLUX).{% else %}• Generate personalized artistic illustrations using AI models (FLUX).{% endif %}</li>
-                    <li>{% if lang == 'es' %}• Crear una referencia visual para mantener consistencia en el libro.{% else %}• Create a visual reference to maintain consistency in the book.{% endif %}</li>
-                </ul>
-                <div class="bg-white p-4 rounded-lg mt-3">
+                <div class="bg-white p-4 rounded-lg">
                     <p class="font-medium text-red-700 mb-2">{% if lang == 'es' %}Las fotografías NUNCA se usan para:{% else %}Photographs are NEVER used for:{% endif %}</p>
                     <ul class="text-gray-700 space-y-1 ml-4 text-sm">
-                        <li>{% if lang == 'es' %}• Entrenar modelos de IA o machine learning.{% else %}• Training AI or machine learning models.{% endif %}</li>
+                        <li>{% if lang == 'es' %}• Entrenar modelos de IA o machine learning (ni nosotros ni nuestros socios).{% else %}• Training AI or machine learning models (neither we nor our partners).{% endif %}</li>
                         <li>{% if lang == 'es' %}• Marketing, publicidad o promoción.{% else %}• Marketing, advertising, or promotion.{% endif %}</li>
                         <li>{% if lang == 'es' %}• Compartir con terceros no autorizados.{% else %}• Sharing with unauthorized third parties.{% endif %}</li>
                         <li>{% if lang == 'es' %}• Reconocimiento facial o creación de bases de datos biométricas.{% else %}• Facial recognition or creation of biometric databases.{% endif %}</li>
                         <li>{% if lang == 'es' %}• Cualquier propósito ajeno a la creación de su libro personalizado.{% else %}• Any purpose other than creating your personalized book.{% endif %}</li>
                     </ul>
                 </div>
+                <p class="text-gray-700 leading-relaxed mt-3 text-sm">
+                    {% if lang == 'es' %}Sus fotos y datos de entrada siguen siendo de su propiedad y se utilizan únicamente para ejecutar el pedido.{% else %}Your photos and input data remain your property and are used solely to fulfill the order.{% endif %}
+                </p>
             </div>
 
+            <!-- 7. Retención y eliminación -->
             <div class="border-l-4 border-amber-500 pl-6 bg-amber-50 py-4 rounded-r-lg">
                 <h2 class="font-display text-xl font-bold text-amber-800 mb-3">
-                    {% if lang == 'es' %}5. Retención y Eliminación de Datos{% else %}5. Data Retention and Deletion{% endif %}
+                    {% if lang == 'es' %}7. Plazos de Conservación y Eliminación de Datos{% else %}7. Data Retention and Deletion{% endif %}
                 </h2>
                 <p class="text-gray-700 leading-relaxed mb-3">
-                    {% if lang == 'es' %}Aplicamos una política estricta de minimización de datos:{% else %}We apply a strict data minimization policy:{% endif %}
+                    {% if lang == 'es' %}No conservamos sus datos más tiempo del estrictamente necesario. Aplicamos los siguientes plazos:{% else %}We do not retain your data longer than strictly necessary. We apply the following retention periods:{% endif %}
                 </p>
-                <div class="bg-white p-4 rounded-lg">
+                <div class="bg-white p-4 rounded-lg mb-3">
                     <table class="w-full text-sm">
                         <thead>
                             <tr class="border-b-2 border-amber-200">
                                 <th class="text-left py-2 text-gray-800">{% if lang == 'es' %}Tipo de Dato{% else %}Data Type{% endif %}</th>
-                                <th class="text-left py-2 text-gray-800">{% if lang == 'es' %}Retención{% else %}Retention{% endif %}</th>
+                                <th class="text-left py-2 text-gray-800">{% if lang == 'es' %}Plazo{% else %}Retention{% endif %}</th>
                             </tr>
                         </thead>
                         <tbody class="text-gray-700">
                             <tr class="border-b border-gray-100">
-                                <td class="py-2">{% if lang == 'es' %}Fotografías originales{% else %}Original photographs{% endif %}</td>
-                                <td class="py-2 font-medium">{% if lang == 'es' %}72 horas máximo{% else %}72 hours maximum{% endif %}</td>
+                                <td class="py-2">{% if lang == 'es' %}Fotografías originales subidas{% else %}Uploaded original photographs{% endif %}</td>
+                                <td class="py-2 font-medium text-red-700">{% if lang == 'es' %}Máximo 72 horas — eliminación automática{% else %}Maximum 72 hours — automatic deletion{% endif %}</td>
                             </tr>
                             <tr class="border-b border-gray-100">
-                                <td class="py-2">{% if lang == 'es' %}Datos de personalización{% else %}Personalization data{% endif %}</td>
-                                <td class="py-2 font-medium">{% if lang == 'es' %}72 horas máximo{% else %}72 hours maximum{% endif %}</td>
+                                <td class="py-2">{% if lang == 'es' %}Datos de personalización (nombre, características){% else %}Personalization data (name, traits){% endif %}</td>
+                                <td class="py-2 font-medium text-red-700">{% if lang == 'es' %}Máximo 72 horas — eliminación automática{% else %}Maximum 72 hours — automatic deletion{% endif %}</td>
                             </tr>
                             <tr class="border-b border-gray-100">
-                                <td class="py-2">{% if lang == 'es' %}PDFs artísticos generados{% else %}Generated artistic PDFs{% endif %}</td>
-                                <td class="py-2 font-medium">{% if lang == 'es' %}Acceso permanente (sin fotos originales){% else %}Permanent access (no original photos){% endif %}</td>
+                                <td class="py-2">{% if lang == 'es' %}eBooks y PDFs artísticos generados{% else %}Generated eBooks and artistic PDFs{% endif %}</td>
+                                <td class="py-2 font-medium">{% if lang == 'es' %}Acceso permanente (no contienen fotos originales){% else %}Permanent access (do not contain original photos){% endif %}</td>
+                            </tr>
+                            <tr class="border-b border-gray-100">
+                                <td class="py-2">{% if lang == 'es' %}Correo electrónico y datos del pedido{% else %}Email address and order data{% endif %}</td>
+                                <td class="py-2 font-medium">{% if lang == 'es' %}El tiempo necesario para entregar el producto y resolver incidencias{% else %}As long as necessary to deliver the product and resolve issues{% endif %}</td>
+                            </tr>
+                            <tr class="border-b border-gray-100">
+                                <td class="py-2">{% if lang == 'es' %}Dirección postal (libros físicos){% else %}Postal address (physical books){% endif %}</td>
+                                <td class="py-2 font-medium">{% if lang == 'es' %}Hasta confirmar la entrega del pedido{% else %}Until order delivery is confirmed{% endif %}</td>
                             </tr>
                             <tr>
-                                <td class="py-2">{% if lang == 'es' %}Correo electrónico{% else %}Email address{% endif %}</td>
-                                <td class="py-2 font-medium">{% if lang == 'es' %}Mientras sea necesario para el servicio{% else %}As long as necessary for the service{% endif %}</td>
+                                <td class="py-2">{% if lang == 'es' %}Comunicaciones de soporte{% else %}Support communications{% endif %}</td>
+                                <td class="py-2 font-medium">{% if lang == 'es' %}Hasta 2 años desde la resolución de la consulta{% else %}Up to 2 years from resolution of the inquiry{% endif %}</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-                <p class="text-gray-700 leading-relaxed mt-3 text-sm">
-                    {% if lang == 'es' %}La eliminación de fotografías es automática e irreversible. No conservamos copias de seguridad de las fotos originales después del periodo de retención.{% else %}Photo deletion is automatic and irreversible. We do not keep backup copies of original photos after the retention period.{% endif %}
+                <p class="text-gray-700 leading-relaxed text-sm">
+                    {% if lang == 'es' %}La eliminación de fotografías y datos de personalización es <strong>automática e irreversible</strong>. No conservamos copias de seguridad de las fotos originales tras el periodo de retención.{% else %}The deletion of photographs and personalization data is <strong>automatic and irreversible</strong>. We do not keep backup copies of original photos after the retention period.{% endif %}
                 </p>
             </div>
 
+            <!-- 8. Terceros -->
             <div class="border-l-4 border-purple-500 pl-6">
                 <h2 class="font-display text-xl font-bold text-purple-800 mb-3">
-                    {% if lang == 'es' %}6. Terceros con Acceso a Datos{% else %}6. Third Parties with Data Access{% endif %}
+                    {% if lang == 'es' %}8. Terceros con Acceso a Datos{% else %}8. Third Parties with Data Access{% endif %}
                 </h2>
                 <p class="text-gray-700 leading-relaxed mb-3">
-                    {% if lang == 'es' %}Compartimos datos únicamente con los siguientes proveedores, exclusivamente para cumplir con su pedido:{% else %}We share data only with the following providers, exclusively to fulfill your order:{% endif %}
+                    {% if lang == 'es' %}No vendemos sus datos personales a terceros. Solo los compartimos cuando es necesario para prestar el servicio:{% else %}We do not sell your personal data to third parties. We only share data when necessary to provide the service:{% endif %}
                 </p>
                 <div class="bg-gray-50 p-4 rounded-lg">
                     <ul class="text-gray-700 space-y-3 text-sm">
                         <li>
-                            <strong>PayPal</strong> - {% if lang == 'es' %}Procesamiento seguro de pagos. PayPal gestiona directamente los datos financieros y de tarjetas. No compartimos datos de tarjetas con PayPal; el comprador introduce sus datos directamente en la plataforma segura de PayPal. <a href="https://www.paypal.com/webapps/mpp/ua/privacy-full" target="_blank" class="text-purple-600 hover:underline">Política de Privacidad de PayPal</a>{% else %}Secure payment processing. PayPal directly manages financial and card data. We do not share card data with PayPal; the buyer enters their data directly on PayPal's secure platform. <a href="https://www.paypal.com/webapps/mpp/ua/privacy-full" target="_blank" class="text-purple-600 hover:underline">PayPal Privacy Policy</a>{% endif %}
+                            <strong>PayPal</strong> — {% if lang == 'es' %}Procesamiento seguro de pagos (PCI-DSS). No compartimos datos de tarjeta; el comprador los introduce directamente en la plataforma de PayPal. Solo recibimos confirmación del pago. <a href="https://www.paypal.com/webapps/mpp/ua/privacy-full" target="_blank" class="text-purple-600 hover:underline">Política de Privacidad de PayPal</a>{% else %}Secure payment processing (PCI-DSS). We do not share card data; the buyer enters it directly on PayPal's platform. We only receive payment confirmation. <a href="https://www.paypal.com/webapps/mpp/ua/privacy-full" target="_blank" class="text-purple-600 hover:underline">PayPal Privacy Policy</a>{% endif %}
                         </li>
                         <li>
-                            <strong>Replicate (FLUX)</strong> - {% if lang == 'es' %}Generación de ilustraciones con IA. Las fotos se procesan en tiempo real y no se almacenan. <a href="https://replicate.com/privacy" target="_blank" class="text-purple-600 hover:underline">Política de Privacidad de Replicate</a>{% else %}AI illustration generation. Photos are processed in real-time and are not stored. <a href="https://replicate.com/privacy" target="_blank" class="text-purple-600 hover:underline">Replicate Privacy Policy</a>{% endif %}
+                            <strong>Replicate (FLUX)</strong> — {% if lang == 'es' %}Generación de ilustraciones con IA. Las fotos se procesan para crear el producto y no se utilizan para entrenar modelos. <a href="https://replicate.com/privacy" target="_blank" class="text-purple-600 hover:underline">Política de Privacidad de Replicate</a>{% else %}AI illustration generation. Photos are processed to create the product and are not used to train models. <a href="https://replicate.com/privacy" target="_blank" class="text-purple-600 hover:underline">Replicate Privacy Policy</a>{% endif %}
                         </li>
                         <li>
-                            <strong>OpenAI</strong> - {% if lang == 'es' %}Generación de texto de historias. No recibe fotografías. <a href="https://openai.com/policies/privacy-policy" target="_blank" class="text-purple-600 hover:underline">Política de Privacidad de OpenAI</a>{% else %}Story text generation. Does not receive photographs. <a href="https://openai.com/policies/privacy-policy" target="_blank" class="text-purple-600 hover:underline">OpenAI Privacy Policy</a>{% endif %}
+                            <strong>OpenAI</strong> — {% if lang == 'es' %}Generación del texto de las historias. No recibe fotografías. <a href="https://openai.com/policies/privacy-policy" target="_blank" class="text-purple-600 hover:underline">Política de Privacidad de OpenAI</a>{% else %}Story text generation. Does not receive photographs. <a href="https://openai.com/policies/privacy-policy" target="_blank" class="text-purple-600 hover:underline">OpenAI Privacy Policy</a>{% endif %}
+                        </li>
+                        <li>
+                            <strong>Gelato</strong> — {% if lang == 'es' %}Impresión y envío de libros físicos. Solo recibe los datos necesarios para producir y entregar el pedido (dirección postal). <a href="https://www.gelato.com/privacy-policy" target="_blank" class="text-purple-600 hover:underline">Política de Privacidad de Gelato</a>{% else %}Printing and shipping of physical books. Only receives the data needed to produce and deliver the order (postal address). <a href="https://www.gelato.com/privacy-policy" target="_blank" class="text-purple-600 hover:underline">Gelato Privacy Policy</a>{% endif %}
+                        </li>
+                        <li>
+                            <strong>Google Analytics</strong> — {% if lang == 'es' %}Análisis del uso del sitio web (páginas visitadas, duración, comportamiento). Los datos se anonimizan en lo posible. Ver sección 10. <a href="https://policies.google.com/privacy" target="_blank" class="text-purple-600 hover:underline">Política de Privacidad de Google</a>{% else %}Website usage analysis (pages visited, duration, behavior). Data is anonymized where possible. See section 10. <a href="https://policies.google.com/privacy" target="_blank" class="text-purple-600 hover:underline">Google Privacy Policy</a>{% endif %}
+                        </li>
+                        <li>
+                            <strong>{% if lang == 'es' %}Autoridades{% else %}Authorities{% endif %}</strong> — {% if lang == 'es' %}Si es legalmente obligatorio.{% else %}If legally required.{% endif %}
                         </li>
                     </ul>
                 </div>
             </div>
 
-            <div class="border-l-4 border-blue-500 pl-6">
-                <h2 class="font-display text-xl font-bold text-blue-800 mb-3">
-                    {% if lang == 'es' %}7. Seguridad de los Datos{% else %}7. Data Security{% endif %}
+            <!-- 9. Transferencias internacionales -->
+            <div class="border-l-4 border-purple-500 pl-6">
+                <h2 class="font-display text-xl font-bold text-purple-800 mb-3">
+                    {% if lang == 'es' %}9. Transferencias Internacionales de Datos{% else %}9. International Data Transfers{% endif %}
+                </h2>
+                <p class="text-gray-700 leading-relaxed">
+                    {% if lang == 'es' %}Debido al uso de tecnología de IA de terceros, sus datos (incluyendo fotos y textos de personalización) pueden ser procesados en servidores fuera del Espacio Económico Europeo (EEE), especialmente en Estados Unidos. Nos aseguramos de trabajar exclusivamente con proveedores que ofrecen un nivel de protección adecuado, mediante certificación bajo el Marco de Privacidad de Datos UE-EE.UU. (Data Privacy Framework) o mediante Cláusulas Contractuales Tipo (CCT) aprobadas por la Comisión Europea.{% else %}Due to the use of third-party AI technology, your data (including photos and personalization texts) may be processed on servers outside the European Economic Area (EEA), particularly in the United States. We ensure we work exclusively with providers that offer an adequate level of protection, through certification under the EU-U.S. Data Privacy Framework or through Standard Contractual Clauses (SCCs) approved by the European Commission.{% endif %}
+                </p>
+            </div>
+
+            <!-- 10. Cookies -->
+            <div class="border-l-4 border-purple-500 pl-6">
+                <h2 class="font-display text-xl font-bold text-purple-800 mb-3">
+                    {% if lang == 'es' %}10. Cookies y Tecnologías de Seguimiento{% else %}10. Cookies and Tracking Technologies{% endif %}
                 </h2>
                 <p class="text-gray-700 leading-relaxed mb-3">
-                    {% if lang == 'es' %}Implementamos las siguientes medidas de seguridad:{% else %}We implement the following security measures:{% endif %}
+                    {% if lang == 'es' %}Nuestro sitio web utiliza los siguientes tipos de cookies:{% else %}Our website uses the following types of cookies:{% endif %}
+                </p>
+                <div class="bg-gray-50 p-4 rounded-lg mb-3">
+                    <ul class="text-gray-700 space-y-3 text-sm">
+                        <li>
+                            <strong>{% if lang == 'es' %}Cookies funcionales (necesarias):{% else %}Functional cookies (necessary):{% endif %}</strong>
+                            {% if lang == 'es' %}Esenciales para el funcionamiento del sitio. Mantienen su sesión activa mientras personaliza su cuento y recuerdan su preferencia de idioma. Se eliminan al cerrar el navegador o al expirar la sesión.{% else %}Essential for the website to function. They keep your session active while you personalize your story and remember your language preference. Deleted when you close your browser or the session expires.{% endif %}
+                        </li>
+                        <li>
+                            <strong>{% if lang == 'es' %}Cookies analíticas (Google Analytics):{% else %}Analytical cookies (Google Analytics):{% endif %}</strong>
+                            {% if lang == 'es' %}Nos ayudan a entender cómo los visitantes utilizan el sitio web (qué páginas son populares, tiempo en el sitio, etc.) para optimizarlo. Usamos Google Analytics 4 con anonimización de IP activada. Los datos se agregan y anonimizan en lo posible. Puede optar por no ser rastreado a través de la configuración de su navegador o mediante la extensión <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" class="text-purple-600 hover:underline">Google Analytics Opt-out</a>.{% else %}Help us understand how visitors use the website (popular pages, time on site, etc.) to optimize it. We use Google Analytics 4 with IP anonymization enabled. Data is aggregated and anonymized where possible. You can opt out via your browser settings or the <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" class="text-purple-600 hover:underline">Google Analytics Opt-out</a> extension.{% endif %}
+                        </li>
+                        <li>
+                            <strong>{% if lang == 'es' %}Cookies de pago (PayPal, tercero):{% else %}Payment cookies (PayPal, third-party):{% endif %}</strong>
+                            {% if lang == 'es' %}Necesarias para el procesamiento seguro de pagos a través de la plataforma de PayPal. Ver <a href="https://www.paypal.com/webapps/mpp/ua/privacy-full" target="_blank" class="text-purple-600 hover:underline">Política de Privacidad de PayPal</a>.{% else %}Necessary for secure payment processing through PayPal's platform. See <a href="https://www.paypal.com/webapps/mpp/ua/privacy-full" target="_blank" class="text-purple-600 hover:underline">PayPal's Privacy Policy</a>.{% endif %}
+                        </li>
+                    </ul>
+                </div>
+                <p class="text-gray-700 leading-relaxed text-sm">
+                    {% if lang == 'es' %}<strong>No utilizamos</strong> cookies de publicidad ni de rastreo de comportamiento con fines de marketing directo.{% else %}<strong>We do not use</strong> advertising cookies or behavioral tracking for direct marketing purposes.{% endif %}
+                </p>
+            </div>
+
+            <!-- 11. Seguridad -->
+            <div class="border-l-4 border-blue-500 pl-6">
+                <h2 class="font-display text-xl font-bold text-blue-800 mb-3">
+                    {% if lang == 'es' %}11. Seguridad de los Datos{% else %}11. Data Security{% endif %}
+                </h2>
+                <p class="text-gray-700 leading-relaxed mb-3">
+                    {% if lang == 'es' %}Adoptamos medidas técnicas y organizativas adecuadas para proteger sus datos frente a uso indebido, pérdida, acceso no autorizado y divulgación:{% else %}We adopt appropriate technical and organizational measures to protect your data against misuse, loss, unauthorized access, and disclosure:{% endif %}
                 </p>
                 <ul class="text-gray-700 space-y-2 ml-4 text-sm">
                     <li>{% if lang == 'es' %}• Transmisión cifrada SSL/TLS en todo el sitio.{% else %}• SSL/TLS encrypted transmission across the entire site.{% endif %}</li>
-                    <li>{% if lang == 'es' %}• Acceso restringido a las fotografías (solo administradores autorizados).{% else %}• Restricted access to photographs (authorized administrators only).{% endif %}</li>
-                    <li>{% if lang == 'es' %}• Eliminación automática programada de datos sensibles.{% else %}• Scheduled automatic deletion of sensitive data.{% endif %}</li>
+                    <li>{% if lang == 'es' %}• Acceso restringido a las fotografías (solo sistemas autorizados).{% else %}• Restricted access to photographs (authorized systems only).{% endif %}</li>
+                    <li>{% if lang == 'es' %}• Eliminación automática programada de datos sensibles (72 horas).{% else %}• Scheduled automatic deletion of sensitive data (72 hours).{% endif %}</li>
                     <li>{% if lang == 'es' %}• Las fotografías no son accesibles públicamente por URL.{% else %}• Photographs are not publicly accessible by URL.{% endif %}</li>
                     <li>{% if lang == 'es' %}• Los archivos de fotos se almacenan con nombres únicos aleatorizados.{% else %}• Photo files are stored with randomized unique names.{% endif %}</li>
+                    <li>{% if lang == 'es' %}• Actualizaciones de seguridad periódicas en los servidores.{% else %}• Regular security updates on servers.{% endif %}</li>
                 </ul>
+                <p class="text-gray-700 leading-relaxed mt-3 text-sm">
+                    {% if lang == 'es' %}Si se produjera una brecha de seguridad con consecuencias negativas probables para su privacidad, le informaremos de conformidad con las obligaciones legales aplicables.{% else %}Should a data breach occur with likely negative consequences for your privacy, we will notify you in accordance with applicable legal obligations.{% endif %}
+                </p>
             </div>
 
+            <!-- 12. Sus derechos -->
             <div class="border-l-4 border-green-500 pl-6">
                 <h2 class="font-display text-xl font-bold text-green-800 mb-3">
-                    {% if lang == 'es' %}8. Sus Derechos{% else %}8. Your Rights{% endif %}
+                    {% if lang == 'es' %}12. Sus Derechos (Derechos del Interesado — GDPR){% else %}12. Your Rights (Data Subject Rights — GDPR){% endif %}
                 </h2>
                 <p class="text-gray-700 leading-relaxed mb-3">
-                    {% if lang == 'es' %}Usted (o el padre/tutor legal) tiene derecho a:{% else %}You (or the parent/legal guardian) have the right to:{% endif %}
+                    {% if lang == 'es' %}En virtud del GDPR y la normativa aplicable, usted (o el padre/tutor legal) tiene los siguientes derechos:{% else %}Under the GDPR and applicable regulations, you (or the parent/legal guardian) have the following rights:{% endif %}
                 </p>
                 <ul class="text-gray-700 space-y-2 ml-4">
-                    <li>{% if lang == 'es' %}• <strong>Acceso:</strong> Solicitar qué datos tenemos sobre usted.{% else %}• <strong>Access:</strong> Request what data we have about you.{% endif %}</li>
-                    <li>{% if lang == 'es' %}• <strong>Eliminación:</strong> Solicitar la eliminación inmediata de sus datos (incluyendo fotos).{% else %}• <strong>Deletion:</strong> Request immediate deletion of your data (including photos).{% endif %}</li>
-                    <li>{% if lang == 'es' %}• <strong>Rectificación:</strong> Corregir datos incorrectos.{% else %}• <strong>Rectification:</strong> Correct inaccurate data.{% endif %}</li>
-                    <li>{% if lang == 'es' %}• <strong>Portabilidad:</strong> Recibir sus datos en formato portátil (GDPR).{% else %}• <strong>Portability:</strong> Receive your data in a portable format (GDPR).{% endif %}</li>
-                    <li>{% if lang == 'es' %}• <strong>Oposición:</strong> Oponerse al procesamiento de sus datos.{% else %}• <strong>Objection:</strong> Object to the processing of your data.{% endif %}</li>
-                    <li>{% if lang == 'es' %}• <strong>Revocar consentimiento:</strong> Retirar su consentimiento en cualquier momento.{% else %}• <strong>Withdraw consent:</strong> Withdraw your consent at any time.{% endif %}</li>
+                    <li>{% if lang == 'es' %}• <strong>Acceso (Art. 15 GDPR):</strong> Solicitar qué datos personales tenemos sobre usted.{% else %}• <strong>Access (Art. 15 GDPR):</strong> Request what personal data we hold about you.{% endif %}</li>
+                    <li>{% if lang == 'es' %}• <strong>Rectificación (Art. 16 GDPR):</strong> Corregir datos incorrectos o incompletos.{% else %}• <strong>Rectification (Art. 16 GDPR):</strong> Correct inaccurate or incomplete data.{% endif %}</li>
+                    <li>{% if lang == 'es' %}• <strong>Supresión / "derecho al olvido" (Art. 17 GDPR):</strong> Solicitar la eliminación de sus datos, salvo que exista obligación legal de conservarlos.{% else %}• <strong>Erasure / "right to be forgotten" (Art. 17 GDPR):</strong> Request deletion of your data, unless there is a legal obligation to retain it.{% endif %}</li>
+                    <li>{% if lang == 'es' %}• <strong>Limitación del tratamiento (Art. 18 GDPR):</strong> Solicitar que limitemos temporalmente el tratamiento de sus datos en determinados casos.{% else %}• <strong>Restriction of processing (Art. 18 GDPR):</strong> Request that we temporarily restrict processing of your data in certain cases.{% endif %}</li>
+                    <li>{% if lang == 'es' %}• <strong>Portabilidad (Art. 20 GDPR):</strong> Recibir sus datos en formato estructurado y legible por máquina.{% else %}• <strong>Portability (Art. 20 GDPR):</strong> Receive your data in a structured, machine-readable format.{% endif %}</li>
+                    <li>{% if lang == 'es' %}• <strong>Oposición (Art. 21 GDPR):</strong> Oponerse al tratamiento basado en nuestro interés legítimo.{% else %}• <strong>Objection (Art. 21 GDPR):</strong> Object to processing based on our legitimate interest.{% endif %}</li>
+                    <li>{% if lang == 'es' %}• <strong>No ser objeto de decisiones automatizadas (Art. 22 GDPR):</strong> Derecho a no ser objeto de una decisión basada únicamente en tratamiento automatizado que produzca efectos jurídicos o le afecte significativamente.{% else %}• <strong>Not be subject to automated decisions (Art. 22 GDPR):</strong> Right not to be subject to a decision based solely on automated processing that produces legal effects or significantly affects you.{% endif %}</li>
+                    <li>{% if lang == 'es' %}• <strong>Revocar consentimiento:</strong> Retirar su consentimiento en cualquier momento, sin efecto retroactivo.{% else %}• <strong>Withdraw consent:</strong> Withdraw your consent at any time, without retroactive effect.{% endif %}</li>
                 </ul>
                 <p class="text-gray-700 leading-relaxed mt-3">
-                    {% if lang == 'es' %}Para ejercer cualquiera de estos derechos, contacte a <a href="mailto:privacy@magicmemoriesbooks.com" class="text-purple-600 hover:underline">privacy@magicmemoriesbooks.com</a>. Responderemos en un máximo de 30 días.{% else %}To exercise any of these rights, contact <a href="mailto:privacy@magicmemoriesbooks.com" class="text-purple-600 hover:underline">privacy@magicmemoriesbooks.com</a>. We will respond within 30 days.{% endif %}
+                    {% if lang == 'es' %}Para ejercer cualquiera de estos derechos, contacte a <a href="mailto:contacto@magicmemoriesbooks.com" class="text-purple-600 hover:underline">contacto@magicmemoriesbooks.com</a>. Responderemos en un máximo de 30 días. Dependiendo de la complejidad, este plazo puede extenderse hasta dos meses adicionales.{% else %}To exercise any of these rights, contact <a href="mailto:contacto@magicmemoriesbooks.com" class="text-purple-600 hover:underline">contacto@magicmemoriesbooks.com</a>. We will respond within 30 days. Depending on complexity, this period may be extended by up to two additional months.{% endif %}
                 </p>
+                <div class="bg-gray-50 p-4 rounded-lg mt-3">
+                    <p class="text-gray-700 text-sm">
+                        {% if lang == 'es' %}Si considera que el tratamiento de sus datos infringe la normativa de privacidad, tiene derecho a presentar una reclamación ante la autoridad de control competente. En EE.UU.: <a href="https://www.ftc.gov" target="_blank" class="text-purple-600 hover:underline">Federal Trade Commission (FTC)</a>. En la UE: la autoridad de protección de datos de su país de residencia.{% else %}If you believe that the processing of your data violates privacy regulations, you have the right to lodge a complaint with the competent supervisory authority. In the US: <a href="https://www.ftc.gov" target="_blank" class="text-purple-600 hover:underline">Federal Trade Commission (FTC)</a>. In the EU: the data protection authority of your country of residence.{% endif %}
+                    </p>
+                </div>
             </div>
 
+            <!-- 13. Pagos -->
             <div class="border-l-4 border-purple-500 pl-6 bg-purple-50 py-4 rounded-r-lg">
                 <h2 class="font-display text-xl font-bold text-purple-800 mb-3">
-                    {% if lang == 'es' %}9. Procesamiento de Pagos (PayPal){% else %}9. Payment Processing (PayPal){% endif %}
+                    {% if lang == 'es' %}13. Procesamiento de Pagos (PayPal){% else %}13. Payment Processing (PayPal){% endif %}
                 </h2>
                 <p class="text-gray-700 leading-relaxed mb-3">
-                    {% if lang == 'es' %}Los pagos son procesados de forma segura a través de <strong>PayPal</strong>, plataforma de pago líder a nivel mundial con certificación PCI-DSS. PayPal acepta tarjetas de crédito/débito (Visa, Mastercard, American Express) y saldos de cuenta PayPal, y gestiona directamente:{% else %}Payments are processed securely through <strong>PayPal</strong>, a world-leading payment platform with PCI-DSS certification. PayPal accepts credit/debit cards (Visa, Mastercard, American Express) and PayPal account balances, and directly manages:{% endif %}
+                    {% if lang == 'es' %}Los pagos son procesados de forma segura a través de <strong>PayPal</strong> (PCI-DSS nivel 1). El proceso de pago se realiza íntegramente en la plataforma segura de PayPal. <strong>No almacenamos</strong> datos de tarjetas de crédito ni información financiera en nuestros servidores. Solo recibimos una confirmación del pago.{% else %}Payments are processed securely through <strong>PayPal</strong> (Level 1 PCI-DSS). The payment process takes place entirely on PayPal's secure platform. <strong>We do not store</strong> credit card data or financial information on our servers. We only receive payment confirmation.{% endif %}
                 </p>
-                <ul class="text-gray-700 space-y-1 ml-4 text-sm mb-3">
-                    <li>{% if lang == 'es' %}• Procesamiento de tarjetas de crédito/débito y cuentas PayPal.{% else %}• Credit/debit card and PayPal account processing.{% endif %}</li>
-                    <li>{% if lang == 'es' %}• Seguridad, encriptación y cumplimiento PCI-DSS nivel 1.{% else %}• Security, encryption, and Level 1 PCI-DSS compliance.{% endif %}</li>
-                    <li>{% if lang == 'es' %}• Emisión de recibos y cumplimiento de normativa financiera internacional.{% else %}• Receipt issuance and international financial regulation compliance.{% endif %}</li>
-                    <li>{% if lang == 'es' %}• Protección al comprador de PayPal donde sea aplicable.{% else %}• PayPal Buyer Protection where applicable.{% endif %}</li>
-                </ul>
                 <div class="bg-white p-4 rounded-lg mb-3">
                     <p class="font-medium text-gray-800 mb-2">{% if lang == 'es' %}Datos compartidos con PayPal para completar el pago:{% else %}Data shared with PayPal to complete the payment:{% endif %}</p>
                     <ul class="text-gray-700 space-y-1 ml-4 text-sm">
@@ -225,72 +351,44 @@
                         <li>{% if lang == 'es' %}• Identificador interno del pedido.{% else %}• Internal order identifier.{% endif %}</li>
                     </ul>
                 </div>
-                <div class="bg-white p-4 rounded-lg mb-3 border-l-4 border-blue-400">
-                    <p class="text-gray-700 leading-relaxed text-sm">
-                        {% if lang == 'es' %}El proceso de pago se realiza íntegramente en la plataforma segura de PayPal. <strong>No almacenamos</strong> datos de tarjetas de crédito ni información financiera en nuestros servidores. Para más información, consulte la <a href="https://www.paypal.com/webapps/mpp/ua/privacy-full" target="_blank" class="text-purple-600 hover:underline">Política de Privacidad de PayPal</a> y el <a href="https://www.paypal.com/webapps/mpp/ua/useragreement-full" target="_blank" class="text-purple-600 hover:underline">Acuerdo de Usuario de PayPal</a>.{% else %}The payment process takes place entirely on PayPal's secure platform. <strong>We do not store</strong> credit card data or financial information on our servers. For more information, see <a href="https://www.paypal.com/webapps/mpp/ua/privacy-full" target="_blank" class="text-purple-600 hover:underline">PayPal's Privacy Policy</a> and <a href="https://www.paypal.com/webapps/mpp/ua/useragreement-full" target="_blank" class="text-purple-600 hover:underline">PayPal's User Agreement</a>.{% endif %}
-                    </p>
-                </div>
+                <p class="text-gray-700 text-sm">{% if lang == 'es' %}Ver <a href="https://www.paypal.com/webapps/mpp/ua/privacy-full" target="_blank" class="text-purple-600 hover:underline">Política de Privacidad de PayPal</a>.{% else %}See <a href="https://www.paypal.com/webapps/mpp/ua/privacy-full" target="_blank" class="text-purple-600 hover:underline">PayPal's Privacy Policy</a>.{% endif %}</p>
             </div>
 
+            <!-- 14. Marketing -->
             <div class="border-l-4 border-purple-500 pl-6">
                 <h2 class="font-display text-xl font-bold text-purple-800 mb-3">
-                    {% if lang == 'es' %}10. Cookies y Tecnologías de Seguimiento{% else %}10. Cookies and Tracking Technologies{% endif %}
-                </h2>
-                <p class="text-gray-700 leading-relaxed mb-3">
-                    {% if lang == 'es' %}Nuestro sitio web utiliza cookies estrictamente necesarias para el funcionamiento del servicio:{% else %}Our website uses cookies strictly necessary for the functioning of the service:{% endif %}
-                </p>
-                <div class="bg-gray-50 p-4 rounded-lg mb-3">
-                    <ul class="text-gray-700 space-y-2 text-sm">
-                        <li>{% if lang == 'es' %}• <strong>Cookies de sesión:</strong> Necesarias para mantener su sesión activa mientras personaliza su cuento. Se eliminan al cerrar el navegador.{% else %}• <strong>Session cookies:</strong> Necessary to keep your session active while personalizing your story. Deleted when you close your browser.{% endif %}</li>
-                        <li>{% if lang == 'es' %}• <strong>Cookies de preferencia de idioma:</strong> Para recordar su idioma preferido (español/inglés).{% else %}• <strong>Language preference cookies:</strong> To remember your preferred language (Spanish/English).{% endif %}</li>
-                        <li>{% if lang == 'es' %}• <strong>Cookies de pago (PayPal, tercero):</strong> Necesarias para el procesamiento seguro de pagos a través de la plataforma de PayPal. Ver <a href="https://www.paypal.com/webapps/mpp/ua/privacy-full" target="_blank" class="text-purple-600 hover:underline">Política de Privacidad de PayPal</a>.{% else %}• <strong>PayPal cookies (third-party):</strong> Necessary for secure payment processing through PayPal's platform. See <a href="https://www.paypal.com/webapps/mpp/ua/privacy-full" target="_blank" class="text-purple-600 hover:underline">PayPal's Privacy Policy</a>.{% endif %}</li>
-                    </ul>
-                </div>
-                <p class="text-gray-700 leading-relaxed text-sm">
-                    {% if lang == 'es' %}<strong>No utilizamos</strong> cookies de publicidad, rastreo de terceros, ni herramientas de análisis que recopilen datos personales.{% else %}<strong>We do not use</strong> advertising cookies, third-party tracking, or analytics tools that collect personal data.{% endif %}
-                </p>
-            </div>
-
-            <div class="border-l-4 border-purple-500 pl-6">
-                <h2 class="font-display text-xl font-bold text-purple-800 mb-3">
-                    {% if lang == 'es' %}11. Consentimiento de Marketing{% else %}11. Marketing Consent{% endif %}
+                    {% if lang == 'es' %}14. Comunicaciones de Marketing{% else %}14. Marketing Communications{% endif %}
                 </h2>
                 <p class="text-gray-700 leading-relaxed">
-                    {% if lang == 'es' %}No enviamos comunicaciones de marketing sin su consentimiento previo y explícito. Si opta por recibir noticias o promociones, puede darse de baja en cualquier momento haciendo clic en el enlace de cancelación de suscripción incluido en cada correo, o contactando a <a href="mailto:info@magicmemoriesbooks.com" class="text-purple-600 hover:underline">info@magicmemoriesbooks.com</a>.{% else %}We do not send marketing communications without your prior and explicit consent. If you opt in to receive news or promotions, you can unsubscribe at any time by clicking the unsubscribe link included in each email, or by contacting <a href="mailto:info@magicmemoriesbooks.com" class="text-purple-600 hover:underline">info@magicmemoriesbooks.com</a>.{% endif %}
+                    {% if lang == 'es' %}No enviamos comunicaciones de marketing sin su consentimiento previo y explícito. Si opta por recibir noticias o promociones, puede darse de baja en cualquier momento haciendo clic en el enlace de cancelación de suscripción incluido en cada correo, o contactando a <a href="mailto:info@magicmemoriesbooks.com" class="text-purple-600 hover:underline">info@magicmemoriesbooks.com</a>.{% else %}We do not send marketing communications without your prior and explicit consent. If you opt in to receive news or promotions, you can unsubscribe at any time by clicking the unsubscribe link in each email, or by contacting <a href="mailto:info@magicmemoriesbooks.com" class="text-purple-600 hover:underline">info@magicmemoriesbooks.com</a>.{% endif %}
                 </p>
             </div>
 
+            <!-- 15. Cambios -->
             <div class="border-l-4 border-purple-500 pl-6">
                 <h2 class="font-display text-xl font-bold text-purple-800 mb-3">
-                    {% if lang == 'es' %}12. Transferencias Internacionales{% else %}12. International Transfers{% endif %}
-                </h2>
-                <p class="text-gray-700 leading-relaxed">
-                    {% if lang == 'es' %}Sus datos pueden ser procesados en servidores ubicados en Estados Unidos y la Unión Europea. Garantizamos que estos proveedores cumplen con las normativas de protección de datos aplicables (GDPR, COPPA) y mantienen medidas de seguridad adecuadas.{% else %}Your data may be processed on servers located in the United States and the European Union. We ensure that these providers comply with applicable data protection regulations (GDPR, COPPA) and maintain adequate security measures.{% endif %}
-                </p>
-            </div>
-
-            <div class="border-l-4 border-purple-500 pl-6">
-                <h2 class="font-display text-xl font-bold text-purple-800 mb-3">
-                    {% if lang == 'es' %}13. Cambios en esta Política{% else %}13. Changes to this Policy{% endif %}
+                    {% if lang == 'es' %}15. Cambios en esta Política{% else %}15. Changes to this Policy{% endif %}
                 </h2>
                 <p class="text-gray-700 leading-relaxed">
                     {% if lang == 'es' %}Nos reservamos el derecho de actualizar esta política. Cualquier cambio material será notificado en nuestro sitio web. Le recomendamos revisar esta página periódicamente.{% else %}We reserve the right to update this policy. Any material changes will be notified on our website. We recommend reviewing this page periodically.{% endif %}
                 </p>
             </div>
 
+            <!-- 16. Contacto -->
             <div class="border-l-4 border-purple-500 pl-6">
                 <h2 class="font-display text-xl font-bold text-purple-800 mb-3">
-                    {% if lang == 'es' %}14. Contacto{% else %}14. Contact{% endif %}
+                    {% if lang == 'es' %}16. Contacto{% else %}16. Contact{% endif %}
                 </h2>
                 <p class="text-gray-700 leading-relaxed mb-2">
                     {% if lang == 'es' %}Para cualquier consulta sobre privacidad o protección de datos:{% else %}For any privacy or data protection inquiries:{% endif %}
                 </p>
                 <ul class="text-gray-700 space-y-1">
-                    <li><strong>{% if lang == 'es' %}Privacidad y datos{% else %}Privacy and data{% endif %}:</strong> <a href="mailto:privacy@magicmemoriesbooks.com" class="text-purple-600 hover:underline">privacy@magicmemoriesbooks.com</a></li>
+                    <li><strong>{% if lang == 'es' %}Privacidad y datos{% else %}Privacy and data{% endif %}:</strong> <a href="mailto:contacto@magicmemoriesbooks.com" class="text-purple-600 hover:underline">contacto@magicmemoriesbooks.com</a></li>
                     <li><strong>{% if lang == 'es' %}Soporte general{% else %}General support{% endif %}:</strong> <a href="mailto:info@magicmemoriesbooks.com" class="text-purple-600 hover:underline">info@magicmemoriesbooks.com</a></li>
-                    <li><strong>{% if lang == 'es' %}Pagos{% else %}Payments{% endif %}:</strong> <a href="mailto:pay@magicmemoriesbooks.com" class="text-purple-600 hover:underline">pay@magicmemoriesbooks.com</a></li>
+                    <li><strong>{% if lang == 'es' %}Pagos{% else %}Payments{% endif %}:</strong> <a href="mailto:contacto@magicmemoriesbooks.com" class="text-purple-600 hover:underline">contacto@magicmemoriesbooks.com</a></li>
                 </ul>
             </div>
+
         </div>
 
         <div class="mt-8 pt-8 border-t border-gray-200 text-center text-gray-500 text-sm">
