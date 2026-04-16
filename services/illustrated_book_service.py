@@ -159,7 +159,18 @@ from services.personalized_books.furry_love_adult_prompts import (
     build_scene_prompt as flad_build_scene_prompt,
 )
 
-ALL_PERSONALIZED_BOOK_IDS = ['dragon_garden', 'magic_chef', 'magic_inventor', 'star_keeper', 'furry_love', 'furry_love_adventure', 'furry_love_teen', 'furry_love_adult']
+from services.personalized_books.centinela_aurora_prompts import (
+    CENTINELA_AURORA_SCENES,
+    CLOSING_SCENE as CA_CLOSING_SCENE,
+    FRONT_COVER as CA_FRONT_COVER,
+    BACK_COVER as CA_BACK_COVER,
+    ASTRO_INLINE as ASTRO_DESC,
+    STYLE_BASE as CA_STYLE_BASE,
+    build_scene_prompt as ca_build_scene_prompt,
+    get_outfit_desc as ca_get_outfit_desc,
+)
+
+ALL_PERSONALIZED_BOOK_IDS = ['dragon_garden', 'magic_chef', 'magic_inventor', 'star_keeper', 'furry_love', 'furry_love_adventure', 'furry_love_teen', 'furry_love_adult', 'centinela_aurora']
 
 
 def get_hair_description(traits: dict, gender: str = None) -> str:
@@ -173,7 +184,7 @@ def get_hair_description(traits: dict, gender: str = None) -> str:
     color_map = {
         'black': 'jet black',
         'brown': 'medium brown',
-        'light_brown': 'light brown',
+        'light_brown': 'warm light brown (caramel-honey tone)',
         'blonde': 'golden blonde',
         'very_light_blonde': 'very light blonde',
         'red': 'bright red',
@@ -188,7 +199,17 @@ def get_hair_description(traits: dict, gender: str = None) -> str:
     
     c = color_map.get(color, color)
     t = type_map.get(hair_type, hair_type)
-    
+
+    if length == 'bald':
+        return "completely smooth bald head, perfectly round hairless baby head, clean soft scalp"
+
+    if length == 'very_little':
+        sc_map = {'black': 'jet black', 'brown': 'medium brown', 'light_brown': 'warm light brown (caramel-honey tone)',
+                  'blonde': 'golden blonde', 'very_light_blonde': 'very light blonde',
+                  'red': 'bright red', 'auburn': 'auburn'}
+        sc = sc_map.get(color, c)
+        return f"nearly bald smooth round head, smooth scalp clearly visible, only the faintest sparse {sc} baby down, barely-there peach fuzz almost invisible, almost no hair"
+
     if length == 'short':
         if gender == 'male':
             return f"{c} short cropped {t} boy haircut, trimmed above ears and neatly tapered"
@@ -369,6 +390,20 @@ BOOK_CONFIGS = {
         "get_outfit_desc": None,
         "is_furry_love": True,
     },
+    "centinela_aurora": {
+        "book_id": "centinela_aurora",
+        "title_es": "{name} y el Centinela de la Aurora",
+        "title_en": "{name} and the Aurora Sentinel",
+        "scenes": CENTINELA_AURORA_SCENES,
+        "closing": CA_CLOSING_SCENE,
+        "front_cover": CA_FRONT_COVER,
+        "back_cover": CA_BACK_COVER,
+        "style_base": CA_STYLE_BASE,
+        "companion_desc": ASTRO_DESC,
+        "build_scene_prompt": ca_build_scene_prompt,
+        "get_outfit_desc": ca_get_outfit_desc,
+        "is_furry_love": False,
+    },
 }
 
 
@@ -417,7 +452,8 @@ def generate_scene_complete(
         glasses_val = traits.get('glasses', 'none')
         facial_hair_val = traits.get('facial_hair', 'none')
         hair_desc = get_hair_description(traits) if book_id == 'furry_love_adventure' else ''
-        prompt = furry_build_prompt(scene_config, human_desc, pet_name, pet_desc, eye_desc=eye_desc, gender_word=gender_word, glasses=glasses_val, facial_hair=facial_hair_val, hair_desc=hair_desc)
+        hair_color = traits.get('hair_color', '') if book_id == 'furry_love' else ''
+        prompt = furry_build_prompt(scene_config, human_desc, pet_name, pet_desc, eye_desc=eye_desc, gender_word=gender_word, glasses=glasses_val, facial_hair=facial_hair_val, hair_desc=hair_desc, hair_color=hair_color)
     else:
         book_cfg = BOOK_CONFIGS.get(book_id)
         if book_cfg and 'build_scene_prompt' in book_cfg and book_cfg['build_scene_prompt']:
@@ -493,6 +529,9 @@ def generate_scene_complete(
     reference_note = f"@image1=the {gender_word} character. Same face, skin tone, and hair as the reference."
     enhanced_prompt = f"{reference_note}\n{prompt}"
 
+    from services.replicate_service import get_gender_negative_prompt
+    neg_prompt = get_gender_negative_prompt(gender)
+
     for attempt in range(MAX_RETRIES + 1):
         try:
             print(f"[SCENE {scene_id}] FLUX 2 Dev + 1 ref attempt {attempt + 1}/{MAX_RETRIES + 1}...")
@@ -504,7 +543,8 @@ def generate_scene_complete(
                         "input_images": [ref_file],
                         "aspect_ratio": "3:4",
                         "output_format": "png",
-                        "go_fast": False
+                        "go_fast": False,
+                        "negative_prompt": neg_prompt
                     }
                 )
 
@@ -537,16 +577,22 @@ def add_text_split(
     text_color: str,
     shadow_color: str,
     font_size: int,
-    margin_px: int
+    horiz_margin_px: int,
+    vert_margin_px: int = None
 ) -> Image.Image:
     """
-    Split text: 2 lines at top, remaining lines at bottom.
-    For long texts that would cover too much of the image.
+    Split text: top half at top, bottom half at bottom.
+    horiz_margin_px: left/right margin for word-wrap (symmetric).
+    vert_margin_px:  distance from top/bottom edge for text blocks.
+                     Defaults to horiz_margin_px if not provided.
     """
     result = image.copy()
     draw = ImageDraw.Draw(result)
     img_width, img_height = result.size
-    
+
+    if vert_margin_px is None:
+        vert_margin_px = horiz_margin_px
+
     font = None
     font_paths = [
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
@@ -559,16 +605,16 @@ def add_text_split(
             break
     if font is None:
         font = ImageFont.load_default()
-    
-    max_width = img_width - (2 * margin_px)
-    
+
+    text_area_width = img_width - (2 * horiz_margin_px)
+
     words = text.split()
     lines = []
     current_line = ""
     for word in words:
         test_line = f"{current_line} {word}".strip()
         bbox = draw.textbbox((0, 0), test_line, font=font)
-        if bbox[2] - bbox[0] <= max_width:
+        if bbox[2] - bbox[0] <= text_area_width:
             current_line = test_line
         else:
             if current_line:
@@ -576,7 +622,7 @@ def add_text_split(
             current_line = word
     if current_line:
         lines.append(current_line)
-    
+
     if len(lines) <= 2:
         top_lines = lines
         bottom_lines = []
@@ -587,31 +633,31 @@ def add_text_split(
         mid = len(lines) // 2
         top_lines = lines[:mid]
         bottom_lines = lines[mid:]
-    
+
     line_height = font_size + 8
     shadow_offset = max(2, font_size // 20)
-    
+
     if top_lines:
-        y = margin_px
+        y = vert_margin_px
         for line in top_lines:
             bbox = draw.textbbox((0, 0), line, font=font)
             text_width = bbox[2] - bbox[0]
-            x = (img_width - text_width) // 2
+            x = horiz_margin_px + (text_area_width - text_width) // 2
             draw.text((x + shadow_offset, y + shadow_offset), line, font=font, fill=shadow_color)
             draw.text((x, y), line, font=font, fill=text_color)
             y += line_height
-    
+
     if bottom_lines:
         total_height = len(bottom_lines) * line_height
-        y = img_height - margin_px - total_height
+        y = img_height - vert_margin_px - total_height
         for line in bottom_lines:
             bbox = draw.textbbox((0, 0), line, font=font)
             text_width = bbox[2] - bbox[0]
-            x = (img_width - text_width) // 2
+            x = horiz_margin_px + (text_area_width - text_width) // 2
             draw.text((x + shadow_offset, y + shadow_offset), line, font=font, fill=shadow_color)
             draw.text((x, y), line, font=font, fill=text_color)
             y += line_height
-    
+
     return result
 
 
@@ -621,36 +667,41 @@ def add_text_to_image(
     position: str = "bottom",
     text_color: str = "#FFFFFF",
     shadow_color: str = "#000000",
-    font_size: int = 52,
-    margin_percent: float = 0.05
+    font_size: int = 38,
+    margin_percent: float = 0.143,
+    vert_margin_percent: float = 0.0505
 ) -> Image.Image:
     """
     Add text to image with margins as percentage of image size.
     This adapts to any image dimensions.
-    
-    Font size 52 at 768px width ≈ 14pts at 20cm print width.
-    
+
+    font_size=38 at 1024px → 22pt at A4 300dpi print.
+    margin_percent=0.143 → 3cm horizontal margin on each side.
+    vert_margin_percent=0.0505 → 1.5cm vertical margin top/bottom.
+
     Args:
         image: Source image
         text: Text to add (with {name} replaced)
         position: "top", "bottom", or "split" (half top, half bottom)
         text_color: Color of the text
         shadow_color: Color of the shadow
-        font_size: Base font size (52 = ~14pts at print size)
-        margin_percent: Margin as percentage of image width (5% = 0.05)
+        font_size: Base font size at 1024px width (38 = 22pt at A4 300dpi)
+        margin_percent: Horizontal margin as % of image width (0.143 = 3cm)
+        vert_margin_percent: Vertical margin as % of image height (0.0505 = 1.5cm)
     """
     result = image.copy()
     draw = ImageDraw.Draw(result)
-    
+
     img_width, img_height = result.size
-    
+
     scaled_font_size = int(font_size * (img_width / 1024))
-    if scaled_font_size < 36:
-        scaled_font_size = 36
+    if scaled_font_size < 28:
+        scaled_font_size = 28
     margin_px = int(img_width * margin_percent)
-    
+    vert_margin_px = int(img_height * vert_margin_percent)
+
     if position == "split":
-        return add_text_split(result, text, text_color, shadow_color, scaled_font_size, margin_px)
+        return add_text_split(result, text, text_color, shadow_color, scaled_font_size, margin_px, vert_margin_px)
     
     font = None
     font_paths = [
@@ -700,9 +751,9 @@ def add_text_to_image(
     total_text_height = len(lines) * line_height
     
     if position == "top":
-        start_y = margin_px
+        start_y = vert_margin_px
     else:
-        start_y = img_height - total_text_height - margin_px
+        start_y = img_height - total_text_height - vert_margin_px
     
     for line_idx, line_words in enumerate(lines):
         y = start_y + (line_idx * line_height)
@@ -743,84 +794,104 @@ def add_text_to_image(
     return result
 
 
-def generate_dedication_page(dedication_text: str, img_size: tuple = (768, 1024), language: str = "es") -> Image.Image:
-    """Generate the dedication page with decorative frame.
-    Uses fixed background from docs/fixed_pages/dedication_frame.png (copied to static/images/).
-    The background already includes 'Dedicatoria' title, so we only add the user's text.
-    """
-    bg_path = "static/images/dedication_page_background.png"
-    has_fixed_bg = os.path.exists(bg_path)
-    
-    if has_fixed_bg:
-        page = Image.open(bg_path).convert("RGB")
-        page = page.resize(img_size, Image.Resampling.LANCZOS)
-    else:
-        page = Image.new("RGB", img_size, "#FFFEF5")
-    
+def generate_dedication_page(dedication_text: str, img_size: tuple = (768, 1024), language: str = "es", author_name: str = "") -> Image.Image:
+    """Generate the dedication page with cream background and golden border style."""
+    w, h = img_size
+    scale = w / 768
+
+    page = Image.new("RGB", img_size, "#fdfdf5")
     draw = ImageDraw.Draw(page)
-    scale = img_size[0] / 768
-    
-    try:
-        title_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", int(28 * scale))
-        text_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", int(24 * scale))
-    except:
-        title_font = ImageFont.load_default()
-        text_font = title_font
-    
-    if not has_fixed_bg:
-        title = "Dedicatoria" if language == "es" else "Dedication"
-        title_bbox = draw.textbbox((0, 0), title, font=title_font)
-        title_width = title_bbox[2] - title_bbox[0]
-        title_x = (img_size[0] - title_width) // 2
-        title_y = int(img_size[1] * 0.30)
-        draw.text((title_x, title_y), title, font=title_font, fill="#2E1A47")
-    
-    if not dedication_text:
-        return page
-    
-    # A4 = 21 cm wide, margins = 4.5 cm each side, text area = 12 cm
-    # margin = 4.5/21 = 21.4% of width
-    left_margin = int(img_size[0] * 0.214)  # 4.5 cm from left
-    right_margin = int(img_size[0] * 0.214)  # 4.5 cm from right
-    max_width = img_size[0] - left_margin - right_margin  # ~12 cm text area
-    
-    words = dedication_text.split()
-    lines = []
-    current_line = []
-    
-    for word in words:
-        test_line = ' '.join(current_line + [word])
-        bbox = draw.textbbox((0, 0), test_line, font=text_font)
-        if bbox[2] - bbox[0] <= max_width:
-            current_line.append(word)
-        else:
-            if current_line:
-                lines.append(' '.join(current_line))
-            current_line = [word]
-    
-    if current_line:
-        lines.append(' '.join(current_line))
-    
-    line_height = int(36 * scale)
-    
-    # Vertical position - user confirmed this is good
-    frame_top = int(img_size[1] * 0.32)
-    frame_bottom = int(img_size[1] * 0.42)
-    frame_center = (frame_top + frame_bottom) // 2
-    
-    total_text_height = len(lines) * line_height
-    start_y = frame_center - (total_text_height // 2)
-    
-    # Center text horizontally within the 12 cm text area (between margins)
-    text_area_center = left_margin + (max_width // 2)
-    
-    for i, line in enumerate(lines):
-        bbox = draw.textbbox((0, 0), line, font=text_font)
-        text_width = bbox[2] - bbox[0]
-        x = text_area_center - (text_width // 2)
-        y = start_y + (i * line_height)
-        draw.text((x, y), line, font=text_font, fill="#2E1A47")
-    
+
+    # --- fonts: load each independently so one missing file can't break the rest ---
+    _static = 'static/fonts/'
+    _dejavu = '/usr/share/fonts/truetype/dejavu/'
+
+    def _try_font(candidates, size):
+        for path in candidates:
+            try:
+                f = ImageFont.truetype(path, size)
+                return f
+            except Exception:
+                continue
+        return ImageFont.load_default()
+
+    title_font  = _try_font([
+        _static + 'Nunito-SemiBold.ttf',
+        _static + 'Nunito-ExtraBold.ttf',
+        _dejavu + 'DejaVuSans-Bold.ttf',
+    ], int(36 * scale))
+
+    text_font   = _try_font([
+        _static + 'EBGaramond-Regular.ttf',
+        _dejavu + 'DejaVuSans.ttf',
+    ], int(28 * scale))
+
+    author_font = _try_font([
+        _static + 'EBGaramond-Regular.ttf',
+        _dejavu + 'DejaVuSans.ttf',
+    ], int(24 * scale))
+
+    # --- double golden border ---
+    gold = "#8B6914"
+    outer_m = int(w * 0.07)
+    inner_m = outer_m + int(10 * scale)
+    bw_outer = max(3, int(3 * scale))
+    bw_inner = max(1, int(1 * scale))
+    draw.rectangle([outer_m, outer_m, w - outer_m, h - outer_m], outline=gold, width=bw_outer)
+    draw.rectangle([inner_m, inner_m, w - inner_m, h - inner_m], outline=gold, width=bw_inner)
+
+    # --- title ---
+    title = "Dedicatoria" if language == "es" else "Dedication"
+    tb = draw.textbbox((0, 0), title, font=title_font)
+    title_x = (w - (tb[2] - tb[0])) // 2
+    title_y = int(h * 0.20)
+    draw.text((title_x, title_y), title, font=title_font, fill=gold)
+
+    # --- decorative line under title ---
+    line_y = title_y + (tb[3] - tb[1]) + int(12 * scale)
+    draw.line([(int(w * 0.32), line_y), (int(w * 0.68), line_y)], fill=gold, width=max(1, int(2 * scale)))
+
+    # --- dedication body text (wider margin for readability) ---
+    if dedication_text:
+        max_tw = int(w * 0.72)
+        raw_lines = dedication_text.replace('\\n', '\n').split('\n')
+        wrapped = []
+        for raw_line in raw_lines:
+            words = raw_line.split()
+            if not words:
+                wrapped.append('')
+                continue
+            cur = []
+            for word in words:
+                test = ' '.join(cur + [word])
+                bx = draw.textbbox((0, 0), test, font=text_font)
+                if bx[2] - bx[0] <= max_tw:
+                    cur.append(word)
+                else:
+                    if cur:
+                        wrapped.append(' '.join(cur))
+                    cur = [word]
+            if cur:
+                wrapped.append(' '.join(cur))
+
+        lh = int(36 * scale)
+        cy = int(h * 0.50)
+        start_y = cy - (len(wrapped) * lh) // 2
+        for i, line in enumerate(wrapped):
+            if not line:
+                continue
+            bx = draw.textbbox((0, 0), line, font=text_font)
+            lx = (w - (bx[2] - bx[0])) // 2
+            draw.text((lx, start_y + i * lh), line, font=text_font, fill="#5C3A1E")
+
+    # --- author name ---
+    if author_name and author_name.strip():
+        author_str = f"— {author_name.strip()}"
+        ab = draw.textbbox((0, 0), author_str, font=author_font)
+        ax = (w - (ab[2] - ab[0])) // 2
+        ay = int(h * 0.72)
+        draw.text((ax, ay), author_str, font=author_font, fill=gold)
+
     return page
 
 
@@ -863,7 +934,8 @@ def generate_closing_page(
         glasses_val = traits.get('glasses', 'none')
         facial_hair_val = traits.get('facial_hair', 'none')
         hair_desc = get_hair_description(traits) if book_id == 'furry_love_adventure' else ''
-        prompt = furry_build_prompt(closing_scene, human_desc, pet_name, pet_desc, eye_desc=eye_desc, gender_word=gender_word, glasses=glasses_val, facial_hair=facial_hair_val, hair_desc=hair_desc)
+        hair_color = traits.get('hair_color', '') if book_id == 'furry_love' else ''
+        prompt = furry_build_prompt(closing_scene, human_desc, pet_name, pet_desc, eye_desc=eye_desc, gender_word=gender_word, glasses=glasses_val, facial_hair=facial_hair_val, hair_desc=hair_desc, hair_color=hair_color)
     elif BOOK_CONFIGS.get(book_id, {}).get('build_scene_prompt'):
         book_cfg = BOOK_CONFIGS.get(book_id)
         prompt = book_cfg['build_scene_prompt'](closing_scene, child_name, gender, child_age_int, traits)
@@ -947,7 +1019,10 @@ def generate_closing_page(
     gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
     reference_note = f"@image1=the {gender_word} character. Same face, skin tone, and hair as the reference."
     enhanced_prompt = f"{reference_note}\n{prompt}"
-    
+
+    from services.replicate_service import get_gender_negative_prompt as _get_neg
+    _neg_prompt = _get_neg(gender)
+
     try:
         with open(reference_image_path, "rb") as ref_file:
             output = replicate.run(
@@ -957,7 +1032,8 @@ def generate_closing_page(
                     "input_images": [ref_file],
                     "aspect_ratio": "3:4",
                     "output_format": "png",
-                    "go_fast": False
+                    "go_fast": False,
+                    "negative_prompt": _neg_prompt
                 }
             )
         
@@ -990,7 +1066,8 @@ def generate_closing_page(
                         "input_images": [ref_file],
                         "aspect_ratio": "3:4",
                         "output_format": "png",
-                        "go_fast": False
+                        "go_fast": False,
+                        "negative_prompt": _neg_prompt
                     }
                 )
             if isinstance(output, list) and len(output) > 0:
@@ -1088,8 +1165,9 @@ def generate_cover_spread(
         glasses_val = traits.get('glasses', 'none')
         facial_hair_val = traits.get('facial_hair', 'none')
         hair_desc = get_hair_description(traits) if book_id == 'furry_love_adventure' else ''
+        hair_color = traits.get('hair_color', '') if book_id == 'furry_love' else ''
         front_cover_cfg = book_cfg.get('front_cover', {})
-        front_prompt = furry_build_prompt(front_cover_cfg, human_desc, pet_name, pet_desc, eye_desc=eye_desc, gender_word=gender_word, glasses=glasses_val, facial_hair=facial_hair_val, hair_desc=hair_desc)
+        front_prompt = furry_build_prompt(front_cover_cfg, human_desc, pet_name, pet_desc, eye_desc=eye_desc, gender_word=gender_word, glasses=glasses_val, facial_hair=facial_hair_val, hair_desc=hair_desc, hair_color=hair_color)
     elif book_cfg and book_cfg.get('build_scene_prompt'):
         front_cover_cfg = book_cfg.get('front_cover', {})
         front_prompt = book_cfg['build_scene_prompt'](front_cover_cfg, child_name, gender, child_age_int, traits)
@@ -1117,12 +1195,15 @@ def generate_cover_spread(
         has_refs = is_furry and reference_image_path and reference_image_path_2 and os.path.exists(reference_image_path) and os.path.exists(reference_image_path_2)
         print(f"[COVER] Generating front cover with FLUX 2 Dev{' + references' if has_refs else ''}...")
         ref_files = []
+        from services.replicate_service import get_gender_negative_prompt as _cover_neg
+        _cover_neg_prompt = _cover_neg(gender)
         try:
             flux_input = {
                 "prompt": front_prompt,
                 "aspect_ratio": "3:4",
                 "output_format": "png",
-                "go_fast": False
+                "go_fast": False,
+                "negative_prompt": _cover_neg_prompt
             }
             if has_refs:
                 f1 = open(reference_image_path, "rb")
@@ -1166,7 +1247,8 @@ def generate_cover_spread(
         "furry_love": "static/images/fixed_pages/furry_love_baby_back_cover.png",
         "furry_love_adventure": "static/images/fixed_pages/furry_love_adventure_back_cover.png",
         "furry_love_teen": "static/images/fixed_pages/furry_love_teen_back_cover.png",
-        "furry_love_adult": "static/images/fixed_pages/furry_love_adult_back_cover.png"
+        "furry_love_adult": "static/images/fixed_pages/furry_love_adult_back_cover.png",
+        "centinela_aurora": "static/images/fixed_pages/centinela_aurora_back_cover.png"
     }
     MMB_GENERIC_BACK_COVER = "static/images/fixed_pages/back_cover.png"
     back_cover_path = fixed_back_covers.get(book_id, None)
@@ -1423,7 +1505,8 @@ def generate_cover_spread(
     tw = bbox[2] - bbox[0]
     draw.text((title_center_x - tw//2, subtitle_y), subtitle, font=subtitle_font, fill="#1565C0")
     
-    if not is_furry:
+    _logo_already_in_cover = is_furry or book_id in ('centinela_aurora', 'centinela_aurora_illustrated')
+    if not _logo_already_in_cover:
         try:
             logo_path = "static/images/logo_main.jpg"
             if os.path.exists(logo_path):
@@ -1440,7 +1523,7 @@ def generate_cover_spread(
         except Exception as e:
             print(f"[COVER] Could not add logo: {e}")
     else:
-        print(f"[COVER] Skipping logo overlay for furry_love (logo already in fixed back cover)")
+        print(f"[COVER] Skipping logo overlay for {book_id} (logo already in fixed back cover)")
     
     print(f"[COVER] Cover spread complete: {spread.size}")
     return spread
@@ -1538,7 +1621,8 @@ def generate_full_book(
     author_name: str = "Magic Memories Books",
     reference_image_path: str = None,
     reference_image_path_2: str = None,
-    progress_callback=None
+    progress_callback=None,
+    clean_scenes_collector: list = None
 ) -> list:
     """
     Generate all pages for the illustrated book (Lulu print structure).
@@ -1636,7 +1720,7 @@ def generate_full_book(
     
     pages.append(title_page)
     
-    dedication = generate_dedication_page(dedication_text, img_size, language)
+    dedication = generate_dedication_page(dedication_text, img_size, language, author_name=author_name)
     pages.append(dedication)
     
     failed_scene_indices = []
@@ -1644,7 +1728,7 @@ def generate_full_book(
     scene_images = [None] * total_scenes
     _completed_count = 0
 
-    SCENE_WORKERS = 3
+    SCENE_WORKERS = 4
 
     def _gen_one_scene(args):
         _i, _scene_cfg = args
@@ -1678,6 +1762,9 @@ def generate_full_book(
     for i, scene_config in enumerate(scenes):
         scene_image = scene_images[i] if scene_images[i] is not None else Image.new("RGB", (1024, 1365), "#FFFEF5")
 
+        if clean_scenes_collector is not None:
+            clean_scenes_collector.append((i, scene_image.copy()))
+
         text_key = f"text_{language}"
         text = scene_config.get(text_key, scene_config.get("text_es", ""))
         text = text.replace("{name}", child_name)
@@ -1693,8 +1780,8 @@ def generate_full_book(
             position,
             "#FFFFFF",
             "#000000",
-            52,
-            0.05
+            38,
+            0.143
         )
 
         pages.append(final_page)
@@ -1901,7 +1988,7 @@ def generate_illustrated_book_pdf(
     return output_path
 
 
-def generate_complete_lulu_files(
+def generate_complete_print_files(
     book_id: str,
     child_name: str,
     email: str,
@@ -1919,11 +2006,14 @@ def generate_complete_lulu_files(
     
     Returns dict with paths to all generated files.
     """
-    from services.lulu_storage import create_order_folder, save_interior_pdf, save_cover_pdf
-    
+    import os, re as _re, datetime as _dt
+    _slug = _re.sub(r'[^a-z0-9]', '-', child_name.lower())[:20]
+    _ts = _dt.datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+    order_folder = os.path.join('generations', 'pb_orders', f"{book_id}_{_slug}_{_ts}")
+    os.makedirs(order_folder, exist_ok=True)
+
     print(f"[LULU] Starting complete book generation for {child_name}...")
-    
-    order_folder = create_order_folder(book_id, child_name, email)
+    print(f"[LULU] Order folder: {order_folder}")
     
     print(f"[LULU] Generating interior pages (24 pages for print)...")
     pages, _failed = generate_full_book(
