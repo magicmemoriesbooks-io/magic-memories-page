@@ -16,9 +16,11 @@ body {
     font-family: 'Nunito', sans-serif;
     background: var(--bg);
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
     color: var(--text-dark);
     user-select: none;
+    padding-bottom: env(safe-area-inset-bottom);
 }
 
 .loading-screen {
@@ -64,14 +66,24 @@ body {
 .error-home-btn:hover { transform: scale(1.05); box-shadow: 0 4px 16px rgba(225,48,208,0.3); }
 
 .visor {
-    width: 100vw; height: 100vh;
+    width: 100vw; height: 100%;
     display: flex; position: relative; background: var(--bg);
 }
 
 .overlay-brand {
     position: absolute; top: 8px; left: 12px;
     display: flex; align-items: center; gap: 8px;
-    z-index: 20; pointer-events: none;
+    z-index: 20; pointer-events: auto;
+}
+.overlay-brand a {
+    cursor: pointer;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    border-radius: 10px;
+    padding: 4px 6px;
+}
+.overlay-brand a:hover {
+    opacity: 0.75;
+    transform: scale(0.97);
 }
 
 .overlay-logo { height: 100px; }
@@ -213,7 +225,7 @@ body {
 .nav-arrow:disabled { opacity: 0.15; cursor: default; transform: none; box-shadow: none; }
 
 .bottom-bar {
-    position: absolute; bottom: 8px; left: 0; right: 0;
+    position: absolute; bottom: max(8px, env(safe-area-inset-bottom)); left: 0; right: 0;
     display: flex; align-items: center; justify-content: space-between;
     padding: 0 14px; z-index: 20; pointer-events: none;
 }
