@@ -9,10 +9,10 @@
         <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">Volver al Dashboard</a>
     </div>
     
-    {% if lulu_error %}
+    {% if cp_error or lulu_error %}
     <div class="alert alert-danger mb-4" style="border-left: 5px solid #dc3545;">
-        <h5 class="alert-heading mb-1">Error de Lulu</h5>
-        <code style="word-break:break-all; font-size: 13px;">{{ lulu_error }}</code>
+        <h5 class="alert-heading mb-1">Error de Cloudprinter</h5>
+        <code style="word-break:break-all; font-size: 13px;">{{ cp_error or lulu_error }}</code>
     </div>
     {% endif %}
     
@@ -30,17 +30,20 @@
                     <p><strong>Fecha pago:</strong> {{ book.payment_date or 'N/A' }}</p>
                     <p><strong>Metodo envio:</strong> {{ book.shipping_method or 'MAIL' }}</p>
                     <p>
-                        <strong>Estado Lulu:</strong>
-                        {% if lulu_status == 'failed' %}
+                        <strong>Estado:</strong>
+                        {% set _status = cp_status or lulu_status or '' %}
+                        {% if _status == 'failed' %}
                         <span class="badge bg-danger">Fallido</span>
-                        {% elif lulu_status == 'sent' %}
+                        {% elif _status in ('sent', 'in_production', 'confirmed') %}
                         <span class="badge bg-success">Enviado</span>
                         {% else %}
-                        <span class="badge bg-secondary">{{ lulu_status or 'Sin enviar' }}</span>
+                        <span class="badge bg-secondary">{{ _status or 'Sin enviar' }}</span>
                         {% endif %}
                     </p>
-                    {% if book.lulu_job_id %}
-                    <p><strong>Lulu Job ID:</strong> <code>{{ book.lulu_job_id }}</code></p>
+                    {% if book.cp_order_ref %}
+                    <p><strong>CP Order Ref:</strong> <code>{{ book.cp_order_ref }}</code></p>
+                    {% elif book.lulu_job_id %}
+                    <p><strong>Lulu Job ID (legado):</strong> <code>{{ book.lulu_job_id }}</code></p>
                     {% endif %}
                 </div>
             </div>
@@ -89,23 +92,23 @@
                 <div class="card-body">
                     <div class="d-grid gap-2">
                         {% if interior_exists %}
-                        <a href="/admin/lulu-orders/{{ lulu_folder_name }}/interior.pdf?t={{ range(100000)|random }}" class="btn btn-outline-primary btn-sm" target="_blank">
+                        <a href="/admin/pb-files/{{ lulu_folder_name }}/interior.pdf" class="btn btn-outline-primary btn-sm" target="_blank">
                             Descargar Interior PDF ({{ interior_size_mb }} MB)
                         </a>
                         {% endif %}
                         {% if cover_pdf_exists %}
-                        <a href="/admin/lulu-orders/{{ lulu_folder_name }}/cover.pdf?t={{ range(100000)|random }}" class="btn btn-outline-success btn-sm" target="_blank">
+                        <a href="/admin/pb-files/{{ lulu_folder_name }}/cover.pdf" class="btn btn-outline-success btn-sm" target="_blank">
                             Descargar Cover PDF
                         </a>
                         {% endif %}
                         
                         <hr class="my-2">
                         
-                        <button id="btn-retry" class="btn btn-danger btn-lg" onclick="retryLulu()" {% if not shipping_address %}disabled{% endif %}>
-                            Reenviar a Lulu
+                        <button id="btn-retry" class="btn btn-danger btn-lg" onclick="retryCp()" {% if not shipping_address %}disabled{% endif %}>
+                            Reenviar a Cloudprinter
                         </button>
                         <small class="text-muted text-center">Corrige la direccion primero, luego pulsa Reenviar</small>
-                        {% if lulu_status == 'sent' and book.lulu_job_id %}
+                        {% if book.cp_status == 'sent' or book.cp_submitted %}
                         <hr class="my-2">
                         <button id="btn-resolved" class="btn btn-success btn-sm" onclick="sendResolvedEmail()">
                             Enviar email "Resuelto" al cliente
@@ -245,7 +248,7 @@ function saveAddress() {
     .then(function(r) { return r.json(); })
     .then(function(resp) {
         if (resp.success) {
-            statusMsg.innerHTML = '<div class="alert alert-success">Direccion actualizada. Ahora puedes reenviar a Lulu.</div>';
+            statusMsg.innerHTML = '<div class="alert alert-success">Direccion actualizada. Ahora puedes reenviar a Cloudprinter.</div>';
             document.getElementById('disp-name').textContent = data.name;
             document.getElementById('disp-street1').textContent = data.street1;
             document.getElementById('disp-street2').textContent = data.street2;
@@ -265,31 +268,31 @@ function saveAddress() {
     });
 }
 
-function retryLulu() {
-    if (!confirm('Reenviar este pedido a Lulu con la direccion actual?')) return;
+function retryCp() {
+    if (!confirm('Reenviar este pedido a Cloudprinter con la direccion actual?')) return;
     
     var btn = document.getElementById('btn-retry');
     var statusMsg = document.getElementById('status-message');
     
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando a Lulu...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando a Cloudprinter...';
     
-    fetch('/admin/retry-lulu/{{ preview_id }}', { method: 'POST' })
+    fetch('/admin/retry-cp/{{ preview_id }}', { method: 'POST' })
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.success) {
-            statusMsg.innerHTML = '<div class="alert alert-success"><strong>Enviado a Lulu!</strong> Job ID: ' + data.lulu_job_id + '<br>La pagina se recargara en 3 segundos...</div>';
+            statusMsg.innerHTML = '<div class="alert alert-success"><strong>Enviado a Cloudprinter!</strong> Ref: ' + (data.cp_order_ref || '') + '<br>La pagina se recargara en 3 segundos...</div>';
             setTimeout(function() { location.reload(); }, 3000);
         } else {
             statusMsg.innerHTML = '<div class="alert alert-danger">Error: ' + (data.error || 'Error desconocido') + '</div>';
             btn.disabled = false;
-            btn.innerHTML = 'Reenviar a Lulu';
+            btn.innerHTML = 'Reenviar a Cloudprinter';
         }
     })
     .catch(function() {
         statusMsg.innerHTML = '<div class="alert alert-danger">Error de conexion</div>';
         btn.disabled = false;
-        btn.innerHTML = 'Reenviar a Lulu';
+        btn.innerHTML = 'Reenviar a Cloudprinter';
     });
 }
 
@@ -299,7 +302,7 @@ function sendResolvedEmail() {
     var statusMsg = document.getElementById('status-message');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
-    fetch('/admin/send-lulu-resolved/{{ preview_id }}', { method: 'POST' })
+    fetch('/admin/send-cp-resolved/{{ preview_id }}', { method: 'POST' })
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.success) {
