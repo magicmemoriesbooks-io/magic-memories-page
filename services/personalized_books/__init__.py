@@ -4,7 +4,6 @@
 from .stories import PERSONALIZED_BOOKS, get_personalized_book, get_personalized_book_ids
 from .preview import generate_personalized_preview
 from .pdf_service import generate_personalized_pdf, generate_print_pdf, generate_cover_spread
-from .lulu_service import submit_to_lulu, get_lulu_specs
 from .checkout import PERSONALIZED_BOOK_PRICE, PERSONALIZED_BOOK_CONFIG, PERSONALIZED_BOOK_IDS, is_personalized_book
 from .generation import generate_full_book_preview, get_personalized_book_id, is_personalized_book as is_personalized_story
 from .dragon_garden_prompts import (
