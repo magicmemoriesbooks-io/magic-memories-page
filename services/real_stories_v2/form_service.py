@@ -164,7 +164,7 @@ def build_human_description(char: Character, lang: str = 'es') -> str:
         'black': 'black',
         'dark_brown': 'dark brown',
         'brown': 'brown',
-        'light_brown': 'light brown',
+        'light_brown': 'warm light brown (caramel-honey tone)',
         'blonde': 'blonde',
         'platinum': 'platinum blonde',
         'red': 'red',
