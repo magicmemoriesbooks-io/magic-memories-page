@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'es' %}Confirmar Dirección de Envío{% else %}Confirm Shipping Address{% endif %} - {{ translations.site_title }}{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@600;800&display=swap" rel="stylesheet">
+<style>
+.sc-label { font-family:'Quicksand',sans-serif; font-size:13px; font-weight:700; color:#6b21a8; margin-bottom:4px; display:block; }
+.sc-input {
+    width:100%; padding:11px 14px; border:2px solid #e9d5ff; border-radius:10px;
+    font-family:'Quicksand',sans-serif; font-size:15px; color:#1e1b4b;
+    outline:none; transition:border-color 0.2s, box-shadow 0.2s; background:#faf5ff;
+}
+.sc-input:focus { border-color:#7c3aed; box-shadow:0 0 0 3px rgba(124,58,237,0.15); }
+.sc-input::placeholder { color:#c4b5fd; }
+select.sc-input { cursor:pointer; }
+.sc-section { background:#fff; border-radius:18px; box-shadow:0 4px 24px rgba(124,58,237,0.10); border:1.5px solid #ede9fe; padding:28px; margin-bottom:24px; }
+.sc-submit-btn {
+    width:100%; padding:16px; border:none; border-radius:14px; cursor:pointer;
+    background:linear-gradient(135deg,#7c3aed 0%,#9333ea 100%);
+    color:#fff; font-family:'Fredoka',sans-serif; font-size:20px; font-weight:600;
+    box-shadow:0 6px 20px rgba(124,58,237,0.35); transition:transform 0.15s, box-shadow 0.2s;
+}
+.sc-submit-btn:hover { transform:translateY(-2px); box-shadow:0 10px 28px rgba(124,58,237,0.45); }
+.sc-submit-btn:active { transform:translateY(0); }
+.sc-submit-btn:disabled { opacity:0.65; cursor:not-allowed; transform:none; }
+.shipping-badge { display:inline-block; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:700; font-family:'Quicksand',sans-serif; }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="py-10 px-4" style="min-height:80vh;background:linear-gradient(160deg,#f5f0ff 0%,#fdf4ff 60%,#fff 100%);">
+<div style="max-width:620px;margin:0 auto;">
+
+    {# ── Back link ── #}
+    <a href="/order-complete/{{ preview_id }}" style="display:inline-flex;align-items:center;gap:6px;color:#7c3aed;font-family:'Quicksand',sans-serif;font-weight:700;font-size:14px;text-decoration:none;margin-bottom:20px;">
+        ← {% if lang == 'es' %}Volver a mi cuento{% else %}Back to my story{% endif %}
+    </a>
+
+    {# ── Header ── #}
+    <div class="text-center" style="margin-bottom:28px;">
+        <div style="font-size:52px;margin-bottom:8px;">📦</div>
+        <h1 style="font-family:'Fredoka',sans-serif;font-size:clamp(24px,5vw,34px);font-weight:600;color:#4c1d95;margin-bottom:8px;line-height:1.2;">
+            {% if lang == 'es' %}¡Confirma tu dirección de envío!{% else %}Confirm your shipping address!{% endif %}
+        </h1>
+        <p style="font-family:'Quicksand',sans-serif;font-size:15px;color:#6b7280;max-width:480px;margin:0 auto;">
+            {% if lang == 'es' %}
+            Necesitamos esta información para imprimir y enviarte el libro físico de <strong style="color:#4c1d95;">{{ story_data.child_name or 'tu hijo' }}</strong>.
+            {% else %}
+            We need this information to print and ship <strong style="color:#4c1d95;">{{ story_data.child_name or 'your child' }}</strong>'s physical book.
+            {% endif %}
+        </p>
+    </div>
+
+    {# ── Order summary card ── #}
+    <div class="sc-section" style="display:flex;align-items:center;gap:16px;padding:18px 22px;">
+        <div style="font-size:40px;">📖</div>
+        <div style="flex:1;">
+            <div style="font-family:'Fredoka',sans-serif;font-size:18px;font-weight:600;color:#4c1d95;">
+                {{ story_data.child_name or '—' }}{% if story_data.story_title %} — {{ story_data.story_title }}{% endif %}
+            </div>
+            <div style="font-family:'Quicksand',sans-serif;font-size:13px;color:#6b7280;margin-top:3px;">
+                {% if lang == 'es' %}Libro impreso, tapa dura{% else %}Hardcover printed book{% endif %}
+            </div>
+        </div>
+        <span class="shipping-badge" style="background:#dcfce7;color:#166534;">
+            {% if lang == 'es' %}✅ Pagado{% else %}✅ Paid{% endif %}
+        </span>
+    </div>
+
+    {# ── Free shipping notice ── #}
+    <div id="freeShippingNotice" style="display:none;background:linear-gradient(90deg,#dcfce7,#bbf7d0);border:1.5px solid #86efac;border-radius:12px;padding:12px 18px;margin-bottom:16px;font-family:'Quicksand',sans-serif;font-size:14px;font-weight:700;color:#166534;text-align:center;">
+        🎉 {% if lang == 'es' %}¡Envío gratuito a tu país!{% else %}Free shipping to your country!{% endif %}
+    </div>
+
+    {# ── Error message ── #}
+    {% if error_msg %}
+    <div style="background:#fee2e2;border:1.5px solid #fca5a5;border-radius:12px;padding:12px 18px;margin-bottom:16px;font-family:'Quicksand',sans-serif;font-size:14px;color:#991b1b;">
+        ⚠️ {{ error_msg }}
+    </div>
+    {% endif %}
+
+    {# ── Address form ── #}
+    <form id="shippingForm" onsubmit="submitShipping(event)">
+    <div class="sc-section">
+        <h3 style="font-family:'Fredoka',sans-serif;font-size:19px;font-weight:600;color:#4c1d95;margin:0 0 20px 0;">
+            {% if lang == 'es' %}Dirección de entrega{% else %}Delivery address{% endif %}
+        </h3>
+
+        <div style="margin-bottom:16px;">
+            <label class="sc-label" for="sc_country">
+                {% if lang == 'es' %}País *{% else %}Country *{% endif %}
+            </label>
+            <select id="sc_country" name="country_code" class="sc-input" required onchange="onCountryChange(this.value)">
+                <option value="">{% if lang == 'es' %}— Selecciona tu país —{% else %}— Select your country —{% endif %}</option>
+                <optgroup label="{% if lang == 'es' %}Envío gratuito (2+ libros){% else %}Free shipping (2+ books){% endif %}">
+                    <option value="US">🇺🇸 United States</option>
+                    <option value="GB">🇬🇧 United Kingdom</option>
+                    <option value="DE">🇩🇪 Germany</option>
+                    <option value="FR">🇫🇷 France</option>
+                    <option value="ES">🇪🇸 Spain</option>
+                    <option value="IT">🇮🇹 Italy</option>
+                    <option value="PT">🇵🇹 Portugal</option>
+                    <option value="NL">🇳🇱 Netherlands</option>
+                    <option value="BE">🇧🇪 Belgium</option>
+                    <option value="AT">🇦🇹 Austria</option>
+                    <option value="PL">🇵🇱 Poland</option>
+                    <option value="SE">🇸🇪 Sweden</option>
+                    <option value="DK">🇩🇰 Denmark</option>
+                    <option value="FI">🇫🇮 Finland</option>
+                    <option value="IE">🇮🇪 Ireland</option>
+                    <option value="CZ">🇨🇿 Czech Republic</option>
+                    <option value="HU">🇭🇺 Hungary</option>
+                    <option value="RO">🇷🇴 Romania</option>
+                    <option value="SK">🇸🇰 Slovakia</option>
+                    <option value="BG">🇧🇬 Bulgaria</option>
+                    <option value="HR">🇭🇷 Croatia</option>
+                    <option value="SI">🇸🇮 Slovenia</option>
+                    <option value="LT">🇱🇹 Lithuania</option>
+                    <option value="LV">🇱🇻 Latvia</option>
+                    <option value="EE">🇪🇪 Estonia</option>
+                    <option value="LU">🇱🇺 Luxembourg</option>
+                    <option value="MT">🇲🇹 Malta</option>
+                    <option value="CY">🇨🇾 Cyprus</option>
+                    <option value="GR">🇬🇷 Greece</option>
+                </optgroup>
+                <optgroup label="{% if lang == 'es' %}Otros países{% else %}Other countries{% endif %}">
+                    <option value="MX">🇲🇽 Mexico</option>
+                    <option value="CO">🇨🇴 Colombia</option>
+                    <option value="AR">🇦🇷 Argentina</option>
+                    <option value="CL">🇨🇱 Chile</option>
+                    <option value="PE">🇵🇪 Peru</option>
+                    <option value="VE">🇻🇪 Venezuela</option>
+                    <option value="AE">🇦🇪 UAE</option>
+                    <option value="CA">🇨🇦 Canada</option>
+                    <option value="AU">🇦🇺 Australia</option>
+                    <option value="BR">🇧🇷 Brazil</option>
+                    <option value="OTHER">{% if lang == 'es' %}Otro país{% else %}Other country{% endif %}</option>
+                </optgroup>
+            </select>
+        </div>
+
+        <div style="margin-bottom:16px;">
+            <label class="sc-label" for="sc_name">
+                {% if lang == 'es' %}Nombre completo del destinatario *{% else %}Full recipient name *{% endif %}
+            </label>
+            <input id="sc_name" name="name" type="text" class="sc-input" required
+                   placeholder="{% if lang == 'es' %}Ej: María García{% else %}E.g.: John Smith{% endif %}">
+        </div>
+
+        <div style="margin-bottom:16px;">
+            <label class="sc-label" for="sc_street1">
+                {% if lang == 'es' %}Dirección (calle y número) *{% else %}Address (street & number) *{% endif %}
+            </label>
+            <input id="sc_street1" name="street1" type="text" class="sc-input" required
+                   placeholder="{% if lang == 'es' %}Ej: Calle Mayor 15, 3ºB{% else %}E.g.: 123 Main St, Apt 4{% endif %}">
+        </div>
+
+        <div style="margin-bottom:16px;">
+            <label class="sc-label" for="sc_street2">
+                {% if lang == 'es' %}Dirección adicional (opcional){% else %}Additional address info (optional){% endif %}
+            </label>
+            <input id="sc_street2" name="street2" type="text" class="sc-input"
+                   placeholder="{% if lang == 'es' %}Urbanización, edificio, etc.{% else %}Building, suite, etc.{% endif %}">
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+            <div>
+                <label class="sc-label" for="sc_city">
+                    {% if lang == 'es' %}Ciudad *{% else %}City *{% endif %}
+                </label>
+                <input id="sc_city" name="city" type="text" class="sc-input" required
+                       placeholder="{% if lang == 'es' %}Ej: Madrid{% else %}E.g.: London{% endif %}">
+            </div>
+            <div>
+                <label class="sc-label" for="sc_postcode">
+                    {% if lang == 'es' %}Código postal *{% else %}Postal code *{% endif %}
+                </label>
+                <input id="sc_postcode" name="postcode" type="text" class="sc-input" required
+                       placeholder="{% if lang == 'es' %}Ej: 28001{% else %}E.g.: EC1A 1BB{% endif %}">
+            </div>
+        </div>
+
+        <div style="margin-bottom:16px;">
+            <label class="sc-label" for="sc_state">
+                {% if lang == 'es' %}Provincia / Estado{% else %}State / Province{% endif %}
+            </label>
+            <input id="sc_state" name="state_code" type="text" class="sc-input"
+                   placeholder="{% if lang == 'es' %}Ej: Madrid, Cataluña{% else %}E.g.: California, Ontario{% endif %}">
+        </div>
+
+        <div>
+            <label class="sc-label" for="sc_phone">
+                {% if lang == 'es' %}Teléfono (para el transportista, recomendado){% else %}Phone (for courier, recommended){% endif %}
+            </label>
+            <input id="sc_phone" name="phone" type="tel" class="sc-input"
+                   placeholder="{% if lang == 'es' %}Ej: +34 600 000 000{% else %}E.g.: +1 555 000 0000{% endif %}">
+        </div>
+    </div>
+
+    {# ── Submit ── #}
+    <div id="submitError" style="display:none;background:#fee2e2;border:1.5px solid #fca5a5;border-radius:12px;padding:12px 18px;margin-bottom:14px;font-family:'Quicksand',sans-serif;font-size:14px;color:#991b1b;"></div>
+
+    <button type="submit" id="scSubmitBtn" class="sc-submit-btn">
+        {% if lang == 'es' %}📦 Confirmar dirección y enviar a producción{% else %}📦 Confirm address & send to production{% endif %}
+    </button>
+    <p style="text-align:center;font-family:'Quicksand',sans-serif;font-size:12px;color:#9ca3af;margin-top:10px;">
+        {% if lang == 'es' %}Tu dirección se usa solo para el envío de tu libro. No se comparte con terceros.{% else %}Your address is used only for book delivery. It is not shared with third parties.{% endif %}
+    </p>
+    </form>
+
+</div>
+</section>
+
+<script>
+const FREE_SHIPPING_COUNTRIES = {{ free_shipping_countries | tojson }};
+
+function onCountryChange(cc) {
+    const notice = document.getElementById('freeShippingNotice');
+    if (cc && FREE_SHIPPING_COUNTRIES.includes(cc)) {
+        notice.style.display = 'block';
+    } else {
+        notice.style.display = 'none';
+    }
+}
+
+function submitShipping(e) {
+    e.preventDefault();
+    const btn = document.getElementById('scSubmitBtn');
+    const errDiv = document.getElementById('submitError');
+    errDiv.style.display = 'none';
+
+    const payload = {
+        name: document.getElementById('sc_name').value.trim(),
+        street1: document.getElementById('sc_street1').value.trim(),
+        street2: document.getElementById('sc_street2').value.trim(),
+        city: document.getElementById('sc_city').value.trim(),
+        state_code: document.getElementById('sc_state').value.trim(),
+        postcode: document.getElementById('sc_postcode').value.trim(),
+        country_code: document.getElementById('sc_country').value.trim(),
+        phone: document.getElementById('sc_phone').value.trim(),
+    };
+
+    if (!payload.name || !payload.street1 || !payload.city || !payload.postcode || !payload.country_code) {
+        errDiv.textContent = '{{ "Por favor completa todos los campos obligatorios." if lang == "es" else "Please fill in all required fields." }}';
+        errDiv.style.display = 'block';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '{{ "Enviando..." if lang == "es" else "Sending..." }}';
+
+    fetch('/shipping-confirm/{{ preview_id }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = data.redirect || '/shipping-confirm/{{ preview_id }}/success';
+        } else {
+            errDiv.textContent = data.error || '{{ "Error al guardar. Intenta de nuevo." if lang == "es" else "Error saving. Please try again." }}';
+            errDiv.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = '{{ "📦 Confirmar dirección y enviar a producción" if lang == "es" else "📦 Confirm address & send to production" }}';
+        }
+    })
+    .catch(() => {
+        errDiv.textContent = '{{ "Error de conexión. Intenta de nuevo." if lang == "es" else "Connection error. Please try again." }}';
+        errDiv.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = '{{ "📦 Confirmar dirección y enviar a producción" if lang == "es" else "📦 Confirm address & send to production" }}';
+    });
+}
+</script>
+
+<script src="{{ url_for('static', filename='js/photon_ac.js') }}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    initPhotonAC({
+      streetInput:  'sc_street1',
+      cityField:    'sc_city',
+      postField:    'sc_postcode',
+      stateField:   'sc_state',
+      countryField: 'sc_country',
+      lang: '{{ lang }}'
+    });
+  });
+</script>
+{% endblock %}
