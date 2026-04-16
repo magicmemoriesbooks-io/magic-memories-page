@@ -157,7 +157,7 @@
             {% if lang == 'es' %}Completa tu Compra{% else %}Complete Your Purchase{% endif %}
         </h1>
         <p class="text-gray-600">{{ story_data.story_name }} {% if lang == 'es' %}para{% else %}for{% endif %} {{ story_data.child_name }}</p>
-        <a href="{{ url_for('story_selection') }}" class="inline-block mt-4 text-purple-600 hover:text-purple-800 underline text-sm">
+        <a href="{{ url_for('index') }}#precios" class="inline-block mt-4 text-purple-600 hover:text-purple-800 underline text-sm">
             ← {% if lang == 'es' %}Volver a elegir otro cuento{% else %}Go back to choose another story{% endif %}
         </a>
     </div>
