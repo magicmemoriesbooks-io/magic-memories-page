@@ -5,7 +5,11 @@
 {% block content %}
 <div id="infoModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div class="bg-gradient-to-r from-amber-600 to-orange-500 p-6 rounded-t-3xl">
+        <div class="bg-gradient-to-r from-amber-600 to-orange-500 p-6 rounded-t-3xl relative">
+            <button onclick="window.history.back()" class="absolute left-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white flex items-center gap-1 text-sm font-medium transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                {% if lang == 'es' %}Atrás{% else %}Back{% endif %}
+            </button>
             <h2 class="text-white text-2xl font-bold text-center">
                 {% if lang == 'es' %}Antes de Comenzar{% else %}Before You Start{% endif %}
             </h2>
@@ -79,6 +83,9 @@
                     class="w-full py-4 bg-gray-300 text-gray-500 font-bold rounded-xl cursor-not-allowed transition-all">
                 {% if lang == 'es' %}Continuar{% else %}Continue{% endif %}
             </button>
+            <button onclick="window.history.back()" class="w-full py-2.5 text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors">
+                ← {% if lang == 'es' %}No, regresar a la categoría{% else %}No, go back to category{% endif %}
+            </button>
         </div>
     </div>
 </div>
@@ -124,7 +131,13 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">📷 {% if lang == 'es' %}Foto del protagonista{% else %}Protagonist photo{% endif %} <span class="text-xs text-gray-400">({% if lang == 'es' %}opcional{% else %}optional{% endif %})</span></label>
-                        <div id="humanPhotoDropZone" class="border-2 border-dashed border-amber-300 rounded-xl p-3 text-center hover:border-amber-500 transition-colors cursor-pointer bg-amber-50/30">
+                        <label class="flex items-center gap-2 mb-2 cursor-pointer">
+                            <input type="checkbox" id="humanPhotoConsentCheck" class="w-4 h-4 accent-amber-600" onchange="toggleHumanPhotoZone(this.checked)">
+                            <span class="text-xs text-gray-600">
+                                {% if lang == 'es' %}Doy mi consentimiento para el procesamiento temporal de esta foto con fines de generación de ilustraciones (eliminada tras el proceso).{% else %}I consent to the temporary processing of this photo for illustration generation purposes (deleted after processing).{% endif %}
+                            </span>
+                        </label>
+                        <div id="humanPhotoDropZone" class="border-2 border-dashed border-amber-300 rounded-xl p-3 text-center transition-colors bg-amber-50/30 opacity-50 pointer-events-none select-none">
                             <input type="file" id="humanPhotoInput" accept="image/*" class="hidden">
                             <div id="humanPhotoPlaceholderArea">
                                 <div class="text-2xl mb-1">📷</div>
@@ -223,15 +236,15 @@
                                     </label>
                                     <label class="cursor-pointer">
                                         <input type="radio" name="hair_color" value="light_brown" class="peer sr-only">
-                                        <div class="w-9 h-9 rounded-full border-2 border-gray-700 peer-checked:border-amber-500 peer-checked:ring-2 peer-checked:ring-amber-300 transition-all hover:scale-110" style="background-color: #A67B5B;" title="{% if lang == 'es' %}Castaño Claro{% else %}Light Brown{% endif %}"></div>
+                                        <div class="w-9 h-9 rounded-full border-2 border-gray-700 peer-checked:border-amber-500 peer-checked:ring-2 peer-checked:ring-amber-300 transition-all hover:scale-110" style="background-color: #A2803D;" title="{% if lang == 'es' %}Castaño Claro{% else %}Light Brown{% endif %}"></div>
                                     </label>
                                     <label class="cursor-pointer">
                                         <input type="radio" name="hair_color" value="blonde" class="peer sr-only">
-                                        <div class="w-9 h-9 rounded-full border-2 border-gray-700 peer-checked:border-amber-500 peer-checked:ring-2 peer-checked:ring-amber-300 transition-all hover:scale-110" style="background-color: #D4B96A;" title="{% if lang == 'es' %}Rubio{% else %}Blonde{% endif %}"></div>
+                                        <div class="w-9 h-9 rounded-full border-2 border-gray-700 peer-checked:border-amber-500 peer-checked:ring-2 peer-checked:ring-amber-300 transition-all hover:scale-110" style="background-color: #C4A44E;" title="{% if lang == 'es' %}Rubio{% else %}Blonde{% endif %}"></div>
                                     </label>
                                     <label class="cursor-pointer">
                                         <input type="radio" name="hair_color" value="very_light_blonde" class="peer sr-only">
-                                        <div class="w-9 h-9 rounded-full border-2 border-gray-700 peer-checked:border-amber-500 peer-checked:ring-2 peer-checked:ring-amber-300 transition-all hover:scale-110" style="background-color: #F5E6C8;" title="{% if lang == 'es' %}Rubio Muy Claro{% else %}Very Light Blonde{% endif %}"></div>
+                                        <div class="w-9 h-9 rounded-full border-2 border-gray-700 peer-checked:border-amber-500 peer-checked:ring-2 peer-checked:ring-amber-300 transition-all hover:scale-110" style="background-color: #E8D5A0;" title="{% if lang == 'es' %}Rubio Muy Claro{% else %}Very Light Blonde{% endif %}"></div>
                                     </label>
                                     <label class="cursor-pointer">
                                         <input type="radio" name="hair_color" value="red" class="peer sr-only">
@@ -684,13 +697,13 @@
                 <h2 class="font-display text-lg font-bold text-amber-800 mb-3">{% if lang == 'es' %}Tu Libro Incluye{% else %}Your Book Includes{% endif %}</h2>
 
                 <div class="space-y-2 text-sm mb-5">
-                    <p class="flex items-center gap-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}24 páginas ilustradas{% else %}24 illustrated pages{% endif %}</p>
+                    <p class="flex items-center gap-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}26 páginas ilustradas{% else %}26 illustrated pages{% endif %}</p>
                     <p class="flex items-center gap-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}19 ilustraciones personalizadas{% else %}19 personalized illustrations{% endif %}</p>
                     <p class="flex items-center gap-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}Tu persona + tu perro en cada escena{% else %}You + your dog in every scene{% endif %}</p>
                     <p class="flex items-center gap-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}PDF digital + libro impreso{% else %}Digital PDF + printed book{% endif %}</p>
                     <p class="flex items-center gap-2"><span class="text-green-500">✓</span> {% if lang == 'es' %}Tapa dura, formato A4{% else %}Hardcover, A4 format{% endif %}</p>
                     <div class="pt-2 border-t">
-                        <p class="text-lg font-bold text-amber-800">{% if lang == 'es' %}Precio{% else %}Price{% endif %}: <span class="text-green-600">$30</span> <span class="text-sm font-normal text-gray-500">{% if lang == 'es' %}+ impresión y envío{% else %}+ printing & shipping{% endif %}</span></p>
+                        <p class="text-lg font-bold text-amber-800">{% if lang == 'es' %}Precio{% else %}Price{% endif %}: <span class="text-green-600">$26</span> <span class="text-sm font-normal text-gray-500">{% if lang == 'es' %}+ impresión y envío{% else %}+ printing & shipping{% endif %}</span></p>
                     </div>
                 </div>
 
@@ -731,6 +744,11 @@
 <script>
 let characterGenerated = false;
 let currentCharacterData = null;
+let humanRegenCount = 0;
+let petRegenCount = 0;
+const MAX_PREVIEW_REGEN = 3;
+const HUMAN_BTN_BASE_TEXT = '{% if lang == "es" %}Regenerar Protagonista{% else %}Regenerate Protagonist{% endif %}';
+const PET_BTN_BASE_TEXT = '{% if lang == "es" %}Regenerar Mascota{% else %}Regenerate Pet{% endif %}';
 let humanPhotoUploaded = false;
 let petPhotoUploaded = false;
 
@@ -742,6 +760,17 @@ function toggleAdultExtraFields() {
     const glassesEl = document.getElementById('glassesField');
     if (glassesEl) {
         glassesEl.style.display = '';
+    }
+}
+
+function toggleHumanPhotoZone(checked) {
+    const zone = document.getElementById('humanPhotoDropZone');
+    if (checked) {
+        zone.classList.remove('opacity-50', 'pointer-events-none', 'select-none');
+        zone.classList.add('cursor-pointer', 'hover:border-amber-500');
+    } else {
+        zone.classList.add('opacity-50', 'pointer-events-none', 'select-none');
+        zone.classList.remove('cursor-pointer', 'hover:border-amber-500');
     }
 }
 
@@ -818,6 +847,7 @@ function setupPhotoUpload(dropZoneId, inputId, placeholderId, previewId, thumbId
         formData.append('photo', file);
         formData.append('type', type);
         formData.append('consent', 'true');
+        formData.append('lang', '{{ lang }}');
 
         try {
             const resp = await fetch('/api/upload-furry-photo', {
@@ -1148,9 +1178,16 @@ async function generatePreviews() {
 }
 
 async function regenerateSinglePreview(which) {
+    const currentCount = which === 'human' ? humanRegenCount : petRegenCount;
+    if (currentCount >= MAX_PREVIEW_REGEN) return;
+
     const btn = which === 'human' ? document.getElementById('regenerateHumanBtn') : document.getElementById('regeneratePetBtn');
     const iconEl = which === 'human' ? document.getElementById('regenHumanIcon') : document.getElementById('regenPetIcon');
     const textEl = which === 'human' ? document.getElementById('regenHumanText') : document.getElementById('regenPetText');
+
+    if (which === 'human') humanRegenCount++; else petRegenCount++;
+    const newCount = which === 'human' ? humanRegenCount : petRegenCount;
+    const remaining = MAX_PREVIEW_REGEN - newCount;
 
     const origText = textEl.textContent;
     btn.disabled = true;
@@ -1216,9 +1253,14 @@ async function regenerateSinglePreview(which) {
         showError('{% if lang == "es" %}Error de conexión{% else %}Connection error{% endif %}');
     }
 
-    btn.disabled = false;
-    iconEl.textContent = '🔄';
-    textEl.textContent = origText;
+    if (remaining <= 0) {
+        btn.classList.add('hidden');
+    } else {
+        btn.disabled = false;
+        iconEl.textContent = '🔄';
+        const baseText = which === 'human' ? HUMAN_BTN_BASE_TEXT : PET_BTN_BASE_TEXT;
+        textEl.textContent = baseText + ' (' + remaining + '{% if lang == "es" %} restantes){% else %} remaining){% endif %}';
+    }
 }
 
 document.getElementById('generateStoryBtn').addEventListener('click', async function() {
