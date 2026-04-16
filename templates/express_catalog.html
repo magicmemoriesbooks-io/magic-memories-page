@@ -1,0 +1,464 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'es' %}Cuentos Express — Elige tu historia{% else %}Express Stories — Choose your story{% endif %} - {{ translations.site_title }}{% endblock %}
+{% block meta_description %}{% if lang == 'es' %}Catálogo completo de cuentos mágicos personalizados: cumpleaños, bebé y grandes aventuras. 16 páginas, entrega digital inmediata.{% else %}Full catalog of personalized magic stories: birthday, baby, and adventures. 16 pages, instant digital delivery.{% endif %}{% endblock %}
+
+{% block content %}
+<style>
+.cat-hero {
+    background: linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #f59e0b 100%);
+    padding: 48px 20px 36px;
+    text-align: center;
+    color: #fff;
+}
+.cat-hero h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; margin: 0 0 8px; }
+.cat-hero p  { font-size: 1.05rem; opacity: .88; margin: 0; }
+
+.cat-section { padding: 40px 20px 8px; max-width: 1100px; margin: 0 auto; }
+.cat-section-header {
+    text-align: center;
+    margin-bottom: 28px;
+}
+.cat-section-header h2 { font-size: 1.6rem; font-weight: 800; margin: 0 0 4px; }
+.cat-section-header p  { font-size: .9rem; margin: 0; }
+
+/* Birthday cards — same small horizontal style as story cards */
+.bday-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+
+.bday-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.09);
+    overflow: hidden;
+    display: flex;
+    cursor: pointer;
+    transition: transform .16s, box-shadow .16s;
+    position: relative;
+}
+.bday-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.14); }
+.bday-card-img { width: 90px; flex-shrink: 0; }
+.bday-card-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bday-card-body {
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex: 1;
+}
+.bday-card-body h3 { font-size: .95rem; font-weight: 700; margin: 0 0 4px; line-height: 1.3; }
+.bday-card-body p  { font-size: .78rem; color: #666; margin: 0 0 10px; }
+.bday-badge {
+    position: absolute;
+    top: 8px; left: 8px;
+    background: rgba(0,0,0,.55);
+    color: #fff;
+    font-size: .68rem; font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    backdrop-filter: blur(4px);
+}
+.popular-badge {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: #f59e0b;
+    color: #fff;
+    font-size: .68rem; font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 999px;
+    transform: rotate(6deg);
+}
+
+/* Story cards — horizontal list layout */
+.story-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+
+.story-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.09);
+    overflow: hidden;
+    display: flex;
+    cursor: pointer;
+    transition: transform .16s, box-shadow .16s;
+}
+.story-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.14); }
+.story-card-img { width: 90px; flex-shrink: 0; }
+.story-card-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.story-card-body { padding: 12px 14px; display: flex; flex-direction: column; justify-content: space-between; flex: 1; }
+.story-card-body h3 { font-size: .95rem; font-weight: 700; margin: 0 0 4px; line-height: 1.3; }
+.story-card-body p  { font-size: .78rem; color: #666; margin: 0 0 8px; }
+.tag { display: inline-block; font-size: .68rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; margin-right: 4px; margin-bottom: 4px; }
+.story-card-body .story-tags { margin-bottom: 10px; }
+
+.btn-create {
+    display: inline-block;
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    color: #fff;
+    font-size: .8rem; font-weight: 700;
+    padding: 7px 14px;
+    border-radius: 10px;
+    text-align: center;
+    text-decoration: none;
+    transition: opacity .15s;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+}
+.btn-create:hover { opacity: .88; }
+.btn-create.bday { background: linear-gradient(135deg, #ec4899, #f59e0b); }
+
+.section-divider {
+    max-width: 1100px;
+    margin: 36px auto 0;
+    border: none;
+    border-top: 2px dashed #e5e7eb;
+}
+
+.back-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: rgba(255,255,255,.85); font-size: .9rem; font-weight: 500;
+    text-decoration: none; margin-bottom: 16px;
+    transition: color .15s;
+}
+.back-link:hover { color: #fff; }
+</style>
+
+<div class="cat-hero">
+    <a href="{{ url_for('story_selection') }}" class="back-link">
+        ← {% if lang == 'es' %}Volver{% else %}Back{% endif %}
+    </a>
+    <h1>⚡ {% if lang == 'es' %}Cuentos Mágicos Express{% else %}Express Magic Stories{% endif %}</h1>
+    <p>{% if lang == 'es' %}Elige tu historia — entrega digital inmediata · Impreso en 10–15 días{% else %}Choose your story — instant digital delivery · Printed in 10–15 days{% endif %}</p>
+</div>
+
+<!-- ========== BIRTHDAY ========== -->
+<div class="cat-section">
+    <div class="cat-section-header">
+        <h2 style="color:#db2777;">🎂 {% if lang == 'es' %}Cuentos de Cumpleaños{% else %}Birthday Stories{% endif %}</h2>
+        <p style="color:#be185d;">{% if lang == 'es' %}El regalo más especial para el día más importante{% else %}The most special gift for the most important day{% endif %}</p>
+    </div>
+    <div class="bday-grid">
+
+        <!-- 1-3 años -->
+        <div class="bday-card" onclick="window.location.href='/personalize-story?story=birthday_celebration_1_3'">
+            <div class="bday-badge">1–3 {% if lang == 'es' %}años{% else %}years{% endif %}</div>
+            <div class="bday-card-img">
+                <img src="{{ url_for('static', filename='images/cover_birthday_celebration_0_2.jpg') }}" alt="Cumpleaños 1-3"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#fff7ed;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>🎂</div>'">
+            </div>
+            <div class="bday-card-body">
+                <div>
+                    <h3 style="color:#b45309;">{% if lang == 'es' %}Pequeñitos{% else %}Little Ones{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Tierno y emotivo · 16 páginas{% else %}Tender and heartfelt · 16 pages{% endif %}</p>
+                </div>
+                <a href="/personalize-story?story=birthday_celebration_1_3" class="btn-create bday" onclick="event.stopPropagation()">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+        <!-- 4-6 años -->
+        <div class="bday-card" onclick="window.location.href='/personalize-story?story=birthday_celebration_4_6'">
+            <div class="bday-badge">4–6 {% if lang == 'es' %}años{% else %}years{% endif %}</div>
+            <div class="popular-badge">⭐ Popular</div>
+            <div class="bday-card-img">
+                <img src="{{ url_for('static', filename='images/cover_birthday_celebration_4_6.jpg') }}" alt="Cumpleaños 4-6"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#f5f3ff;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>🎉</div>'">
+            </div>
+            <div class="bday-card-body">
+                <div>
+                    <h3 style="color:#7c3aed;">{% if lang == 'es' %}Niños{% else %}Kids{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Mágico y divertido · 16 páginas{% else %}Magical and fun · 16 pages{% endif %}</p>
+                </div>
+                <a href="/personalize-story?story=birthday_celebration_4_6" class="btn-create bday" onclick="event.stopPropagation()">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+        <!-- 7-9 años -->
+        <div class="bday-card" onclick="window.location.href='/personalize-story?story=birthday_celebration_7_9'">
+            <div class="bday-badge">7–9 {% if lang == 'es' %}años{% else %}years{% endif %}</div>
+            <div class="bday-card-img">
+                <img src="{{ url_for('static', filename='images/cover_birthday_celebration_7_9.jpg') }}" alt="Cumpleaños 7-9"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#eff6ff;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>🎈</div>'">
+            </div>
+            <div class="bday-card-body">
+                <div>
+                    <h3 style="color:#1d4ed8;">{% if lang == 'es' %}Niños Mayores{% else %}Older Kids{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Emotivo y especial · 16 páginas{% else %}Heartfelt and special · 16 pages{% endif %}</p>
+                </div>
+                <a href="/personalize-story?story=birthday_celebration_7_9" class="btn-create bday" onclick="event.stopPropagation()">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<hr class="section-divider">
+
+<!-- ========== BABY ========== -->
+<div class="cat-section">
+    <div class="cat-section-header">
+        <h2 style="color:#d97706;">🍼 {% if lang == 'es' %}Cuentos para Bebé{% else %}Baby Stories{% endif %}</h2>
+        <p style="color:#92400e;">{% if lang == 'es' %}0–2 años · Ilustraciones suaves · Palabras simples{% else %}0–2 years · Soft illustrations · Simple words{% endif %}</p>
+    </div>
+    <div class="story-grid">
+
+        <div class="story-card" onclick="window.location.href='/personalize-story?story=baby_soft_world'">
+            <div class="story-card-img">
+                <img src="{{ url_for('static', filename='images/cover_baby_soft_world.jpg') }}" alt="Mundo Suave"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#fef3c7;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>🌸</div>'">
+            </div>
+            <div class="story-card-body">
+                <div>
+                    <h3 style="color:#b45309;">{% if lang == 'es' %}[Nombre] y el mundo suave{% else %}[Name] and the Soft World{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Descubre un mundo lleno de amor y ternura{% else %}Discover a world full of love and tenderness{% endif %}</p>
+                    <div class="story-tags">
+                        <span class="tag" style="background:#fef3c7;color:#b45309;">16 {% if lang == 'es' %}páginas{% else %}pages{% endif %}</span>
+                        <span class="tag" style="background:#fef3c7;color:#b45309;">{% if lang == 'es' %}Sensorial{% else %}Sensory{% endif %}</span>
+                    </div>
+                </div>
+                <a href="/personalize-story?story=baby_soft_world" class="btn-create" onclick="event.stopPropagation()" style="background:linear-gradient(135deg,#d97706,#f59e0b)">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+        <div class="story-card" onclick="window.location.href='/personalize-story?story=baby_puppy_love'">
+            <div class="story-card-img">
+                <img src="{{ url_for('static', filename='images/cover_baby_puppy_love.jpg') }}" alt="Te quiero"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#fce7f3;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>🐶</div>'">
+            </div>
+            <div class="story-card-body">
+                <div>
+                    <h3 style="color:#db2777;">{% if lang == 'es' %}¿Sabes cuánto te quiero, [Nombre]?{% else %}Do You Know How Much I Love You, [Name]?{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Una historia de amor con tu perrito{% else %}A love story with your puppy{% endif %}</p>
+                    <div class="story-tags">
+                        <span class="tag" style="background:#fce7f3;color:#db2777;">16 {% if lang == 'es' %}páginas{% else %}pages{% endif %}</span>
+                        <span class="tag" style="background:#fce7f3;color:#db2777;">{% if lang == 'es' %}Amor{% else %}Love{% endif %}</span>
+                    </div>
+                </div>
+                <a href="/personalize-story?story=baby_puppy_love" class="btn-create" onclick="event.stopPropagation()" style="background:linear-gradient(135deg,#ec4899,#f472b6)">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+        <div class="story-card" onclick="window.location.href='/personalize-story?story=baby_first_pet'">
+            <div class="story-card-img">
+                <img src="{{ url_for('static', filename='images/cover_baby_first_pet.jpg') }}" alt="Primera Mascota"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#d1fae5;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>🐱</div>'">
+            </div>
+            <div class="story-card-body">
+                <div>
+                    <h3 style="color:#065f46;">{% if lang == 'es' %}[Nombre] y su Primera Mascota{% else %}[Name] and Their First Pet{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Un gatito especial llega a casa{% else %}A special kitten arrives home{% endif %}</p>
+                    <div class="story-tags">
+                        <span class="tag" style="background:#d1fae5;color:#065f46;">16 {% if lang == 'es' %}páginas{% else %}pages{% endif %}</span>
+                        <span class="tag" style="background:#d1fae5;color:#065f46;">{% if lang == 'es' %}Mascotas{% else %}Pets{% endif %}</span>
+                    </div>
+                </div>
+                <a href="/personalize-story?story=baby_first_pet" class="btn-create" onclick="event.stopPropagation()" style="background:linear-gradient(135deg,#059669,#34d399)">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+        <div class="story-card" onclick="window.location.href='/personalize-story?story=baby_guardian_light'">
+            <div class="story-card-img">
+                <img src="{{ url_for('static', filename='images/cover_baby_guardian_light.jpg') }}" alt="La Luz"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#fef9c3;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>✨</div>'">
+            </div>
+            <div class="story-card-body">
+                <div>
+                    <h3 style="color:#854d0e;">{% if lang == 'es' %}[Nombre] y la luz que lo/la cuida{% else %}[Name] and the Light That Watches Over{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Una luz mágica protege a tu bebé{% else %}A magical light protects your baby{% endif %}</p>
+                    <div class="story-tags">
+                        <span class="tag" style="background:#fef9c3;color:#854d0e;">16 {% if lang == 'es' %}páginas{% else %}pages{% endif %}</span>
+                        <span class="tag" style="background:#fef9c3;color:#854d0e;">{% if lang == 'es' %}Fantasía{% else %}Fantasy{% endif %}</span>
+                    </div>
+                </div>
+                <a href="/personalize-story?story=baby_guardian_light" class="btn-create" onclick="event.stopPropagation()" style="background:linear-gradient(135deg,#d97706,#fbbf24)">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<hr class="section-divider">
+
+<!-- ========== GRANDES AVENTURAS 3-9 ========== -->
+<div class="cat-section" style="padding-bottom:60px;">
+    <div class="cat-section-header">
+        <h2 style="color:#7c3aed;">🌟 {% if lang == 'es' %}Grandes Aventuras{% else %}Great Adventures{% endif %}</h2>
+        <p style="color:#6d28d9;">{% if lang == 'es' %}3–9 años · Historias mágicas personalizadas · Incluye 2 hojas para colorear{% else %}3–9 years · Personalized magic stories · Includes 2 coloring pages{% endif %}</p>
+    </div>
+    <div class="story-grid">
+
+        <div class="story-card" onclick="window.location.href='/personalize-story?story=dragon_friend'">
+            <div class="story-card-img">
+                <img src="{{ url_for('static', filename='images/cover_dragon_friend.jpg') }}" alt="Dragón"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#d1fae5;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>🐉</div>'">
+            </div>
+            <div class="story-card-body">
+                <div>
+                    <h3 style="color:#065f46;">{% if lang == 'es' %}[Nombre] y su Amigo el Dragón{% else %}[Name] and Their Dragon Friend{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Una historia de amistad mágica{% else %}A magical friendship story{% endif %}</p>
+                    <div class="story-tags">
+                        <span class="tag" style="background:#d1fae5;color:#065f46;">16 {% if lang == 'es' %}páginas{% else %}pages{% endif %}</span>
+                        <span class="tag" style="background:#d1fae5;color:#065f46;">{% if lang == 'es' %}Amistad{% else %}Friendship{% endif %}</span>
+                    </div>
+                </div>
+                <a href="/personalize-story?story=dragon_friend" class="btn-create" onclick="event.stopPropagation()">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+        <div class="story-card" onclick="window.location.href='/personalize-story?story=space_astronaut'">
+            <div class="story-card-img">
+                <img src="{{ url_for('static', filename='images/cover_space_astronaut.jpg') }}" alt="Astronauta"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#ede9fe;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>🚀</div>'">
+            </div>
+            <div class="story-card-body">
+                <div>
+                    <h3 style="color:#5b21b6;">{% if lang == 'es' %}[Nombre] astronauta{% else %}[Name] Astronaut{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Aprende a escuchar el espacio{% else %}Learn to listen to space{% endif %}</p>
+                    <div class="story-tags">
+                        <span class="tag" style="background:#ede9fe;color:#5b21b6;">16 {% if lang == 'es' %}páginas{% else %}pages{% endif %}</span>
+                        <span class="tag" style="background:#ede9fe;color:#5b21b6;">{% if lang == 'es' %}Calma{% else %}Calm{% endif %}</span>
+                    </div>
+                </div>
+                <a href="/personalize-story?story=space_astronaut" class="btn-create" onclick="event.stopPropagation()">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+        <div class="story-card" onclick="window.location.href='/personalize-story?story=zebra_stripes'">
+            <div class="story-card-img">
+                <img src="{{ url_for('static', filename='images/cover_zebra_stripes.jpg') }}" alt="Sabana"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#fef3c7;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>🦓</div>'">
+            </div>
+            <div class="story-card-body">
+                <div>
+                    <h3 style="color:#92400e;">{% if lang == 'es' %}[Nombre] y la aventura en la sabana{% else %}[Name] and the Savanna Adventure{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Una aventura de amistad en la sabana africana{% else %}A friendship adventure in the African savanna{% endif %}</p>
+                    <div class="story-tags">
+                        <span class="tag" style="background:#fef3c7;color:#92400e;">16 {% if lang == 'es' %}páginas{% else %}pages{% endif %}</span>
+                        <span class="tag" style="background:#fef3c7;color:#92400e;">{% if lang == 'es' %}Aventura{% else %}Adventure{% endif %}</span>
+                    </div>
+                </div>
+                <a href="/personalize-story?story=zebra_stripes" class="btn-create" onclick="event.stopPropagation()">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+        <div class="story-card" onclick="window.location.href='/personalize-story?story=superhero_light'">
+            <div class="story-card-img">
+                <img src="{{ url_for('static', filename='images/cover_superhero_light.jpg') }}" alt="Superhéroe"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#dbeafe;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>⭐</div>'">
+            </div>
+            <div class="story-card-body">
+                <div>
+                    <h3 style="color:#1d4ed8;">{% if lang == 'es' %}[Nombre] superhéroe de la luz{% else %}[Name] Superhero of Light{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Poderes suaves que ayudan con el corazón{% else %}Gentle powers that help with the heart{% endif %}</p>
+                    <div class="story-tags">
+                        <span class="tag" style="background:#dbeafe;color:#1d4ed8;">16 {% if lang == 'es' %}páginas{% else %}pages{% endif %}</span>
+                        <span class="tag" style="background:#fef9c3;color:#854d0e;">{% if lang == 'es' %}Empatía{% else %}Empathy{% endif %}</span>
+                    </div>
+                </div>
+                <a href="/personalize-story?story=superhero_light" class="btn-create" onclick="event.stopPropagation()">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+        <div class="story-card" onclick="window.location.href='/personalize-story?story=chronicles_valley'">
+            <div class="story-card-img">
+                <img src="{{ url_for('static', filename='images/cover_chronicles_valley.jpg') }}" alt="Crónicas"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#ede9fe;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>📖</div>'">
+            </div>
+            <div class="story-card-body">
+                <div>
+                    <h3 style="color:#4c1d95;">{% if lang == 'es' %}Las Crónicas de [Nombre]{% else %}The Chronicles of [Name]{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Una aventura mágica de descubrimiento e imaginación{% else %}A magical adventure of discovery and imagination{% endif %}</p>
+                    <div class="story-tags">
+                        <span class="tag" style="background:#ede9fe;color:#4c1d95;">16 {% if lang == 'es' %}páginas{% else %}pages{% endif %}</span>
+                        <span class="tag" style="background:#ede9fe;color:#4c1d95;">{% if lang == 'es' %}Imaginación{% else %}Imagination{% endif %}</span>
+                    </div>
+                </div>
+                <a href="/personalize-story?story=chronicles_valley" class="btn-create" onclick="event.stopPropagation()">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+        <div class="story-card" onclick="window.location.href='/personalize-story?story=sunset_map'">
+            <div class="story-card-img">
+                <img src="{{ url_for('static', filename='images/cover_sunset_map.jpg') }}" alt="Mapa"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#ffedd5;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>🗺️</div>'">
+            </div>
+            <div class="story-card-body">
+                <div>
+                    <h3 style="color:#c2410c;">{% if lang == 'es' %}[Nombre] y el mapa que solo aparecía al atardecer{% else %}[Name] and the Map That Only Appeared at Sunset{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Una búsqueda de tesoros guiada por la intuición{% else %}A treasure hunt guided by intuition{% endif %}</p>
+                    <div class="story-tags">
+                        <span class="tag" style="background:#ffedd5;color:#c2410c;">16 {% if lang == 'es' %}páginas{% else %}pages{% endif %}</span>
+                        <span class="tag" style="background:#ffedd5;color:#c2410c;">{% if lang == 'es' %}Misterio{% else %}Mystery{% endif %}</span>
+                    </div>
+                </div>
+                <a href="/personalize-story?story=sunset_map" class="btn-create" onclick="event.stopPropagation()">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+        <div class="story-card" onclick="window.location.href='/personalize-story?story=star_guardian'">
+            <div class="story-card-img">
+                <img src="{{ url_for('static', filename='images/cover_star_guardian.jpg') }}" alt="Estrellas"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#ede9fe;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>⭐</div>'">
+            </div>
+            <div class="story-card-body">
+                <div>
+                    <h3 style="color:#5b21b6;">{% if lang == 'es' %}[Nombre] y el guardián de las estrellas{% else %}[Name] and the Guardian of the Stars{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Una misión celestial para devolver las estrellas al cielo{% else %}A celestial mission to return the stars to the sky{% endif %}</p>
+                    <div class="story-tags">
+                        <span class="tag" style="background:#ede9fe;color:#5b21b6;">16 {% if lang == 'es' %}páginas{% else %}pages{% endif %}</span>
+                        <span class="tag" style="background:#ede9fe;color:#5b21b6;">{% if lang == 'es' %}Asombro{% else %}Wonder{% endif %}</span>
+                    </div>
+                </div>
+                <a href="/personalize-story?story=star_guardian" class="btn-create" onclick="event.stopPropagation()">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+        <div class="story-card" onclick="window.location.href='/personalize-story?story=dog_forever'">
+            <div class="story-card-img">
+                <img src="{{ url_for('static', filename='images/cover_dog_forever.jpg') }}" alt="El Perro"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#fef3c7;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>🐕</div>'">
+            </div>
+            <div class="story-card-body">
+                <div>
+                    <h3 style="color:#92400e;">{% if lang == 'es' %}[Nombre] y el perro que llegó para quedarse{% else %}[Name] and the Dog Who Came to Stay{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Un encuentro inesperado que cambia todo{% else %}An unexpected encounter that changes everything{% endif %}</p>
+                    <div class="story-tags">
+                        <span class="tag" style="background:#fef3c7;color:#92400e;">16 {% if lang == 'es' %}páginas{% else %}pages{% endif %}</span>
+                        <span class="tag" style="background:#fef3c7;color:#92400e;">{% if lang == 'es' %}Amistad{% else %}Friendship{% endif %}</span>
+                    </div>
+                </div>
+                <a href="/personalize-story?story=dog_forever" class="btn-create" onclick="event.stopPropagation()">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
