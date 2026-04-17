@@ -33,7 +33,7 @@ import gc
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
-# ─── A4 + 3 mm bleed dimensions ───────────────────────────────────────────────
+# ─── Content page (interior) dimensions — A4 text block ────────────────────────
 TRIM_W_MM  = 210.0
 TRIM_H_MM  = 297.0
 BLEED_MM   = 3.0
@@ -46,15 +46,21 @@ PAGE_W_PT  = PAGE_W_MM * MM2PT
 PAGE_H_PT  = PAGE_H_MM * MM2PT
 PAGE_W_PX  = round(PAGE_W_MM * DPI / 25.4)   # 2551 px
 PAGE_H_PX  = round(PAGE_H_MM * DPI / 25.4)   # 3579 px
-TRIM_PX    = round(TRIM_W_MM * DPI / 25.4)   # 2480 px
-TRIM_H_PX  = round(TRIM_H_MM * DPI / 25.4)   # 3508 px
+TRIM_PX    = round(TRIM_W_MM * DPI / 25.4)   # 2480 px  (content only)
+TRIM_H_PX  = round(TRIM_H_MM * DPI / 25.4)   # 3508 px  (content only)
 BLEED_PX   = round(BLEED_MM  * DPI / 25.4)   # 35 px
 
-# ─── Cover spread dimensions (CP verified spec) ────────────────────────────────
-# Width  = wrap + bleed + trim_W + squeeze + spine + squeeze + trim_W + bleed + wrap
-# Height = wrap + bleed + trim_H + bleed + wrap
-# CP confirmed for photobook_cw_a4_p_fc 26p: 486.1 × 345 mm, spine 8.1 mm
-#   WRAP=21mm, BLEED=3mm, SQUEEZE=5mm (cover_squeeze_in_mm from CP products/info)
+# ─── Cover board face dimensions — Fotomagic photobook_cw_a4_p_fc ──────────────
+# The visible board (punta a punta) is 216×302mm — larger than the text block.
+# Bleed and wrap are added on top of these cover-trim dimensions.
+COV_TRIM_W_MM = 216.0   # board face width  (confirmed by physical measurement)
+COV_TRIM_H_MM = 302.0   # board face height (confirmed by physical measurement)
+COV_TRIM_PX   = round(COV_TRIM_W_MM * DPI / 25.4)   # 2551 px
+COV_TRIM_H_PX = round(COV_TRIM_H_MM * DPI / 25.4)   # 3567 px
+
+# ─── Cover spread dimensions ────────────────────────────────────────────────────
+# Width  = wrap + bleed + cov_trim_W + squeeze + spine + squeeze + cov_trim_W + bleed + wrap
+# Height = wrap + bleed + cov_trim_H + bleed + wrap
 # Spine formula: (gsm × bulk_MCG × leaves) / 1000 + 2 × board_mm
 PAPER_GSM      = 200          # pageblock_200mcg = Machine Coated Gloss (Global default)
 PAPER_BULK_MCG = 0.808        # MCG Gloss bulk factor → spine=8.1mm for 26p (CP verified)
@@ -72,13 +78,13 @@ def _calc_spine_mm(page_count: int) -> float:
 SPINE_W_MM     = _calc_spine_mm(CW_PAGES)      # ~7.94 mm for 24p (MCG Gloss)
 SPINE_W_MM_26  = _calc_spine_mm(CW_PAGES_26)   # ~8.10 mm for 26p (MCG Gloss) — CP verified
 
-WRAP_MM        = 21.0    # CP casewrap turn-in: 21mm (confirmed from 345mm height spec)
+WRAP_MM        = 21.0    # CP casewrap turn-in: 21mm
 SQUEEZE_MM     = 5.0     # CP cover_squeeze_in_mm: 5mm each side of spine
 
 def _calc_cover_dims(spine_mm: float):
     """Return (cover_w_mm, cover_h_mm, cover_w_pt, cover_h_pt, cover_w_px, cover_h_px, spine_px, wrap_px, squeeze_px)."""
-    cw_mm = WRAP_MM + BLEED_MM + TRIM_W_MM + SQUEEZE_MM + spine_mm + SQUEEZE_MM + TRIM_W_MM + BLEED_MM + WRAP_MM
-    ch_mm = WRAP_MM + BLEED_MM + TRIM_H_MM + BLEED_MM + WRAP_MM
+    cw_mm = WRAP_MM + BLEED_MM + COV_TRIM_W_MM + SQUEEZE_MM + spine_mm + SQUEEZE_MM + COV_TRIM_W_MM + BLEED_MM + WRAP_MM
+    ch_mm = WRAP_MM + BLEED_MM + COV_TRIM_H_MM + BLEED_MM + WRAP_MM
     return (
         cw_mm, ch_mm,
         cw_mm * MM2PT, ch_mm * MM2PT,
@@ -214,9 +220,9 @@ def generate_cw_cover_pdf(
     Build the casewrap cover spread PDF for photobook_cw_a4_p_fc.
 
     page_count controls the spine width calculation (24p → ~7.94 mm, 26p → ~8.10 mm, MCG Gloss paper).
-    Layout (width):  [wrap 21mm][bleed 3mm][back 210mm][squeeze 5mm][spine ~8.10mm][squeeze 5mm][front 210mm][bleed 3mm][wrap 21mm]
-    Layout (height): [wrap 21mm][bleed 3mm][trim 297mm][bleed 3mm][wrap 21mm]
-    Total: 486.1 × 345.0 mm (CP verified for photobook_cw_a4_p_fc 26p, MCG paper)
+    Layout (width):  [wrap 21mm][bleed 3mm][back 216mm][squeeze 5mm][spine ~8.10mm][squeeze 5mm][front 216mm][bleed 3mm][wrap 21mm]
+    Layout (height): [wrap 21mm][bleed 3mm][board 302mm][bleed 3mm][wrap 21mm]
+    Total: ~498.1 × 350.0 mm (cover board face 216×302mm + bleed + wrap)
 
     Front/back images loaded from generated/composed_{session_id}/.
 
@@ -254,14 +260,14 @@ def generate_cw_cover_pdf(
         print(f"[CP PDF] {stem} not found (tried .png/.jpg) — using {fallback_color} fill")
         return Image.new("RGB", (trim_px, trim_h_px), fallback_color), None
 
-    front_img, front_src = _load_cover_image(composed_dir, "front_cover", "#6B46C1", TRIM_PX, TRIM_H_PX)
-    front_panel = ImageOps.fit(front_img, (TRIM_PX, TRIM_H_PX), Image.Resampling.LANCZOS)
+    front_img, front_src = _load_cover_image(composed_dir, "front_cover", "#6B46C1", COV_TRIM_PX, COV_TRIM_H_PX)
+    front_panel = ImageOps.fit(front_img, (COV_TRIM_PX, COV_TRIM_H_PX), Image.Resampling.LANCZOS)
     front_img.close()
 
     # ── Back cover ─────────────────────────────────────────────────────────────
-    back_img, back_src = _load_cover_image(composed_dir, "back_cover", "#F3E8FF", TRIM_PX, TRIM_H_PX)
+    back_img, back_src = _load_cover_image(composed_dir, "back_cover", "#F3E8FF", COV_TRIM_PX, COV_TRIM_H_PX)
     if back_src:
-        back_panel = ImageOps.fit(back_img, (TRIM_PX, TRIM_H_PX), Image.Resampling.LANCZOS)
+        back_panel = ImageOps.fit(back_img, (COV_TRIM_PX, COV_TRIM_H_PX), Image.Resampling.LANCZOS)
         back_img.close()
     else:
         back_panel = back_img
@@ -270,17 +276,17 @@ def generate_cw_cover_pdf(
     if os.path.exists(LOGO_PATH):
         try:
             logo = Image.open(LOGO_PATH).convert("RGBA")
-            logo_size = int(TRIM_PX * 0.22)
+            logo_size = int(COV_TRIM_PX * 0.22)
             logo = logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
-            margin = int(TRIM_PX * 0.04)
-            lx = TRIM_PX - logo_size - margin
+            margin = int(COV_TRIM_PX * 0.04)
+            lx = COV_TRIM_PX - logo_size - margin
             ly = back_panel.height - logo_size - margin
             back_panel.paste(logo, (lx, ly), logo)
         except Exception as e:
             print(f"[CP PDF] Logo error: {e}")
 
     # ── Spine ──────────────────────────────────────────────────────────────────
-    spine_panel = Image.new("RGB", (spine_px, TRIM_H_PX), SPINE_COLOR)
+    spine_panel = Image.new("RGB", (spine_px, COV_TRIM_H_PX), SPINE_COLOR)
     try:
         font_size = max(10, spine_px - 6)
         font = ImageFont.truetype(
@@ -288,10 +294,10 @@ def generate_cw_cover_pdf(
         )
     except Exception:
         font = ImageFont.load_default()
-    text_canvas = Image.new("RGBA", (TRIM_H_PX, spine_px), (0, 0, 0, 0))
+    text_canvas = Image.new("RGBA", (COV_TRIM_H_PX, spine_px), (0, 0, 0, 0))
     td = ImageDraw.Draw(text_canvas)
     bbox = td.textbbox((0, 0), book_title, font=font)
-    tx = (TRIM_H_PX - (bbox[2] - bbox[0])) // 2
+    tx = (COV_TRIM_H_PX - (bbox[2] - bbox[0])) // 2
     ty = (spine_px - (bbox[3] - bbox[1])) // 2
     td.text((tx, ty), book_title, font=font, fill="#FFFFFF")
     spine_panel.paste(text_canvas.rotate(90, expand=True).convert("RGB"), (0, 0))
@@ -299,17 +305,17 @@ def generate_cw_cover_pdf(
 
     # ── Compose spread ─────────────────────────────────────────────────────────
     # Layout (width): [wrap][bleed][back_panel][squeeze][spine][squeeze][front_panel][bleed][wrap]
-    # Layout (height): [wrap][bleed][trim_H][bleed][wrap]
+    # Layout (height): [wrap][bleed][cov_trim_H][bleed][wrap]
     board_y      = wrap_px + BLEED_PX
     back_x       = wrap_px + BLEED_PX
-    squeeze_l_x  = back_x + TRIM_PX
+    squeeze_l_x  = back_x + COV_TRIM_PX
     spine_x      = squeeze_l_x + squeeze_px
     squeeze_r_x  = spine_x + spine_px
     front_x      = squeeze_r_x + squeeze_px
 
     # Squeeze zones — filled with spine color (binding area; must not contain content)
-    sq_panel_l = Image.new("RGB", (squeeze_px, TRIM_H_PX), SPINE_COLOR)
-    sq_panel_r = Image.new("RGB", (squeeze_px, TRIM_H_PX), SPINE_COLOR)
+    sq_panel_l = Image.new("RGB", (squeeze_px, COV_TRIM_H_PX), SPINE_COLOR)
+    sq_panel_r = Image.new("RGB", (squeeze_px, COV_TRIM_H_PX), SPINE_COLOR)
 
     spread.paste(back_panel,  (back_x,      board_y))
     spread.paste(sq_panel_l,  (squeeze_l_x, board_y))
@@ -322,19 +328,19 @@ def generate_cw_cover_pdf(
 
     # Left wrap strip (mirror of left edge of back panel)
     spread.paste(
-        ImageOps.fit(back_panel.crop((0, 0, fill_w, TRIM_H_PX)), (fill_w, TRIM_H_PX)),
+        ImageOps.fit(back_panel.crop((0, 0, fill_w, COV_TRIM_H_PX)), (fill_w, COV_TRIM_H_PX)),
         (0, board_y)
     )
     # Right wrap strip (mirror of right edge of front panel)
     spread.paste(
-        ImageOps.fit(front_panel.crop((TRIM_PX - fill_w, 0, TRIM_PX, TRIM_H_PX)), (fill_w, TRIM_H_PX)),
-        (front_x + TRIM_PX, board_y)
+        ImageOps.fit(front_panel.crop((COV_TRIM_PX - fill_w, 0, COV_TRIM_PX, COV_TRIM_H_PX)), (fill_w, COV_TRIM_H_PX)),
+        (front_x + COV_TRIM_PX, board_y)
     )
     # Top/bottom wrap strips
     top_strip = spread.crop((0, board_y, cov_w_px, board_y + fill_h))
     spread.paste(top_strip, (0, 0))
-    bot_strip = spread.crop((0, board_y + TRIM_H_PX - fill_h, cov_w_px, board_y + TRIM_H_PX))
-    spread.paste(bot_strip, (0, board_y + TRIM_H_PX))
+    bot_strip = spread.crop((0, board_y + COV_TRIM_H_PX - fill_h, cov_w_px, board_y + COV_TRIM_H_PX))
+    spread.paste(bot_strip, (0, board_y + COV_TRIM_H_PX))
 
     for obj in [back_panel, front_panel, spine_panel, sq_panel_l, sq_panel_r, top_strip, bot_strip]:
         try:
@@ -488,14 +494,15 @@ def generate_cw_content_pdf(
 def get_cp_pb_specs() -> dict:
     """Return CP casewrap photobook specifications."""
     spine_mm_26 = _calc_spine_mm(CW_PAGES_26)
-    (cov_w_mm_26, cov_h_mm_26, cov_w_pt_26, cov_h_pt_26, _, _, _, _) = _calc_cover_dims(spine_mm_26)
+    (cov_w_mm_26, cov_h_mm_26, cov_w_pt_26, cov_h_pt_26, _, _, _, _, _) = _calc_cover_dims(spine_mm_26)
     return {
         "product": "photobook_cw_a4_p_fc",
         "pages": CW_PAGES_SELECTED,
         "page_mm": f"{PAGE_W_MM}×{PAGE_H_MM}",
         "page_px": f"{PAGE_W_PX}×{PAGE_H_PX}",
         "page_pt": f"{PAGE_W_PT:.2f}×{PAGE_H_PT:.2f}",
-        "cover_mm": f"{cov_w_mm_26:.1f}×{cov_h_mm_26:.1f}",
+        "cover_board_mm": f"{COV_TRIM_W_MM}×{COV_TRIM_H_MM}",
+        "cover_spread_mm": f"{cov_w_mm_26:.1f}×{cov_h_mm_26:.1f}",
         "cover_pt": f"{cov_w_pt_26:.2f}×{cov_h_pt_26:.2f}",
         "spine_mm": round(spine_mm_26, 2),
         "wrap_mm": WRAP_MM,
