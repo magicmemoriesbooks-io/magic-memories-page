@@ -272,7 +272,25 @@ def generate_cw_cover_pdf(
     else:
         back_panel = back_img
 
-    # Logo is already embedded in back_cover.png by generate_cover_spread — do not add again.
+    # ── Logo on back cover ─────────────────────────────────────────────────────
+    # Always overlay the logo here so its position is controlled regardless of
+    # what was baked into the source back_cover image.
+    try:
+        if os.path.exists(LOGO_PATH):
+            _logo_img = Image.open(LOGO_PATH).convert("RGBA")
+            _logo_size = int(COV_TRIM_PX * 0.17)          # 17% of board width ≈ 37mm
+            _logo_img = _logo_img.resize((_logo_size, _logo_size), Image.Resampling.LANCZOS)
+            _safe     = int(COV_TRIM_PX * 0.05)           # 5% safe margin from right edge
+            _logo_x   = COV_TRIM_PX - _logo_size - _safe  # right-aligned
+            _logo_y   = int(COV_TRIM_H_PX * 0.65)         # 65% from top — well above bleed
+            if _logo_img.mode == "RGBA":
+                back_panel.paste(_logo_img, (_logo_x, _logo_y), _logo_img)
+            else:
+                back_panel.paste(_logo_img, (_logo_x, _logo_y))
+            _logo_img.close()
+            print(f"[CP PDF] Logo added to back panel at ({_logo_x}, {_logo_y}), size {_logo_size}px")
+    except Exception as _logo_err:
+        print(f"[CP PDF] Logo overlay skipped (non-critical): {_logo_err}")
 
     # ── Spine ──────────────────────────────────────────────────────────────────
     spine_panel = Image.new("RGB", (spine_px, COV_TRIM_H_PX), SPINE_COLOR)
