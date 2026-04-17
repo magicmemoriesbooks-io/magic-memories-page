@@ -264,10 +264,9 @@ def get_shipping_quote(country_code: str, state_code: str = '') -> dict:
             })
             if key in result and result[key]["cp_cost_usd"] <= ship_usd:
                 continue
-            carrier_label = f" ({service})" if service and service != level else ""
             result[key] = {
-                "name_es": f"{labels['es']}{carrier_label}",
-                "name_en": f"{labels['en']}{carrier_label}",
+                "name_es": labels['es'],
+                "name_en": labels['en'],
                 "days_es": labels["days_es"],
                 "days_en": labels["days_en"],
                 "service": service,
@@ -620,10 +619,9 @@ def get_pb_shipping_quote(country_code: str, state_code: str = '') -> dict:
             key = _make_shipping_key(level, service)
             if key in result and result[key]["cp_cost_usd"] <= ship_usd:
                 continue
-            carrier_label = f" ({service})" if service and service != level else ""
             result[key] = {
-                "name_es":        f"{labels['es']}{carrier_label}",
-                "name_en":        f"{labels['en']}{carrier_label}",
+                "name_es":        labels['es'],
+                "name_en":        labels['en'],
                 "days_es":        labels["days_es"],
                 "days_en":        labels["days_en"],
                 "service":        service,
