@@ -538,6 +538,10 @@ _PB_SHIPPING_LEVEL_LABELS = {
     "cp_ground": {"es": "Envío Económico",   "en": "Economy Shipping",  "days_es": "3-8 días hábiles",  "days_en": "3-8 business days"},
     "cp_fast":   {"es": "Envío Express",     "en": "Express Shipping",  "days_es": "1-2 días hábiles",  "days_en": "1-2 business days"},
 }
+# Per-carrier label overrides (takes priority over level-based labels)
+_PB_OPTION_LABELS = {
+    "USPS Ground Advantage": {"es": "Envío Estándar", "en": "Standard Shipping", "days_es": "5-8 días hábiles", "days_en": "5-8 business days"},
+}
 _PB_PREFERRED_SHIPPING = ["cp_saver", "cp_ground", "cp_fast"]
 
 
@@ -605,18 +609,22 @@ def get_pb_shipping_quote(country_code: str, state_code: str = '') -> dict:
             return {}
 
         result = {}
+        print(f"[CP PB RAW] {len(shipping_quotes)} quotes from CP for {country_code}:")
+        for q in shipping_quotes:
+            print(f"  level={q.get('shipping_level')} service={q.get('service')!r} option={q.get('shipping_option')!r} price={q.get('price')}")
         for q in shipping_quotes:
             level   = q.get("shipping_level", "")
             service = q.get("service", "")
             option  = q.get("shipping_option", "")
             ship_usd = float(q.get("price", "0"))
             total_usd = round(print_cost_usd + ship_usd, 2)
-            labels = _PB_SHIPPING_LEVEL_LABELS.get(level, {
+            # Carrier-specific label overrides take priority over level-based labels.
+            labels = _PB_OPTION_LABELS.get(option) or _PB_SHIPPING_LEVEL_LABELS.get(level, {
                 "es": "Envío", "en": "Shipping",
                 "days_es": "7-20 días hábiles", "days_en": "7-20 business days"
             })
-            # Use composite key to show all distinct carriers, even when sharing a level.
-            key = _make_shipping_key(level, service)
+            # Key by level + carrier option (not service) so same-level carriers each get a slot.
+            key = _make_shipping_key(level, option)
             if key in result and result[key]["cp_cost_usd"] <= ship_usd:
                 continue
             result[key] = {
