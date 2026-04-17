@@ -235,6 +235,7 @@ def get_shipping_quote(country_code: str, state_code: str = '') -> dict:
             return {}
 
         # Build result dict with all available levels; pick preferred for "default"
+        # When multiple carriers share the same level, keep the CHEAPEST one.
         result = {}
         for q in shipping_quotes:
             level = q.get("shipping_level", "")
@@ -244,6 +245,8 @@ def get_shipping_quote(country_code: str, state_code: str = '') -> dict:
                 "es": "Envío", "en": "Shipping",
                 "days_es": "7-20 días hábiles", "days_en": "7-20 business days"
             })
+            if level in result and result[level]["cp_cost_usd"] <= ship_usd:
+                continue
             result[level] = {
                 "name_es": f"{labels['es']} — Cloudprinter",
                 "name_en": f"{labels['en']} — Cloudprinter",
@@ -591,10 +594,10 @@ def get_pb_shipping_quote(country_code: str, state_code: str = '') -> dict:
                 "es": "Envío", "en": "Shipping",
                 "days_es": "7-20 días hábiles", "days_en": "7-20 business days"
             })
-            # Use shipping_level as key; same level with multiple carriers → last one wins
-            # (CP assigns the actual carrier; the level is what matters for the order)
-            key = level
-            result[key] = {
+            # When multiple carriers share the same level, keep the CHEAPEST one.
+            if level in result and result[level]["cp_cost_usd"] <= ship_usd:
+                continue
+            result[level] = {
                 "name_es":        f"{labels['es']}",
                 "name_en":        f"{labels['en']}",
                 "days_es":        labels["days_es"],
