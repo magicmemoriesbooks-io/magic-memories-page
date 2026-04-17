@@ -2171,8 +2171,8 @@ def generate_baby_preview_api():
                     hair_length = traits.get('hair_length', 'medium')
                     hair_type = traits.get('hair_type', 'straight')
                     
-                    # Build char_base for personalized books
-                    char_base = f"a {age_display} {gender_child} with {hair_color} {hair_length} {hair_type} hair, {skin_tone} skin, and {eye_desc}"
+                    # Build char_base using the proper hair_desc (handles bald/very_little/very_short correctly)
+                    char_base = f"a {age_display} {gender_child} with {hair_desc}, {skin_tone} skin, and {eye_desc}"
                     
                     from services.fixed_stories import BUNNY_DESC, PUPPY_DESC, KITTEN_DESC, GUARDIAN_LIGHT_DESC, DOG_FOREVER_DESC, SPARK_DESC, LILA_DESC, get_hair_action
                     hair_action = get_hair_action(traits)
@@ -2186,7 +2186,7 @@ def generate_baby_preview_api():
                     _gl_qs = traits.get('glasses', '')
                     if _gl_qs and _gl_qs not in ('none', ''):
                         _eye_desc_qs = eye_desc + ", wearing round glasses"
-                        char_base = f"a {age_display} {gender_child} with {hair_color} {hair_length} {hair_type} hair, {skin_tone} skin, {eye_desc}, wearing round glasses"
+                        char_base = f"a {age_display} {gender_child} with {hair_desc}, {skin_tone} skin, {eye_desc}, wearing round glasses"
                     prompt = preview_override.format(
                         gender_word=gender_word,
                         gender_child=gender_child,
@@ -2215,8 +2215,15 @@ def generate_baby_preview_api():
                     )
                     from services.fixed_stories import enforce_gender_clothing as egc
                     prompt = egc(prompt, child_gender)
+                    # Reinforce bald/very_little hair in STRICT section for all Express stories
+                    _hl_qs = traits.get('hair_length', '')
+                    if _hl_qs in ('bald', 'very_little') and 'STRICT:' in prompt:
+                        _is_baby_qs = story_config.get('age_range', '') in ['0-1', '0-2']
+                        _bald_note = 'Baby head is completely bald, smooth round scalp,' if _is_baby_qs else 'Child has completely smooth bald head, no hair whatsoever,'
+                        prompt = prompt.replace('STRICT:', f'STRICT: {_bald_note}', 1)
                     print(f"Using story-specific preview override for: {story_id} (age: {age_display})")
                     print(f"\n===== PROMPT ENVIADO A FLUX =====\n{prompt}\n===== FIN PROMPT =====")
+
                 else:
                     prompt = f"Full body portrait of a cheerful {gender_word} (4-5 years old) with {hair_desc}, {eye_desc} and {skin_desc}, {gender_features}, wearing adventure clothes (simple shirt and shorts), standing in a magical garden, bright curious expression, happy smile, soft magical background with warm light and floating sparkles, children's storybook watercolor illustration style, soft luminous colors, warm lighting, magical atmosphere. NO text, NO watermark, NO signature, NO logo, clean illustration only"
         
