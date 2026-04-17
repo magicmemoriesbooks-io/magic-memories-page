@@ -1814,14 +1814,18 @@ def get_hair_description(traits: dict, gender: str = None) -> str:
         if child_age_vl >= 2:
             # Children 2+: real very-short haircut (NOT bald)
             if gender == 'male':
-                if hair_type == 'curly':
+                if hair_type in ('afro', 'coily'):
+                    return f"{sc} extremely short tightly coiled afro buzz cut, coils barely visible close to scalp, very low fade"
+                elif hair_type == 'curly':
                     return f"{sc} extremely short tight curly boys buzz cut, natural tight curls barely visible close to scalp, clean high fade on sides"
                 elif hair_type == 'wavy':
                     return f"{sc} extremely short wavy boys crew cut, waves barely visible, clean high fade on sides and back"
                 else:
                     return f"{sc} extremely short straight boys buzz cut, very tight high fade on sides, minimal hair on top"
             else:
-                if hair_type == 'curly':
+                if hair_type in ('afro', 'coily'):
+                    return f"{sc} extremely short tightly coiled afro girls cut, coils very close to scalp, above the ears, closely cropped all around"
+                elif hair_type == 'curly':
                     return f"{sc} extremely short curly girls pixie cut, natural tight curls, hair above the ears, closely cropped all around"
                 elif hair_type == 'wavy':
                     return f"{sc} extremely short wavy girls pixie cut, barely visible waves, short all around above the ears"
@@ -1833,14 +1837,18 @@ def get_hair_description(traits: dict, gender: str = None) -> str:
 
     if length == 'very_short':
         if gender == 'male':
-            if hair_type == 'curly':
+            if hair_type in ('afro', 'coily'):
+                return f"{c} very short natural afro, tiny tightly coiled afro kept very close to the head, clean low fade on sides"
+            elif hair_type == 'curly':
                 return f"{c} very short tight curly boys crew cut, natural tight curls kept very close to the head, clean tapered fade on sides"
             elif hair_type == 'wavy':
                 return f"{c} very short wavy boys crew cut, natural waves barely visible, clean tapered sides"
             else:
                 return f"{c} very short straight boys crew cut with high fade, very short on top, clean and neat"
         else:
-            if hair_type == 'curly':
+            if hair_type in ('afro', 'coily'):
+                return f"{c} very short natural afro girls cut, tiny tightly coiled afro, closely cropped all around, above the ears"
+            elif hair_type == 'curly':
                 return f"{c} very short curly girls pixie cut, natural tight curls, short all around above ears"
             elif hair_type == 'wavy':
                 return f"{c} very short wavy girls pixie-bob, soft waves, short all around covering the ears"
@@ -1849,14 +1857,18 @@ def get_hair_description(traits: dict, gender: str = None) -> str:
 
     if length == 'short':
         if gender == 'male':
-            if hair_type == 'curly':
+            if hair_type in ('afro', 'coily'):
+                return f"{c} short natural afro boys cut, tightly coiled hair shaped into a neat round mini-afro, defined coils, clean fade on sides"
+            elif hair_type == 'curly':
                 return f"{c} short curly boys haircut, natural curls on top, tapered fade on sides and back, textured modern boys cut"
             elif hair_type == 'wavy':
                 return f"{c} short wavy boys textured quiff, natural wavy layers swept to the side, tapered fade on sides"
             else:
                 return f"{c} short straight boys haircut, hair neatly swept to the side or forward with a soft fringe, tapered sides and back, clean modern boys cut"
         else:
-            if hair_type == 'curly':
+            if hair_type in ('afro', 'coily'):
+                return f"{c} short natural afro girls cut, tightly coiled hair shaped into a petite neat round afro, defined coils framing the face"
+            elif hair_type == 'curly':
                 return f"{c} short curly girls haircut, natural curls at chin-length, styled as a short curly bob framing the face"
             elif hair_type == 'wavy':
                 return f"{c} short wavy girls haircut, soft waves at ear-to-chin length, gentle bob shape above the shoulders"
