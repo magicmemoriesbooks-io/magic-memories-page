@@ -92,13 +92,22 @@ def eur_to_usd(amount_eur: float) -> float:
 
 
 def _get_api_key() -> str:
-    # Prefer the sandbox key; only use live key if sandbox is not set.
-    _candidates = [
-        "Cloudprinter_API_KEY",
-        "CLOUDPRINTER_API_KEY",
-        "CLOUDPRINTER_API_KEY_SANDBOX",
-        "CLOUDPRINTER_QS_API_KEY",
-    ]
+    # If CLOUDPRINTER_USE_SANDBOX=true → prefer sandbox key (for Replit/testing).
+    # Otherwise (VPS/production) → prefer live key first.
+    if is_sandbox_mode():
+        _candidates = [
+            "Cloudprinter_API_KEY",
+            "CLOUDPRINTER_API_KEY",
+            "CLOUDPRINTER_API_KEY_SANDBOX",
+            "CLOUDPRINTER_QS_API_KEY",
+        ]
+    else:
+        _candidates = [
+            "CLOUDPRINTER_QS_API_KEY",
+            "Cloudprinter_API_KEY",
+            "CLOUDPRINTER_API_KEY",
+            "CLOUDPRINTER_API_KEY_SANDBOX",
+        ]
     for name in _candidates:
         key = os.environ.get(name, "")
         if key:
