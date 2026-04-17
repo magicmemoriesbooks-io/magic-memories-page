@@ -1072,6 +1072,11 @@ def generate_scenes_only(story_id: str, gender: str, traits: dict,
             os.rename(closing_path, f"{output_dir}/closing.png")
             closing_path = f"{output_dir}/closing.png"
             print(f"[CLOSING] Closing illustration saved: {closing_path}")
+            if progress_callback:
+                try:
+                    progress_callback(total + 1, total + 1)
+                except Exception:
+                    pass
         except Exception as e:
             print(f"[CLOSING] Error generating closing: {e}")
     
