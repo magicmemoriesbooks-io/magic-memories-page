@@ -6043,7 +6043,11 @@ def confirm_and_send(preview_id):
         pdf_printable_path = story_data.get('pdf_printable_path')
         instructions_path_email = story_data.get('instructions_path')
         personalized_pdf_url = None
-        
+
+        if want_print:
+            pdf_printable_path = None
+            instructions_path_email = None
+
         if is_personalized_book:
             pdf_printable_path = None
             instructions_path_email = None
