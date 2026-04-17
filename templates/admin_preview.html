@@ -208,13 +208,13 @@
             {% if cover_path %}
             <div style="text-align:center;">
                 <p style="font-size:12px; color:#666; margin-bottom:6px;">Portada</p>
-                <img src="/{{ cover_path }}?t={{ range(1000000)|random }}" class="ap-cover-img" onclick="openLB(this.src)" alt="Portada">
+                <img src="/{{ cover_path.lstrip('/') }}?t={{ range(1000000)|random }}" class="ap-cover-img" onclick="openLB(this.src)" alt="Portada">
             </div>
             {% endif %}
             {% if preview.back_cover_path %}
             <div style="text-align:center;">
                 <p style="font-size:12px; color:#666; margin-bottom:6px;">Contraportada</p>
-                <img src="/{{ preview.back_cover_path }}?t={{ range(1000000)|random }}" class="ap-cover-img" onclick="openLB(this.src)" alt="Contraportada">
+                <img src="/{{ preview.back_cover_path.lstrip('/') }}?t={{ range(1000000)|random }}" class="ap-cover-img" onclick="openLB(this.src)" alt="Contraportada">
             </div>
             {% endif %}
         </div>
