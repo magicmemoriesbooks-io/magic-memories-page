@@ -1802,52 +1802,66 @@ def get_hair_description(traits: dict, gender: str = None) -> str:
     
     if length == 'bald':
         return "completely smooth bald head, perfectly round hairless baby head, clean soft scalp"
-    
+
     if length == 'very_little':
-        simple_color_map = {
+        sc_map = {
             'black': 'jet black', 'brown': 'medium brown', 'light_brown': 'warm light brown (caramel-honey tone)',
             'blonde': 'golden blonde', 'very_light_blonde': 'very light blonde',
             'red': 'bright red', 'auburn': 'auburn',
         }
-        sc = simple_color_map.get(color, c)
-        vl_type_map = {
-            'straight': 'straight', 'wavy': 'slightly wavy',
-            'curly': 'softly curly', 'afro': 'tightly coiled afro'
-        }
-        vl_t = vl_type_map.get(hair_type, 'straight')
-        return "completely bald smooth head, no hair whatsoever, perfectly round smooth scalp"
-    
+        sc = sc_map.get(color, c)
+        child_age_vl = int(traits.get('child_age', 1) or 1)
+        if child_age_vl >= 2:
+            # Children 2+: real very-short haircut (NOT bald)
+            if gender == 'male':
+                if hair_type == 'curly':
+                    return f"{sc} extremely short tight curly boys buzz cut, natural tight curls barely visible close to scalp, clean high fade on sides"
+                elif hair_type == 'wavy':
+                    return f"{sc} extremely short wavy boys crew cut, waves barely visible, clean high fade on sides and back"
+                else:
+                    return f"{sc} extremely short straight boys buzz cut, very tight high fade on sides, minimal hair on top"
+            else:
+                if hair_type == 'curly':
+                    return f"{sc} extremely short curly girls pixie cut, natural tight curls, hair above the ears, closely cropped all around"
+                elif hair_type == 'wavy':
+                    return f"{sc} extremely short wavy girls pixie cut, barely visible waves, short all around above the ears"
+                else:
+                    return f"{sc} extremely short straight girls pixie cut, hair above the ears, very neatly cropped all around"
+        else:
+            # Babies 0-1: nearly bald / sparse wisps
+            return "completely bald smooth head, no hair whatsoever, perfectly round smooth scalp"
+
     if length == 'very_short':
         if gender == 'male':
             if hair_type == 'curly':
-                return f"{c} very short tight curly boys crew cut, natural tight curls kept very close to the head, clean tapered sides"
+                return f"{c} very short tight curly boys crew cut, natural tight curls kept very close to the head, clean tapered fade on sides"
             elif hair_type == 'wavy':
                 return f"{c} very short wavy boys crew cut, natural waves barely visible, clean tapered sides"
             else:
-                return f"{c} very short straight boys crew cut with high fade, clean and neat, very short on top"
+                return f"{c} very short straight boys crew cut with high fade, very short on top, clean and neat"
         else:
             if hair_type == 'curly':
-                return f"{c} very short curly pixie cut, natural tight curls, short all around"
+                return f"{c} very short curly girls pixie cut, natural tight curls, short all around above ears"
             elif hair_type == 'wavy':
-                return f"{c} very short wavy pixie cut, soft waves, short all around"
+                return f"{c} very short wavy girls pixie-bob, soft waves, short all around covering the ears"
             else:
-                return f"{c} very short straight pixie cut, clean and neat, short all around"
+                return f"{c} very short straight girls pixie-bob, clean and neat, short all around just above the ears"
 
     if length == 'short':
         if gender == 'male':
             if hair_type == 'curly':
-                return f"{c} short curly boys haircut, natural curls on top, tapered sides and back, modern taper fade"
+                return f"{c} short curly boys haircut, natural curls on top, tapered fade on sides and back, textured modern boys cut"
             elif hair_type == 'wavy':
-                return f"{c} short wavy boys textured crop, natural wavy layers loosely swept, tapered sides"
+                return f"{c} short wavy boys textured quiff, natural wavy layers swept to the side, tapered fade on sides"
             else:
-                return f"{c} short straight boys haircut, short hair on top, tapered sides and back, clean modern boys cut"
+                return f"{c} short straight boys haircut, hair neatly swept to the side or forward with a soft fringe, tapered sides and back, clean modern boys cut"
         else:
             if hair_type == 'curly':
-                return f"{c} short curly girls haircut, natural curls at ear-length, styled above shoulders, NOT a bob"
+                return f"{c} short curly girls haircut, natural curls at chin-length, styled as a short curly bob framing the face"
             elif hair_type == 'wavy':
-                return f"{c} short wavy girls haircut, soft waves at ear-length, above shoulders"
+                return f"{c} short wavy girls haircut, soft waves at ear-to-chin length, gentle bob shape above the shoulders"
             else:
-                return f"{c} short straight girls haircut, ear-length, above shoulders, clean and neat, NOT a bob"
+                return f"{c} short straight girls haircut, ear-to-chin length, clean and neat, above the shoulders"
     
     length_map = {
         'medium': 'medium-length',
@@ -1873,11 +1887,14 @@ def get_hair_strict(traits: dict) -> str:
     if length == 'bald':
         return "HAIR STRICT: child has completely smooth bald head, zero hair."
     elif length == 'very_little':
+        child_age_strict = int(traits.get('child_age', 1) or 1)
+        if child_age_strict >= 2:
+            return f"HAIR STRICT: child has extremely short hair, buzz cut or tight pixie cut, hair barely covers the scalp, much shorter than a crew cut, hair does not extend past the ears at all.{type_suffix}"
         return "HAIR STRICT: child has almost no hair, nearly bald smooth head, extremely sparse fine wisps only."
     elif length == 'very_short':
-        return f"HAIR STRICT: child has very short hair crew-cut or pixie style, hair absolutely does not extend below the ear.{type_suffix}"
+        return f"HAIR STRICT: child has very short hair, crew cut or pixie cut style, hair does not extend below the ear.{type_suffix}"
     elif length == 'short':
-        return f"HAIR STRICT: child has short hair ending at ear-level or just below, above the shoulders, NOT a bob, NOT medium length.{type_suffix}"
+        return f"HAIR STRICT: child has short hair ending at ear-to-chin level, above the shoulders, NOT medium length.{type_suffix}"
     elif length == 'long':
         return f"HAIR STRICT: child has long hair reaching well past the shoulders.{type_suffix}"
     else:
