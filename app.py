@@ -4827,7 +4827,8 @@ def shipping_confirm(preview_id):
                 customer_email = story_data.get('customer_email', '')
                 pet_name_g = traits.get('pet_name', '') if traits else ''
                 book_title_g = get_print_title(book_id, child_name, lang, pet_name=pet_name_g)
-                cp_shipping_level = story_data.get('shipping_method', 'cp_saver')
+                from services.cloudprinter_api_service import resolve_shipping_level
+                cp_shipping_level = resolve_shipping_level(story_data.get('shipping_method', 'cp_saver'))
 
                 from services.cloudprinter_api_service import get_pb_chosen_page_count
                 _chosen_pages = get_pb_chosen_page_count()
@@ -9456,10 +9457,10 @@ def _compose_personalized_book_background(preview_id, **kwargs):
                         try:
                             from services.personalized_books.generation import get_print_title
                             from services.personalized_books.cp_pdf_service import generate_cw_cover_pdf, generate_cw_content_pdf
-                            from services.cloudprinter_api_service import submit_pb_print_order, get_pdf_public_url
+                            from services.cloudprinter_api_service import submit_pb_print_order, get_pdf_public_url, resolve_shipping_level
                             pet_name_g = traits.get('pet_name', '') if traits else ''
                             book_title_g = get_print_title(book_id, child_name, lang, pet_name=pet_name_g)
-                            cp_shipping_level = story_data.get('shipping_method', 'cp_saver')
+                            cp_shipping_level = resolve_shipping_level(story_data.get('shipping_method', 'cp_saver'))
 
                             from services.cloudprinter_api_service import get_pb_chosen_page_count
                             _chosen_pages = get_pb_chosen_page_count()
@@ -9771,8 +9772,8 @@ def _process_personalized_book_post_payment(preview_id, customer_email):
                 existing_shipping = story_data.get('shipping_address')
                 if existing_shipping and not story_data.get('cp_pb_order_ref'):
                     try:
-                        from services.cloudprinter_api_service import submit_pb_print_order, get_pdf_public_url
-                        cp_shipping_level = story_data.get('shipping_method', 'cp_saver')
+                        from services.cloudprinter_api_service import submit_pb_print_order, get_pdf_public_url, resolve_shipping_level
+                        cp_shipping_level = resolve_shipping_level(story_data.get('shipping_method', 'cp_saver'))
                         cover_pdf_url   = get_pdf_public_url(preview_id, "cover.pdf")
                         content_pdf_url = get_pdf_public_url(preview_id, "content.pdf")
                         story_data['cp_cover_pdf_url']   = cover_pdf_url
