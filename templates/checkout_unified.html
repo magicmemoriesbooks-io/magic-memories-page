@@ -969,6 +969,7 @@ async function validateShippingAddress() {
 }
 
 function showAddressConfirmModal(original, suggested) {
+    if (window._photonAC) window._photonAC.close();
     const origEl = document.getElementById('originalAddressDisplay');
     const suggEl = document.getElementById('suggestedAddressDisplay');
     if (origEl) origEl.innerHTML = formatAddress(original);
@@ -1555,7 +1556,7 @@ function addCurrentItemToCart() {
 <script src="{{ url_for('static', filename='js/photon_ac.js') }}"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-    initPhotonAC({
+    window._photonAC = initPhotonAC({
       streetInput:  'shippingStreet',
       cityField:    'shippingCity',
       postField:    'shippingPostal',
