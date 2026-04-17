@@ -831,6 +831,7 @@ def create_quick_story_cp_cover(front_cover_path, back_cover_path, output_path, 
             back_img = Image.open(back_cover_path)
             if back_img.mode != 'RGB':
                 back_img = back_img.convert('RGB')
+            back_img = _apply_print_color_correction(back_img)
             back_fitted = ImageOps.fit(back_img, (back_dpi_w, back_dpi_h), Image.Resampling.LANCZOS)
             back_buffer = BytesIO()
             back_fitted.save(back_buffer, format='JPEG', quality=95)
@@ -856,6 +857,7 @@ def create_quick_story_cp_cover(front_cover_path, back_cover_path, output_path, 
             front_img = Image.open(front_cover_path)
             if front_img.mode != 'RGB':
                 front_img = front_img.convert('RGB')
+            front_img = _apply_print_color_correction(front_img)
             front_fitted = ImageOps.fit(front_img, (front_dpi_w, front_dpi_h), Image.Resampling.LANCZOS)
             front_buffer = BytesIO()
             front_fitted.save(front_buffer, format='JPEG', quality=95)
@@ -881,12 +883,26 @@ def create_quick_story_cp_cover(front_cover_path, back_cover_path, output_path, 
 
 QUICK_STORY_DIGITAL_SIZE = 8.5 * inch
 
+
+def _apply_print_color_correction(img):
+    """Gamma 0.85 + saturation +7% to compensate for print darkening and ink opacity.
+    Applied only to images destined for CloudPrinter PDFs, never to screen/visor images.
+    """
+    from PIL import ImageEnhance as _IE
+    gamma = 0.85
+    lut = [int(255 * (i / 255.0) ** gamma) for i in range(256)] * 3
+    img = img.point(lut)
+    img = _IE.Color(img).enhance(1.07)
+    return img
+
+
 def _draw_full_page_image(c, image_path, page_width, page_height):
     if image_path and os.path.exists(image_path):
         try:
             img = Image.open(image_path)
             if img.mode != 'RGB':
                 img = img.convert('RGB')
+            img = _apply_print_color_correction(img)
             img_fitted = ImageOps.fit(img, (int(page_width * 300 / 72), int(page_height * 300 / 72)), Image.Resampling.LANCZOS)
             img_buffer = BytesIO()
             img_fitted.save(img_buffer, format='JPEG', quality=95)
