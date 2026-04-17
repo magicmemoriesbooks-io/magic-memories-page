@@ -192,7 +192,7 @@ def _get_scene_images(story_data):
     composed = story_data.get('composed_pages') or []
     if composed:
         return composed
-    return story_data.get('original_images') or story_data.get('images') or story_data.get('original_scene_paths') or []
+    return story_data.get('scene_paths') or story_data.get('images') or story_data.get('original_scene_paths') or []
 
 
 def _get_back_cover(story_data, is_illustrated):
