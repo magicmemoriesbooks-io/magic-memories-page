@@ -272,18 +272,7 @@ def generate_cw_cover_pdf(
     else:
         back_panel = back_img
 
-    # ── Logo on back cover ─────────────────────────────────────────────────────
-    if os.path.exists(LOGO_PATH):
-        try:
-            logo = Image.open(LOGO_PATH).convert("RGBA")
-            logo_size = int(COV_TRIM_PX * 0.22)
-            logo = logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
-            margin = int(COV_TRIM_PX * 0.04)
-            lx = COV_TRIM_PX - logo_size - margin
-            ly = back_panel.height - logo_size - margin
-            back_panel.paste(logo, (lx, ly), logo)
-        except Exception as e:
-            print(f"[CP PDF] Logo error: {e}")
+    # Logo is already embedded in back_cover.png by generate_cover_spread — do not add again.
 
     # ── Spine ──────────────────────────────────────────────────────────────────
     spine_panel = Image.new("RGB", (spine_px, COV_TRIM_H_PX), SPINE_COLOR)
