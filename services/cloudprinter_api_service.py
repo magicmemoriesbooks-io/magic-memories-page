@@ -145,11 +145,28 @@ def compute_md5(file_path: str) -> str:
 
 
 _SHIPPING_LEVEL_LABELS = {
-    "cp_saver":  {"es": "Envío Estándar",   "en": "Standard Shipping",  "days_es": "10-20 días hábiles", "days_en": "10-20 business days"},
-    "cp_ground": {"es": "Envío Estándar",   "en": "Standard Shipping",  "days_es": "7-15 días hábiles",  "days_en": "7-15 business days"},
-    "cp_fast":   {"es": "Envío Express",    "en": "Express Shipping",   "days_es": "3-7 días hábiles",   "days_en": "3-7 business days"},
+    "cp_saver":  {"es": "Envío Prioritario", "en": "Priority Shipping", "days_es": "1-4 días hábiles",  "days_en": "1-4 business days"},
+    "cp_ground": {"es": "Envío Económico",   "en": "Economy Shipping",  "days_es": "3-8 días hábiles",  "days_en": "3-8 business days"},
+    "cp_fast":   {"es": "Envío Express",     "en": "Express Shipping",  "days_es": "1-2 días hábiles",  "days_en": "1-2 business days"},
 }
 _PREFERRED_SHIPPING = ["cp_saver", "cp_ground", "cp_fast"]
+
+
+def _make_shipping_key(level: str, service: str) -> str:
+    """Build a unique display key for a shipping option, adding a carrier suffix when multiple carriers share a level."""
+    if not service:
+        return level
+    safe = service.lower().replace(' ', '_').replace('-', '_')
+    safe = ''.join(c for c in safe if c.isalnum() or c == '_')[:20].strip('_')
+    return f"{level}_{safe}" if safe else level
+
+
+def resolve_shipping_level(key: str) -> str:
+    """Resolve a composite shipping key (e.g. cp_ground_ups) to the CP API level (cp_ground)."""
+    for lvl in ['cp_ground', 'cp_saver', 'cp_fast', 'cp_economy', 'cp_standard', 'cp_priority']:
+        if key == lvl or key.startswith(lvl + '_'):
+            return lvl
+    return key
 
 
 def get_shipping_quote(country_code: str, state_code: str = '') -> dict:
@@ -233,24 +250,27 @@ def get_shipping_quote(country_code: str, state_code: str = '') -> dict:
             print(f"[CP API] No shipping options for {country_code}")
             return {}
 
-        # Build result dict with all available levels; pick preferred for "default"
-        # When multiple carriers share the same level, keep the CHEAPEST one.
+        # Build result dict keyed by composite "level_carrier" to show all distinct options.
         result = {}
         for q in shipping_quotes:
-            level = q.get("shipping_level", "")
+            level   = q.get("shipping_level", "")
+            service = q.get("service", "")
+            key     = _make_shipping_key(level, service)
             ship_usd = float(q.get("price", "0"))
             total_usd = round(print_cost_usd + ship_usd, 2)
             labels = _SHIPPING_LEVEL_LABELS.get(level, {
                 "es": "Envío", "en": "Shipping",
                 "days_es": "7-20 días hábiles", "days_en": "7-20 business days"
             })
-            if level in result and result[level]["cp_cost_usd"] <= ship_usd:
+            if key in result and result[key]["cp_cost_usd"] <= ship_usd:
                 continue
-            result[level] = {
-                "name_es": f"{labels['es']} — Cloudprinter",
-                "name_en": f"{labels['en']} — Cloudprinter",
+            carrier_label = f" ({service})" if service and service != level else ""
+            result[key] = {
+                "name_es": f"{labels['es']}{carrier_label}",
+                "name_en": f"{labels['en']}{carrier_label}",
                 "days_es": labels["days_es"],
                 "days_en": labels["days_en"],
+                "service": service,
                 "cp_cost_usd": ship_usd,
                 "cp_cost_eur": ship_usd,
                 "print_cost_usd": print_cost_usd,
@@ -261,11 +281,14 @@ def get_shipping_quote(country_code: str, state_code: str = '') -> dict:
                 "currency": currency,
             }
 
-        # Log best available option
+        # Log cheapest available option per preferred level
+        logged = False
         for preferred in _PREFERRED_SHIPPING:
-            if preferred in result:
-                best = result[preferred]
-                print(f"[CP API] Best shipping to {country_code}: {preferred} = ${best['total_usd']:.2f} USD (print ${print_cost_usd:.2f} + ship ${best['cp_cost_usd']:.2f})")
+            for key, opt in result.items():
+                if opt["shipping_level"] == preferred and not logged:
+                    print(f"[CP API] Cheapest {preferred} to {country_code}: key={key} ${opt['total_usd']:.2f} USD (print ${print_cost_usd:.2f} + ship ${opt['cp_cost_usd']:.2f})")
+                    logged = True
+            if logged:
                 break
 
         return result
@@ -512,9 +535,9 @@ def get_pb_chosen_page_count() -> int:
 
 
 _PB_SHIPPING_LEVEL_LABELS = {
-    "cp_saver":  {"es": "Envío Estándar",   "en": "Standard Shipping",  "days_es": "10-20 días hábiles", "days_en": "10-20 business days"},
-    "cp_ground": {"es": "Envío Estándar",   "en": "Standard Shipping",  "days_es": "7-15 días hábiles",  "days_en": "7-15 business days"},
-    "cp_fast":   {"es": "Envío Express",    "en": "Express Shipping",   "days_es": "3-7 días hábiles",   "days_en": "3-7 business days"},
+    "cp_saver":  {"es": "Envío Prioritario", "en": "Priority Shipping", "days_es": "1-4 días hábiles",  "days_en": "1-4 business days"},
+    "cp_ground": {"es": "Envío Económico",   "en": "Economy Shipping",  "days_es": "3-8 días hábiles",  "days_en": "3-8 business days"},
+    "cp_fast":   {"es": "Envío Express",     "en": "Express Shipping",  "days_es": "1-2 días hábiles",  "days_en": "1-2 business days"},
 }
 _PB_PREFERRED_SHIPPING = ["cp_saver", "cp_ground", "cp_fast"]
 
@@ -593,12 +616,14 @@ def get_pb_shipping_quote(country_code: str, state_code: str = '') -> dict:
                 "es": "Envío", "en": "Shipping",
                 "days_es": "7-20 días hábiles", "days_en": "7-20 business days"
             })
-            # When multiple carriers share the same level, keep the CHEAPEST one.
-            if level in result and result[level]["cp_cost_usd"] <= ship_usd:
+            # Use composite key to show all distinct carriers, even when sharing a level.
+            key = _make_shipping_key(level, service)
+            if key in result and result[key]["cp_cost_usd"] <= ship_usd:
                 continue
-            result[level] = {
-                "name_es":        f"{labels['es']}",
-                "name_en":        f"{labels['en']}",
+            carrier_label = f" ({service})" if service and service != level else ""
+            result[key] = {
+                "name_es":        f"{labels['es']}{carrier_label}",
+                "name_en":        f"{labels['en']}{carrier_label}",
                 "days_es":        labels["days_es"],
                 "days_en":        labels["days_en"],
                 "service":        service,
