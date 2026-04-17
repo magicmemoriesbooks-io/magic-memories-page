@@ -457,7 +457,8 @@ def generate_scene_complete(
     else:
         book_cfg = BOOK_CONFIGS.get(book_id)
         if book_cfg and 'build_scene_prompt' in book_cfg and book_cfg['build_scene_prompt']:
-            prompt = book_cfg['build_scene_prompt'](scene_config, child_name, gender, child_age_int, traits)
+            _has_photo = bool(reference_image_path and os.path.exists(reference_image_path))
+            prompt = book_cfg['build_scene_prompt'](scene_config, child_name, gender, child_age_int, traits, has_photo=_has_photo)
         else:
             hair_desc = get_hair_description(traits)
             skin_tone = get_skin_tone(traits.get('skin_tone', 'light'))
