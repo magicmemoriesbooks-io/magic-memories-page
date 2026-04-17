@@ -3357,8 +3357,9 @@ def calculate_dynamic_price():
     if not data:
         return jsonify({'error': 'No data provided'}), 400
 
-    # $1.50 added to each Cloudprinter shipping option to cover EUR/USD exchange variance
-    _CP_SHIPPING_SURCHARGE_USD = 1.50
+    # Subsidy applied to Express (qs_print) shipping for USA customers only.
+    # Cloudprint fulfills from Mexico → USA at $17.91; we absorb $6 to show $11.91.
+    _QS_US_SHIPPING_SUBSIDY_USD = 6.00
 
     product_type = data.get('product_type', 'personalized')
     country_code = data.get('country_code', 'US')
@@ -3398,8 +3399,10 @@ def calculate_dynamic_price():
 
         pricing_options = {}
         for uid, opt in cp_options.items():
-            # CP returns USD directly (currency=USD in quote payload) — add $1.50 buffer
-            ship_usd = round(float(opt.get('cp_cost_usd', opt.get('total_usd', 15.0))) + _CP_SHIPPING_SURCHARGE_USD, 2)
+            ship_usd_real = float(opt.get('cp_cost_usd', opt.get('total_usd', 15.0)))
+            # For USA Express orders we absorb $6 to offset the higher Mexico→USA shipping cost
+            subsidy = _QS_US_SHIPPING_SUBSIDY_USD if cc == 'US' else 0.0
+            ship_usd = round(ship_usd_real - subsidy, 2)
             total_usd = round(base_price_dollars + ship_usd, 2)
             pricing_options[uid] = {
                 'name_es': opt.get('name_es', 'Envío Estándar'),
@@ -3475,8 +3478,7 @@ def calculate_dynamic_price():
 
         pricing_options = {}
         for uid, opt in cp_options.items():
-            # CP returns USD directly (currency=USD in quote payload) — add $1.50 buffer
-            ship_usd   = round(float(opt.get('cp_cost_usd', opt.get('cp_cost_eur', 15.0))) + _CP_SHIPPING_SURCHARGE_USD, 2)
+            ship_usd   = round(float(opt.get('cp_cost_usd', opt.get('cp_cost_eur', 15.0))), 2)
             print_usd  = float(opt.get('print_cost_usd', opt.get('print_cost_eur', 0)))
             total_usd  = round(base_price_dollars + ship_usd, 2)
             pricing_options[uid] = {
