@@ -9547,34 +9547,8 @@ def _compose_personalized_book_background(preview_id, **kwargs):
                 _email_b_sent = False
                 _email_c_sent = False
 
-                # Email B: Libro impreso
-                # Solo print (no ebook): send eBook gift + print tracking in one email
-                # Print + eBook: send dedicated print confirmation (eBook goes separately in Email C)
-                if want_print and not want_ebook:
-                    try:
-                        if visor_url:
-                            from services.email_service import send_ebook_email
-                            send_ebook_email(
-                                to_email=customer_email,
-                                story_data=story_data,
-                                visor_url=visor_url,
-                                is_gift=_print_include_gift,
-                                preview_id=preview_id,
-                                is_print_order=True,
-                            )
-                        else:
-                            from services.email_service import send_story_email_with_attachments
-                            send_story_email_with_attachments(
-                                to_email=customer_email,
-                                story_data=story_data,
-                                age_group='personalized',
-                                preview_id=preview_id,
-                            )
-                        _email_b_sent = True
-                        production_logger.info(f"[BG-COMPOSE] Libro email sent to {customer_email} (visor={'yes' if visor_url else 'fallback'}, is_gift={_print_include_gift})")
-                    except Exception as _print_email_err:
-                        production_logger.error(f"[BG-COMPOSE] Libro tracking email failed: {_print_email_err}")
-                elif want_print and want_ebook:
+                # Email B: Libro impreso — todos los pedidos de print reciben confirmación dedicada
+                if want_print:
                     try:
                         from services.email_service import send_print_order_confirmation_email
                         send_print_order_confirmation_email(
@@ -9586,6 +9560,22 @@ def _compose_personalized_book_background(preview_id, **kwargs):
                         production_logger.info(f"[BG-COMPOSE] Print order confirmation email sent to {customer_email}")
                     except Exception as _print_conf_err:
                         production_logger.error(f"[BG-COMPOSE] Print order confirmation email failed: {_print_conf_err}")
+
+                # Email B2: eBook de regalo 6 meses — solo para pedidos print sin ebook
+                if want_print and not want_ebook and visor_url:
+                    try:
+                        from services.email_service import send_ebook_email
+                        send_ebook_email(
+                            to_email=customer_email,
+                            story_data=story_data,
+                            visor_url=visor_url,
+                            is_gift=True,
+                            preview_id=preview_id,
+                            is_print_order=False,
+                        )
+                        production_logger.info(f"[BG-COMPOSE] Gift eBook email sent to {customer_email} (6-month visor)")
+                    except Exception as _gift_email_err:
+                        production_logger.error(f"[BG-COMPOSE] Gift eBook email failed: {_gift_email_err}")
 
                 # Email C: eBook interactivo permanente (if ebook purchased)
                 # is_print_order=False because print info already sent in Email B above
