@@ -7288,25 +7288,82 @@ def admin_download_pdf(preview_id):
 
 @app.route('/admin/gelato-order/<preview_id>/download-pdf')
 def admin_download_gelato_pdf(preview_id):
-    """Download the Gelato combined PDF for a personalized book order."""
+    """Download the print PDF for a personalized book order (Gelato legacy or Cloudprinter)."""
     if not check_admin_auth():
         return redirect(url_for('admin_login_page'))
     import re
     if not re.match(r'^[a-zA-Z0-9_\-]+$', preview_id):
         abort(400)
-    pdf_path = os.path.join('generated', 'gelato', preview_id, 'combined.pdf')
-    if not os.path.exists(pdf_path):
-        return f"Gelato PDF not found for order {preview_id}. The PDF may still be generating.", 404
+
     preview_path = f'story_previews/{preview_id}.json'
     child_name = 'libro'
+    lang = 'es'
+    story_data = {}
     if os.path.exists(preview_path):
         with open(preview_path, 'r') as f:
             try:
-                d = json.load(f)
-                child_name = d.get('child_name', 'libro').replace(' ', '_')
+                story_data = json.load(f)
+                child_name = story_data.get('child_name', 'libro').replace(' ', '_')
+                lang = story_data.get('lang', 'es')
             except Exception:
                 pass
-    return send_file(os.path.abspath(pdf_path), as_attachment=True, download_name=f'{child_name}_{preview_id[:8]}_gelato.pdf')
+
+    # 1) Legacy Gelato path
+    gelato_path = os.path.join('generated', 'gelato', preview_id, 'combined.pdf')
+    if os.path.exists(gelato_path):
+        return send_file(os.path.abspath(gelato_path), as_attachment=True,
+                         download_name=f'{child_name}_{preview_id[:8]}_libro.pdf')
+
+    # 2) Cloudprinter content PDF (already generated)
+    cp_content = os.path.join('generations', 'cloudprinter', preview_id, 'content.pdf')
+    if os.path.exists(cp_content):
+        return send_file(os.path.abspath(cp_content), as_attachment=True,
+                         download_name=f'{child_name}_{preview_id[:8]}_libro.pdf')
+
+    # 3) CP book with scenes ready but PDF not yet generated — generate on demand
+    visor_dir = os.path.join('generations', 'visor_pb', preview_id)
+    composed_dir = os.path.join('generated', f'composed_{preview_id}')
+    has_visor = os.path.exists(visor_dir) and os.path.exists(os.path.join(visor_dir, 'page_1.jpg'))
+    has_composed = os.path.exists(composed_dir)
+    if has_visor or has_composed:
+        try:
+            from services.personalized_books.cp_pdf_service import generate_cw_content_pdf, generate_cw_cover_pdf
+            from services.cloudprinter_api_service import get_pb_chosen_page_count
+            out_dir = os.path.join('generations', 'cloudprinter', preview_id)
+            os.makedirs(out_dir, exist_ok=True)
+            page_count = get_pb_chosen_page_count()
+            content_path = os.path.join(out_dir, 'content.pdf')
+            generate_cw_content_pdf(
+                session_id=preview_id,
+                child_name=child_name,
+                language=lang,
+                output_path=content_path,
+                page_count=page_count,
+            )
+            if os.path.exists(content_path):
+                # Also generate cover PDF in background
+                try:
+                    visor_meta = os.path.join(visor_dir, 'metadata.json')
+                    book_title = child_name
+                    if os.path.exists(visor_meta):
+                        with open(visor_meta) as _mf:
+                            _md = json.load(_mf)
+                            book_title = _md.get('title', child_name)
+                    cover_path = os.path.join(out_dir, 'cover.pdf')
+                    if not os.path.exists(cover_path):
+                        import threading as _t
+                        _t.Thread(target=generate_cw_cover_pdf,
+                                  kwargs={'session_id': preview_id, 'book_title': book_title,
+                                          'output_path': cover_path, 'page_count': page_count},
+                                  daemon=True).start()
+                except Exception:
+                    pass
+                return send_file(os.path.abspath(content_path), as_attachment=True,
+                                 download_name=f'{child_name}_{preview_id[:8]}_libro.pdf')
+        except Exception as gen_err:
+            return f"Error generando PDF para {preview_id}: {gen_err}", 500
+
+    return f"PDF no encontrado para el pedido {preview_id}. Las escenas aún pueden estar generándose.", 404
 
 
 
