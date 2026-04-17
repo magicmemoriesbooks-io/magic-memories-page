@@ -92,23 +92,14 @@ def eur_to_usd(amount_eur: float) -> float:
 
 
 def _get_api_key() -> str:
-    # Key priority differs by mode:
-    # SANDBOX (Replit dev): prefer Cloudprinter_API_KEY (sandbox interface) before the Live key
-    # PRODUCTION (VPS):     prefer CLOUDPRINTER_QS_API_KEY (Live interface) first
-    if is_sandbox_mode():
-        _candidates = [
-            "CLOUDPRINTER_API_KEY",
-            "Cloudprinter_API_KEY",
-            "CLOUDPRINTER_API_KEY_SANDBOX",
-            "CLOUDPRINTER_QS_API_KEY",
-        ]
-    else:
-        _candidates = [
-            "CLOUDPRINTER_API_KEY",
-            "CLOUDPRINTER_QS_API_KEY",
-            "Cloudprinter_API_KEY",
-            "CLOUDPRINTER_API_KEY_SANDBOX",
-        ]
+    # Always prefer the live production key (CLOUDPRINTER_QS_API_KEY) when available.
+    # This ensures accurate real-world pricing in all environments (Replit and VPS).
+    _candidates = [
+        "CLOUDPRINTER_QS_API_KEY",
+        "CLOUDPRINTER_API_KEY",
+        "Cloudprinter_API_KEY",
+        "CLOUDPRINTER_API_KEY_SANDBOX",
+    ]
     for name in _candidates:
         key = os.environ.get(name, "")
         if key:
