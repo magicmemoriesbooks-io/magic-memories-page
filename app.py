@@ -5327,7 +5327,9 @@ def api_generation_status(preview_id):
     
     from services.fixed_stories import STORIES as FS_CHECK
     story_id = story_data.get('story_id', '')
-    expected = len(story_data.get('pages', [])) or len(FS_CHECK.get(story_id, {}).get('pages', [])) or 8
+    _fs_story_cfg = FS_CHECK.get(story_id, {})
+    _has_closing_img = bool(story_data.get('closing_message') or _fs_story_cfg.get('closing_message_es') or _fs_story_cfg.get('closing_message_en'))
+    expected = (len(story_data.get('pages', [])) or len(_fs_story_cfg.get('pages', [])) or 8) + (1 if _has_closing_img else 0)
     
     is_qs = not is_illustrated_book and story_id in FS_CHECK
     qs_text_composed = story_data.get('qs_text_composed', False)
@@ -6055,7 +6057,7 @@ def confirm_and_send(preview_id):
                     print(f"[CONFIRM-SEND] Gelato combined PDF not yet generated for {preview_id}")
             except Exception as pdf_err:
                 print(f"[CONFIRM-SEND] Gelato PDF URL generation failed: {pdf_err}")
-        elif visor_url and not pdf_printable_path:
+        elif visor_url and not pdf_printable_path and not want_print:
             try:
                 from services.quick_stories.checkout import is_quick_story as check_qs_cs
                 if check_qs_cs(story_data.get('story_id', '')):
@@ -8601,12 +8603,14 @@ def _generate_scenes_background(preview_id, **kwargs):
         production_logger.info(f"[BG-GEN] Starting scene generation for {preview_id} (story={story_id}, flux_dev={use_flux_dev})")
         
         from services.fixed_stories import STORIES as _FS_TOTAL
-        _qs_total = len(story_data.get('pages', [])) or len(_FS_TOTAL.get(story_id, {}).get('pages', [])) or 8
+        _qs_story_cfg = _FS_TOTAL.get(story_id, {})
+        _qs_has_closing = bool(story_data.get('closing_message') or _qs_story_cfg.get('closing_message_es') or _qs_story_cfg.get('closing_message_en'))
+        _qs_total = (len(story_data.get('pages', [])) or len(_qs_story_cfg.get('pages', [])) or 8) + (1 if _qs_has_closing else 0)
         _generation_progress[preview_id] = {'generated': 0, 'total': _qs_total}
 
-        def _qs_progress_cb(done, total):
-            _generation_progress[preview_id] = {'generated': done, 'total': total}
-            _write_progress(preview_id, done, total)
+        def _qs_progress_cb(done, _ignored_total):
+            _generation_progress[preview_id] = {'generated': done, 'total': _qs_total}
+            _write_progress(preview_id, done, _qs_total)
 
         scenes_result = generate_scenes_only(
             story_id, gender, traits, output_dir, scene_ref_image, child_name,
@@ -10359,7 +10363,7 @@ def _process_quick_story_print(preview_id, customer_email):
 
         print(f"{log_prefix} Processing Quick Story print for {preview_id} ({child_name})")
 
-        scene_paths = story_data.get('original_scene_paths', story_data.get('scene_paths', []))
+        scene_paths = story_data.get('scene_paths', story_data.get('images', story_data.get('original_scene_paths', [])))
         cover_image = story_data.get('original_cover', story_data.get('front_cover_path', story_data.get('cover_image', '')))
 
         if cover_image and cover_image.startswith('/'):
