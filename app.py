@@ -7567,7 +7567,7 @@ def admin_reset_compose(preview_id):
 
 @app.route('/admin/gift-send-to-cp/<preview_id>', methods=['POST'])
 def admin_gift_send_to_cp(preview_id):
-    """Submit an admin gift Quick Story to Cloudprinter with a manually provided shipping address."""
+    """Submit an admin gift book to Cloudprinter. Handles both Quick Story and illustrated PB books."""
     if not check_admin_auth():
         return jsonify({'error': 'Unauthorized'}), 401
 
@@ -7599,9 +7599,97 @@ def admin_gift_send_to_cp(preview_id):
     }
 
     child_name = story_data.get('child_name', '')
-    story_name = story_data.get('story_name', 'Quick Story')
+    lang = story_data.get('lang', 'es')
+    story_name = story_data.get('story_name', '')
     customer_email = story_data.get('customer_email', story_data.get('admin_gift_email', ''))
+    shipping_level = data.get('shipping_level', 'cp_saver')
 
+    is_illustrated = story_data.get('is_illustrated_book', False)
+
+    # ── Illustrated Personalized Book (centinela_aurora, dragon_garden, etc.) ──
+    if is_illustrated:
+        try:
+            from services.personalized_books.cp_pdf_service import generate_cw_cover_pdf, generate_cw_content_pdf
+            from services.cloudprinter_api_service import submit_pb_print_order, get_pdf_public_url, get_pb_chosen_page_count
+            from services.cloudprinter_api_service import resolve_shipping_level
+
+            out_dir = os.path.join('generations', 'cloudprinter', preview_id)
+            os.makedirs(out_dir, exist_ok=True)
+            page_count = get_pb_chosen_page_count()
+
+            # Get book title from visor metadata or fallback
+            book_title = story_name or child_name
+            visor_meta = os.path.join('generations', 'visor_pb', preview_id, 'metadata.json')
+            if os.path.exists(visor_meta):
+                with open(visor_meta) as _mf:
+                    _md = json.load(_mf)
+                    book_title = _md.get('title', book_title)
+
+            cover_pdf_path   = os.path.join(out_dir, 'cover.pdf')
+            content_pdf_path = os.path.join(out_dir, 'content.pdf')
+
+            generate_cw_content_pdf(
+                session_id=preview_id,
+                child_name=child_name,
+                language=lang,
+                output_path=content_pdf_path,
+                page_count=page_count,
+            )
+            generate_cw_cover_pdf(
+                session_id=preview_id,
+                book_title=book_title,
+                output_path=cover_pdf_path,
+                page_count=page_count,
+            )
+
+            cover_pdf_url   = get_pdf_public_url(preview_id, 'cover.pdf')
+            content_pdf_url = get_pdf_public_url(preview_id, 'content.pdf')
+            cp_shipping_level = resolve_shipping_level(shipping_level)
+
+            cp_ok, cp_msg, cp_ref = submit_pb_print_order(
+                preview_id=preview_id,
+                cover_pdf_path=cover_pdf_path,
+                cover_pdf_url=cover_pdf_url,
+                content_pdf_path=content_pdf_path,
+                content_pdf_url=content_pdf_url,
+                customer_data={'email': customer_email},
+                shipping_address=shipping_address,
+                shipping_level=cp_shipping_level,
+            )
+            if cp_ok:
+                story_data['cp_pb_order_ref'] = cp_ref
+                story_data['cp_order_status'] = 'submitted'
+                story_data['cp_cover_pdf_url'] = cover_pdf_url
+                story_data['cp_content_pdf_url'] = content_pdf_url
+                story_data['shipping_address'] = shipping_address
+                story_data['want_print'] = True
+                with open(preview_file, 'w', encoding='utf-8') as f:
+                    json.dump(story_data, f, ensure_ascii=False, indent=2)
+                try:
+                    from services.email_service import send_cp_pb_admin_notification
+                    send_cp_pb_admin_notification(
+                        preview_id=preview_id,
+                        cp_order_ref=cp_ref or '',
+                        title=book_title,
+                        customer_email=customer_email,
+                        shipping_address=shipping_address,
+                        cover_pdf_url=cover_pdf_url,
+                        content_pdf_url=content_pdf_url,
+                        visor_url=story_data.get('visor_url', ''),
+                        paid_amount='Admin Gift',
+                        cp_cost_eur=0,
+                        print_cost_eur=0,
+                    )
+                except Exception as email_err:
+                    print(f"[ADMIN-CP PB] Email error (non-fatal): {email_err}")
+                return jsonify({'success': True, 'cp_order_ref': cp_ref, 'message': cp_msg})
+            else:
+                return jsonify({'success': False, 'error': cp_msg})
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    # ── Quick Story (single-PDF flow) ───────────────────────────────────────────
     from services.cloudprinter_api_service import submit_print_order as cp_submit, get_pdf_public_url
     from services.quick_stories.pdf_service import generate_quick_story_cloudprinter_pdf
 
