@@ -179,6 +179,12 @@
       if (!wrapper.contains(e.target)) dropdown.style.display = 'none';
     });
 
+    if (countryEl) {
+      countryEl.addEventListener('change', function () {
+        dropdown.style.display = 'none';
+      });
+    }
+
     return { close: closeDropdown };
   }
 
