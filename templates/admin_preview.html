@@ -154,12 +154,16 @@
             <a href="/visor_qs/?id={{ preview.project_hash }}" class="ap-btn ap-btn-ebook" target="_blank">📖 Ver eBook (QS)</a>
             {% endif %}
             {% if is_gelato_book %}
-                {% if preview.gelato_order_id %}
+                {% if preview.cp_pb_order_ref %}
+                <span style="background:#dcfce7; color:#166534; border-radius:8px; padding:7px 16px; font-size:13px; font-weight:600;">✅ Enviado a CP — Ref {{ preview.cp_pb_order_ref }}</span>
+                <button class="ap-btn ap-btn-lulu" onclick="openCpModal()" style="font-size:12px; padding:6px 14px;">🔄 Reenviar a Cloudprinter</button>
+                {% elif preview.gelato_order_id %}
                 <span style="background:#dcfce7; color:#166534; border-radius:8px; padding:7px 16px; font-size:13px; font-weight:600;">✅ Gelato — {{ preview.gelato_order_id }}</span>
                 {% elif preview.gelato_status == 'error' %}
                 <span style="background:#fee2e2; color:#991b1b; border-radius:8px; padding:7px 16px; font-size:13px; font-weight:600;">⚠️ Error Gelato</span>
+                <button class="ap-btn ap-btn-lulu" onclick="openCpModal()">📦 Enviar a Cloudprinter</button>
                 {% elif preview.pages_composed %}
-                <span style="background:#fef9c3; color:#854d0e; border-radius:8px; padding:7px 16px; font-size:13px; font-weight:600;">🔄 Pendiente envío Gelato</span>
+                <button class="ap-btn ap-btn-lulu" onclick="openCpModal()">📦 Enviar a Cloudprinter</button>
                 {% endif %}
             {% else %}
                 {% if preview.cp_order_ref %}
