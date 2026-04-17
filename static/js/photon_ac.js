@@ -90,13 +90,17 @@
     wrapper.appendChild(dropdown);
 
     /* ── Fetch & render ─────────────────────────────────────────── */
+    function closeDropdown() {
+      dropdown.style.display = 'none';
+    }
+
     function fetchSuggestions(query) {
       if (!query || query.length < 4) { dropdown.style.display = 'none'; return; }
 
       var url = PHOTON_URL + '?q=' + encodeURIComponent(query) + '&limit=5&lang=' + lang;
 
       if (countryEl && countryEl.value) {
-        url += '&osm_tag=place';
+        url += '&countrycodes=' + countryEl.value.toLowerCase();
       }
 
       fetch(url)
@@ -174,6 +178,8 @@
     document.addEventListener('click', function (e) {
       if (!wrapper.contains(e.target)) dropdown.style.display = 'none';
     });
+
+    return { close: closeDropdown };
   }
 
   window.initPhotonAC = initPhotonAC;
