@@ -10447,6 +10447,18 @@ def _process_quick_story_print(preview_id, customer_email):
 
         if cp_success:
             story_data['cp_status'] = 'sent'
+            story_data['cp_order_ref'] = cp_order_ref
+            if customer_email:
+                try:
+                    from services.email_service import send_print_order_confirmation_email
+                    send_print_order_confirmation_email(
+                        to_email=customer_email,
+                        story_data=story_data,
+                        preview_id=preview_id,
+                    )
+                    print(f"{log_prefix} Customer print confirmation email sent to {customer_email}")
+                except Exception as _cust_email_err:
+                    print(f"{log_prefix} Customer print email failed: {_cust_email_err}")
         elif shipping_address and shipping_address.get('name'):
             story_data['cp_status'] = 'failed'
             story_data['cp_error'] = cp_msg or 'Unknown error'
