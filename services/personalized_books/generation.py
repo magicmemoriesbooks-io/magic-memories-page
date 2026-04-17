@@ -70,22 +70,8 @@ def generate_full_book_preview(book_id: str, child_name: str, gender: str,
     front_x = wrap_px + board_w_px + spine_px
     front_cover = cover_spread.crop((front_x, wrap_px, front_x + board_w_px, wrap_px + board_h_px))
     back_cover = cover_spread.crop((wrap_px, wrap_px, wrap_px + board_w_px, wrap_px + board_h_px))
-    
-    logo_path = 'static/images/logo_magic_memories.png'
-    if os.path.exists(logo_path):
-        logo = Image.open(logo_path).convert('RGBA')
-        logo_size = int(back_cover.width * 0.15)
-        logo = logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
-        
-        margin = int(back_cover.width * 0.05)
-        logo_x = back_cover.width - logo_size - margin
-        logo_y = back_cover.height - logo_size - margin
-        
-        if back_cover.mode != 'RGBA':
-            back_cover = back_cover.convert('RGBA')
-        back_cover.paste(logo, (logo_x, logo_y), logo)
-        back_cover = back_cover.convert('RGB')
-        print(f"[PERSONALIZED BOOK] Logo added to back cover")
+    back_cover = back_cover.convert('RGB')
+    # Logo is already embedded in the fixed back cover image — do not add again.
     
     original_cover_path = os.path.join(output_dir, 'cover.png')
     front_cover.save(original_cover_path, 'PNG')
