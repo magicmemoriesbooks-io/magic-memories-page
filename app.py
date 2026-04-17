@@ -2215,12 +2215,18 @@ def generate_baby_preview_api():
                     )
                     from services.fixed_stories import enforce_gender_clothing as egc
                     prompt = egc(prompt, child_gender)
-                    # Reinforce bald/very_little hair in STRICT section for all Express stories
+                    # Reinforce short/bald hair in STRICT section for all Express stories
                     _hl_qs = traits.get('hair_length', '')
-                    if _hl_qs in ('bald', 'very_little') and 'STRICT:' in prompt:
-                        _is_baby_qs = story_config.get('age_range', '') in ['0-1', '0-2']
-                        _bald_note = 'Baby head is completely bald, smooth round scalp,' if _is_baby_qs else 'Child has completely smooth bald head, no hair whatsoever,'
-                        prompt = prompt.replace('STRICT:', f'STRICT: {_bald_note}', 1)
+                    _age_qs = int(traits.get('child_age', 1) or 1)
+                    if 'STRICT:' in prompt:
+                        if _hl_qs == 'bald':
+                            prompt = prompt.replace('STRICT:', 'STRICT: Child has completely smooth bald head, zero hair,', 1)
+                        elif _hl_qs == 'very_little':
+                            _is_baby_qs = story_config.get('age_range', '') in ['0-1', '0-2'] or _age_qs < 2
+                            if _is_baby_qs:
+                                prompt = prompt.replace('STRICT:', 'STRICT: Baby head is completely bald, smooth round scalp,', 1)
+                            else:
+                                prompt = prompt.replace('STRICT:', 'STRICT: Child has extremely short buzz cut or tight pixie, hair barely covers scalp, does not extend past ears,', 1)
                     print(f"Using story-specific preview override for: {story_id} (age: {age_display})")
                     print(f"\n===== PROMPT ENVIADO A FLUX =====\n{prompt}\n===== FIN PROMPT =====")
 
