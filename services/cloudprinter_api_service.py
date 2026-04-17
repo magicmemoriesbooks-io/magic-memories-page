@@ -92,13 +92,12 @@ def eur_to_usd(amount_eur: float) -> float:
 
 
 def _get_api_key() -> str:
-    # Always prefer the live production key (CLOUDPRINTER_QS_API_KEY) when available.
-    # This ensures accurate real-world pricing in all environments (Replit and VPS).
+    # Prefer the sandbox key; only use live key if sandbox is not set.
     _candidates = [
-        "CLOUDPRINTER_QS_API_KEY",
-        "CLOUDPRINTER_API_KEY",
         "Cloudprinter_API_KEY",
+        "CLOUDPRINTER_API_KEY",
         "CLOUDPRINTER_API_KEY_SANDBOX",
+        "CLOUDPRINTER_QS_API_KEY",
     ]
     for name in _candidates:
         key = os.environ.get(name, "")
