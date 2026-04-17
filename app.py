@@ -2155,7 +2155,9 @@ def generate_baby_preview_api():
                 
                 return jsonify(result)
             elif story_id == 'zebra_stripes':
-                child_base = f"Physical characteristics of {gender_word}: Age: {age_desc}. EXACT Hair: {hair_desc}. EXACT Skin: {skin_desc}. EXACT Eyes: {eye_desc}. HUMAN ONLY: normal human child with two arms, two legs, five fingers per hand."
+                _gl_zebra = traits.get('glasses', '')
+                _eye_zebra = eye_desc + ", wearing round glasses" if _gl_zebra and _gl_zebra not in ('none', '') else eye_desc
+                child_base = f"Physical characteristics of {gender_word}: Age: {age_desc}. EXACT Hair: {hair_desc}. EXACT Skin: {skin_desc}. EXACT Eyes: {_eye_zebra}. HUMAN ONLY: normal human child with two arms, two legs, five fingers per hand."
                 prompt = f"SCENE: Beautiful African savanna at dawn with golden light, acacia trees and tall grass swaying in the breeze. {child_base} This {gender_word} is standing in the savanna, wearing comfortable safari clothing (khaki t-shirt and shorts). {gender_word} is smiling warmly. Separately, Lila the friendly zebra stands nearby with beautiful black and white stripes, gentle dark eyes, smiling warmly. Watercolor illustration from a children's storybook, with soft, luminous colors and warm, magical lighting. {gender_word} and Lila the zebra shown full-body, clean illustration."
                 print(f"Using zebra_stripes prompt with LILA and child_base")
             else:
