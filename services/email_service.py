@@ -3229,15 +3229,15 @@ def send_print_order_confirmation_email(
         child_name = story_data.get('child_name', 'tu pequeño')
         story_name = story_data.get('story_name', 'tu cuento')
         lang = story_data.get('lang', 'es')
-        cp_ref = story_data.get('cp_pb_order_ref', '')
+        cp_ref = story_data.get('cp_pb_order_ref', '') or story_data.get('cp_order_ref', '')
 
         if lang == 'es':
             subject = f"📦 Tu libro impreso '{story_name}' está en producción"
             h1 = f"¡Tu libro está en camino, {child_name}!"
             body_p1 = (
                 f"Hemos recibido tu pedido del libro impreso <strong>\"{story_name}\"</strong> "
-                f"y ya está en manos de nuestra imprenta. Lo fabricarán con tapa dura "
-                f"y acabado de alta calidad especialmente para ti."
+                f"y ya está en manos de nuestra imprenta. Lo fabricarán con la más alta calidad "
+                f"especialmente para ti."
             )
             timeline_title = "⏱️ Tiempo estimado"
             timeline_body = "Tu libro tardará aproximadamente <strong>7–14 días hábiles</strong> en llegar una vez fabricado. Cuando salga en reparto te enviaremos el número de seguimiento."
@@ -3249,8 +3249,8 @@ def send_print_order_confirmation_email(
             h1 = f"Your book is on its way, {child_name}!"
             body_p1 = (
                 f"We've received your order for the printed book <strong>\"{story_name}\"</strong> "
-                f"and it's now with our printer. It will be manufactured with a hardcover "
-                f"and premium quality finish specially for you."
+                f"and it's now with our printer. It will be manufactured with premium quality "
+                f"finish specially for you."
             )
             timeline_title = "⏱️ Estimated time"
             timeline_body = "Your book will take approximately <strong>7–14 business days</strong> to arrive once manufactured. When it ships, we'll send you the tracking number."
