@@ -2233,8 +2233,22 @@ def generate_baby_preview_api():
                 else:
                     prompt = f"Full body portrait of a cheerful {gender_word} (4-5 years old) with {hair_desc}, {eye_desc} and {skin_desc}, {gender_features}, wearing adventure clothes (simple shirt and shorts), standing in a magical garden, bright curious expression, happy smile, soft magical background with warm light and floating sparkles, children's storybook watercolor illustration style, soft luminous colors, warm lighting, magical atmosphere. NO text, NO watermark, NO signature, NO logo, clean illustration only"
         
+        # Reinforce dark/medium-dark skin for ALL Express story previews
+        _skin_raw = traits.get('skin_tone', 'light')
+        _dark_skin_map = {
+            'dark':        'Child has VERY DARK brown skin, clearly dark African complexion, deep dark chocolate skin tone — NOT light, NOT medium, NOT olive skin',
+            'medium_dark': 'Child has warm dark brown skin, medium-dark complexion, distinctly darker than average — NOT light skin',
+            'brown':       'Child has rich brown skin with dark mahogany undertones, clearly brown-skinned — NOT light skin',
+        }
+        if _skin_raw in _dark_skin_map:
+            _skin_note = _dark_skin_map[_skin_raw]
+            if 'STRICT:' in prompt:
+                prompt = prompt.replace('STRICT:', f'STRICT: {_skin_note},', 1)
+            else:
+                prompt += f' STRICT SKIN: {_skin_note}.'
+
         print(f"Preview prompt: {gender_word} ({age_range}) with {hair_desc}, {eye_desc}, {skin_desc}")
-        
+
         output_dir = f'generated/previews'
         os.makedirs(output_dir, exist_ok=True)
 
