@@ -996,6 +996,11 @@ function useOriginalAddress() {
 
 function useSuggestedAddress() {
     document.getElementById('addressConfirmModal').classList.add('hidden');
+    if (!validatedAddress) {
+        addressValidated = true;
+        if (addressValidationResolve) { addressValidationResolve(true); addressValidationResolve = null; }
+        return;
+    }
     applySuggestedAddress(validatedAddress);
     addressValidated = true;
     if (addressValidationResolve) { addressValidationResolve(true); addressValidationResolve = null; }
