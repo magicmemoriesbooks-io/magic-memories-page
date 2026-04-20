@@ -10214,8 +10214,8 @@ def _dispatch_printable_pdf_email(preview_id, customer_email, lang='es'):
                      or 'magicmemoriesbooks.com')
         pdf_filename = os.path.basename(printable_pdf_path)
         visor_url = story_data.get('visor_url', '')
-        # Use flag set by compose background to know if gift ebook goes in this PDF email
-        _include_gift = story_data.get('pdf_include_gift_ebook', not story_data.get('want_ebook', False))
+        # Include gift eBook only when the customer did NOT separately purchase the eBook
+        _include_gift = not story_data.get('want_ebook', False)
 
         local_pdf_path = os.path.join('generated', 'gelato', preview_id, pdf_filename)
         if not os.path.exists(local_pdf_path):

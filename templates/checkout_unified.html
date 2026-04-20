@@ -252,6 +252,18 @@
                             <p class="text-xs text-green-600 font-medium mt-1" id="digitalEbookGift">
                                 {% if lang == 'es' %}+ eBook interactivo de regalo (6 meses){% else %}+ Gift interactive eBook (6 months){% endif %}
                             </p>
+                            <div class="mt-2 flex gap-4" id="printFormatSelectorDigital">
+                                <label class="flex items-center gap-1 text-xs text-gray-700 cursor-pointer">
+                                    <input type="radio" name="print_format" value="A4" checked
+                                        class="w-4 h-4 text-purple-600 focus:ring-purple-500">
+                                    <span>A4 (21×29,7 cm)</span>
+                                </label>
+                                <label class="flex items-center gap-1 text-xs text-gray-700 cursor-pointer">
+                                    <input type="radio" name="print_format" value="LETTER"
+                                        class="w-4 h-4 text-purple-600 focus:ring-purple-500">
+                                    <span>{% if lang == 'es' %}Carta (8,5×11"){% else %}Letter (8.5×11"){% endif %}</span>
+                                </label>
+                            </div>
                         </div>
                         <p class="font-bold text-lg text-purple-700 ml-4 whitespace-nowrap">${{ checkout_config.digital_base_price }} USD</p>
                     </div>
@@ -275,14 +287,14 @@
                             <p class="text-xs text-green-600 font-medium mt-1">
                                 {% if lang == 'es' %}+ eBook interactivo de regalo (6 meses){% else %}+ Gift interactive eBook (6 months){% endif %}
                             </p>
-                            <div class="mt-2 flex gap-4" id="printFormatSelector">
+                            <div class="mt-2 flex gap-4 hidden" id="printFormatSelectorPdf">
                                 <label class="flex items-center gap-1 text-xs text-gray-700 cursor-pointer">
-                                    <input type="radio" name="printFormat" value="A4" checked
+                                    <input type="radio" name="print_format" value="A4" checked
                                         class="w-4 h-4 text-green-600 focus:ring-green-500">
                                     <span>A4 (21×29,7 cm)</span>
                                 </label>
                                 <label class="flex items-center gap-1 text-xs text-gray-700 cursor-pointer">
-                                    <input type="radio" name="printFormat" value="LETTER"
+                                    <input type="radio" name="print_format" value="LETTER"
                                         class="w-4 h-4 text-green-600 focus:ring-green-500">
                                     <span>{% if lang == 'es' %}Carta (8,5×11"){% else %}Letter (8.5×11"){% endif %}</span>
                                 </label>
@@ -753,6 +765,13 @@ function onBuyerCountryChange(countryCode) {
             if (opt) { shippingCountry.value = countryCode; resetAddressValidation(); fetchShippingRates(); updateTaxIdForCountry(countryCode); }
         }
     }
+
+    // Auto-select A4 or Carta based on country
+    const letterCountries = new Set(['MX','CO','VE','SV','GT','HN','NI','CR','PA','DO','CU','BO','EC','PE','PR','PH','CA']);
+    const autoFormat = letterCountries.has(countryCode) ? 'LETTER' : 'A4';
+    document.querySelectorAll('input[name="print_format"]').forEach(r => {
+        r.checked = (r.value === autoFormat);
+    });
 }
 
 let currentTotal = CFG.allowDigital ? CFG.digitalBasePrice : (CFG.allowEbook ? CFG.ebookBasePrice : (CFG.allowPdf ? 0 : CFG.printBasePrice));
@@ -831,10 +850,19 @@ function toggleFormat(changedEl) {
     selectedFormats = Array.from(checkboxes).filter(c => c.checked).map(c => c.value);
     
     const wantPrint = selectedFormats.includes('print');
+    const hasDigital = selectedFormats.includes('digital');
+    const hasPdf = selectedFormats.includes('pdf');
     const shippingSection = document.getElementById('shippingSection');
     const shippingMethodSection = document.getElementById('shippingMethodSection');
     if (shippingSection) shippingSection.classList.toggle('hidden', !wantPrint);
     if (shippingMethodSection) shippingMethodSection.classList.toggle('hidden', !wantPrint || !selectedShippingMethod);
+
+    // Show/hide print format selectors based on whether PDF/printable is selected
+    const fmtDigital = document.getElementById('printFormatSelectorDigital');
+    const fmtPdf = document.getElementById('printFormatSelectorPdf');
+    if (fmtDigital) fmtDigital.classList.toggle('hidden', !hasDigital);
+    if (fmtPdf) fmtPdf.classList.toggle('hidden', !hasPdf);
+
     updatePriceDisplay();
     if (wantPrint && selectedShippingMethod && !addressValidated) autoValidateAddress();
 }
@@ -1346,7 +1374,7 @@ async function buildCheckoutData() {
         shipping_address: wantPrint ? getShippingAddress() : null,
         phone: getFullPhone() || '',
         buyer_country: document.getElementById('buyerCountry')?.value || '',
-        print_format: (document.querySelector('input[name="printFormat"]:checked')?.value || 'A4'),
+        print_format: (document.querySelector('input[name="print_format"]:checked')?.value || 'A4'),
         cp_cost_eur: selectedOpt ? (selectedOpt.cp_cost_eur ?? selectedOpt.cp_cost ?? 0) : 0,
         print_cost_eur: selectedOpt ? (selectedOpt.print_cost_eur ?? 0) : 0,
         customer_total_usd: selectedOpt ? (selectedOpt.customer_total ?? 0) : 0,
