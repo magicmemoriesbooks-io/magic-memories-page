@@ -2353,7 +2353,25 @@ def send_ebook_email(to_email: str, story_data: dict, visor_url: str, is_gift: b
             dl_label = "Descargar PDF del libro" if lang == "es" else "Download book PDF"
             pdf_download_text = f"\n{dl_label}: {pdf_download_url}\n"
         
-        text_body = f"""
+        if pdf_is_primary:
+            _pdf_ready = ("Tu PDF imprimible está adjunto a este email." if lang == 'es'
+                          else "Your printable PDF is attached to this email.")
+            _ebook_bonus_line = ("eBook interactivo de regalo (6 meses): " if lang == 'es'
+                                 else "Gift interactive eBook (6 months): ")
+            text_body = f"""
+{_pdf_ready}
+
+"{story_name}" {for_word} {child_name}
+
+{_ebook_bonus_line}{visor_url}
+{pdf_download_text}
+{access_info}
+
+{thanks_msg}
+Magic Memories Books
+        """
+        else:
+            text_body = f"""
 {ebook_label} "{story_name}" {for_word} {child_name} {ready_word}
 
 {button_text}: {visor_url}
