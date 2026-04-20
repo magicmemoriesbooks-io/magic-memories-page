@@ -381,7 +381,9 @@ Magic Memories Books
                 attached_count += 1
         
         if pdf_printable_path and os.path.exists(pdf_printable_path):
-            if attach_file(msg, pdf_printable_path, f"{safe_name}_imprimible.pdf"):
+            _pr_fname = os.path.basename(pdf_printable_path)
+            _pr_fmt = "_LETTER" if "_LETTER" in _pr_fname else "_A4" if "_A4" in _pr_fname else ""
+            if attach_file(msg, pdf_printable_path, f"{safe_name}_imprimible{_pr_fmt}.pdf"):
                 attached_count += 1
         
         if instructions_path and os.path.exists(instructions_path):
@@ -975,8 +977,10 @@ def send_printable_pdf_notification(
             pdf_data = f.read()
         pdf_part = MIMEApplication(pdf_data, _subtype='pdf')
         safe_name = child_name.replace(' ', '_').replace("'", '')
+        _p3_fname = os.path.basename(pdf_path)
+        _p3_fmt = "_LETTER" if "_LETTER" in _p3_fname else "_A4" if "_A4" in _p3_fname else ""
         pdf_part.add_header('Content-Disposition', 'attachment',
-                            filename=f"{safe_name}_imprimible.pdf")
+                            filename=f"{safe_name}_imprimible{_p3_fmt}.pdf")
         msg.attach(pdf_part)
         print(f"[EMAIL] Attached printable PDF: {pdf_path}")
     else:
@@ -2100,7 +2104,9 @@ Upgrade link: https://magicmemoriesbooks.com/story-checkout/{preview_id}
         if has_pdf:
             msg.attach(alt_part)
             safe_name = child_name.replace(' ', '_').replace("'", "")
-            attach_file(msg, pdf_path, f"{safe_name}_imprimible.pdf")
+            _adm_fname = os.path.basename(pdf_path)
+            _adm_fmt = "_LETTER" if "_LETTER" in _adm_fname else "_A4" if "_A4" in _adm_fname else ""
+            attach_file(msg, pdf_path, f"{safe_name}_imprimible{_adm_fmt}.pdf")
 
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
             server.starttls()
