@@ -1319,7 +1319,7 @@ function validateCheckoutForm() {
     }
     if (formatError) formatError.classList.add('hidden');
     const buyerCountryEl = document.getElementById('buyerCountry');
-    if (buyerCountryEl && buyerCountryEl.closest('.space-y-4') && !buyerCountryEl.value) {
+    if (buyerCountryEl && !buyerCountryEl.value) {
         showPaypalError(CFG.lang === 'es' ? 'Por favor selecciona tu país.' : 'Please select your country.');
         buyerCountryEl.focus();
         return false;
