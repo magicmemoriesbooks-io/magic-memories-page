@@ -2234,7 +2234,12 @@ def send_ebook_email(to_email: str, story_data: dict, visor_url: str, is_gift: b
         elif pdf_printable_path:
             print_label = "Listo para imprimir en casa o imprenta" if lang == "es" else "Ready to print at home or print shop"
             inst_label = "Instrucciones de impresión" if lang == "es" else "Printing instructions"
-            items = f'<li style="padding:3px 0;color:#374151;">🖨️ <strong>PDF imprimible 8.5x8.5"</strong> - {print_label}</li>'
+            _pf_fname = os.path.basename(pdf_printable_path) if pdf_printable_path else ""
+            if "_LETTER" in _pf_fname:
+                _pdf_size_label = 'PDF imprimible Carta (8.5×11")' if lang == "es" else 'Printable PDF Letter (8.5×11")'
+            else:
+                _pdf_size_label = "PDF imprimible A4 (21×29,7 cm)" if lang == "es" else "Printable PDF A4 (21×29.7 cm)"
+            items = f'<li style="padding:3px 0;color:#374151;">🖨️ <strong>{_pdf_size_label}</strong> - {print_label}</li>'
             if instructions_path:
                 items += f'<li style="padding:3px 0;color:#374151;">📋 <strong>{inst_label}</strong></li>'
             attachments_section = _info_box(f'''
