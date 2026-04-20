@@ -10696,15 +10696,20 @@ def print_order_page(preview_id):
     child_name = 'tu hijo/a'
     email = ''
     is_qs = False
+    print_product_type = 'cp_personalized'
     if os.path.exists(preview_file):
         with open(preview_file, 'r', encoding='utf-8') as f:
             story_data = json.load(f)
         child_name = story_data.get('child_name', child_name)
         email = story_data.get('customer_email', '')
         is_qs = not story_data.get('is_illustrated_book', False)
+        print_product_type = story_data.get('print_product_type', 'cp_personalized' if not is_qs else 'qs_print')
     from config import Config as C
     if is_qs:
         base_price = round(C.QS_PRINT_BASE_PRICE / 100.0, 2)
+        print_product_type = 'qs_print'
+    elif print_product_type == 'cp_personalized':
+        base_price = round(C.CP_PB_BASE_PRICE / 100.0, 2)
     else:
         base_price = round(C.PERSONALIZED_BASE_PRICE / 100.0, 2)
     return render_template('print_order.html',
@@ -10714,6 +10719,7 @@ def print_order_page(preview_id):
         email=email,
         base_price=base_price,
         is_qs=is_qs,
+        print_product_type=print_product_type,
         paypal_client_id=Config.PAYPAL_CLIENT_ID
     )
 
