@@ -4364,6 +4364,10 @@ def save_checkout_data(preview_id):
     buyer_country = data.get('buyer_country', '').strip().upper()
     if buyer_country:
         story_data['buyer_country'] = buyer_country
+
+    print_format = data.get('print_format', '').strip().upper()
+    if print_format in ('A4', 'LETTER'):
+        story_data['print_format'] = print_format
     
     shipping_method = data.get('shipping_method')
     if shipping_method and shipping_method != 'none':
@@ -6069,12 +6073,14 @@ def confirm_and_send(preview_id):
                     output_dir = f'generations/email/{preview_id}'
                     os.makedirs(output_dir, exist_ok=True)
                     from services.quick_stories.pdf_service import generate_quick_story_pdf
-                    pdf_printable_path = f'{output_dir}/{safe_name}_imprimible.pdf'
-                    generate_quick_story_pdf(story_data, pdf_printable_path)
+                    _qs_fmt = story_data.get('print_format', 'A4')
+                    _fmt_sfx = 'LETTER' if _qs_fmt == 'LETTER' else 'A4'
+                    pdf_printable_path = f'{output_dir}/{safe_name}_imprimible_{_fmt_sfx}.pdf'
+                    generate_quick_story_pdf(story_data, pdf_printable_path, print_format=_qs_fmt)
                     from services.pdf_service import generate_print_instructions_pdf
                     qs_lang = story_data.get('lang', 'es')
                     instructions_path_email = f'{output_dir}/instrucciones_impresion.pdf'
-                    generate_print_instructions_pdf(instructions_path_email, language=qs_lang)
+                    generate_print_instructions_pdf(instructions_path_email, language=qs_lang, print_format=_qs_fmt)
                     print(f"[CONFIRM-SEND] PDFs generated: printable + instructions")
             except Exception as pdf_err:
                 print(f"[CONFIRM-SEND] PDF generation failed: {pdf_err}")
@@ -6554,7 +6560,8 @@ def generate_print_instructions(preview_id):
     filename = f"instrucciones_impresion.pdf" if language == 'es' else "printing_instructions.pdf"
     output_path = f'generations/pdfs/{preview_id}_instructions.pdf'
     
-    generate_print_instructions_pdf(output_path, language)
+    _instr_fmt = story_data.get('print_format', 'A4')
+    generate_print_instructions_pdf(output_path, language, print_format=_instr_fmt)
     
     response = send_file(
         output_path,
@@ -9751,9 +9758,13 @@ def _compose_personalized_book_background(preview_id, **kwargs):
                         os.makedirs(admin_pdf_dir, exist_ok=True)
                         admin_pdf_path = f'{admin_pdf_dir}/{safe_name_admin}_imprimible.pdf'
                         if not os.path.exists(admin_pdf_path):
-                            from services.personalized_books.pdf_service import generate_personalized_pdf
-                            generate_personalized_pdf(story_data, admin_pdf_path)
-                            story_data['pdf_printable_path'] = admin_pdf_path
+                            from services.personalized_books.printable_pdf import generate_personalized_printable_pdf
+                            generate_personalized_printable_pdf(
+                                book_session_id=preview_id,
+                                child_name=child_name,
+                                output_path=admin_pdf_path,
+                            )
+                            story_data['printable_pdf_path'] = admin_pdf_path
                             with open(preview_file, 'w', encoding='utf-8') as _f:
                                 json.dump(story_data, _f, ensure_ascii=False, indent=2)
                             production_logger.info(f"[BG-COMPOSE] Admin PDF generado: {admin_pdf_path}")
@@ -10187,8 +10198,9 @@ def _dispatch_printable_pdf_email(preview_id, customer_email, lang='es'):
                     force_regenerate=(_attempt > 0),
                     front_cover_path=_fc_path or None,
                     back_cover_path=_bc_path or None,
+                    print_format=story_data.get('print_format', 'A4'),
                 )
-                print(f"[PDF-DISPATCH] A4 printable PDF generated (attempt {_attempt + 1}): {printable_pdf_path}")
+                print(f"[PDF-DISPATCH] Printable PDF generated (attempt {_attempt + 1}, format={story_data.get('print_format','A4')}): {printable_pdf_path}")
                 break
             except Exception as _pdf_err:
                 print(f"[PDF-DISPATCH] PDF generation attempt {_attempt + 1} failed for {preview_id}: {_pdf_err}")
@@ -10203,7 +10215,7 @@ def _dispatch_printable_pdf_email(preview_id, customer_email, lang='es'):
         pdf_filename = os.path.basename(printable_pdf_path)
         visor_url = story_data.get('visor_url', '')
         # Use flag set by compose background to know if gift ebook goes in this PDF email
-        _include_gift = story_data.get('pdf_include_gift_ebook', True)
+        _include_gift = story_data.get('pdf_include_gift_ebook', not story_data.get('want_ebook', False))
 
         local_pdf_path = os.path.join('generated', 'gelato', preview_id, pdf_filename)
         if not os.path.exists(local_pdf_path):
@@ -10213,7 +10225,7 @@ def _dispatch_printable_pdf_email(preview_id, customer_email, lang='es'):
         try:
             instructions_path = os.path.join('generated', 'gelato', preview_id, f'{preview_id}_instrucciones.pdf')
             from services.pdf_service import generate_print_instructions_pdf
-            generate_print_instructions_pdf(instructions_path, language=lang)
+            generate_print_instructions_pdf(instructions_path, language=lang, print_format=story_data.get('print_format', 'A4'))
             print(f"[PDF-DISPATCH] Print instructions PDF generated: {instructions_path}")
         except Exception as _instr_err:
             print(f"[PDF-DISPATCH] WARNING: could not generate instructions PDF: {_instr_err}")
@@ -10396,14 +10408,16 @@ def _process_ebook_generation(preview_id, customer_email):
                 os.makedirs(output_dir, exist_ok=True)
                 
                 from services.quick_stories.pdf_service import generate_quick_story_pdf
-                pdf_printable_path = f'{output_dir}/{safe_name}_imprimible.pdf'
-                generate_quick_story_pdf(story_data, pdf_printable_path)
-                print(f"[EBOOK] Printable PDF generated: {pdf_printable_path}")
+                _qs_fmt2 = story_data.get('print_format', 'A4')
+                _fmt_sfx2 = 'LETTER' if _qs_fmt2 == 'LETTER' else 'A4'
+                pdf_printable_path = f'{output_dir}/{safe_name}_imprimible_{_fmt_sfx2}.pdf'
+                generate_quick_story_pdf(story_data, pdf_printable_path, print_format=_qs_fmt2)
+                print(f"[EBOOK] Printable PDF generated ({_qs_fmt2}): {pdf_printable_path}")
                 
                 from services.pdf_service import generate_print_instructions_pdf
                 lang = story_data.get('lang', 'es')
                 instructions_path = f'{output_dir}/instrucciones_impresion.pdf'
-                generate_print_instructions_pdf(instructions_path, language=lang)
+                generate_print_instructions_pdf(instructions_path, language=lang, print_format=_qs_fmt2)
                 print(f"[EBOOK] Instructions PDF generated: {instructions_path}")
                 
                 with open(preview_file, 'r', encoding='utf-8') as f:

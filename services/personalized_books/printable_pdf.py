@@ -27,18 +27,39 @@ import gc
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
 
-A4_WIDTH_MM  = 210
-A4_HEIGHT_MM = 297
-A4_DPI       = 300
-A4_PX_W      = int(A4_WIDTH_MM  * A4_DPI / 25.4)   # 2480
-A4_PX_H      = int(A4_HEIGHT_MM * A4_DPI / 25.4)   # 3508
-A4_PT_W      = A4_WIDTH_MM  * 72 / 25.4             # 595.28
-A4_PT_H      = A4_HEIGHT_MM * 72 / 25.4             # 841.89
+BLEED_MM     = 3.0
 
-MARGIN_LR_PT = 10 * 72 / 25.4   # 28.35 pt
-MARGIN_TB_PT = 12 * 72 / 25.4   # 34.02 pt
-CONTENT_W_PT = A4_PT_W - 2 * MARGIN_LR_PT   # 538.58 pt
-CONTENT_H_PT = A4_PT_H - 2 * MARGIN_TB_PT   # 773.86 pt
+# A4 with 3mm bleed (home printing) — Trim: 210×297mm, with bleed: 216×303mm
+A4_TRIM_W_MM  = 210
+A4_TRIM_H_MM  = 297
+A4_WIDTH_MM   = A4_TRIM_W_MM  + 2 * BLEED_MM  # 216mm
+A4_HEIGHT_MM  = A4_TRIM_H_MM + 2 * BLEED_MM  # 303mm
+A4_DPI        = 300
+A4_PX_W       = int(A4_WIDTH_MM  * A4_DPI / 25.4)   # 2551
+A4_PX_H       = int(A4_HEIGHT_MM * A4_DPI / 25.4)   # 3579
+A4_PT_W       = A4_WIDTH_MM  * 72 / 25.4             # 612.28
+A4_PT_H       = A4_HEIGHT_MM * 72 / 25.4             # 858.90
+
+# Safety content margin (bleed + visible margin from trim edge)
+_BLEED_PT     = BLEED_MM * 72 / 25.4                 # 8.50 pt
+MARGIN_LR_PT  = _BLEED_PT + 10 * 72 / 25.4          # bleed + 10mm = 36.85 pt
+MARGIN_TB_PT  = _BLEED_PT + 12 * 72 / 25.4          # bleed + 12mm = 42.52 pt
+CONTENT_W_PT  = A4_PT_W - 2 * MARGIN_LR_PT
+CONTENT_H_PT  = A4_PT_H - 2 * MARGIN_TB_PT
+
+# US Letter with 3mm bleed — Trim: 215.9×279.4mm, with bleed: 221.9×285.4mm
+LETTER_TRIM_W_MM  = 215.9
+LETTER_TRIM_H_MM  = 279.4
+LETTER_WIDTH_MM   = LETTER_TRIM_W_MM  + 2 * BLEED_MM   # ≈ 221.9mm
+LETTER_HEIGHT_MM  = LETTER_TRIM_H_MM + 2 * BLEED_MM   # ≈ 285.4mm
+LETTER_PX_W       = int(LETTER_WIDTH_MM  * A4_DPI / 25.4)
+LETTER_PX_H       = int(LETTER_HEIGHT_MM * A4_DPI / 25.4)
+LETTER_PT_W       = LETTER_WIDTH_MM  * 72 / 25.4
+LETTER_PT_H       = LETTER_HEIGHT_MM * 72 / 25.4
+LETTER_MARGIN_LR_PT = _BLEED_PT + 10 * 72 / 25.4
+LETTER_MARGIN_TB_PT = _BLEED_PT + 12 * 72 / 25.4
+LETTER_CONTENT_W_PT = LETTER_PT_W - 2 * LETTER_MARGIN_LR_PT
+LETTER_CONTENT_H_PT = LETTER_PT_H - 2 * LETTER_MARGIN_TB_PT
 
 BOOK_COLORING_CONFIG = {
     "magic_chef":           {"mode": "dynamic", "scene_indices": [4, 8, 13, 18, 22]},
@@ -93,14 +114,30 @@ def _best_font(size: int, bold: bool = False):
     return ImageFont.load_default()
 
 
+def _make_blank_page(px_w=None, px_h=None, color="#FFFFFF"):
+    return Image.new("RGB", (px_w or A4_PX_W, px_h or A4_PX_H), color)
+
+
 def _make_blank_a4(color="#FFFFFF"):
-    return Image.new("RGB", (A4_PX_W, A4_PX_H), color)
+    return _make_blank_page(A4_PX_W, A4_PX_H, color)
 
 
-def _fit_image_in_content(img: Image.Image) -> Image.Image:
-    """Scale PIL image to fit within the content area (A4 minus margins), centred on white page."""
-    content_px_w = int(CONTENT_W_PT * A4_DPI / 72)
-    content_px_h = int(CONTENT_H_PT * A4_DPI / 72)
+def _fit_image_in_content(img: Image.Image,
+                           px_w=None, px_h=None,
+                           content_w_pt=None, content_h_pt=None,
+                           margin_lr_pt=None, margin_tb_pt=None) -> Image.Image:
+    """Scale PIL image to fit within the content area, centred on white page.
+    Defaults to A4 dimensions for backward compatibility.
+    """
+    _px_w   = px_w or A4_PX_W
+    _px_h   = px_h or A4_PX_H
+    _cw_pt  = content_w_pt  if content_w_pt  is not None else CONTENT_W_PT
+    _ch_pt  = content_h_pt  if content_h_pt  is not None else CONTENT_H_PT
+    _mlr_pt = margin_lr_pt  if margin_lr_pt  is not None else MARGIN_LR_PT
+    _mtb_pt = margin_tb_pt  if margin_tb_pt  is not None else MARGIN_TB_PT
+
+    content_px_w = int(_cw_pt * A4_DPI / 72)
+    content_px_h = int(_ch_pt * A4_DPI / 72)
 
     src_w, src_h = img.size
     scale = min(content_px_w / src_w, content_px_h / src_h)
@@ -108,9 +145,9 @@ def _fit_image_in_content(img: Image.Image) -> Image.Image:
     new_h = int(src_h * scale)
     resized = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
 
-    page = _make_blank_a4()
-    margin_px_lr = int(MARGIN_LR_PT * A4_DPI / 72)
-    margin_px_tb = int(MARGIN_TB_PT * A4_DPI / 72)
+    page = _make_blank_page(_px_w, _px_h)
+    margin_px_lr = int(_mlr_pt * A4_DPI / 72)
+    margin_px_tb = int(_mtb_pt * A4_DPI / 72)
     x_offset = margin_px_lr + (content_px_w - new_w) // 2
     y_offset = margin_px_tb + (content_px_h - new_h) // 2
     page.paste(resized, (x_offset, y_offset))
@@ -126,9 +163,9 @@ def _page_to_buffer(img: Image.Image) -> BytesIO:
     return buf
 
 
-def _generate_credits_page_a4(child_name: str, language: str = "es") -> Image.Image:
+def _generate_credits_page_a4(child_name: str, language: str = "es", px_w=None, px_h=None) -> Image.Image:
     bg_path = "static/images/credits_page_background.png"
-    size = (A4_PX_W, A4_PX_H)
+    size = (px_w or A4_PX_W, px_h or A4_PX_H)
     if os.path.exists(bg_path):
         page = Image.open(bg_path).convert("RGB")
         page = page.resize(size, Image.Resampling.LANCZOS)
@@ -222,21 +259,23 @@ def _get_coloring_pages(book_id: str, gender: str, pages_dir: str) -> list:
     return images
 
 
-def _load_coloring_page_a4(visor_path: str, slot: int = 0) -> Image.Image:
-    """Convert a colour visor scene to a coloring-book outline (full illustration, no writing lines).
-
-    Delegates to gelato_pdf_service._scene_to_coloring_page (FLUX Kontext Pro / PIL fallback).
-    Result is scaled to fit within the A4 content area on a white page.
-    """
+def _load_coloring_page_a4(visor_path: str, slot: int = 0,
+                            px_w=None, px_h=None,
+                            content_w_pt=None, content_h_pt=None,
+                            margin_lr_pt=None, margin_tb_pt=None) -> Image.Image:
+    """Convert a colour visor scene to a coloring-book outline, scaled to the given page size."""
+    fit_kwargs = dict(px_w=px_w, px_h=px_h,
+                      content_w_pt=content_w_pt, content_h_pt=content_h_pt,
+                      margin_lr_pt=margin_lr_pt, margin_tb_pt=margin_tb_pt)
     if not os.path.exists(visor_path):
         print(f"[PRINTABLE PDF] Coloring source not found: {visor_path} — using blank")
-        return _make_blank_a4()
+        return _make_blank_page(px_w, px_h)
     try:
         from services.gelato_pdf_service import _scene_to_coloring_page as _gelato_coloring
         scene_img = Image.open(visor_path).convert("RGB")
         coloring = _gelato_coloring(scene_img, slot=slot)
         scene_img.close()
-        return _fit_image_in_content(coloring)
+        return _fit_image_in_content(coloring, **fit_kwargs)
     except Exception as e:
         print(f"[PRINTABLE PDF] Coloring page error (slot {slot}): {e} — using PIL CONTOUR fallback")
         from PIL import ImageFilter
@@ -246,10 +285,10 @@ def _load_coloring_page_a4(visor_path: str, slot: int = 0) -> Image.Image:
             contour = gray.filter(ImageFilter.CONTOUR)
             bw = contour.point(lambda p: 0 if p < 200 else 255)
             scene_img.close()
-            return _fit_image_in_content(bw.convert("RGB"))
+            return _fit_image_in_content(bw.convert("RGB"), **fit_kwargs)
         except Exception as e2:
             print(f"[PRINTABLE PDF] PIL CONTOUR also failed: {e2} — using blank")
-            return _make_blank_a4()
+            return _make_blank_page(px_w, px_h)
 
 
 def generate_personalized_printable_pdf(
@@ -263,6 +302,7 @@ def generate_personalized_printable_pdf(
     force_regenerate: bool = False,
     front_cover_path: str = None,
     back_cover_path: str = None,
+    print_format: str = "A4",
 ) -> str:
     """
     Build a 26-page A4 printable PDF for home/copy-shop printing.
@@ -299,13 +339,14 @@ def generate_personalized_printable_pdf(
     if not os.path.isdir(pages_dir):
         raise FileNotFoundError(f"Book session not found: {pages_dir}")
 
+    fmt_suffix = "LETTER" if print_format == "LETTER" else "A4"
     if output_path is None:
         out_dir = os.path.join("generated", "gelato", book_session_id)
         os.makedirs(out_dir, exist_ok=True)
         safe_name = "".join(c for c in (child_name or "libro") if c.isalnum() or c in " _-").strip().replace(" ", "_")
         if not safe_name:
             safe_name = "libro"
-        output_path = os.path.join(out_dir, f"{safe_name}_imprimible.pdf")
+        output_path = os.path.join(out_dir, f"{safe_name}_imprimible_{fmt_suffix}.pdf")
     else:
         dirpath = os.path.dirname(output_path)
         if dirpath:
@@ -367,7 +408,26 @@ def generate_personalized_printable_pdf(
     total = len(page_spec)
     assert total == 26, f"Expected 26 pages, got {total}"
 
-    c = rl_canvas.Canvas(output_path, pagesize=(A4_PT_W, A4_PT_H))
+    if print_format == "LETTER":
+        _px_w, _px_h       = LETTER_PX_W, LETTER_PX_H
+        _pt_w, _pt_h       = LETTER_PT_W, LETTER_PT_H
+        _cw_pt, _ch_pt     = LETTER_CONTENT_W_PT, LETTER_CONTENT_H_PT
+        _mlr_pt, _mtb_pt   = LETTER_MARGIN_LR_PT, LETTER_MARGIN_TB_PT
+    else:
+        _px_w, _px_h       = A4_PX_W, A4_PX_H
+        _pt_w, _pt_h       = A4_PT_W, A4_PT_H
+        _cw_pt, _ch_pt     = CONTENT_W_PT, CONTENT_H_PT
+        _mlr_pt, _mtb_pt   = MARGIN_LR_PT, MARGIN_TB_PT
+
+    fit_kwargs = dict(px_w=_px_w, px_h=_px_h,
+                      content_w_pt=_cw_pt, content_h_pt=_ch_pt,
+                      margin_lr_pt=_mlr_pt, margin_tb_pt=_mtb_pt)
+    bleed_pt = BLEED_MM * 72 / 25.4
+    mark_pt  = 5.0 * 72 / 25.4
+
+    print(f"[PRINTABLE PDF] Format: {print_format} — canvas {_pt_w:.1f}×{_pt_h:.1f}pt, page pixels {_px_w}×{_px_h}")
+
+    c = rl_canvas.Canvas(output_path, pagesize=(_pt_w, _pt_h))
 
     for idx, (ptype, psrc, pdata) in enumerate(page_spec):
         page_num = idx + 1
@@ -375,22 +435,39 @@ def generate_personalized_printable_pdf(
         print(f"[PRINTABLE PDF] Page {page_num:02d}/26: {ptype:<12} {label}")
 
         if ptype == "blank":
-            page_img = _make_blank_a4()
+            page_img = _make_blank_page(_px_w, _px_h)
         elif ptype == "credits":
-            page_img = _generate_credits_page_a4(child_name, language)
+            page_img = _generate_credits_page_a4(child_name, language, px_w=_px_w, px_h=_px_h)
         elif ptype == "coloring":
-            page_img = _load_coloring_page_a4(psrc, slot=pdata)
+            page_img = _load_coloring_page_a4(psrc, slot=pdata, **fit_kwargs)
         else:
             try:
                 raw = Image.open(psrc).convert("RGB")
-                page_img = _fit_image_in_content(raw)
+                page_img = _fit_image_in_content(raw, **fit_kwargs)
             except Exception as e:
                 print(f"[PRINTABLE PDF] Error loading {psrc}: {e} — using blank")
-                page_img = _make_blank_a4()
+                page_img = _make_blank_page(_px_w, _px_h)
 
         buf = _page_to_buffer(page_img)
         img_reader = ImageReader(buf)
-        c.drawImage(img_reader, 0, 0, width=A4_PT_W, height=A4_PT_H)
+        c.drawImage(img_reader, 0, 0, width=_pt_w, height=_pt_h)
+
+        # Trim marks (L-shaped, gray, at bleed boundary)
+        c.saveState()
+        c.setStrokeColorRGB(0.75, 0.75, 0.75)
+        c.setLineWidth(0.3)
+        for x, y, dx, dy in [
+            (bleed_pt, _pt_h - bleed_pt,  mark_pt, 0),
+            (bleed_pt, _pt_h - bleed_pt,  0, -mark_pt),
+            (_pt_w - bleed_pt, _pt_h - bleed_pt, -mark_pt, 0),
+            (_pt_w - bleed_pt, _pt_h - bleed_pt, 0, -mark_pt),
+            (bleed_pt, bleed_pt,  mark_pt, 0),
+            (bleed_pt, bleed_pt,  0,  mark_pt),
+            (_pt_w - bleed_pt, bleed_pt, -mark_pt, 0),
+            (_pt_w - bleed_pt, bleed_pt, 0,  mark_pt),
+        ]:
+            c.line(x, y, x + dx, y + dy)
+        c.restoreState()
 
         if idx < total - 1:
             c.showPage()
@@ -402,5 +479,5 @@ def generate_personalized_printable_pdf(
     gc.collect()
 
     size_mb = os.path.getsize(output_path) / 1024 / 1024
-    print(f"[PRINTABLE PDF] Done: {output_path} ({size_mb:.1f} MB, 26 pages)")
+    print(f"[PRINTABLE PDF] Done: {output_path} ({size_mb:.1f} MB, 26 pages, format={print_format})")
     return os.path.abspath(output_path)

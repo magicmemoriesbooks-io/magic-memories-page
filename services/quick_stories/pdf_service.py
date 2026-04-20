@@ -5,23 +5,26 @@ from io import BytesIO
 from PIL import Image
 
 
-def generate_quick_story_pdf(story_data: dict, output_path: str = None) -> str:
+def generate_quick_story_pdf(story_data: dict, output_path: str = None, print_format: str = 'A4') -> str:
     """
-    Generate digital PDF for Quick Stories.
-    
-    Baby books (0-2): 12 pages, 8.5"x8.5" full-page illustrations with text overlay (cover, title, dedication, 8 scenes, back cover)
-    Kids books (3-8): 8.5"x8.5" square, 7 scenes with split text overlay (text above + below illustration)
+    Generate printable PDF for Quick Stories (home printing / copy shop).
+
+    Baby books (0-2): 16 pages, A4 or Letter portrait with bleed.
+    Kids books (3-8): 16 pages, A4 or Letter portrait with bleed.
+    Birthday books: dispatched as baby or kids based on age_range.
+
+    print_format: 'A4' (default) or 'LETTER' (US/LATAM)
     """
     from services.pdf_service import (
         create_baby_quick_story_pdf,
         create_kids_quick_story_pdf
     )
-    
+
     story_id = story_data.get('story_id', '')
     age_range = story_data.get('age_range', '0-2')
-    
+
     is_baby = age_range in ['0-1', '0-2']
-    
+
     images = story_data.get('scene_images', [])
     if not images:
         images = story_data.get('scene_paths', [])
@@ -31,14 +34,20 @@ def generate_quick_story_pdf(story_data: dict, output_path: str = None) -> str:
         images = story_data.get('original_images', [])
     if not images:
         images = [p.get('image_path', '') for p in story_data.get('pages', []) if p.get('image_path')]
-    
+
     images = [img.lstrip('/') if img else '' for img in images]
     images = [img for img in images if img]
-    
+
     if is_baby:
-        return create_baby_quick_story_pdf(story_data, images, output_path, format_type='cloudprinter', skip_sanitize=True)
+        return create_baby_quick_story_pdf(
+            story_data, images, output_path,
+            format_type='cloudprinter', print_format=print_format, skip_sanitize=True
+        )
     else:
-        return create_kids_quick_story_pdf(story_data, images, output_path, format_type='cloudprinter', skip_sanitize=True)
+        return create_kids_quick_story_pdf(
+            story_data, images, output_path,
+            format_type='cloudprinter', print_format=print_format, skip_sanitize=True
+        )
 
 
 def generate_quick_story_cloudprinter_pdf(
@@ -53,14 +62,7 @@ def generate_quick_story_cloudprinter_pdf(
     Generate a 16-page A4 portrait PDF for Cloudprinter saddle-stitch printing.
     Product: magazine_sas_a4_p_fc — Trim 210×297mm + 3mm bleed each side.
 
-    The A4 functions produce the complete self-contained book:
-      p1 cover · p2 blank · p3 portadilla · p4 dedicatoria ·
-      p5-p11/12 story scenes · p13-p14 drawing pages · p15 blank · p16 back-cover
-
-    The cover_image in story_data drives p1 so front_cover_path is stored there.
-    back_cover_path (if provided) is injected into story_data for the generators.
-
-    Returns: path to the 16-page A4 PDF.
+    This function always generates A4 (Cloudprinter spec). Do NOT pass print_format here.
     """
     import os
     from services.pdf_service import (
@@ -80,12 +82,12 @@ def generate_quick_story_cloudprinter_pdf(
     if is_baby:
         create_baby_quick_story_pdf(
             enriched, images, output_path,
-            format_type='cloudprinter', skip_sanitize=skip_sanitize
+            format_type='cloudprinter', print_format='A4', skip_sanitize=skip_sanitize
         )
     else:
         create_kids_quick_story_pdf(
             enriched, images, output_path,
-            format_type='cloudprinter', skip_sanitize=skip_sanitize
+            format_type='cloudprinter', print_format='A4', skip_sanitize=skip_sanitize
         )
 
     print(f"[CP-PDF] 16-page A4 PDF generated: {output_path}")
@@ -96,11 +98,11 @@ def generate_quick_story_cloudprinter_pdf(
 def get_quick_story_pdf_config(story_id: str) -> dict:
     """Get PDF configuration for a quick story."""
     from .stories import QUICK_STORIES
-    
+
     story = QUICK_STORIES.get(story_id, {})
     age_range = story.get('age_range', '0-2')
     is_baby = age_range in ['0-1', '0-2']
-    
+
     if is_baby:
         return {
             'format': 'quick_story_baby',
@@ -115,7 +117,7 @@ def get_quick_story_pdf_config(story_id: str) -> dict:
             'structure': 'cover, blank, portadilla, dedication, (illus+text)x8, drawing_page, drawing_page, blank, back_cover',
             'resolution': 300
         }
-    
+
     return {
         'format': 'quick_story_kids',
         'product_id': 'magazine_sas_a4_p_fc',

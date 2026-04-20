@@ -275,6 +275,18 @@
                             <p class="text-xs text-green-600 font-medium mt-1">
                                 {% if lang == 'es' %}+ eBook interactivo de regalo (6 meses){% else %}+ Gift interactive eBook (6 months){% endif %}
                             </p>
+                            <div class="mt-2 flex gap-4" id="printFormatSelector">
+                                <label class="flex items-center gap-1 text-xs text-gray-700 cursor-pointer">
+                                    <input type="radio" name="printFormat" value="A4" checked
+                                        class="w-4 h-4 text-green-600 focus:ring-green-500">
+                                    <span>A4 (21×29,7 cm)</span>
+                                </label>
+                                <label class="flex items-center gap-1 text-xs text-gray-700 cursor-pointer">
+                                    <input type="radio" name="printFormat" value="LETTER"
+                                        class="w-4 h-4 text-green-600 focus:ring-green-500">
+                                    <span>{% if lang == 'es' %}Carta (8,5×11"){% else %}Letter (8.5×11"){% endif %}</span>
+                                </label>
+                            </div>
                         </div>
                         <p class="font-bold text-lg text-green-700 ml-4 whitespace-nowrap">${{ checkout_config.pdf_base_price }} USD</p>
                     </div>
@@ -1279,6 +1291,12 @@ function validateCheckoutForm() {
         return false;
     }
     if (formatError) formatError.classList.add('hidden');
+    const buyerCountryEl = document.getElementById('buyerCountry');
+    if (buyerCountryEl && buyerCountryEl.closest('.space-y-4') && !buyerCountryEl.value) {
+        showPaypalError(CFG.lang === 'es' ? 'Por favor selecciona tu país.' : 'Please select your country.');
+        buyerCountryEl.focus();
+        return false;
+    }
     if (selectedFormats.includes('print')) {
         const name = document.getElementById('shippingName')?.value?.trim();
         const street = document.getElementById('shippingStreet')?.value?.trim();
@@ -1328,6 +1346,7 @@ async function buildCheckoutData() {
         shipping_address: wantPrint ? getShippingAddress() : null,
         phone: getFullPhone() || '',
         buyer_country: document.getElementById('buyerCountry')?.value || '',
+        print_format: (document.querySelector('input[name="printFormat"]:checked')?.value || 'A4'),
         cp_cost_eur: selectedOpt ? (selectedOpt.cp_cost_eur ?? selectedOpt.cp_cost ?? 0) : 0,
         print_cost_eur: selectedOpt ? (selectedOpt.print_cost_eur ?? 0) : 0,
         customer_total_usd: selectedOpt ? (selectedOpt.customer_total ?? 0) : 0,

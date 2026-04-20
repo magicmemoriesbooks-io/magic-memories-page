@@ -723,6 +723,18 @@ QUICK_STORY_CP_A4_W = QUICK_STORY_CP_A4_W_MM / 25.4 * inch   # ≈ 612.28pt
 QUICK_STORY_CP_A4_H = QUICK_STORY_CP_A4_H_MM / 25.4 * inch   # ≈ 858.90pt
 QUICK_STORY_CP_A4_BACK_COVER = 'static/images/qs_back_cover_a4.png'
 
+# US Letter home-print — Trim: 8.5×11" = 215.9×279.4mm; 3mm bleed each side
+QUICK_STORY_CP_LETTER_W_MM = 215.9 + 2 * 3.0   # ≈ 221.9mm (rounds to 222mm)
+QUICK_STORY_CP_LETTER_H_MM = 279.4 + 2 * 3.0   # ≈ 285.4mm
+QUICK_STORY_CP_LETTER_W = QUICK_STORY_CP_LETTER_W_MM / 25.4 * inch
+QUICK_STORY_CP_LETTER_H = QUICK_STORY_CP_LETTER_H_MM / 25.4 * inch
+QUICK_STORY_CP_LETTER_BLEED_MM = 3.0
+
+LATAM_LETTER_COUNTRIES = frozenset([
+    'US', 'CA', 'MX', 'CO', 'AR', 'CL', 'PE', 'VE', 'EC', 'BO',
+    'PY', 'UY', 'CR', 'GT', 'PA', 'SV', 'HN', 'NI', 'DO', 'CU', 'PR',
+])
+
 
 def generate_baby_cover_spread_pdf(front_cover_path, back_cover_path, output_path, skip_sanitize=False):
     """
@@ -1452,9 +1464,44 @@ def _draw_qs_cp_a4_dedicatoria(c, dedication, language, fonts, pw, ph):
         ded_y -= line_gap
 
 
-def _create_qs_cp_a4_kids_pdf(story_data, images, output_path, skip_sanitize=False):
+def _draw_trim_marks_on_page(c, pw, ph, bleed_mm=3.0):
+    """Draw simple L-shaped trim marks at the 4 page corners inside the bleed area."""
+    bleed = bleed_mm / 25.4 * inch
+    mark = 5.0 / 25.4 * inch
+    c.saveState()
+    c.setStrokeColor(HexColor('#BBBBBB'))
+    c.setLineWidth(0.3)
+    c.line(bleed, ph - bleed, bleed + mark, ph - bleed)
+    c.line(bleed, ph - bleed, bleed, ph - bleed - mark)
+    c.line(pw - bleed, ph - bleed, pw - bleed - mark, ph - bleed)
+    c.line(pw - bleed, ph - bleed, pw - bleed, ph - bleed - mark)
+    c.line(bleed, bleed, bleed + mark, bleed)
+    c.line(bleed, bleed, bleed, bleed + mark)
+    c.line(pw - bleed, bleed, pw - bleed - mark, bleed)
+    c.line(pw - bleed, bleed, pw - bleed, bleed + mark)
+    c.restoreState()
+
+
+class _TrimCanvas(canvas.Canvas):
+    """Canvas subclass that automatically draws trim marks before each page advance."""
+    def __init__(self, *args, pw, ph, bleed_mm=3.0, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._pw = pw
+        self._ph = ph
+        self._bleed_mm = bleed_mm
+
+    def showPage(self):
+        _draw_trim_marks_on_page(self, self._pw, self._ph, self._bleed_mm)
+        super().showPage()
+
+    def save(self):
+        _draw_trim_marks_on_page(self, self._pw, self._ph, self._bleed_mm)
+        super().save()
+
+
+def _create_qs_cp_a4_kids_pdf(story_data, images, output_path, print_format='A4', skip_sanitize=False):
     """
-    Create 16-page A4 portrait PDF for kids QS Cloudprinter (magazine_sas_a4_p_fc).
+    Create 16-page portrait PDF for kids QS home-printing (A4 or Letter).
 
     Structure:
       p1  portada (cover image)
@@ -1468,10 +1515,14 @@ def _create_qs_cp_a4_kids_pdf(story_data, images, output_path, skip_sanitize=Fal
       p15 blanco
       p16 contraportada (static/images/qs_back_cover_a4.png)
     """
-    pw = QUICK_STORY_CP_A4_W
-    ph = QUICK_STORY_CP_A4_H
+    if print_format == 'LETTER':
+        pw = QUICK_STORY_CP_LETTER_W
+        ph = QUICK_STORY_CP_LETTER_H
+    else:
+        pw = QUICK_STORY_CP_A4_W
+        ph = QUICK_STORY_CP_A4_H
 
-    c = canvas.Canvas(output_path, pagesize=(pw, ph))
+    c = _TrimCanvas(output_path, pagesize=(pw, ph), pw=pw, ph=ph)
 
     fonts = register_baby_book_fonts()
     child_name = story_data.get('child_name', 'Niño')
@@ -1701,9 +1752,9 @@ def _draw_baby_data_sheet(c, story_data, fonts, pw, ph, language='es'):
     c.drawCentredString(pw / 2, 55, '* * *')
 
 
-def _create_qs_cp_a4_baby_pdf(story_data, images, output_path, skip_sanitize=False):
+def _create_qs_cp_a4_baby_pdf(story_data, images, output_path, print_format='A4', skip_sanitize=False):
     """
-    Create 16-page A4 portrait PDF for baby QS Cloudprinter (magazine_sas_a4_p_fc).
+    Create 16-page portrait PDF for baby QS home-printing (A4 or Letter).
 
     Structure:
       p1  portada
@@ -1716,10 +1767,14 @@ def _create_qs_cp_a4_baby_pdf(story_data, images, output_path, skip_sanitize=Fal
       p15 blanco
       p16 contraportada
     """
-    pw = QUICK_STORY_CP_A4_W
-    ph = QUICK_STORY_CP_A4_H
+    if print_format == 'LETTER':
+        pw = QUICK_STORY_CP_LETTER_W
+        ph = QUICK_STORY_CP_LETTER_H
+    else:
+        pw = QUICK_STORY_CP_A4_W
+        ph = QUICK_STORY_CP_A4_H
 
-    c = canvas.Canvas(output_path, pagesize=(pw, ph))
+    c = _TrimCanvas(output_path, pagesize=(pw, ph), pw=pw, ph=ph)
 
     fonts = register_baby_book_fonts()
     child_name = story_data.get('child_name', 'Bebé')
@@ -1788,7 +1843,7 @@ def _create_qs_cp_a4_baby_pdf(story_data, images, output_path, skip_sanitize=Fal
     return output_path
 
 
-def create_baby_quick_story_pdf(story_data, images, output_path, format_type='digital', skip_sanitize=False):
+def create_baby_quick_story_pdf(story_data, images, output_path, format_type='digital', print_format='A4', skip_sanitize=False):
     """
     Create PDF for baby Quick Stories (0-2 years) - 12 PAGE LAYOUT.
     
@@ -1812,7 +1867,7 @@ def create_baby_quick_story_pdf(story_data, images, output_path, format_type='di
     3-10. 8 scene illustrations with text overlay
     """
     if format_type == 'cloudprinter':
-        return _create_qs_cp_a4_baby_pdf(story_data, images, output_path, skip_sanitize)
+        return _create_qs_cp_a4_baby_pdf(story_data, images, output_path, print_format=print_format, skip_sanitize=skip_sanitize)
 
     page_size = QUICK_STORY_DIGITAL_SIZE
     if format_type == 'lulu':
@@ -2261,7 +2316,7 @@ def _draw_kids_closing_page(c, closing_image, closing_message, page_width, page_
         c.drawRightString(sig_x, text_y - sig_size * 0.3, signature)
 
 
-def create_kids_quick_story_pdf(story_data, images, output_path, format_type='digital', skip_sanitize=False):
+def create_kids_quick_story_pdf(story_data, images, output_path, format_type='digital', print_format='A4', skip_sanitize=False):
     """
     Create PDF for kids Quick Stories (3-8 years) - NEW LAYOUT.
     
@@ -2292,7 +2347,7 @@ def create_kids_quick_story_pdf(story_data, images, output_path, format_type='di
     10. Closing (protagonist image + message)
     """
     if format_type == 'cloudprinter':
-        return _create_qs_cp_a4_kids_pdf(story_data, images, output_path, skip_sanitize)
+        return _create_qs_cp_a4_kids_pdf(story_data, images, output_path, print_format=print_format, skip_sanitize=skip_sanitize)
 
     page_size = QUICK_STORY_DIGITAL_SIZE
     if format_type == 'lulu':
@@ -2933,10 +2988,11 @@ def create_birthday_printable_pdf(story_data, images, output_path, skip_sanitize
     return output_path
 
 
-def generate_print_instructions_pdf(output_path, language='es'):
+def generate_print_instructions_pdf(output_path, language='es', print_format='A4'):
     """
-    Generate a unified PDF with printing instructions for all Quick Stories
-    and Birthday books (A4 210x297mm, 16 pages saddle-stitch).
+    Generate a unified PDF with printing instructions.
+    print_format: 'A4' (default) or 'LETTER' (US Letter 8.5×11").
+    Maintains backward compatibility — print_format defaults to 'A4'.
     """
     from reportlab.lib.pagesizes import A4
     
@@ -2964,13 +3020,28 @@ def generate_print_instructions_pdf(output_path, language='es'):
     c.setFillColor(dark_text)
     y = page_height - 120
     
+    if print_format == 'LETTER':
+        size_label_es = "Carta — 8.5 × 11\" (con sangrado 222 × 285 mm)"
+        size_label_en = "Letter — 8.5 × 11\" (with bleed: 222 × 285 mm)"
+        format_label_es = "Carta (8.5×11\") retrato"
+        format_label_en = "US Letter (8.5×11\") portrait"
+        paper_step_es = "1. Imprima en papel Carta (8.5×11\") a sangre completa"
+        paper_step_en = "1. Print all pages on Letter paper (8.5×11\"), full bleed"
+    else:
+        size_label_es = "A4 — 210 × 297 mm (con sangrado 216 × 303 mm)"
+        size_label_en = "A4 — 210 × 297 mm (with bleed: 216 × 303 mm)"
+        format_label_es = "A4 retrato"
+        format_label_en = "A4 portrait"
+        paper_step_es = "1. Imprima todas las páginas en papel A4 a sangre completa"
+        paper_step_en = "1. Print all pages on A4 paper, full bleed"
+
     if language == 'es':
         instructions = [
             ("Especificaciones del Libro:", True),
             ("", False),
-            ("• Tamaño final: A4 — 210 x 297 mm (con sangrado 216 x 303 mm)", False),
+            (f"• Tamaño final: {size_label_es}", False),
             ("• Total de páginas: 16 páginas (incluye portada y contraportada)", False),
-            ("• Formato: A4 retrato", False),
+            (f"• Formato: {format_label_es}", False),
             ("• Encuadernación: Grapado por el lomo (saddle stitch)", False),
             ("", False),
             ("Recomendaciones para la Imprenta:", True),
@@ -2981,6 +3052,7 @@ def generate_print_instructions_pdf(output_path, language='es'):
             ("• Perfil de color: CMYK", False),
             ("• Resolución: 300 DPI mínimo", False),
             ("• Imprimir a sangre completa (sin márgenes blancos)", False),
+            ("• Las marcas de corte en las esquinas indican dónde recortar", False),
             ("", False),
             ("Estructura del PDF (16 páginas):", True),
             ("", False),
@@ -2989,13 +3061,13 @@ def generate_print_instructions_pdf(output_path, language='es'):
             ("Página 3: Portadilla (página de título con imagen)", False),
             ("Página 4: Dedicatoria", False),
             ("Páginas 5-12: Escenas ilustradas con texto (7 u 8 según versión)", False),
-            ("Páginas 13-14: Páginas para dibujar", False),
+            ("Páginas 13-14: Páginas para dibujar / datos del bebé", False),
             ("Página 15: Página en blanco", False),
             ("Página 16: Contraportada", False),
             ("", False),
             ("Instrucciones de Armado:", True),
             ("", False),
-            ("1. Imprima todas las páginas en papel A4 a sangre completa", False),
+            (paper_step_es, False),
             ("2. Portada (p.1) y contraportada (p.16): cartulina 200-250 g/m²", False),
             ("3. Páginas interiores (p.2-15): papel 120 g/m² a doble cara", False),
             ("4. Apile las páginas en orden numérico", False),
@@ -3011,9 +3083,9 @@ def generate_print_instructions_pdf(output_path, language='es'):
         instructions = [
             ("Book Specifications:", True),
             ("", False),
-            ("• Final size: A4 — 210 x 297 mm (with bleed: 216 x 303 mm)", False),
+            (f"• Final size: {size_label_en}", False),
             ("• Total pages: 16 pages (includes front and back covers)", False),
-            ("• Format: A4 portrait", False),
+            (f"• Format: {format_label_en}", False),
             ("• Binding: Saddle stitch (stapled along the spine)", False),
             ("", False),
             ("Print Shop Recommendations:", True),
@@ -3024,6 +3096,7 @@ def generate_print_instructions_pdf(output_path, language='es'):
             ("• Color profile: CMYK", False),
             ("• Resolution: 300 DPI minimum", False),
             ("• Print full bleed (no white margins)", False),
+            ("• Corner trim marks indicate where to cut", False),
             ("", False),
             ("PDF Structure (16 pages):", True),
             ("", False),
@@ -3032,13 +3105,13 @@ def generate_print_instructions_pdf(output_path, language='es'):
             ("Page 3: Title page (portadilla with illustration)", False),
             ("Page 4: Dedication", False),
             ("Pages 5-12: Illustrated scenes with text (7 or 8 depending on version)", False),
-            ("Pages 13-14: Drawing pages", False),
+            ("Pages 13-14: Drawing pages / baby keepsake", False),
             ("Page 15: Blank page", False),
             ("Page 16: Back cover", False),
             ("", False),
             ("Assembly Instructions:", True),
             ("", False),
-            ("1. Print all pages on A4 paper, full bleed", False),
+            (paper_step_en, False),
             ("2. Cover (p.1) and back cover (p.16): cardstock 200-250 gsm", False),
             ("3. Interior pages (p.2-15): 120 gsm paper, double-sided", False),
             ("4. Stack pages in numerical order", False),
