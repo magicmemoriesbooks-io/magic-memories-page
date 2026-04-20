@@ -1499,7 +1499,7 @@ class _TrimCanvas(canvas.Canvas):
         super().save()
 
 
-def _create_qs_cp_a4_kids_pdf(story_data, images, output_path, print_format='A4', skip_sanitize=False):
+def _create_qs_cp_a4_kids_pdf(story_data, images, output_path, print_format='A4', skip_sanitize=False, draw_trim_marks=True):
     """
     Create 16-page portrait PDF for kids QS home-printing (A4 or Letter).
 
@@ -1514,6 +1514,8 @@ def _create_qs_cp_a4_kids_pdf(story_data, images, output_path, print_format='A4'
       p14 drawing page (FLUX coloring style, scene 3)
       p15 blanco
       p16 contraportada (static/images/qs_back_cover_a4.png)
+
+    draw_trim_marks: True for home/copy-shop printing; False for Cloudprinter (Cloudprinter handles bleed internally).
     """
     if print_format == 'LETTER':
         pw = QUICK_STORY_CP_LETTER_W
@@ -1522,7 +1524,10 @@ def _create_qs_cp_a4_kids_pdf(story_data, images, output_path, print_format='A4'
         pw = QUICK_STORY_CP_A4_W
         ph = QUICK_STORY_CP_A4_H
 
-    c = _TrimCanvas(output_path, pagesize=(pw, ph), pw=pw, ph=ph)
+    if draw_trim_marks:
+        c = _TrimCanvas(output_path, pagesize=(pw, ph), pw=pw, ph=ph)
+    else:
+        c = canvas.Canvas(output_path, pagesize=(pw, ph))
 
     fonts = register_baby_book_fonts()
     child_name = story_data.get('child_name', 'Niño')
@@ -1752,7 +1757,7 @@ def _draw_baby_data_sheet(c, story_data, fonts, pw, ph, language='es'):
     c.drawCentredString(pw / 2, 55, '* * *')
 
 
-def _create_qs_cp_a4_baby_pdf(story_data, images, output_path, print_format='A4', skip_sanitize=False):
+def _create_qs_cp_a4_baby_pdf(story_data, images, output_path, print_format='A4', skip_sanitize=False, draw_trim_marks=True):
     """
     Create 16-page portrait PDF for baby QS home-printing (A4 or Letter).
 
@@ -1766,6 +1771,8 @@ def _create_qs_cp_a4_baby_pdf(story_data, images, output_path, print_format='A4'
       p14 blanco
       p15 blanco
       p16 contraportada
+
+    draw_trim_marks: True for home/copy-shop printing; False for Cloudprinter.
     """
     if print_format == 'LETTER':
         pw = QUICK_STORY_CP_LETTER_W
@@ -1774,7 +1781,10 @@ def _create_qs_cp_a4_baby_pdf(story_data, images, output_path, print_format='A4'
         pw = QUICK_STORY_CP_A4_W
         ph = QUICK_STORY_CP_A4_H
 
-    c = _TrimCanvas(output_path, pagesize=(pw, ph), pw=pw, ph=ph)
+    if draw_trim_marks:
+        c = _TrimCanvas(output_path, pagesize=(pw, ph), pw=pw, ph=ph)
+    else:
+        c = canvas.Canvas(output_path, pagesize=(pw, ph))
 
     fonts = register_baby_book_fonts()
     child_name = story_data.get('child_name', 'Bebé')
@@ -1843,7 +1853,7 @@ def _create_qs_cp_a4_baby_pdf(story_data, images, output_path, print_format='A4'
     return output_path
 
 
-def create_baby_quick_story_pdf(story_data, images, output_path, format_type='digital', print_format='A4', skip_sanitize=False):
+def create_baby_quick_story_pdf(story_data, images, output_path, format_type='digital', print_format='A4', skip_sanitize=False, draw_trim_marks=True):
     """
     Create PDF for baby Quick Stories (0-2 years) - 12 PAGE LAYOUT.
     
@@ -1867,7 +1877,7 @@ def create_baby_quick_story_pdf(story_data, images, output_path, format_type='di
     3-10. 8 scene illustrations with text overlay
     """
     if format_type == 'cloudprinter':
-        return _create_qs_cp_a4_baby_pdf(story_data, images, output_path, print_format=print_format, skip_sanitize=skip_sanitize)
+        return _create_qs_cp_a4_baby_pdf(story_data, images, output_path, print_format=print_format, skip_sanitize=skip_sanitize, draw_trim_marks=draw_trim_marks)
 
     page_size = QUICK_STORY_DIGITAL_SIZE
     if format_type == 'lulu':
@@ -2316,7 +2326,7 @@ def _draw_kids_closing_page(c, closing_image, closing_message, page_width, page_
         c.drawRightString(sig_x, text_y - sig_size * 0.3, signature)
 
 
-def create_kids_quick_story_pdf(story_data, images, output_path, format_type='digital', print_format='A4', skip_sanitize=False):
+def create_kids_quick_story_pdf(story_data, images, output_path, format_type='digital', print_format='A4', skip_sanitize=False, draw_trim_marks=True):
     """
     Create PDF for kids Quick Stories (3-8 years) - NEW LAYOUT.
     
@@ -2347,7 +2357,7 @@ def create_kids_quick_story_pdf(story_data, images, output_path, format_type='di
     10. Closing (protagonist image + message)
     """
     if format_type == 'cloudprinter':
-        return _create_qs_cp_a4_kids_pdf(story_data, images, output_path, print_format=print_format, skip_sanitize=skip_sanitize)
+        return _create_qs_cp_a4_kids_pdf(story_data, images, output_path, print_format=print_format, skip_sanitize=skip_sanitize, draw_trim_marks=draw_trim_marks)
 
     page_size = QUICK_STORY_DIGITAL_SIZE
     if format_type == 'lulu':

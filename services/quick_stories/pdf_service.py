@@ -41,12 +41,14 @@ def generate_quick_story_pdf(story_data: dict, output_path: str = None, print_fo
     if is_baby:
         return create_baby_quick_story_pdf(
             story_data, images, output_path,
-            format_type='cloudprinter', print_format=print_format, skip_sanitize=True
+            format_type='cloudprinter', print_format=print_format, skip_sanitize=True,
+            draw_trim_marks=True
         )
     else:
         return create_kids_quick_story_pdf(
             story_data, images, output_path,
-            format_type='cloudprinter', print_format=print_format, skip_sanitize=True
+            format_type='cloudprinter', print_format=print_format, skip_sanitize=True,
+            draw_trim_marks=True
         )
 
 
@@ -82,12 +84,14 @@ def generate_quick_story_cloudprinter_pdf(
     if is_baby:
         create_baby_quick_story_pdf(
             enriched, images, output_path,
-            format_type='cloudprinter', print_format='A4', skip_sanitize=skip_sanitize
+            format_type='cloudprinter', print_format='A4', skip_sanitize=skip_sanitize,
+            draw_trim_marks=False
         )
     else:
         create_kids_quick_story_pdf(
             enriched, images, output_path,
-            format_type='cloudprinter', print_format='A4', skip_sanitize=skip_sanitize
+            format_type='cloudprinter', print_format='A4', skip_sanitize=skip_sanitize,
+            draw_trim_marks=False
         )
 
     print(f"[CP-PDF] 16-page A4 PDF generated: {output_path}")

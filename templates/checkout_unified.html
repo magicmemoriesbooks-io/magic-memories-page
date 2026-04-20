@@ -766,8 +766,8 @@ function onBuyerCountryChange(countryCode) {
         }
     }
 
-    // Auto-select A4 or Carta based on country
-    const letterCountries = new Set(['MX','CO','VE','SV','GT','HN','NI','CR','PA','DO','CU','BO','EC','PE','PR','PH','CA']);
+    // Auto-select A4 or Carta based on country (matches LATAM_LETTER_COUNTRIES in pdf_service.py)
+    const letterCountries = new Set(['US','CA','MX','CO','AR','CL','PE','VE','EC','BO','PY','UY','CR','GT','PA','SV','HN','NI','DO','CU','PR']);
     const autoFormat = letterCountries.has(countryCode) ? 'LETTER' : 'A4';
     document.querySelectorAll('input[name="print_format"]').forEach(r => {
         r.checked = (r.value === autoFormat);
