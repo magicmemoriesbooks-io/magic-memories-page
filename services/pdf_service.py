@@ -1469,8 +1469,8 @@ def _draw_trim_marks_on_page(c, pw, ph, bleed_mm=3.0):
     bleed = bleed_mm / 25.4 * inch
     mark = 5.0 / 25.4 * inch
     c.saveState()
-    c.setStrokeColor(HexColor('#BBBBBB'))
-    c.setLineWidth(0.3)
+    c.setStrokeColor(HexColor('#000000'))
+    c.setLineWidth(0.6)
     c.line(bleed, ph - bleed, bleed + mark, ph - bleed)
     c.line(bleed, ph - bleed, bleed, ph - bleed - mark)
     c.line(pw - bleed, ph - bleed, pw - bleed - mark, ph - bleed)

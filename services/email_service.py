@@ -2123,7 +2123,18 @@ def send_ebook_email(to_email: str, story_data: dict, visor_url: str, is_gift: b
         story_name = story_data.get('story_name', 'tu cuento')
         lang = story_data.get('lang', 'es')
         
-        if is_gift:
+        pdf_is_primary = bool(pdf_printable_path) and is_gift
+
+        if pdf_is_primary:
+            if lang == 'es':
+                subject = f"🖨️ ¡Tu PDF imprimible para {child_name} está listo! + eBook de regalo"
+                access_info = "Además, tienes acceso por 6 meses a tu eBook interactivo de regalo."
+                access_badge = "🎁 eBook de regalo — 6 meses de acceso"
+            else:
+                subject = f"🖨️ Your printable PDF for {child_name} is ready! + Gift eBook"
+                access_info = "Plus, you have 6 months access to your gift interactive eBook."
+                access_badge = "🎁 Gift eBook — 6 months access"
+        elif is_gift:
             if lang == 'es':
                 subject = f"🎁 ¡Tu eBook de regalo para {child_name} está listo!"
                 access_info = "Tienes acceso por 6 meses a tu eBook interactivo."
@@ -2256,26 +2267,60 @@ def send_ebook_email(to_email: str, story_data: dict, visor_url: str, is_gift: b
                     </p>
                 ''')
 
-        content = f"""
+        if pdf_is_primary:
+            _pdf_intro = ("Tu PDF imprimible está adjunto a este email, listo para llevar a la imprenta."
+                          if lang == 'es' else
+                          "Your printable PDF is attached to this email, ready to take to a print shop.")
+            _ebook_bonus_title = "🎁 Además: tu eBook interactivo de regalo" if lang == 'es' else "🎁 Bonus: your gift interactive eBook"
+            content = f"""
+            <h2 style="color:#7c3aed;text-align:center;margin-top:0;">{greeting}</h2>
+            <p style="font-size:16px;color:#374151;text-align:center;">
+                🖨️ <strong>"{story_name}"</strong> {for_word} <strong>{child_name}</strong> — {_pdf_intro}
+            </p>
+
+            {attachments_section}
+
+            {download_section}
+
+            {print_production_section}
+
+            <div style="background:#f3e8ff;padding:15px;border-radius:12px;margin:20px 0;">
+                <h4 style="margin-top:0;color:#7c3aed;text-align:center;">{_ebook_bonus_title}</h4>
+                {_cta_button(button_text, visor_url)}
+                <p style="color:#6b7280;font-size:12px;text-align:center;margin-top:-10px;">{device_info}</p>
+                <div style="text-align:center;margin-top:8px;">
+                    <p style="font-size:13px;font-weight:bold;color:#7c3aed;margin:0 0 3px 0;">{access_badge}</p>
+                    <p style="font-size:12px;color:#374151;margin:0;">{access_info}</p>
+                </div>
+            </div>
+
+            {upsell_section}
+
+            {_newsletter_invite_html(lang)}
+
+            <p style="color:#7c3aed;font-weight:bold;text-align:center;font-size:16px;">{thanks_msg} 💜</p>
+        """
+        else:
+            content = f"""
             <h2 style="color:#7c3aed;text-align:center;margin-top:0;">{greeting}</h2>
             <p style="font-size:16px;color:#374151;text-align:center;">
                 {ebook_label} <strong>"{story_name}"</strong> {for_word} <strong>{child_name}</strong> {ready_word}
             </p>
             {_cta_button(button_text, visor_url)}
             <p style="color:#6b7280;font-size:12px;text-align:center;margin-top:-15px;">{device_info}</p>
-            
+
             <div style="background:#f3e8ff;padding:15px;border-radius:12px;margin:20px 0;text-align:center;">
                 <p style="font-size:14px;font-weight:bold;color:#7c3aed;margin:0 0 5px 0;">{access_badge}</p>
                 <p style="font-size:13px;color:#374151;margin:0;">{access_info}</p>
             </div>
-            
+
             {_success_box(f'''
                 <h4 style="margin-top:0;color:#166534;">{features_title}</h4>
                 <ul style="text-align:left;list-style:none;padding-left:0;margin:0.5em 0;">{features_list}</ul>
             ''')}
-            
+
             {download_section}
-            
+
             {attachments_section}
 
             {print_production_section}
