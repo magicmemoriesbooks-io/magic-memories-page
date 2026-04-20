@@ -126,7 +126,8 @@ def _fit_image_in_content(img: Image.Image,
                            px_w=None, px_h=None,
                            content_w_pt=None, content_h_pt=None,
                            margin_lr_pt=None, margin_tb_pt=None) -> Image.Image:
-    """Scale PIL image to fit within the content area, centred on white page.
+    """Proportional fill: scale so the image covers the full content area,
+    then center-crop any overflow (no white bands, no stretch).
     Defaults to A4 dimensions for backward compatibility.
     """
     _px_w   = px_w or A4_PX_W
@@ -140,17 +141,21 @@ def _fit_image_in_content(img: Image.Image,
     content_px_h = int(_ch_pt * A4_DPI / 72)
 
     src_w, src_h = img.size
-    scale = min(content_px_w / src_w, content_px_h / src_h)
+    # Fill: scale so the image covers the entire content area (max, not min)
+    scale = max(content_px_w / src_w, content_px_h / src_h)
     new_w = int(src_w * scale)
     new_h = int(src_h * scale)
     resized = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
 
+    # Center-crop to content area
+    crop_x = (new_w - content_px_w) // 2
+    crop_y = (new_h - content_px_h) // 2
+    cropped = resized.crop((crop_x, crop_y, crop_x + content_px_w, crop_y + content_px_h))
+
     page = _make_blank_page(_px_w, _px_h)
     margin_px_lr = int(_mlr_pt * A4_DPI / 72)
     margin_px_tb = int(_mtb_pt * A4_DPI / 72)
-    x_offset = margin_px_lr + (content_px_w - new_w) // 2
-    y_offset = margin_px_tb + (content_px_h - new_h) // 2
-    page.paste(resized, (x_offset, y_offset))
+    page.paste(cropped, (margin_px_lr, margin_px_tb))
     return page
 
 
