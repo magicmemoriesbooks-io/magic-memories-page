@@ -188,7 +188,6 @@
             </div>
         </div>
 
-        {% if checkout_config.allow_print or checkout_config.allow_pdf or checkout_config.allow_digital %}
         <div class="mb-4 pb-4 border-b border-gray-200">
             <label class="block text-sm font-medium text-gray-700 mb-2">
                 {% if lang == 'es' %}¿Desde dónde compras?{% else %}Where are you ordering from?{% endif %} <span class="text-red-500">*</span>
@@ -212,7 +211,6 @@
             </p>
             {% endif %}
         </div>
-        {% endif %}
 
         {% if checkout_config.allow_digital or checkout_config.allow_ebook or checkout_config.allow_print %}
         <div class="space-y-3 mt-4">

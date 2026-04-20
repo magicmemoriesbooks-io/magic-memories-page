@@ -9759,10 +9759,24 @@ def _compose_personalized_book_background(preview_id, **kwargs):
                         admin_pdf_path = f'{admin_pdf_dir}/{safe_name_admin}_imprimible.pdf'
                         if not os.path.exists(admin_pdf_path):
                             from services.personalized_books.printable_pdf import generate_personalized_printable_pdf
+                            _admin_gender   = story_data.get('gender', story_data.get('child_gender', 'nino'))
+                            _admin_lang     = story_data.get('lang', 'es')
+                            _admin_book_id  = story_data.get('book_id', '')
+                            _admin_fmt      = story_data.get('print_format', 'A4')
+                            from services.personalized_books.generation import get_print_title
+                            _admin_pet      = (story_data.get('traits') or {}).get('pet_name', '')
+                            _admin_title    = get_print_title(_admin_book_id, child_name, _admin_lang, pet_name=_admin_pet)
                             generate_personalized_printable_pdf(
                                 book_session_id=preview_id,
                                 child_name=child_name,
+                                gender=_admin_gender,
+                                language=_admin_lang,
+                                book_id=_admin_book_id,
+                                book_title=_admin_title,
                                 output_path=admin_pdf_path,
+                                print_format=_admin_fmt,
+                                front_cover_path=story_data.get('front_cover_path') or None,
+                                back_cover_path=story_data.get('back_cover_path') or None,
                             )
                             story_data['printable_pdf_path'] = admin_pdf_path
                             with open(preview_file, 'w', encoding='utf-8') as _f:
