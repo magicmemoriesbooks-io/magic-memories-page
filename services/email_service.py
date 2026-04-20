@@ -2388,7 +2388,10 @@ Magic Memories Books
         if has_attachments:
             msg.attach(alt_part)
             if pdf_printable_path and os.path.exists(pdf_printable_path):
-                if attach_file(msg, pdf_printable_path, f"{safe_name}_imprimible.pdf"):
+                _pdf_fname = os.path.basename(pdf_printable_path)
+                _fmt_label = "_LETTER" if "_LETTER" in _pdf_fname else "_A4" if "_A4" in _pdf_fname else ""
+                _pdf_display_name = f"{safe_name}_imprimible{_fmt_label}.pdf"
+                if attach_file(msg, pdf_printable_path, _pdf_display_name):
                     print(f"[EMAIL] Attached printable PDF: {pdf_printable_path}")
             if instructions_path and os.path.exists(instructions_path):
                 if attach_file(msg, instructions_path, "instrucciones_impresion.pdf"):
