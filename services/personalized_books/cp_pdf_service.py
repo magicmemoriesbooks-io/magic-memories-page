@@ -110,24 +110,92 @@ def _blank_page() -> Image.Image:
     return Image.new("RGB", (PAGE_W_PX, PAGE_H_PX), "#FFFFFF")
 
 
-def _scene_to_coloring_page(img: Image.Image, slot: int = 0) -> Image.Image:
-    """Convert a colour scene to a coloring-book outline for Option B (26p).
+def _scene_to_coloring_page(img: Image.Image, slot: int = 0, lang: str = 'es') -> Image.Image:
+    """Convert a colour scene to a coloring-book outline (Option B, 26p).
 
-    Delegates to gelato_pdf_service._scene_to_coloring_page which uses
-    FLUX Kontext Pro (Replicate) with PIL CONTOUR fallback, ensuring parity
-    with the Gelato product line coloring-page quality.
+    Primary  : FLUX Kontext Pro — clean black outlines on white background.
+    Fallback : PIL brightness ×1.6 + desaturate ×0.5 (same as QS approach).
+    Adds title bar at top (language-aware).
     """
+    from PIL import ImageEnhance, ImageDraw, ImageFont
+    import io, gc
+
+    w_px, h_px = PAGE_W_PX, PAGE_H_PX
+    scene = _fit_page(img.convert("RGB"))
+
+    coloring = None
+
     try:
-        from services.gelato_pdf_service import _scene_to_coloring_page as _gelato_scene_to_coloring
-        result = _gelato_scene_to_coloring(img, slot=slot)
-        return _fit_page(result) if result.size != (PAGE_W_PX, PAGE_H_PX) else result
-    except Exception as _import_err:
-        from PIL import ImageFilter
-        print(f"[CP PDF] gelato coloring fallback (PIL CONTOUR): {_import_err}")
-        gray = img.convert("L")
-        contour = gray.filter(ImageFilter.CONTOUR)
-        bw = contour.point(lambda p: 0 if p < 180 else 255)
-        return _fit_page(bw.convert("RGB"))
+        import replicate, httpx, requests
+        _client = replicate.Client(
+            timeout=httpx.Timeout(connect=30.0, read=300.0, write=120.0, pool=30.0)
+        )
+        buf = io.BytesIO()
+        scene.save(buf, format='PNG')
+        buf.seek(0)
+        output = _client.run(
+            'black-forest-labs/flux-kontext-pro',
+            input={
+                'input_image': buf,
+                'prompt': (
+                    'Transform this illustration into a children coloring book page. '
+                    'Keep the exact same characters, poses and composition. '
+                    'Convert to clean black outlines on pure white background. '
+                    'Remove ALL text, captions, words, letters, and overlaid text completely. '
+                    'No color, no shading, no gradients, no text anywhere. '
+                    'Simple thick black outlines suitable for a child to color in. '
+                    'Clean line art only.'
+                ),
+                'guidance': 3.5,
+                'steps': 20,
+                'output_format': 'png',
+            }
+        )
+        url = str(output)
+        resp = requests.get(url, timeout=60)
+        coloring = Image.open(io.BytesIO(resp.content)).convert('RGB')
+        coloring = coloring.resize((w_px, h_px), Image.Resampling.LANCZOS)
+        print(f'[CP COLORING] FLUX Kontext Pro coloring page: {coloring.size}')
+    except Exception as fe:
+        print(f'[CP COLORING] FLUX failed: {fe}. Using PIL fallback.')
+
+    if coloring is None:
+        enh1 = ImageEnhance.Brightness(scene)
+        tmp = enh1.enhance(1.6)
+        enh2 = ImageEnhance.Color(tmp)
+        coloring = enh2.enhance(0.5)
+        tmp.close()
+
+    scene.close()
+    gc.collect()
+
+    draw = ImageDraw.Draw(coloring)
+    title_box_h = int(h_px * 0.08)
+    draw.rectangle([(0, 0), (w_px, title_box_h)], fill=(255, 255, 255))
+
+    title = '¡Dibuja tu propia historia!' if lang == 'es' else 'Draw your own story!'
+    font = None
+    for fp in [
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+        '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
+    ]:
+        try:
+            if os.path.exists(fp):
+                font = ImageFont.truetype(fp, int(h_px * 0.032))
+                break
+        except Exception:
+            pass
+    if font is None:
+        font = ImageFont.load_default()
+
+    bb = draw.textbbox((0, 0), title, font=font)
+    tw, th = bb[2] - bb[0], bb[3] - bb[1]
+    draw.text(((w_px - tw) // 2, (title_box_h - th) // 2), title, font=font, fill=(90, 55, 145))
+
+    result = coloring.convert('RGB')
+    coloring.close()
+    gc.collect()
+    return result
 
 
 def _generate_credits_page(child_name: str, language: str = "es") -> Image.Image:
@@ -272,25 +340,7 @@ def generate_cw_cover_pdf(
     else:
         back_panel = back_img
 
-    # ── Logo on back cover ─────────────────────────────────────────────────────
-    # Always overlay the logo here so its position is controlled regardless of
-    # what was baked into the source back_cover image.
-    try:
-        if os.path.exists(LOGO_PATH):
-            _logo_img = Image.open(LOGO_PATH).convert("RGBA")
-            _logo_size = int(COV_TRIM_PX * 0.17)          # 17% of board width ≈ 37mm
-            _logo_img = _logo_img.resize((_logo_size, _logo_size), Image.Resampling.LANCZOS)
-            _safe     = int(COV_TRIM_PX * 0.05)           # 5% safe margin from right edge
-            _logo_x   = COV_TRIM_PX - _logo_size - _safe  # right-aligned
-            _logo_y   = int(COV_TRIM_H_PX * 0.65)         # 65% from top — well above bleed
-            if _logo_img.mode == "RGBA":
-                back_panel.paste(_logo_img, (_logo_x, _logo_y), _logo_img)
-            else:
-                back_panel.paste(_logo_img, (_logo_x, _logo_y))
-            _logo_img.close()
-            print(f"[CP PDF] Logo added to back panel at ({_logo_x}, {_logo_y}), size {_logo_size}px")
-    except Exception as _logo_err:
-        print(f"[CP PDF] Logo overlay skipped (non-critical): {_logo_err}")
+    # Logo is already baked into the fixed back cover PNG — no overlay needed here.
 
     # ── Spine ──────────────────────────────────────────────────────────────────
     spine_panel = Image.new("RGB", (spine_px, COV_TRIM_H_PX), SPINE_COLOR)
@@ -355,6 +405,16 @@ def generate_cw_cover_pdf(
         except Exception:
             pass
     gc.collect()
+
+    # Navy blue safety band over all 4 wrap+bleed edges.
+    # If the casewrap fold is slightly off, only solid navy blue is visible — not title or text.
+    NAVY = "#0D1428"
+    _bd = ImageDraw.Draw(spread)
+    _bd.rectangle([0,               0,               cov_w_px - 1, fill_h - 1],        fill=NAVY)  # top
+    _bd.rectangle([0,               cov_h_px - fill_h, cov_w_px - 1, cov_h_px - 1],   fill=NAVY)  # bottom
+    _bd.rectangle([0,               0,               fill_w - 1,   cov_h_px - 1],      fill=NAVY)  # left
+    _bd.rectangle([cov_w_px - fill_w, 0,             cov_w_px - 1, cov_h_px - 1],     fill=NAVY)  # right
+    del _bd
 
     buf = BytesIO()
     spread.save(buf, format="JPEG", quality=92, dpi=(DPI, DPI))
@@ -440,7 +500,7 @@ def generate_cw_content_pdf(
             img = Image.open(p).convert("RGB")
             src_tag = "clean" if p == clean_p else "visor"
             print(f"[CP PDF] coloring source for page_{visor_n}: {src_tag}")
-            return _scene_to_coloring_page(img)
+            return _scene_to_coloring_page(img, lang=language)
         print(f"[CP PDF] coloring source page_{visor_n} not found — using blank")
         return _blank_page()
 
