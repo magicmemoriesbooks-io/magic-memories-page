@@ -6070,19 +6070,24 @@ def confirm_and_send(preview_id):
             story_data = json.load(f)
         visor_url = story_data.get('visor_url', '')
         
-        if not visor_url and not story_data.get('scenes_pending', False) and not story_data.get('scenes_generating', False):
-            try:
-                print(f"[CONFIRM-SEND] No visor_url found, preparing visor for {preview_id}...")
-                from services.vps_upload_service import prepare_and_upload
-                visor_result = prepare_and_upload(story_data, preview_id, is_gift=_visor_is_gift_cs)
-                visor_url = visor_result.get('visor_url', '')
-                story_data['visor_url'] = visor_url
-                story_data['visor_uploaded'] = True
-                with open(preview_file, 'w', encoding='utf-8') as f:
-                    json.dump(story_data, f, ensure_ascii=False, indent=2)
-                print(f"[CONFIRM-SEND] Visor prepared: {visor_url}")
-            except Exception as visor_err:
-                print(f"[CONFIRM-SEND] Visor preparation failed: {visor_err}")
+        if not visor_url:
+            for _visor_attempt in range(2):
+                try:
+                    print(f"[CONFIRM-SEND] No visor_url — uploading visor (attempt {_visor_attempt + 1}/2) for {preview_id}...")
+                    from services.vps_upload_service import prepare_and_upload
+                    visor_result = prepare_and_upload(story_data, preview_id, is_gift=_visor_is_gift_cs)
+                    visor_url = visor_result.get('visor_url', '')
+                    if visor_url:
+                        story_data['visor_url'] = visor_url
+                        story_data['visor_uploaded'] = True
+                        with open(preview_file, 'w', encoding='utf-8') as f:
+                            json.dump(story_data, f, ensure_ascii=False, indent=2)
+                        print(f"[CONFIRM-SEND] Visor uploaded OK: {visor_url}")
+                        break
+                    else:
+                        print(f"[CONFIRM-SEND] Visor upload returned empty URL (attempt {_visor_attempt + 1}/2)")
+                except Exception as visor_err:
+                    print(f"[CONFIRM-SEND] Visor upload failed (attempt {_visor_attempt + 1}/2): {visor_err}")
         
         pdf_printable_path = story_data.get('pdf_printable_path')
         instructions_path_email = story_data.get('instructions_path')
@@ -10611,6 +10616,7 @@ def _process_ebook_generation(preview_id, customer_email, send_email=True):
         
         if is_qs and not send_email:
             print(f"[EBOOK] Visor uploaded for {preview_id} — skipping email (waiting for user approval)")
+            return
 
         if is_qs and send_email:
             with open(preview_file, 'r', encoding='utf-8') as f:
