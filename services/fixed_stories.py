@@ -10,7 +10,7 @@ SPARK_DESC = "SPARK: A massive baby dragon with the proportions of a puppy but t
 MAMA_DRAGON_DESC = "MAMA DRAGON: a large majestic adult female dragon with shimmering golden scales covering her entire body, warm amber eyes full of wisdom, large elegant spread wings, long graceful neck, gentle wise maternal expression, crown of small golden horns, cream-colored underbelly - she is THREE TIMES taller than the child, towering and massive"
 PUPPY_DESC = "POMPOM: a single small golden plush puppy toy with soft cream-gold fur, big round black button eyes, small floppy ears, pink embroidered nose, sweet embroidered smile - POMPOM is a STUFFED TOY not a real dog, soft and plush like a teddy bear"
 KITTEN_DESC = "MISU: a small fluffy black and white tuxedo kitten with soft fluffy fur, bright curious green eyes, tiny pink nose, pure white chest and paws, jet black back and ears - MISU is a REAL baby kitten, adorable and playful"
-LILA_DESC = "LILA: a young female zebra with a round cute cartoon face, big gentle dark brown eyes, long black eyelashes, small rounded ears, soft pink nose, short fuzzy black mane along her neck, four slender black hooves. Same height as the {gender_word}. LILA is a REAL four-legged zebra animal"
+LILA_DESC = "LILA: an adult female zebra, TALLER and BIGGER than the {gender_word}. Classic bold black and white vertical stripes covering her entire body including the short upright mane that runs along her neck and back in alternating black and white stripes. Soft light pink rounded muzzle. Four sturdy black hooves. Large warm brown eyes with long dark lashes. Graceful strong adult build, her back reaching the {gender_word}'s shoulder height, her head towering above. LILA is a REAL four-legged adult zebra animal"
 
 # Character base description template for consistent child rendering
 CHILD_BASE_DESC = """Physical characteristics of {gender_child}:
@@ -148,7 +148,7 @@ STORIES = {
     },
     "baby_first_pet": {
         "title_es": "{name} y su Primera Mascota",
-        "title_en": "{name} and Their First Pet",
+        "title_en": "{name} and {hisher} First Pet",
         "age_range": "0-1",
         "use_preview_as_cover": True,
         "preview_prompt_override": "Disney 3D Pixar-style illustration. CHARACTER: A single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_desc}, extremely chubby cheeks, round baby face, tiny hands, innocent sweet expression. WEARING: Plain soft white onesie with diaper visible. ACTION: Baby is sitting on a soft pastel blanket with MISU (a tiny baby kitten with soft fluffy ginger-orange fur with faint tabby stripes, bright curious green eyes, tiny pink nose, a real baby kitten) sitting beside the baby. MISU looks up at the baby with curious bright green eyes. ENVIRONMENT: Cozy nursery, soft pastel mint green walls, gentle sparkles floating, warm light. ATMOSPHERE: Warm dreamy magical light, soft luminous colors, gentle wonder of first meeting. STRICT: Only ONE baby, only ONE kitten MISU, baby is 100% human with completely normal body, two tiny arms, two tiny legs, smooth human skin, round human ears, normal infant anatomy, baby wearing white onesie, MISU is a separate real kitten sitting beside the baby.",
@@ -267,7 +267,7 @@ STORIES = {
     },
     "dragon_friend": {
         "title_es": "{name} y su Amigo el Dragón",
-        "title_en": "{name} and Their Dragon Friend",
+        "title_en": "{name} and {hisher} Dragon Friend",
         "age_range": "3-8",
         "text_layout": "split",
         "use_preview_as_cover": True,
@@ -407,7 +407,7 @@ STORIES = {
             },
             {
                 "text_es": "En el centro del jardín encontraron un árbol antiguo donde cada hoja brillaba con un deseo cumplido. {name} tocó una hoja y sintió calidez en el corazón.",
-                "text_en": "In the center of the garden they found an ancient tree where each leaf glowed with a fulfilled wish. {name} touched a leaf and felt warmth in their heart.",
+                "text_en": "In the center of the garden they found an ancient tree where each leaf glowed with a fulfilled wish. {name} touched a leaf and felt warmth in {hisher} heart.",
                 "fixed_scene": "scene_13_wishing_tree.png"
             },
             {
@@ -437,7 +437,7 @@ STORIES = {
             },
             {
                 "text_es": "{name} volvió a casa bajo las estrellas, pero el Jardín del Dragón siempre vivirá en su corazón. Y colorín colorado, este cuento mágico ha terminado.",
-                "text_en": "{name} returned home under the stars, but the Dragon Garden will always live in their heart. And they lived happily ever after. The End.",
+                "text_en": "{name} returned home under the stars, but the Dragon Garden will always live in {hisher} heart. And {heshe} lived happily ever after. The End.",
                 "fixed_scene": "scene_19_going_home.png"
             }
         ]
@@ -454,7 +454,7 @@ STORIES = {
         "preview_prompt_override": "Full body portrait of a cheerful {gender_word} (4-5 years old) with {hair_desc}, {eye_desc} and {skin_desc}, {gender_features}, wearing an elegant white chef jacket with golden buttons and a cute white chef's hat that has cartoon eyes and a friendly smile on it. The child is standing in a magical pink kitchen with floating cupcakes, cookies and sparkles in the air. Next to the child is Sweetie - a complete full-size rainbow layered cake character (NOT a slice) with cute cartoon eyes, a sweet smile, small arms and tiny legs. The cake has colorful rainbow layers visible. Warm magical kitchen atmosphere with golden light, floating desserts and pastries. Children's storybook watercolor illustration style, soft luminous colors, dreamy magical atmosphere. NO text, NO watermark, NO signature, NO logo, clean illustration only",
         "content_pages": [
             {"text_es": "Había una vez, en una cocina olvidada en el ático de una casa antigua, un gorro de chef muy especial. Brillaba con luz dorada, esperando a alguien con un corazón lleno de creatividad.", "text_en": "Once upon a time, in a forgotten kitchen in the attic of an old house, there was a very special chef's hat. It shimmered with golden light, waiting for someone with a heart full of creativity."},
-            {"text_es": "Cuando {name} se puso el gorro mágico, sintió un cosquilleo especial. \"¡Bienvenido al mundo de la cocina mágica!\", susurró una voz dulce desde el gorro.", "text_en": "When {name} put on the magic hat, they felt a special tingle. \"Welcome to the world of magical cooking!\" whispered a sweet voice from the hat."},
+            {"text_es": "Cuando {name} se puso el gorro mágico, sintió un cosquilleo especial. \"¡Bienvenido al mundo de la cocina mágica!\", susurró una voz dulce desde el gorro.", "text_en": "When {name} put on the magic hat, {heshe} felt a special tingle. \"Welcome to the world of magical cooking!\" whispered a sweet voice from the hat."},
             {"text_es": "De pronto, la cocina comenzó a crecer y crecer. ¡Las cucharas eran tan altas como árboles! {name} se había convertido en un pequeño chef en una cocina gigante.", "text_en": "Suddenly, the kitchen began to grow and grow. The spoons were as tall as trees! {name} had become a tiny chef in a giant kitchen."},
             {"text_es": "\"¡Tu primera misión es hacer un pastel de arcoíris!\", dijo el gorro. {name} encontró ingredientes mágicos: harina de estrellas, azúcar de nubes y huevos de sol.", "text_en": "\"Your first mission is to make a rainbow cake!\" said the hat. {name} found magical ingredients: star flour, cloud sugar, and sun eggs."},
             {"text_es": "{name} mezcló los ingredientes con una cuchara mágica que bailaba sola. La masa brillaba con todos los colores del arcoíris mientras se mezclaba.", "text_en": "{name} mixed the ingredients with a magic spoon that danced by itself. The batter glowed with all the colors of the rainbow as it mixed."},
@@ -466,12 +466,12 @@ STORIES = {
             {"text_es": "El concurso era en un castillo hecho completamente de caramelo y chocolate. Las torres eran bastones de caramelo gigantes.", "text_en": "The contest was in a castle made entirely of candy and chocolate. The towers were giant candy canes."},
             {"text_es": "Había chefs de todas partes: elfos pasteleros, hadas cocineras y hasta un oso de gomita que hacía pasteles de miel.", "text_en": "There were chefs from everywhere: pastry elves, fairy cooks, and even a gummy bear that made honey cakes."},
             {"text_es": "\"El reto es crear el postre más delicioso del mundo\", anunció la juez, una amable abuelita hecha de mazapán con ojos de caramelo.", "text_en": "\"The challenge is to create the most delicious dessert in the world,\" announced the judge, a kind grandmother made of marzipan with candy eyes."},
-            {"text_es": "{name} cerró los ojos y pensó en lo que más amaba: su familia, sus amigos, los momentos felices. \"¡Ya sé qué haré!\", exclamó.", "text_en": "{name} closed their eyes and thought about what they loved most: family, friends, happy moments. \"I know what I'll make!\" they exclaimed."},
-            {"text_es": "Con ingredientes mágicos y todo su amor, {name} creó el \"Pastel de los Recuerdos Felices\": capas de alegría, relleno de abrazos y glaseado de sonrisas.", "text_en": "With magical ingredients and all their love, {name} created the \"Happy Memories Cake\": layers of joy, filling of hugs, and frosting of smiles."},
+            {"text_es": "{name} cerró los ojos y pensó en lo que más amaba: su familia, sus amigos, los momentos felices. \"¡Ya sé qué haré!\", exclamó.", "text_en": "{name} closed {hisher} eyes and thought about what {heshe} loved most: family, friends, happy moments. \"I know what I'll make!\" {heshe} exclaimed."},
+            {"text_es": "Con ingredientes mágicos y todo su amor, {name} creó el \"Pastel de los Recuerdos Felices\": capas de alegría, relleno de abrazos y glaseado de sonrisas.", "text_en": "With magical ingredients and all {hisher} love, {name} created the \"Happy Memories Cake\": layers of joy, filling of hugs, and frosting of smiles."},
             {"text_es": "Cuando los jueces probaron el pastel de {name}, lágrimas de felicidad rodaron por sus mejillas. Cada bocado traía un recuerdo hermoso.", "text_en": "When the judges tasted {name}'s cake, tears of happiness rolled down their cheeks. Each bite brought back a beautiful memory."},
             {"text_es": "\"¡El ganador es Chef {name}!\", anunció la abuelita de mazapán. \"Has descubierto el ingrediente secreto: el amor.\"", "text_en": "\"The winner is Chef {name}!\" announced the marzipan grandmother. \"You discovered the secret ingredient: love.\""},
             {"text_es": "\"Nunca olvides\", susurró el gorro mágico, \"que la verdadera magia está en cocinar con el corazón y compartir con los demás.\"", "text_en": "\"Never forget,\" whispered the magic hat, \"that true magic is cooking with your heart and sharing with others.\""},
-            {"text_es": "{name} regresó a casa con su gorro mágico y una receta especial en el corazón. Y colorín colorado, este cuento delicioso ha terminado.", "text_en": "{name} returned home with the magic hat and a special recipe in their heart. And they lived sweetly ever after. The End."}
+            {"text_es": "{name} regresó a casa con su gorro mágico y una receta especial en el corazón. Y colorín colorado, este cuento delicioso ha terminado.", "text_en": "{name} returned home with the magic hat and a special recipe in {hisher} heart. And {heshe} lived sweetly ever after. The End."}
         ]
     },
     "magic_inventor_illustrated": {
@@ -485,7 +485,7 @@ STORIES = {
         "scenes_dir": "generated",
         "preview_prompt_override": "Full body portrait of a cheerful {gender_word} (6-8 years old) with {hair_desc}, {eye_desc} and {skin_desc}, {gender_features}, wearing a brown leather inventor apron over a striped shirt with rolled-up sleeves, comfortable pants, sturdy boots, and small goggles pushed up on forehead. The child is standing in a magical inventor workshop with floating golden gears, crystal tubes with colorful glowing liquids, copper pipes, and warm golden light. Next to the child is BOLT - a small round copper-colored robot with a spherical body, two big glowing blue LED eyes, two short articulated metallic arms, two short stumpy metallic legs, a small antenna on top with a blinking light, rivets and gears visible, NO tail. Warm magical workshop atmosphere with copper and golden tones, sparkling metallic particles. Children's storybook watercolor illustration style, soft luminous colors, dreamy magical atmosphere. NO text, NO watermark, NO signature, NO logo, clean illustration only",
         "content_pages": [
-            {"text_es": "En lo más alto de una vieja casona, {name} descubrió una puerta secreta detrás de una estantería polvorienta. Al abrirla, una luz dorada y chispas de colores salieron desde el interior.", "text_en": "At the very top of an old manor house, {name} discovered a secret door behind a dusty bookshelf. When they opened it, golden light and colorful sparks burst from inside."},
+            {"text_es": "En lo más alto de una vieja casona, {name} descubrió una puerta secreta detrás de una estantería polvorienta. Al abrirla, una luz dorada y chispas de colores salieron desde el interior.", "text_en": "At the very top of an old manor house, {name} discovered a secret door behind a dusty bookshelf. When {heshe} opened it, golden light and colorful sparks burst from inside."},
             {"text_es": "¡Era un taller mágico lleno de inventos asombrosos! Engranajes dorados flotaban por el aire, tubos de cristal brillaban con líquidos de colores y herramientas mágicas se movían solas.", "text_en": "It was a magical workshop full of amazing inventions! Golden gears floated in the air, crystal tubes glowed with colorful liquids, and magical tools moved on their own."},
             {"text_es": "De pronto, una pequeña esfera de cobre rodó hasta los pies de {name}. Se abrió y de ella surgió un simpático robot con ojos azules brillantes. \"¡Hola! Soy BOLT\", dijo con voz metálica y alegre.", "text_en": "Suddenly, a small copper sphere rolled to {name}'s feet. It opened up and out came a friendly little robot with bright blue eyes. \"Hello! I'm BOLT,\" it said with a cheerful metallic voice."},
             {"text_es": "BOLT le mostró a {name} el Mapa de los Inventos Perdidos, un pergamino brillante donde aparecían máquinas fantásticas esperando ser reconstruidas por un inventor valiente.", "text_en": "BOLT showed {name} the Map of Lost Inventions, a glowing scroll where fantastic machines appeared, waiting to be rebuilt by a brave inventor."},
@@ -546,7 +546,7 @@ STORIES = {
                 "text_above_es": "Pasaron los días y una mañana, mientras {pet_name} observaba la cuna, sucedió algo increíble.",
                 "text_below_es": "{name} abrió bien los ojos, miró directamente a {pet_name}... ¡y sonrió! La primera sonrisa de {name} fue para {pet_name}.",
                 "text_above_en": "Days passed and one morning, while {pet_name} watched the crib, something incredible happened.",
-                "text_below_en": "{name} opened their eyes wide, looked straight at {pet_name}... and smiled! {name}'s first smile was for {pet_name}."
+                "text_below_en": "{name} opened {hisher} eyes wide, looked straight at {pet_name}... and smiled! {name}'s first smile was for {pet_name}."
             },
             {
                 "text_above_es": "{pet_name} desapareció un momento y volvió con su juguete más preciado. Lo dejó suavemente junto a {name}.",
@@ -569,7 +569,7 @@ STORIES = {
             {
                 "text_above_es": "Durante el tiempo boca abajo, {name} levantó la cabecita por primera vez. ¿Y qué vio?",
                 "text_below_es": "A {pet_name}, echado en el suelo, nariz con nariz. {name} y {pet_name} se miraron durante un largo momento mágico, como si se contaran secretos sin palabras.",
-                "text_above_en": "During tummy time, {name} lifted their little head for the first time. And what did they see?",
+                "text_above_en": "During tummy time, {name} lifted {hisher} little head for the first time. And what did {heshe} see?",
                 "text_below_en": "{pet_name}, lying on the floor, nose to nose. {name} and {pet_name} looked at each other for a long magical moment, as if sharing secrets without words."
             },
             {
@@ -611,13 +611,13 @@ STORIES = {
             {
                 "text_above_es": "Y entonces llegó el día más esperado. {name} se soltó de la mesa, abrió los brazos... ¡y caminó!",
                 "text_below_es": "Uno, dos, tres pasitos tambaleantes. ¿Hacia dónde? Hacia {pet_name}. Los primeros pasos de {name} fueron para llegar a {pet_name}.",
-                "text_above_en": "And then came the most awaited day. {name} let go of the table, opened their arms... and walked!",
+                "text_above_en": "And then came the most awaited day. {name} let go of the table, opened {hisher} arms... and walked!",
                 "text_below_en": "One, two, three wobbly steps. Where to? Toward {pet_name}. {name}'s first steps were to reach {pet_name}."
             },
             {
                 "text_above_es": "\"¡Busca, {pet_name}!\" {name} lanzó la pelota con toda su fuerza. La pelota rodó apenas un metro.",
                 "text_below_es": "Pero {pet_name} salió corriendo como si fuera el lanzamiento más épico del mundo, la trajo de vuelta y la dejó a los pies de {name}. Una y otra y otra vez.",
-                "text_above_en": "\"Fetch, {pet_name}!\" {name} threw the ball with all their might. The ball rolled barely three feet.",
+                "text_above_en": "\"Fetch, {pet_name}!\" {name} threw the ball with all {hisher} might. The ball rolled barely three feet.",
                 "text_below_en": "But {pet_name} took off running as if it were the most epic throw in the world, brought it back and placed it at {name}'s feet. Again and again and again."
             },
             {
@@ -649,13 +649,13 @@ STORIES = {
             {
                 "text_above_es": "Una mañana de sábado, {name} abrió los ojos y sintió algo cálido y suave acurrucado a sus pies.",
                 "text_below_es": "Era {pet_name}, que ya llevaba un rato despierto, esperando con paciencia a que su mejor amigo se levantara.",
-                "text_above_en": "One Saturday morning, {name} opened their eyes and felt something warm and soft curled up at their feet.",
+                "text_above_en": "One Saturday morning, {name} opened {hisher} eyes and felt something warm and soft curled up at {hisher} feet.",
                 "text_below_en": "It was {pet_name}, who had been awake for a while, patiently waiting for their best friend to wake up."
             },
             {
                 "text_above_es": "\"¡Hoy vamos a tener una aventura!\", dijo {name} saltando de la cama. Después del desayuno, tomó la correa y {pet_name} ya estaba esperando junto a la puerta, dando vueltas de emoción.",
                 "text_below_es": "El parque los llamaba.",
-                "text_above_en": "\"Today we're going on an adventure!\" said {name}, jumping out of bed. After breakfast, they grabbed the leash and {pet_name} was already waiting by the door, spinning with excitement.",
+                "text_above_en": "\"Today we're going on an adventure!\" said {name}, jumping out of bed. After breakfast, {heshe} grabbed the leash and {pet_name} was already waiting by the door, spinning with excitement.",
                 "text_below_en": "The park was calling."
             },
             {
@@ -715,13 +715,13 @@ STORIES = {
             {
                 "text_above_es": "{name} iba adelante con el mapa y {pet_name} caminaba pegado a sus piernas. El sendero terminó frente a un pequeño puente de madera que cruzaba un arroyo de agua cristalina.",
                 "text_below_es": "El puente crujía con el viento. {pet_name} puso una pata y retrocedió asustado.",
-                "text_above_en": "{name} walked ahead with the map and {pet_name} stayed close to their legs. The trail ended at a small wooden bridge crossing a crystal-clear stream.",
+                "text_above_en": "{name} walked ahead with the map and {pet_name} stayed close to {hisher} legs. The trail ended at a small wooden bridge crossing a crystal-clear stream.",
                 "text_below_en": "The bridge creaked in the wind. {pet_name} put one paw on it and backed away, scared."
             },
             {
                 "text_above_es": "{name} acarició la cabeza de {pet_name} con suavidad. \"No tengas miedo, yo estoy contigo\", le susurró.",
                 "text_below_es": "Entonces tomó a {pet_name} en brazos con cuidado y empezó a cruzar el puente paso a paso. {pet_name} se acurrucó contra su pecho, cerrando los ojos con confianza.",
-                "text_above_en": "{name} gently stroked {pet_name}'s head. \"Don't be afraid, I'm with you,\" they whispered.",
+                "text_above_en": "{name} gently stroked {pet_name}'s head. \"Don't be afraid, I'm with you,\" {heshe} whispered.",
                 "text_below_en": "Then {name} carefully picked up {pet_name} and started crossing the bridge step by step. {pet_name} nestled against their chest, closing their eyes with trust."
             },
             {
@@ -739,13 +739,13 @@ STORIES = {
             {
                 "text_above_es": "{name} sonrió y abrazó a {pet_name}. \"Eso somos nosotros\", dijo con orgullo. Detrás de la piedra, escondida en un hueco, había una caja dorada.",
                 "text_below_es": "Dentro encontró un medallón con la forma de una estrella y una bolsita de galletas especiales para {pet_name}.",
-                "text_above_en": "{name} smiled and hugged {pet_name}. \"That's us,\" they said proudly. Behind the stone, hidden in a hollow, was a golden box.",
+                "text_above_en": "{name} smiled and hugged {pet_name}. \"That's us,\" {heshe} said proudly. Behind the stone, hidden in a hollow, was a golden box.",
                 "text_below_en": "Inside was a star-shaped medallion and a little bag of special treats for {pet_name}."
             },
             {
                 "text_above_es": "{name} se puso el medallón al cuello. En el medallón estaban grabadas dos palabras: \"Mejores Amigos\".",
                 "text_below_es": "El sol empezaba a esconderse cuando {name} y {pet_name} tomaron el camino de vuelta a casa. El cielo se pintó de naranja, rosa y morado.",
-                "text_above_en": "{name} put the medallion around their neck. On the medallion were carved two words: \"Best Friends.\"",
+                "text_above_en": "{name} put the medallion around {hisher} neck. On the medallion were carved two words: \"Best Friends.\"",
                 "text_below_en": "The sun was starting to set when {name} and {pet_name} took the path back home. The sky turned orange, pink, and purple."
             },
             {
@@ -757,14 +757,14 @@ STORIES = {
             {
                 "text_above_es": "\"¡Pero qué les pasó!\", exclamó mamá. \"Solo fuimos a dar un paseo al parque\", dijo {name} con una sonrisa pícara. Después de un buen baño, {name} se acurrucó en el sofá con {pet_name} a su lado.",
                 "text_below_es": "\"Mañana buscaremos otra aventura\", susurró {name} con los ojos cerrándose de sueño. Y así, los dos mejores amigos se quedaron dormidos, soñando con su próxima gran aventura.",
-                "text_above_en": "\"What happened to you two!\" exclaimed mom. \"We just went for a walk in the park,\" said {name} with a mischievous smile. After a good bath, {name} curled up on the couch with {pet_name} beside them.",
-                "text_below_en": "\"Tomorrow we'll find another adventure,\" whispered {name} as their eyes closed with sleep. And so, the two best friends fell asleep, dreaming of their next great adventure."
+                "text_above_en": "\"What happened to you two!\" exclaimed mom. \"We just went for a walk in the park,\" said {name} with a mischievous smile. After a good bath, {name} curled up on the couch with {pet_name} beside {herhim}.",
+                "text_below_en": "\"Tomorrow we'll find another adventure,\" whispered {name} as {hisher} eyes closed with sleep. And so, the two best friends fell asleep, dreaming of their next great adventure."
             }
         ],
     },
     "furry_love_teen_illustrated": {
         "title_es": "{name} y su compañero fiel {pet_name}",
-        "title_en": "{name} and Their Faithful Companion {pet_name}",
+        "title_en": "{name} and {hisher} Faithful Companion {pet_name}",
         "age_range": "10-19",
         "book_type": "illustrated",
         "price": 65,
@@ -783,14 +783,14 @@ STORIES = {
             {
                 "text_above_es": "Pero {name} ya no era un niño pequeño. Ahora tenía su celular, sus videojuegos y sus amigos del colegio.",
                 "text_below_es": "{pet_name} se acercaba moviendo la cola, pero {name} apenas levantaba la vista de la pantalla. \"Ahora no, {pet_name}\", decía sin mirar.",
-                "text_above_en": "But {name} wasn't a little kid anymore. Now they had their phone, video games, and school friends.",
-                "text_below_en": "{pet_name} would come over wagging their tail, but {name} barely looked up from the screen. \"Not now, {pet_name},\" they'd say without looking."
+                "text_above_en": "But {name} wasn't a little kid anymore. Now {heshe} had {hisher} phone, video games, and school friends.",
+                "text_below_en": "{pet_name} would come over wagging their tail, but {name} barely looked up from the screen. \"Not now, {pet_name},\" {heshe}'d say without looking."
             },
             {
                 "text_above_es": "{pet_name} no se rendía fácilmente. Un día, mientras {name} escribía un mensaje importante, {pet_name} se acercó sigilosamente y...",
                 "text_below_es": "¡ZAS! Le robó el celular de las manos con la boca y salió corriendo a toda velocidad por el pasillo.",
                 "text_above_en": "{pet_name} didn't give up easily. One day, while {name} was typing an important message, {pet_name} crept up silently and...",
-                "text_below_en": "SNAP! Snatched the phone right out of their hands and took off running down the hallway at full speed."
+                "text_below_en": "SNAP! Snatched the phone right out of {hisher} hands and took off running down the hallway at full speed."
             },
             {
                 "text_above_es": "\"¡{pet_name}, devuélveme el celular!\" gritó {name} persiguiéndolo por toda la casa. {pet_name} esquivaba muebles como un profesional, saltaba sobre el sofá y se metía debajo de la mesa.",
@@ -807,31 +807,31 @@ STORIES = {
             {
                 "text_above_es": "{name} suspiró y movió a {pet_name} con cuidado. \"Eres imposible\", le dijo, pero le dio una caricia rápida en la cabeza antes de volver a la tarea.",
                 "text_below_es": "{pet_name} meneó la cola. Esa caricia era un pequeño triunfo.",
-                "text_above_en": "{name} sighed and gently moved {pet_name} aside. \"You're impossible,\" they said, but gave a quick pat on the head before going back to homework.",
+                "text_above_en": "{name} sighed and gently moved {pet_name} aside. \"You're impossible,\" {heshe} said, but gave a quick pat on the head before going back to homework.",
                 "text_below_en": "{pet_name} wagged their tail. That little pat was a small victory."
             },
             {
                 "text_above_es": "Pero la Operación Atención no había terminado. A la mañana siguiente, {name} buscaba sus calcetines por toda la habitación. \"¡Juro que los dejé aquí!\"",
                 "text_below_es": "Cuando miró debajo de la cama, encontró un tesoro escondido: tres pares de calcetines, un guante, y la gorra favorita de {name}. Todo en la cama de {pet_name}.",
-                "text_above_en": "But Operation Attention wasn't over. The next morning, {name} searched the whole room for their socks. \"I swear I left them here!\"",
-                "text_below_en": "When they looked under the bed, they found a hidden treasure: three pairs of socks, a glove, and {name}'s favorite cap. All in {pet_name}'s bed."
+                "text_above_en": "But Operation Attention wasn't over. The next morning, {name} searched the whole room for {hisher} socks. \"I swear I left them here!\"",
+                "text_below_en": "When {heshe} looked under the bed, {heshe} found a hidden treasure: three pairs of socks, a glove, and {name}'s favorite cap. All in {pet_name}'s bed."
             },
             {
                 "text_above_es": "\"¡{pet_name}!\" exclamó {name}, pero {pet_name} lo miraba con cara de ángel. Esos ojos grandes e inocentes eran su mejor arma.",
                 "text_below_es": "{name} negó con la cabeza, pero una sonrisa se le escapó. Recogió sus cosas y le rascó las orejas a {pet_name}. \"Eres un pequeño ladrón.\"",
-                "text_above_en": "\"Oh, {pet_name}!\" exclaimed {name}, but {pet_name} looked at them with an angel face. Those big innocent eyes were their best weapon.",
-                "text_below_en": "{name} shook their head, but a smile escaped. They gathered their things and scratched {pet_name}'s ears. \"You're a little thief.\""
+                "text_above_en": "\"Oh, {pet_name}!\" exclaimed {name}, but {pet_name} looked at {herhim} with an angel face. Those big innocent eyes were their best weapon.",
+                "text_below_en": "{name} shook {hisher} head, but a smile escaped. {heshe} gathered {hisher} things and scratched {pet_name}'s ears. \"You're a little thief.\""
             },
             {
                 "text_above_es": "Pasaron los días y {name} volvió a su rutina: colegio, celular, videojuegos, repetir.",
                 "text_below_es": "{pet_name} empezó a pasar más tiempo solo, echado junto a la puerta del cuarto de {name}, esperando. A veces se quedaba dormido ahí, con la nariz pegada a la rendija de la puerta.",
-                "text_above_en": "Days passed and {name} went back to their routine: school, phone, video games, repeat.",
+                "text_above_en": "Days passed and {name} went back to {hisher} routine: school, phone, video games, repeat.",
                 "text_below_en": "{pet_name} started spending more time alone, lying by {name}'s bedroom door, waiting. Sometimes they fell asleep there, nose pressed against the gap under the door."
             },
             {
                 "text_above_es": "Una tarde, {name} notó que algo era diferente. {pet_name} no vino a saludarlo cuando llegó del colegio. No le robó nada. No se subió a ningún mueble.",
                 "text_below_es": "{name} lo encontró acurrucado en su camita, con los ojos tristes y la nariz caliente. {pet_name} no se sentía bien.",
-                "text_above_en": "One afternoon, {name} noticed something was different. {pet_name} didn't come to greet them when they got home from school. Didn't steal anything. Didn't climb on any furniture.",
+                "text_above_en": "One afternoon, {name} noticed something was different. {pet_name} didn't come to greet {herhim} when {heshe} got home from school. Didn't steal anything. Didn't climb on any furniture.",
                 "text_below_en": "{name} found them curled up in their little bed, with sad eyes and a warm nose. {pet_name} wasn't feeling well."
             },
             {
@@ -849,8 +849,8 @@ STORIES = {
             {
                 "text_above_es": "De vuelta en casa, {name} preparó el lugar más cómodo del mundo para {pet_name}: almohadas, mantas suaves y su camiseta favorita para que tuviera su olor cerca.",
                 "text_below_es": "Se sentó a su lado y le acarició la cabeza durante horas, sin mirar el celular ni una sola vez.",
-                "text_above_en": "Back home, {name} set up the coziest spot in the world for {pet_name}: pillows, soft blankets, and their favorite t-shirt so {pet_name} could have their scent nearby.",
-                "text_below_en": "They sat beside them and stroked their head for hours, without looking at the phone even once."
+                "text_above_en": "Back home, {name} set up the coziest spot in the world for {pet_name}: pillows, soft blankets, and {hisher} favorite t-shirt so {pet_name} could have {hisher} scent nearby.",
+                "text_below_en": "{heshe} sat beside {herhim} and stroked their head for hours, without looking at the phone even once."
             },
             {
                 "text_above_es": "Esa noche, {name} no pudo dormir. Se quedó pensando en todos los momentos en que {pet_name} había intentado llamar su atención: el celular robado, el teclado invadido, los calcetines escondidos.",
@@ -861,7 +861,7 @@ STORIES = {
             {
                 "text_above_es": "A la mañana siguiente, {name} hizo algo que no hacía en meses: se despertó temprano, guardó el celular en un cajón y dijo: \"{pet_name}, hoy es TU día.\"",
                 "text_below_es": "{pet_name} levantó las orejas, ladeó la cabeza y meneó la cola como un helicóptero. ¿Había escuchado bien?",
-                "text_above_en": "The next morning, {name} did something they hadn't done in months: woke up early, put the phone in a drawer, and said: \"{pet_name}, today is YOUR day.\"",
+                "text_above_en": "The next morning, {name} did something {heshe} hadn't done in months: woke up early, put the phone in a drawer, and said: \"{pet_name}, today is YOUR day.\"",
                 "text_below_en": "{pet_name} perked up their ears, tilted their head, and wagged their tail like a helicopter. Had they heard right?"
             },
             {
@@ -879,13 +879,13 @@ STORIES = {
             {
                 "text_above_es": "{name} tomó el celular, pero esta vez para algo diferente: le sacó una foto a {pet_name} con una sonrisa enorme. \"Esta va directo a mi fondo de pantalla\", dijo.",
                 "text_below_es": "Y escribió una nueva regla en un papel que pegó en la pared: \"Regla #1: Todos los días, tiempo con {pet_name}.\"",
-                "text_above_en": "{name} picked up the phone, but this time for something different: they took a photo of {pet_name} with a huge smile. \"This is going straight to my wallpaper,\" they said.",
-                "text_below_en": "And they wrote a new rule on paper and stuck it on the wall: \"Rule #1: Every day, time with {pet_name}.\""
+                "text_above_en": "{name} picked up the phone, but this time for something different: {heshe} took a photo of {pet_name} with a huge smile. \"This is going straight to my wallpaper,\" {heshe} said.",
+                "text_below_en": "And {heshe} wrote a new rule on paper and stuck it on the wall: \"Rule #1: Every day, time with {pet_name}.\""
             },
             {
                 "text_above_es": "Esa noche, {name} se acostó con {pet_name} acurrucado a sus pies, exactamente como cuando era pequeño. Pero ahora era diferente. Ahora {name} sabía algo que antes no entendía:",
                 "text_below_es": "que el amor de una mascota no pide nada a cambio, solo pide estar cerca. Y {name} prometió no volver a olvidarlo jamás.",
-                "text_above_en": "That night, {name} went to bed with {pet_name} curled up at their feet, just like when they were little. But now it was different. Now {name} understood something they hadn't before:",
+                "text_above_en": "That night, {name} went to bed with {pet_name} curled up at {hisher} feet, just like when {heshe} was little. But now it was different. Now {name} understood something {heshe} hadn't before:",
                 "text_below_en": "that a pet's love asks for nothing in return, it only asks to be close. And {name} promised never to forget that again."
             }
         ],
@@ -929,7 +929,7 @@ STORIES = {
             {
                 "text_above_es": "{name} se detuvo al ver marcas en el suelo. \"Mira, {pet_name}, huellas de venado.\"",
                 "text_below_es": "{pet_name} olfateó las huellas con concentración profesional, como si estuviera resolviendo un caso de detectives.",
-                "text_above_en": "{name} stopped when they noticed marks on the ground. \"Look, {pet_name}, deer tracks.\"",
+                "text_above_en": "{name} stopped when {heshe} noticed marks on the ground. \"Look, {pet_name}, deer tracks.\"",
                 "text_below_en": "{pet_name} sniffed the tracks with professional concentration, as if solving a detective case."
             },
             {
@@ -960,7 +960,7 @@ STORIES = {
                 "text_above_es": "Después de una hora de subida, llegaron a un mirador. El valle se extendía debajo de ellos como una alfombra de verdes infinitos.",
                 "text_below_es": "{name} se sentó en una roca y {pet_name} se echó a sus pies. Por un momento, el silencio fue perfecto.",
                 "text_above_en": "After an hour of climbing, they reached a lookout point. The valley spread below them like an endless carpet of greens.",
-                "text_below_en": "{name} sat on a rock and {pet_name} lay at their feet. For a moment, the silence was perfect."
+                "text_below_en": "{name} sat on a rock and {pet_name} lay at {hisher} feet. For a moment, the silence was perfect."
             },
             {
                 "text_above_es": "{name} sacó sándwiches de la mochila y le dio a {pet_name} sus galletas favoritas. Comieron juntos mirando las montañas, el viento suave trayendo olor a flores silvestres.",
@@ -984,7 +984,7 @@ STORIES = {
                 "text_above_es": "Antes del atardecer, bajaron hasta el río. El agua corría entre piedras grandes formando pequeñas cascadas. {pet_name} metió las patas al agua fría y salpicó de alegría.",
                 "text_below_es": "{name} se quitó las botas y metió los pies, sintiendo cómo el agua fresca le devolvía la vida.",
                 "text_above_en": "Before sunset, they went down to the river. Water flowed between large rocks forming small waterfalls. {pet_name} dipped their paws in the cold water and splashed with joy.",
-                "text_below_en": "{name} took off their boots and dipped their feet, feeling the cool water bring them back to life."
+                "text_below_en": "{name} took off {hisher} boots and dipped {hisher} feet, feeling the cool water bring {herhim} back to life."
             },
             {
                 "text_above_es": "De vuelta al campamento, el cielo se pintó de naranjas y morados. {name} y {pet_name} se sentaron juntos mirando cómo el sol se escondía detrás de las montañas.",
@@ -1002,13 +1002,13 @@ STORIES = {
                 "text_above_es": "{name} se acostó sobre una manta mirando las estrellas. Miles de puntos brillantes llenaban el cielo como nunca los había visto en la ciudad.",
                 "text_below_es": "{pet_name} se acostó a su lado, y {name} sintió el calor de su compañero en la noche fría.",
                 "text_above_en": "{name} lay on a blanket looking at the stars. Thousands of brilliant points filled the sky like they'd never seen in the city.",
-                "text_below_en": "{pet_name} lay beside them, and {name} felt the warmth of their companion in the cold night."
+                "text_below_en": "{pet_name} lay beside {herhim}, and {name} felt the warmth of their companion in the cold night."
             },
             {
                 "text_above_es": "{name} despertó con el sol entrando por la tienda y algo pesado sobre sus piernas: {pet_name} dormía atravesado, roncando suavemente.",
                 "text_below_es": "Afuera, el bosque cantaba con pájaros y el aire frío olía a rocío. {name} sonrió. No quería estar en ningún otro lugar.",
-                "text_above_en": "{name} woke up with sunlight streaming into the tent and something heavy on their legs: {pet_name} was sleeping sideways across them, snoring softly.",
-                "text_below_en": "Outside, the forest sang with birds and the cold air smelled of dew. {name} smiled. They didn't want to be anywhere else."
+                "text_above_en": "{name} woke up with sunlight streaming into the tent and something heavy on {hisher} legs: {pet_name} was sleeping sideways across {herhim}, snoring softly.",
+                "text_below_en": "Outside, the forest sang with birds and the cold air smelled of dew. {name} smiled. {heshe} didn't want to be anywhere else."
             },
             {
                 "text_above_es": "Con la mochila llena de recuerdos y el corazón lleno de paz, {name} emprendió el camino de vuelta. {pet_name} caminaba a su lado con paso firme, como un compañero que dice: \"A donde vayas, voy contigo.\"",
@@ -1029,7 +1029,7 @@ STORIES = {
         "scenes_dir": "generated",
         "preview_prompt_override": "Full body portrait of a cheerful {gender_word} (6-7 years old) with {hair_desc}, {eye_desc} and {skin_desc}, {gender_features}, wearing a deep blue explorer jacket with silver star buttons over a white shirt, dark pants and sturdy boots, a small silver compass pendant around neck. The child is standing at the entrance of an old stone lighthouse on a dramatic clifftop at twilight, with a magnificent starry sky above. Next to the child is LUNA - a small five-pointed star the size of a child's hand, made of shimmering silver-white light, two big expressive violet-purple glowing eyes, two tiny translucent iridescent wings that leave a trail of moon dust, a small comet-like tail that softly pulses with warm light. Dreamy celestial atmosphere with deep blue and violet tones, golden and silver sparkles. Children's storybook watercolor illustration style, soft luminous colors, dreamy magical atmosphere. NO text, NO watermark, NO signature, NO logo, clean illustration only",
         "content_pages": [
-            {"text_es": "En lo alto de un acantilado frente al mar, {name} descubrió un viejo faro abandonado. Su puerta se abrió sola, invitándole a entrar con un resplandor azul misterioso.", "text_en": "On a clifftop overlooking the sea, {name} discovered an old abandoned lighthouse. Its door opened by itself, inviting them inside with a mysterious blue glow."},
+            {"text_es": "En lo alto de un acantilado frente al mar, {name} descubrió un viejo faro abandonado. Su puerta se abrió sola, invitándole a entrar con un resplandor azul misterioso.", "text_en": "On a clifftop overlooking the sea, {name} discovered an old abandoned lighthouse. Its door opened by itself, inviting {herhim} inside with a mysterious blue glow."},
             {"text_es": "Dentro del faro había un telescopio gigante cubierto de polvo de estrellas. Al tocarlo, el techo se abrió revelando un cielo nocturno lleno de constelaciones brillantes.", "text_en": "Inside the lighthouse was a giant telescope covered in stardust. When {name} touched it, the roof opened up revealing a night sky full of brilliant constellations."},
             {"text_es": "De pronto, una pequeña estrella cayó del cielo y aterrizó suavemente en las manos de {name}. \"¡Hola! Soy LUNA\", susurró con voz dulce y cristalina.", "text_en": "Suddenly, a small star fell from the sky and landed softly in {name}'s hands. \"Hello! I'm LUNA,\" it whispered with a sweet, crystal-clear voice."},
             {"text_es": "LUNA le explicó que las estrellas se estaban apagando porque el Gran Reloj Celestial se había detenido. Sin él, la noche perdería toda su luz para siempre.", "text_en": "LUNA explained that the stars were going out because the Great Celestial Clock had stopped. Without it, the night would lose all its light forever."},
@@ -1047,7 +1047,7 @@ STORIES = {
             {"text_es": "{name} colocó las tres llaves en el reloj. Los engranajes comenzaron a girar y una onda de luz dorada y plateada se expandió por todo el cielo nocturno.", "text_en": "{name} placed the three keys into the clock. The gears began to turn and a wave of golden and silver light expanded across the entire night sky."},
             {"text_es": "¡Las estrellas volvieron a brillar! Miles de estrellas se encendieron una por una, y el cielo se llenó de constelaciones más hermosas que nunca, bailando en la oscuridad.", "text_en": "The stars shone again! Thousands of stars lit up one by one, and the sky filled with constellations more beautiful than ever, dancing in the darkness."},
             {"text_es": "\"Siempre que mires al cielo, recuerda que tú salvaste las estrellas\", susurró LUNA, brillando más fuerte que nunca. \"La luz más poderosa vive en tu corazón.\"", "text_en": "\"Whenever you look at the sky, remember that you saved the stars,\" LUNA whispered, shining brighter than ever. \"The most powerful light lives in your heart.\""},
-            {"text_es": "{name} volvió a casa abrazando la luz de LUNA en su pecho. Desde esa noche, una estrella nueva brilla en el cielo con el nombre de un guardián muy especial. Y colorín colorado, este cuento estelar ha terminado.", "text_en": "{name} returned home holding LUNA's light close to their heart. From that night on, a new star shines in the sky bearing the name of a very special guardian. And they all lived happily ever after. The End."}
+            {"text_es": "{name} volvió a casa abrazando la luz de LUNA en su pecho. Desde esa noche, una estrella nueva brilla en el cielo con el nombre de un guardián muy especial. Y colorín colorado, este cuento estelar ha terminado.", "text_en": "{name} returned home holding LUNA's light close to {hisher} heart. From that night on, a new star shines in the sky bearing the name of a very special guardian. And {heshe} lived happily ever after. The End."}
         ]
     },
     "centinela_aurora_illustrated": {
@@ -1063,23 +1063,23 @@ STORIES = {
         "content_pages": [
             {"text_es": "Una noche, mientras el mundo dormía, {name} descubrió algo asombroso bajo su cama: una brújula de oro que vibraba con un suave murmullo. Su flecha no señalaba el norte, sino que apuntaba con insistencia hacia la ventana.", "text_en": "One night, while the world slept, {name} discovered something amazing under the bed: a golden compass vibrating with a soft hum. Its arrow didn't point north—it pointed insistently toward the window."},
             {"text_es": "Al saltar al jardín, una luz azulada iluminó las flores. Era Astro, un pequeño zorro con cola de estrellas que necesitaba ayuda urgentemente. «Los sueños se están apagando, {name}», susurró con voz cristalina.", "text_en": "Jumping into the garden, a blue light lit up the flowers. It was Astro, a tiny fox with a star tail who urgently needed help. 'The dreams are fading, {name},' they whispered in a crystal-clear voice."},
-            {"text_es": "Astro tocó el viejo roble del jardín y la corteza se transformó en un portal de nubes irisadas. {name} sintió un cosquilleo de emoción en el estómago y, sin dudarlo, tomó la pata de su nuevo amigo y saltaron juntos.", "text_en": "Astro touched the old oak tree and the bark transformed into a portal of iridescent clouds. {name} felt a tingle of excitement and, without hesitation, took their new friend's paw and they jumped together."},
+            {"text_es": "Astro tocó el viejo roble del jardín y la corteza se transformó en un portal de nubes irisadas. {name} sintió un cosquilleo de emoción en el estómago y, sin dudarlo, tomó la pata de su nuevo amigo y saltaron juntos.", "text_en": "Astro touched the old oak tree and the bark transformed into a portal of iridescent clouds. {name} felt a tingle of excitement and, without hesitation, took {hisher} new friend's paw and they jumped together."},
             {"text_es": "Aparecieron en el Valle de los Objetos Olvidados: un lugar inmenso donde los balones rebotaban al ritmo de una música invisible y los osos de peluche saludaban con cortesía. «Aquí descansan las cosas que los niños ya no usan», explicó Astro.", "text_en": "They arrived at the Valley of Forgotten Objects: a vast place where balls bounced to invisible music and teddy bears waved politely. 'This is where the things children no longer use come to rest,' explained Astro."},
-            {"text_es": "De pronto, un río de tinta negra bloqueó su camino. {name} cerró los ojos y visualizó un puente firme con fuerza. Bajo sus pies surgió un puente de tiza blanca brillante, y cruzaron a toda prisa mientras la tinta intentaba atrapar sus sombras.", "text_en": "Suddenly, a river of black ink blocked their path. {name} closed their eyes and imagined a sturdy bridge with all their strength. A white glowing chalk bridge appeared beneath their feet, and they raced across while the ink tried to catch their shadows."},
+            {"text_es": "De pronto, un río de tinta negra bloqueó su camino. {name} cerró los ojos y visualizó un puente firme con fuerza. Bajo sus pies surgió un puente de tiza blanca brillante, y cruzaron a toda prisa mientras la tinta intentaba atrapar sus sombras.", "text_en": "Suddenly, a river of black ink blocked their path. {name} closed {hisher} eyes and imagined a sturdy bridge with all {hisher} strength. A white glowing chalk bridge appeared beneath their feet, and they raced across while the ink tried to catch their shadows."},
             {"text_es": "Entraron en un bosque donde las hojas de los árboles eran páginas de libros antiguos. Al caminar, {name} escuchaba los susurros de miles de historias esperando ser vividas, y el aire olía a papel y a aventura.", "text_en": "They entered a forest where the tree leaves were pages from ancient books. Walking through, {name} heard the whispers of thousands of stories waiting to be lived, and the air smelled of paper and adventure."},
             {"text_es": "En el centro del bosque se alzaba la Biblioteca de Cristal, una torre que tocaba las nubes. Dentro, el Mapa de los Sueños estaba custodiado tras una vitrina que solo reaccionaba a la luz pura. Había que encontrar la manera de abrirla.", "text_en": "At the heart of the forest stood the Crystal Library, a tower touching the clouds. Inside, the Dream Map was kept behind glass that only responded to pure light. They had to find a way to open it."},
             {"text_es": "{name} levantó la brújula dorada y su brillo se intensificó, proyectando colores mágicos sobre las paredes de cristal. Los cristales giraron con un sonido musical y la vitrina se abrió lentamente: ¡el Mapa de los Sueños era suyo!", "text_en": "{name} raised the golden compass and its glow intensified, projecting magical colors across the crystal walls. The crystals turned with a musical sound and the vitrine slowly opened: the Dream Map was theirs!"},
             {"text_es": "El mapa se desenrolló y se transformó en una alfombra voladora. {name} y Astro subieron de un salto y se elevaron sobre el Mar de Estrellas, donde las olas no eran de agua, sino de un polvo plateado que iluminaba el cielo nocturno.", "text_en": "The map unrolled and transformed into a flying carpet. {name} and Astro jumped on and soared above the Star Sea, where the waves were not of water but of silver dust illuminating the night sky."},
-            {"text_es": "Unas nubes grises y frías, las Pesadillas, los rodearon y la alfombra empezó a tambalearse. «¡No tengas miedo!», gritó Astro. {name} recordó su momento más feliz y, al compartirlo en voz alta, una luz cálida disolvió toda la oscuridad.", "text_en": "Grey cold clouds—the Nightmares—surrounded them and the carpet began to wobble. 'Don't be afraid!' shouted Astro. {name} remembered their happiest moment and, sharing it aloud, a warm light dissolved all the darkness."},
+            {"text_es": "Unas nubes grises y frías, las Pesadillas, los rodearon y la alfombra empezó a tambalearse. «¡No tengas miedo!», gritó Astro. {name} recordó su momento más feliz y, al compartirlo en voz alta, una luz cálida disolvió toda la oscuridad.", "text_en": "Grey cold clouds—the Nightmares—surrounded them and the carpet began to wobble. 'Don't be afraid!' shouted Astro. {name} remembered {hisher} happiest moment and, sharing it aloud, a warm light dissolved all the darkness."},
             {"text_es": "A lo lejos apareció la Isla de la Memoria, coronada por un faro cuya luz parpadeaba débilmente. Astro bajó las orejas con tristeza. Si esa luz se apagaba, los sueños de todos los niños del mundo morirían para siempre.", "text_en": "In the distance appeared the Island of Memory, crowned by a lighthouse whose light flickered weakly. Astro lowered its ears sadly. If that light went out, the dreams of all children in the world would die forever."},
             {"text_es": "Un gigante de piedra bloqueaba la entrada al faro. No era malvado, sino que lloraba con amargura porque había perdido su tesoro más preciado. Sus lágrimas formaban charcos de roca líquida que bloqueaban el camino.", "text_en": "A stone giant blocked the entrance to the lighthouse. He wasn't evil, but wept bitterly because he had lost his most precious treasure. His tears formed puddles of liquid rock that blocked the path."},
-            {"text_es": "{name} buscó en su mochila y encontró un dibujo que había hecho esa mañana. Se lo entregó al gigante con una sonrisa sincera. El coloso, al sentirse querido, dejó de llorar y fue haciéndose cada vez más pequeño, permitiendo el paso.", "text_en": "{name} searched their backpack and found a drawing from that morning. They offered it to the giant with a sincere smile. The giant, feeling loved, stopped crying and shrank smaller and smaller, letting them through."},
+            {"text_es": "{name} buscó en su mochila y encontró un dibujo que había hecho esa mañana. Se lo entregó al gigante con una sonrisa sincera. El coloso, al sentirse querido, dejó de llorar y fue haciéndose cada vez más pequeño, permitiendo el paso.", "text_en": "{name} searched {hisher} backpack and found a drawing from that morning. {heshe} offered it to the giant with a sincere smile. The giant, feeling loved, stopped crying and shrank smaller and smaller, letting them through."},
             {"text_es": "Dentro del faro, las escaleras eran teclas de piano gigante que flotaban en el aire. Para subir, {name} debía saltar sobre ellas siguiendo una melodía de valentía. Cada paso emitía una nota perfecta que hacía vibrar la torre entera de alegría.", "text_en": "Inside the lighthouse, the stairs were floating giant piano keys. To climb, {name} had to jump on them following a melody of courage. Each step produced a perfect note that made the whole tower vibrate with joy."},
             {"text_es": "Al llegar a la cima, encontraron el gran Reloj de la Aurora. Sus engranajes estaban atascados por una arena gris y pesada: el aburrimiento. El tiempo de los sueños se había detenido y el silencio en la sala era absoluto.", "text_en": "Reaching the top, they found the great Aurora Clock. Its gears were stuck with grey heavy sand: boredom. Dream-time had stopped and the silence in the room was absolute."},
             {"text_es": "Astro usó su cola brillante para iluminar los rincones más oscuros mientras {name}, con mucha paciencia, limpiaba los engranajes usando el cristal de su brújula. Cada uno sabía que el descanso de todos los niños del mundo dependía de ellos.", "text_en": "Astro used their glowing tail to light the darkest corners while {name}, with great patience, cleaned the gears using the compass crystal. Both knew that the rest of all the world's children depended on them."},
             {"text_es": "Con un último esfuerzo, los engranajes empezaron a girar. El Reloj de la Aurora emitió un destello multicolor que cruzó el espacio y devolvió el color y la magia a cada rincón del universo. ¡Lo habían logrado!", "text_en": "With one final push, the gears began to turn. The Aurora Clock released a multicolored flash that crossed space, returning color and magic to every corner of the universe. They had done it!"},
             {"text_es": "El portal apareció de nuevo en el jardín de casa. {name} abrazó a Astro con fuerza, sintiendo el calor de su pelaje mágico. «Gracias, guardián», susurró el zorro. «Siempre que mires las estrellas, recuerda que tú tienes el poder de crear mundos maravillosos».", "text_en": "The portal appeared again in the home garden. {name} hugged Astro tightly, feeling the warmth of their magical fur. 'Thank you, guardian,' whispered the fox. 'Whenever you look at the stars, remember you have the power to create wonderful worlds.'"},
-            {"text_es": "{name} despertó en su habitación mientras los primeros rayos de sol entraban por la ventana. Parecía un sueño, pero al abrir la mano, encontró una pequeña pizca de polvo de estrellas azul que brillaba suavemente. Sonrió, sabiendo que Astro siempre estaría cerca.", "text_en": "{name} woke in their room as the first rays of sun came through the window. It seemed like a dream, but opening their hand, they found a tiny pinch of glowing blue stardust. They smiled, knowing Astro would always be close."}
+            {"text_es": "{name} despertó en su habitación mientras los primeros rayos de sol entraban por la ventana. Parecía un sueño, pero al abrir la mano, encontró una pequeña pizca de polvo de estrellas azul que brillaba suavemente. Sonrió, sabiendo que Astro siempre estaría cerca.", "text_en": "{name} woke in {hisher} room as the first rays of sun came through the window. It seemed like a dream, but opening {hisher} hand, {heshe} found a tiny pinch of glowing blue stardust. {heshe} smiled, knowing Astro would always be close."}
         ]
     },
     "space_astronaut": {
@@ -1156,9 +1156,9 @@ STORIES = {
         "pages": [
             {
                 "text_above_es": "Una mañana soleada, {name} caminaba por la sabana africana cuando escuchó un chapoteo junto al río.",
-                "text_below_es": "Era una cebra joven llamada Lila, que jugaba saltando entre las piedras del agua con mucha alegría. Sus rayas brillaban bajo el sol dorado.",
+                "text_below_es": "Era una cebra llamada Lila, que jugaba saltando entre las piedras del agua con mucha alegría. Sus rayas blancas y negras brillaban bajo el sol dorado.",
                 "text_above_en": "One sunny morning, {name} was walking through the African savanna when a splashing sound came from the river.",
-                "text_below_en": "It was a young zebra named Lila, happily jumping between the river stones. Her stripes sparkled under the golden sun.",
+                "text_below_en": "It was a zebra named Lila, happily jumping between the river stones. Her black and white stripes sparkled under the golden sun.",
                 "scene_template": """Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, curious surprised expression with wide eyes. OUTFIT: Khaki safari t-shirt, khaki shorts, brown boots. ACTION: The {gender_word} stands on the riverbank watching with curiosity, {hair_action}, one {skin_tone} hand reaching forward. {lila_desc}, happily jumping between smooth river stones, splashing water with her hooves. SETTING: WIDE VIEW savanna river, clear shallow water, smooth stones, green grass banks, acacia trees, golden morning sunlight. ATMOSPHERE: Joyful discovery, sparkling water droplets, warm golden light. STRICT: Only ONE {gender_word}. The {gender_word} is 100% human, two arms, two legs, smooth {skin_tone} skin, NO tail, NO animal features, NO animal ears. {style}"""
             },
             {
@@ -1201,7 +1201,7 @@ STORIES = {
                 "text_below_es": "Sabían que esta aventura viviría para siempre en sus corazones. La amistad verdadera no conoce distancias.",
                 "text_above_en": "As the evening fell, {name} and Lila walked together through the golden savanna. Lila gently rubbed her head against {name}.",
                 "text_below_en": "They knew this adventure would live forever in their hearts. True friendship knows no distance.",
-                "scene_template": """Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, peaceful warm smile. OUTFIT: Khaki safari t-shirt, khaki shorts, brown boots. ACTION: The {gender_word} walks on the LEFT of a golden path, {hair_action}, one {skin_tone} hand resting gently on Lila's back. {lila_desc}, walking RIGHT BESIDE the {gender_word} at the SAME height, looking back with a warm smile. SETTING: WIDE panoramic savanna at golden sunset, orange and pink sky, silhouetted acacia trees, golden grass, path into the distance. ATMOSPHERE: Warm farewell, deep friendship, golden light, peaceful ending. STRICT: Only ONE {gender_word}. The {gender_word} is 100% human, two arms, two legs, smooth {skin_tone} skin, NO tail, NO animal features, NO animal ears. Lila is the SAME HEIGHT as the {gender_word}. {style}"""
+                "scene_template": """Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, peaceful warm smile. OUTFIT: Khaki safari t-shirt, khaki shorts, brown boots. ACTION: The {gender_word} walks on the LEFT of a golden path, {hair_action}, one {skin_tone} hand resting gently on Lila's back at shoulder height. {lila_desc}, walking RIGHT BESIDE the {gender_word}, her head towering above {gender_word}, looking back with a warm smile. SETTING: WIDE panoramic savanna at golden sunset, orange and pink sky, silhouetted acacia trees, golden grass, path into the distance. ATMOSPHERE: Warm farewell, deep friendship, golden light, peaceful ending. STRICT: Only ONE {gender_word}. The {gender_word} is 100% human, two arms, two legs, smooth {skin_tone} skin, NO tail, NO animal features, NO animal ears. Lila is a FULL-GROWN adult zebra, TALLER than the {gender_word}. {style}"""
             }
         ],
         "closing_template": """Disney Pixar 3D style illustration. CHARACTER 1: The human {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, looking directly at the camera with a gentle inspiring smile. A normal human body, two arms, two legs, smooth skin. OUTFIT: Khaki safari t-shirt, khaki shorts, small brown explorer boots. ACTION: The {gender_word} stands alone confidently, one {skin_tone} hand placed over the heart, {hair_action}. SETTING: Beautiful African savanna at golden hour, soft warm light, acacia tree silhouette in the background, soft bokeh effect. ATMOSPHERE: Inspirational, adventure, pure heart, warm golden lighting. STRICT: Only ONE {gender_word} alone in the scene. The {gender_word} is 100% human, two arms, two legs, smooth {skin_tone} skin, regular child body. Empty background with only savanna landscape. Super high quality, masterpiece, 8k. {style}""",
@@ -1840,11 +1840,11 @@ def get_hair_description(traits: dict, gender: str = None) -> str:
             if hair_type in ('afro', 'coily'):
                 return f"{c} very short natural afro, tiny tightly coiled afro kept very close to the head, clean low fade on sides"
             elif hair_type == 'curly':
-                return f"{c} very short tight curly boys crew cut, natural tight curls kept very close to the head, clean tapered fade on sides"
+                return f"{c} very short tight curly boys natural cut, natural tight curls kept very close to the head, clean skin fade on sides and back, hair shorter at temples and nape, curls only at the crown, hair lies close to the scalp on all sides"
             elif hair_type == 'wavy':
-                return f"{c} very short wavy boys crew cut, natural waves barely visible, clean tapered sides"
+                return f"{c} contemporary boys induction cut, hair clipped to a uniform extremely close length all over with a number one clipper, gentle wave texture barely visible as fine wispy strands on top, scalp clearly visible through the very short hair, uniform close-cropped length from crown to temples to nape and sides"
             else:
-                return f"{c} very short straight boys crew cut with high fade, very short on top, clean and neat"
+                return f"{c} contemporary boys induction cut, hair clipped to a uniform extremely close length all over with a number one clipper, natural wispy straight hair strands visible on top, scalp clearly visible through the very short hair, uniform close-cropped length from crown to temples to nape and sides"
         else:
             if hair_type in ('afro', 'coily'):
                 return f"{c} very short natural afro girls cut, tiny tightly coiled afro, closely cropped all around, above the ears"
@@ -1862,9 +1862,9 @@ def get_hair_description(traits: dict, gender: str = None) -> str:
             elif hair_type == 'curly':
                 return f"{c} short curly boys haircut, natural curls on top, tapered fade on sides and back, textured modern boys cut"
             elif hair_type == 'wavy':
-                return f"{c} short wavy boys textured quiff, natural wavy layers swept to the side, tapered fade on sides"
+                return f"{c} contemporary children's hairstyle, fine wavy textured hair, soft short layered wavy haircut, scissor-cut sides, natural wavy layers swept to one side with a subtle natural part, slightly messy natural top, natural flyaway hairs, realistic modern children's hair"
             else:
-                return f"{c} short straight boys haircut, hair neatly swept to the side or forward with a soft fringe, tapered sides and back, clean modern boys cut"
+                return f"{c} contemporary children's hairstyle, fine straight textured hair, soft layered short haircut, scissor-cut sides, hair swept naturally to one side with a subtle uneven fringe, slightly messy natural top, natural flyaway hairs, realistic modern children's hair"
         else:
             if hair_type in ('afro', 'coily'):
                 return f"{c} short natural afro girls cut, tightly coiled hair shaped into a petite neat round afro, defined coils framing the face"
@@ -1904,8 +1904,15 @@ def get_hair_strict(traits: dict) -> str:
             return f"HAIR STRICT: child has extremely short hair, buzz cut or tight pixie cut, hair barely covers the scalp, much shorter than a crew cut, hair does not extend past the ears at all.{type_suffix}"
         return "HAIR STRICT: child has almost no hair, nearly bald smooth head, extremely sparse fine wisps only."
     elif length == 'very_short':
-        return f"HAIR STRICT: child has very short hair, crew cut or pixie cut style, hair does not extend below the ear.{type_suffix}"
+        gender_strict = traits.get('gender', traits.get('child_gender', ''))
+        if gender_strict == 'female':
+            return f"HAIR STRICT: child has very short hair, pixie or pixie-bob style, hair short all around above the ears.{type_suffix}"
+        else:
+            return f"HAIR STRICT: child has a contemporary induction cut, hair clipped to a uniform very short length all over the head, scalp clearly visible through the short hair on top and sides, uniform close-cropped length from crown to temples to nape and sides.{type_suffix}"
     elif length == 'short':
+        gender_strict = traits.get('gender', traits.get('child_gender', ''))
+        if gender_strict == 'male':
+            return f"HAIR STRICT: child has short contemporary hair with a natural side part, hair drapes to one side, scissor-cut sides shorter than the top, hair silhouette is flat and natural with no rounded dome or raised crown.{type_suffix}"
         return f"HAIR STRICT: child has short hair ending at ear-to-chin level, above the shoulders, NOT medium length.{type_suffix}"
     elif length == 'long':
         return f"HAIR STRICT: child has long hair reaching well past the shoulders.{type_suffix}"
@@ -1992,7 +1999,7 @@ def get_gender_child_es(gender: str) -> str:
 
 
 def get_spanish_gender_endings(gender: str) -> dict:
-    """Get Spanish gendered word endings and adjectives."""
+    """Get Spanish gendered word endings and adjectives, plus English pronouns."""
     if gender == 'female':
         return {
             'o_a': 'a',
@@ -2002,6 +2009,22 @@ def get_spanish_gender_endings(gender: str) -> dict:
             'happy': 'feliz',
             'safe': 'segura',
             'brave': 'valiente',
+            'hisher': 'her',
+            'heshe': 'she',
+            'herhim': 'her',
+        }
+    elif gender == 'male':
+        return {
+            'o_a': 'o',
+            'el_la': 'el',
+            'proud': 'orgulloso',
+            'ready': 'listo',
+            'happy': 'feliz',
+            'safe': 'seguro',
+            'brave': 'valiente',
+            'hisher': 'his',
+            'heshe': 'he',
+            'herhim': 'him',
         }
     else:
         return {
@@ -2009,9 +2032,12 @@ def get_spanish_gender_endings(gender: str) -> dict:
             'el_la': 'el',
             'proud': 'orgulloso',
             'ready': 'listo',
-            'happy': 'feliz', 
+            'happy': 'feliz',
             'safe': 'seguro',
             'brave': 'valiente',
+            'hisher': 'their',
+            'heshe': 'they',
+            'herhim': 'them',
         }
 
 
@@ -2124,7 +2150,16 @@ def prepare_story(story_id: str, child_name: str, gender: str, traits: dict, lan
             else:
                 active_template = page['scene_template']
             has_eye_desc = '{eye_desc}' in active_template
-            scene_hair_desc = hair_desc if has_eye_desc else hair_desc + ", " + eye_desc
+            # For QS non-baby stories the cover image is the reference (image_prompt_strength=0.9).
+            # Passing hair_desc in the scene prompt fights the reference and causes character drift.
+            # Leave hair_desc empty so FLUX inherits hair from the reference; only eye_desc stays
+            # (eye color is sometimes missed by the model from the reference image alone).
+            if not is_baby_story and not is_illustrated_book:
+                scene_hair_desc = ""
+            elif has_eye_desc:
+                scene_hair_desc = hair_desc
+            else:
+                scene_hair_desc = hair_desc + ", " + eye_desc
             
             scene_style = "NO text, NO watermark, NO signature, NO logo, NO artist name, NO handwriting, NO calligraphy, clean illustration only"
             
@@ -2156,6 +2191,8 @@ def prepare_story(story_id: str, child_name: str, gender: str, traits: dict, lan
                 dog_forever_desc=DOG_FOREVER_DESC.format(gender_word=gender_word),
                 **gender_endings
             )
+            # Clean up double-comma artifact when scene_hair_desc is empty
+            scene_prompt = scene_prompt.replace(", , ", ", ").replace("( , ", "(").replace(" ,  ", " ")
             page_data['scene_prompt'] = scene_prompt
         else:
             page_data['scene_prompt'] = None
@@ -2567,7 +2604,8 @@ def get_fixed_story(story_key, child_name, child_gender):
     
     lang = 'es'
     lo_la = "la" if child_gender == "female" else "lo"
-    title = story.get('title_es', story.get('title_en', '')).format(name=child_name, lo_la=lo_la)
+    hisher = "her" if child_gender == "female" else ("his" if child_gender == "male" else "their")
+    title = story.get('title_es', story.get('title_en', '')).format(name=child_name, lo_la=lo_la, hisher=hisher)
     
     pages = {}
     for i, page in enumerate(story['pages'], 1):
@@ -2610,11 +2648,21 @@ def build_illustration_prompt(story_key, scene_key, traits, gender):
     child_name = traits.get('child_name', 'child')
 
     has_eye_desc = '{eye_desc}' in page['scene_template']
-    scene_hair_desc = hair_desc if has_eye_desc else hair_desc + ", " + eye_desc
+    age_range = story.get('age_range', '3-8')
+    is_baby_story = age_range in ['0-1', '0-2']
+    is_illustrated_book = story.get('use_fixed_scenes', False)
+    # For QS non-baby stories: leave hair_desc empty so the reference image drives character hair.
+    # Only eye_desc stays in the prompt (eye color can be missed from the reference).
+    if not is_baby_story and not is_illustrated_book:
+        scene_hair_desc = ""
+    elif has_eye_desc:
+        scene_hair_desc = hair_desc
+    else:
+        scene_hair_desc = hair_desc + ", " + eye_desc
     legacy_style = "NO text, NO watermark, NO signature, NO logo, NO artist name, NO handwriting, NO calligraphy, clean illustration only"
     gender_endings = get_spanish_gender_endings(gender)
     
-    return page['scene_template'].format(
+    result = page['scene_template'].format(
         name=child_name,
         gender_child=gender_child,
         gender_child_es=gender_child_es,
@@ -2639,6 +2687,9 @@ def build_illustration_prompt(story_key, scene_key, traits, gender):
         skin_desc=f"{skin_tone} skin",
         **gender_endings
     )
+    # Clean up double-comma artifact when scene_hair_desc is empty
+    result = result.replace(", , ", ", ").replace("( , ", "(").replace(" ,  ", " ")
+    return result
 
 
 def get_all_scene_keys():
