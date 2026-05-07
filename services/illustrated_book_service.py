@@ -500,7 +500,8 @@ def generate_scene_complete(
                             "input_images": [ref1, ref2],
                             "aspect_ratio": "3:4",
                             "output_format": "png",
-                            "go_fast": False
+                            "go_fast": False,
+                            "image_prompt_strength": 0.9
                         }
                     )
 
@@ -545,7 +546,8 @@ def generate_scene_complete(
                         "aspect_ratio": "3:4",
                         "output_format": "png",
                         "go_fast": False,
-                        "negative_prompt": neg_prompt
+                        "negative_prompt": neg_prompt,
+                        "image_prompt_strength": 0.9
                     }
                 )
 
@@ -971,7 +973,8 @@ def generate_closing_page(
                         "input_images": [ref1, ref2],
                         "aspect_ratio": "3:4",
                         "output_format": "png",
-                        "go_fast": False
+                        "go_fast": False,
+                        "image_prompt_strength": 0.9
                     }
                 )
             if isinstance(output, list) and len(output) > 0:
@@ -999,7 +1002,8 @@ def generate_closing_page(
                             "input_images": [ref1, ref2],
                             "aspect_ratio": "3:4",
                             "output_format": "png",
-                            "go_fast": False
+                            "go_fast": False,
+                            "image_prompt_strength": 0.9
                         }
                     )
                 if isinstance(output, list) and len(output) > 0:
@@ -1034,7 +1038,8 @@ def generate_closing_page(
                     "aspect_ratio": "3:4",
                     "output_format": "png",
                     "go_fast": False,
-                    "negative_prompt": _neg_prompt
+                    "negative_prompt": _neg_prompt,
+                    "image_prompt_strength": 0.9
                 }
             )
         
@@ -1068,7 +1073,8 @@ def generate_closing_page(
                         "aspect_ratio": "3:4",
                         "output_format": "png",
                         "go_fast": False,
-                        "negative_prompt": _neg_prompt
+                        "negative_prompt": _neg_prompt,
+                        "image_prompt_strength": 0.9
                     }
                 )
             if isinstance(output, list) and len(output) > 0:
@@ -1211,6 +1217,7 @@ def generate_cover_spread(
                 f2 = open(reference_image_path_2, "rb")
                 ref_files = [f1, f2]
                 flux_input["input_images"] = [f1, f2]
+                flux_input["image_prompt_strength"] = 0.9
             output = replicate.run(
                 "black-forest-labs/flux-2-dev",
                 input=flux_input
@@ -1308,7 +1315,7 @@ def generate_cover_spread(
         except:
             author_font = ImageFont.load_default()
         
-        author_text = author_name
+        author_text = f"Autor: {author_name}" if language == "es" else f"By: {author_name}"
         bbox = draw_spread.textbbox((0, 0), author_text, font=author_font)
         text_width = bbox[2] - bbox[0]
         text_height = bbox[3] - bbox[1]
@@ -1400,7 +1407,7 @@ def generate_cover_spread(
 
     draw = ImageDraw.Draw(spread)
 
-    safe_margin_px = int(18 * MM_TO_INCH * DPI)
+    safe_margin_px = int(38 * MM_TO_INCH * DPI)
 
     front_cover_start_x = front_x
     title_center_x = front_cover_start_x + (cover_width_px // 2)
@@ -1506,25 +1513,7 @@ def generate_cover_spread(
     tw = bbox[2] - bbox[0]
     draw.text((title_center_x - tw//2, subtitle_y), subtitle, font=subtitle_font, fill="#1565C0")
     
-    _logo_already_in_cover = is_furry or book_id in ('centinela_aurora', 'centinela_aurora_illustrated')
-    if not _logo_already_in_cover:
-        try:
-            logo_path = "static/images/logo_main.jpg"
-            if os.path.exists(logo_path):
-                logo = Image.open(logo_path).convert("RGBA")
-                logo_size = int(cover_width_px * 0.25)
-                logo = logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
-                logo_x = wrap_px + cover_width_px - logo_size - safe_margin_px
-                logo_y = wrap_px + cover_height_px - logo_size - safe_margin_px
-                if logo.mode == 'RGBA':
-                    spread.paste(logo, (logo_x, logo_y), logo)
-                else:
-                    spread.paste(logo, (logo_x, logo_y))
-                print(f"[COVER] Logo added to back cover (right side)")
-        except Exception as e:
-            print(f"[COVER] Could not add logo: {e}")
-    else:
-        print(f"[COVER] Skipping logo overlay for {book_id} (logo already in fixed back cover)")
+    print(f"[COVER] Logo already baked into fixed back cover PNG for {book_id}")
     
     print(f"[COVER] Cover spread complete: {spread.size}")
     return spread
