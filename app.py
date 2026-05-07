@@ -6102,7 +6102,7 @@ def confirm_and_send(preview_id):
         if is_personalized_book:
             pdf_printable_path = None
             instructions_path_email = None
-        elif visor_url and not pdf_printable_path and not want_print:
+        elif visor_url and not pdf_printable_path and not want_print and (story_data.get('want_pdf') or story_data.get('pdf_paid')):
             try:
                 from services.quick_stories.checkout import is_quick_story as check_qs_cs
                 if check_qs_cs(story_data.get('story_id', '')):
