@@ -4224,8 +4224,8 @@ def _dispatch_cart_item(item: dict, buyer_email: str, paypal_order_id: str, ship
             t = threading.Thread(target=_process_quick_story_print, args=(preview_id, buyer_email), daemon=True)
             t.start()
         if not story_data.get('visor_uploaded', False):
-            print(f"[CART-DISPATCH] Quick Story — generating visor/ebook for {preview_id}")
-            t = threading.Thread(target=_process_ebook_generation, args=(preview_id, buyer_email), daemon=True)
+            print(f"[CART-DISPATCH] Quick Story — generating visor/ebook (no email yet) for {preview_id}")
+            t = threading.Thread(target=_process_ebook_generation, args=(preview_id, buyer_email, False), daemon=True)
             t.start()
     else:
         t = threading.Thread(target=_process_ebook_generation, args=(preview_id, buyer_email), daemon=True)
@@ -4546,9 +4546,11 @@ def process_payment(preview_id):
             make_ebook_permanent(preview_id)
         except Exception as _perm_err:
             print(f"[PAYMENT] make_ebook_permanent failed (non-fatal): {_perm_err}")
+        from services.quick_stories.checkout import is_quick_story as _check_qs_ebook
+        _ebook_send_email = not _check_qs_ebook(story_id)
         t = threading.Thread(
             target=_process_ebook_generation,
-            args=(preview_id, email),
+            args=(preview_id, email, _ebook_send_email),
             daemon=True
         )
         t.start()
@@ -4620,10 +4622,10 @@ def process_payment(preview_id):
             )
             t.start()
         if not story_data.get('visor_uploaded', False):
-            print(f"[PAYMENT] Quick Story - generating visor as gift (print or digital)...")
+            print(f"[PAYMENT] Quick Story - generating visor (no email yet, waiting for user approval)...")
             t = threading.Thread(
                 target=_process_ebook_generation,
-                args=(preview_id, email),
+                args=(preview_id, email, False),
                 daemon=True
             )
             t.start()
