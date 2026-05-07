@@ -575,7 +575,7 @@ def generate_scene_with_flux2dev(scene_prompt: str, reference_image_path: str, s
 
     for attempt in range(max_retries + 1):
         try:
-            _img_strength = 0.8
+            _img_strength = 0.9
             with open(reference_image_path, "rb") as ref_file:
                 output = replicate.run(
                     FLUX_2_DEV_MODEL,
@@ -707,32 +707,41 @@ def generate_illustration_replicate(scene_prompt: str, scene_num: int, aspect_ra
     print(f"\n--- Generating Preview/Scene {scene_num} with {model_name} ---")
     print(f"Prompt: {scene_prompt[:150]}...")
     
-    try:
-        enhanced_prompt = scene_prompt + ". Clean professional illustration, no artist signature, no watermarks, no text overlays, no logos, no letters, no words."
-        
-        input_params = {
-            "prompt": enhanced_prompt,
-            "aspect_ratio": aspect_ratio,
-            "output_format": "png",
-        }
-        if not is_dev_model:
-            input_params["safety_tolerance"] = 5
-        
-        output = replicate.run(use_model, input=input_params)
-        
-        if isinstance(output, str):
-            image_url = output
-        elif isinstance(output, list) and len(output) > 0:
-            image_url = str(output[0])
-        else:
-            image_url = str(output)
-        
-        print(f"Scene {scene_num}: Image ready with {model_name}!")
-        return image_url
-        
-    except Exception as e:
-        print(f"Error generating scene {scene_num}: {e}")
-        raise
+    enhanced_prompt = scene_prompt + ". Clean professional illustration, no artist signature, no watermarks, no text overlays, no logos, no letters, no words."
+    input_params = {
+        "prompt": enhanced_prompt,
+        "aspect_ratio": aspect_ratio,
+        "output_format": "png",
+    }
+    if not is_dev_model:
+        input_params["safety_tolerance"] = 5
+
+    max_retries = 4
+    for attempt in range(max_retries + 1):
+        try:
+            output = replicate.run(use_model, input=input_params)
+
+            if isinstance(output, str):
+                image_url = output
+            elif isinstance(output, list) and len(output) > 0:
+                image_url = str(output[0])
+            else:
+                image_url = str(output)
+
+            print(f"Scene {scene_num}: Image ready with {model_name}!")
+            return image_url
+
+        except Exception as e:
+            error_msg = str(e).lower()
+            is_transient = any(x in error_msg for x in ["q_descale", "shape", "timeout", "overloaded", "503", "502", "connection"])
+            print(f"{model_name} attempt {attempt + 1}/{max_retries + 1} failed for scene {scene_num}: {e}")
+            if attempt < max_retries:
+                wait_time = min(8 * (2 ** attempt), 60) if is_transient else 3
+                print(f"{'Transient' if is_transient else 'Unknown'} error, retrying in {wait_time}s...")
+                time.sleep(wait_time)
+            else:
+                print(f"Error generating scene {scene_num} after {max_retries + 1} attempts: {e}")
+                raise
 
 
 
@@ -751,16 +760,9 @@ def create_cover_from_character(character_image_path: str, output_dir: str,
     
     img = Image.open(character_image_path).convert('RGBA')
     
-    if img.size[0] != img.size[1]:
-        size = max(img.size)
-        square = Image.new('RGBA', (size, size), (255, 255, 255, 255))
-        x = (size - img.size[0]) // 2
-        y = (size - img.size[1]) // 2
-        square.paste(img, (x, y))
-        img = square
-    
-    if img.size[0] < 1024:
-        img = img.resize((1024, 1024), Image.LANCZOS)
+    if img.size[0] < 800:
+        ratio = 800 / img.size[0]
+        img = img.resize((800, int(img.size[1] * ratio)), Image.LANCZOS)
     
     draw = ImageDraw.Draw(img)
     w, h = img.size
@@ -835,7 +837,7 @@ def create_cover_from_character(character_image_path: str, output_dir: str,
                 title_font = ImageFont.load_default()
             lines = wrap_title(title_font, max_title_w)
 
-        title_y = int(h * 0.06)
+        title_y = int(h * 0.12)
         line_spacing = int(title_font_size * 1.3)
         border_offset = 2
 
@@ -861,7 +863,7 @@ def create_cover_from_character(character_image_path: str, output_dir: str,
         author_w = author_bbox[2] - author_bbox[0]
         author_h = author_bbox[3] - author_bbox[1]
         author_x = (w - author_w) // 2
-        cm2_pixels = int(w * 2.0 / 21.59) if w > 0 else 60
+        cm2_pixels = int(h * 0.125) if h > 0 else 127
         author_y = h - cm2_pixels - author_h
         
         for dx in range(-1, 2):
@@ -944,7 +946,7 @@ def generate_cover_only(story_id: str, gender: str, traits: dict,
             hair_color = traits.get('hair_color', 'brown')
             is_baby = age_range in ['0-1', '0-2']
             is_qs_cover = check_qs_cover(story_id)
-            cover_aspect = "1:1" if is_baby or is_qs_cover else "3:4"
+            cover_aspect = "3:4"
             print(f"\nGenerating Cover with {model_name} (aspect: {cover_aspect})...")
             try:
                 cover_scene_prompt = f"BOOK COVER: {cover_prompt}"
@@ -1009,7 +1011,7 @@ def generate_scenes_only(story_id: str, gender: str, traits: dict,
     from services.quick_stories.checkout import is_quick_story as check_qs
     is_qs = check_qs(story_id)
     scene_prompts = get_scene_prompts(story_id, child_name, gender, traits)
-    scene_aspect = "1:1" if is_baby or is_qs else "3:4"
+    scene_aspect = "3:4"
     total = len(scene_prompts)
     scene_paths = [None] * total
     _qs_completed = 0
