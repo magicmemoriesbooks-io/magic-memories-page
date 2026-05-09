@@ -2341,7 +2341,7 @@ def enforce_gender_clothing(prompt: str, gender: str) -> str:
     return prompt
 
 
-def get_scene_prompts(story_id: str, child_name: str, gender: str, traits: dict) -> list:
+def get_scene_prompts(story_id: str, child_name: str, gender: str, traits: dict, use_reference_image: bool = False) -> list:
     """Get only scene prompts for image generation."""
     story = STORIES.get(story_id)
     if not story:
@@ -2382,6 +2382,15 @@ def get_scene_prompts(story_id: str, child_name: str, gender: str, traits: dict)
             'red': 'bright red', 'auburn': 'auburn',
         }
         hair_desc = f"{_baby_color_map.get(hair_color, hair_color)} hair"
+    elif use_reference_image:
+        # Non-baby QS with FLUX 2 Dev + reference: only anchor color, reference handles style/length.
+        # Detailed hair_desc overrides the reference and causes inconsistency between scenes.
+        _ref_color_map = {
+            'black': 'jet black', 'brown': 'medium brown', 'light_brown': 'warm light brown',
+            'blonde': 'golden blonde', 'very_light_blonde': 'very light blonde',
+            'red': 'bright red', 'auburn': 'auburn',
+        }
+        hair_desc = f"{_ref_color_map.get(hair_color, hair_color)} hair"
 
     # Age display based on child's age
     age_display = f"{child_age} year old" if child_age > 0 else "baby"
@@ -2465,7 +2474,7 @@ def get_scene_prompts(story_id: str, child_name: str, gender: str, traits: dict)
     return prompts
 
 
-def get_closing_prompt(story_id: str, child_name: str, gender: str, traits: dict) -> str:
+def get_closing_prompt(story_id: str, child_name: str, gender: str, traits: dict, use_reference_image: bool = False) -> str:
     """Get the closing illustration prompt for stories with closing_template."""
     story = STORIES.get(story_id)
     if not story or 'closing_template' not in story:
@@ -2486,6 +2495,17 @@ def get_closing_prompt(story_id: str, child_name: str, gender: str, traits: dict
         gender_word = "baby boy" if gender == "male" else "baby girl" if gender == "female" else "baby"
     else:
         gender_word = gender_child
+
+    if use_reference_image:
+        # With FLUX 2 Dev + reference: only anchor color, reference handles style/length.
+        # Detailed hair_desc overrides reference and causes inconsistency.
+        _close_color_map = {
+            'black': 'jet black', 'brown': 'medium brown', 'light_brown': 'warm light brown',
+            'blonde': 'golden blonde', 'very_light_blonde': 'very light blonde',
+            'red': 'bright red', 'auburn': 'auburn',
+        }
+        _hc = traits.get('hair_color', 'brown')
+        hair_desc = f"{_close_color_map.get(_hc, _hc)} hair"
     
     default_age = '1' if is_baby_story else '5'
     child_age = int(traits.get('child_age', default_age))
