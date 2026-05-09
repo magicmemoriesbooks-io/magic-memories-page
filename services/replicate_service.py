@@ -1010,7 +1010,7 @@ def generate_scenes_only(story_id: str, gender: str, traits: dict,
     
     from services.quick_stories.checkout import is_quick_story as check_qs
     is_qs = check_qs(story_id)
-    scene_prompts = get_scene_prompts(story_id, child_name, gender, traits)
+    scene_prompts = get_scene_prompts(story_id, child_name, gender, traits, use_reference_image=bool(cover_path and use_flux_dev))
     scene_aspect = "3:4"
     total = len(scene_prompts)
     scene_paths = [None] * total
@@ -1060,7 +1060,7 @@ def generate_scenes_only(story_id: str, gender: str, traits: dict,
                     pass
     
     closing_path = None
-    closing_prompt = get_closing_prompt(story_id, child_name, gender, traits)
+    closing_prompt = get_closing_prompt(story_id, child_name, gender, traits, use_reference_image=bool(cover_path and use_flux_dev))
     if closing_prompt:
         print(f"\n[CLOSING] Generating closing illustration with {model_name}...")
         try:
