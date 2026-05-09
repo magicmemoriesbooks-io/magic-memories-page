@@ -5465,16 +5465,15 @@ def regenerate_quick_scene(preview_id, scene_num):
     age_range = story_config.get('age_range', '0-1')
     
     try:
-        scene_prompts = get_scene_prompts(story_id, child_name, gender, traits)
+        from services.quick_stories.checkout import is_quick_story as check_qs_regen
+        is_qs_regen = check_qs_regen(story_id)
+        scene_prompts = get_scene_prompts(story_id, child_name, gender, traits, use_reference_image=is_qs_regen)
         scene_index = scene_num - 1
         
         if scene_index >= len(scene_prompts):
             return jsonify({'success': False, 'error': 'Scene prompt not found'}), 400
         
         prompt = scene_prompts[scene_index]
-        
-        from services.quick_stories.checkout import is_quick_story as check_qs_regen
-        is_qs_regen = check_qs_regen(story_id)
         regen_aspect = "3:4"
         
         print(f"[REGENERATE-QS] Regenerating scene {scene_num} for {preview_id} (attempt {current_count + 1}/2, aspect: {regen_aspect})")
@@ -5659,7 +5658,7 @@ def regenerate_quick_closing(preview_id):
     child_age = int(traits.get('child_age', '1'))
 
     try:
-        closing_prompt = get_closing_prompt(story_id, child_name, gender, traits)
+        closing_prompt = get_closing_prompt(story_id, child_name, gender, traits, use_reference_image=True)
         if not closing_prompt:
             return jsonify({'success': False, 'error': 'No closing template for this story'}), 400
 
@@ -7219,7 +7218,7 @@ def admin_regenerate_scene(preview_id, scene_num):
     from services.replicate_service import generate_scene_with_flux2dev
 
     try:
-        scene_prompts = get_scene_prompts(story_id, story_data.get('child_name', ''), gender, traits)
+        scene_prompts = get_scene_prompts(story_id, story_data.get('child_name', ''), gender, traits, use_reference_image=True)
         scene_index = scene_num - 1
         if scene_index < 0 or scene_index >= len(scene_prompts):
             return jsonify({'success': False, 'error': f'Scene {scene_num} not found (story has {len(scene_prompts)} scenes)'}), 400
