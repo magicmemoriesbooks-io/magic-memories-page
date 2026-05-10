@@ -45,11 +45,61 @@
     <meta name="google-site-verification" content="avpExLjaO84GhGilWTm5NTuslPbOltqaj2j4kDYBqoc" />
     <meta name="msvalidate.01" content="CE723FC85F3B21BB0DBAE5EBCABCA2ED" />
     <meta name="description" content="{% block meta_description %}{% if lang == 'es' %}Crea cuentos infantiles personalizados con fotos reales de tu hijo/a. Diseños únicos con inteligencia artificial. Disponible como ebook, PDF o libro impreso.{% else %}Create personalized children's books with real photos of your child. Unique AI-generated designs with their name and image. Available as ebook, PDF or printed book.{% endif %}{% endblock %}">
+    <meta name="p:domain_verify" content="2f97b8871e2048942f106ee060606c94"/>
+    <meta name="keywords" content="{% block meta_keywords %}{% if lang == 'es' %}cuentos personalizados, libros infantiles personalizados, cuento con foto del niño, libro personalizado con IA, cuentos con nombre del niño, regalo niños, libro ilustrado personalizado{% else %}personalized children's books, custom story books, personalized kids stories, AI children's book, custom illustrated book, personalized gift for kids, children's book with child's photo, custom fairy tale{% endif %}{% endblock %}">
     <meta name="robots" content="{% if '/admin' in request.path %}noindex, nofollow{% else %}index, follow{% endif %}">
-    <link rel="canonical" href="https://magicmemoriesbooks.com{{ request.path }}{% if request.query_string %}?{{ request.query_string.decode() }}{% endif %}">
-    <link rel="alternate" hreflang="es" href="https://magicmemoriesbooks.com{{ request.path }}?lang=es">
+    <link rel="canonical" href="https://magicmemoriesbooks.com{{ request.path }}">
+    <link rel="alternate" hreflang="x-default" href="https://magicmemoriesbooks.com{{ request.path }}">
     <link rel="alternate" hreflang="en" href="https://magicmemoriesbooks.com{{ request.path }}?lang=en">
-    <meta name="google-site-verification" content="avpExLjaO84GhGilWTm5NTuslPbOltqaj2j4kDYBqoc" />
+    <link rel="alternate" hreflang="es" href="https://magicmemoriesbooks.com{{ request.path }}?lang=es">
+    <link rel="alternate" hreflang="es-US" href="https://magicmemoriesbooks.com{{ request.path }}?lang=es">
+    <link rel="alternate" hreflang="en-US" href="https://magicmemoriesbooks.com{{ request.path }}?lang=en">
+    <link rel="alternate" hreflang="en-AE" href="https://magicmemoriesbooks.com{{ request.path }}?lang=en">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://magicmemoriesbooks.com/#organization",
+          "name": "Magic Memories Books",
+          "url": "https://magicmemoriesbooks.com",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://magicmemoriesbooks.com/static/images/logo_main.jpg"
+          },
+          "description": "{% if lang == 'es' %}Creamos cuentos infantiles personalizados con inteligencia artificial, usando fotos reales del niño. Disponibles en todo el mundo como ebook, PDF o libro impreso.{% else %}We create personalized children's books using artificial intelligence and real photos of your child. Available worldwide as ebook, PDF or printed book.{% endif %}",
+          "sameAs": [],
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "email": "contacto@magicmemoriesbooks.com",
+            "contactType": "customer support",
+            "availableLanguage": ["Spanish", "English"]
+          },
+          "areaServed": ["US", "AE", "ES", "MX", "AR", "CO", "CL", "PE", "VE", "Worldwide"]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://magicmemoriesbooks.com/#website",
+          "url": "https://magicmemoriesbooks.com",
+          "name": "Magic Memories Books",
+          "publisher": {"@id": "https://magicmemoriesbooks.com/#organization"},
+          "inLanguage": ["es", "en"],
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://magicmemoriesbooks.com/story-selection?q={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
+        }
+        {% block schema_ld %}{% endblock %}
+      ]
+    }
+    </script>
 
     <!-- Open Graph (Facebook, WhatsApp, LinkedIn) -->
     <meta property="og:title" content="{% block og_title %}Magic Memories Books — Cuentos Personalizados con Fotos Reales{% endblock %}">
@@ -182,8 +232,9 @@
                     <div class="hidden md:flex items-center" style="gap:4px;">
                         <a href="{{ url_for('express_catalog') }}" class="nav-pill {% if request.endpoint == 'express_catalog' %}active{% endif %}" style="{% if request.endpoint != 'express_catalog' %}color:#B8860B;{% endif %}">{% if lang == 'es' %}Cuentos Mágicos Express{% else %}Magic Express Stories{% endif %}</a>
                         <a href="{{ url_for('universos_catalog') }}" class="nav-pill {% if request.endpoint == 'universos_catalog' %}active{% endif %}">{% if lang == 'es' %}Cuentos FotoMágicos{% else %}Photo Magic Stories{% endif %}</a>
-                        <a href="{{ url_for('index') }}#opiniones" class="nav-pill">{% if lang == 'es' %}Opiniones{% else %}Reviews{% endif %}</a>
-                        <a href="{{ url_for('index') }}#precios" class="nav-pill">{% if lang == 'es' %}Precios{% else %}Pricing{% endif %}</a>
+                        <a href="{{ url_for('index') }}#opiniones" class="nav-pill" style="color:#B8860B;">{% if lang == 'es' %}Opiniones{% else %}Reviews{% endif %}</a>
+                        <a href="{{ url_for('index') }}#galeria" class="nav-pill">{% if lang == 'es' %}Libros Reales{% else %}Real Books{% endif %}</a>
+                        <a href="{{ url_for('index') }}#precios" class="nav-pill" style="color:#B8860B;">{% if lang == 'es' %}Precios{% else %}Pricing{% endif %}</a>
                     </div>
 
                     <div class="flex items-center" style="gap:10px;">
@@ -211,8 +262,9 @@
             <div id="mobile-menu" style="border-top:1px solid #f3e8ff;background:#fff;padding:12px 5% 16px;">
                 <a href="{{ url_for('express_catalog') }}" class="block py-2 px-3 rounded-lg font-semibold text-sm hover:bg-yellow-50" style="margin-bottom:4px;color:#B8860B;">✨ {% if lang == 'es' %}Cuentos Mágicos Express{% else %}Magic Express Stories{% endif %}</a>
                 <a href="{{ url_for('universos_catalog') }}" class="block py-2 px-3 rounded-lg text-purple-700 font-semibold text-sm hover:bg-purple-50" style="margin-bottom:4px;">📸 {% if lang == 'es' %}Cuentos FotoMágicos{% else %}Photo Magic Stories{% endif %}</a>
-                <a href="{{ url_for('index') }}#opiniones" class="block py-2 px-3 rounded-lg text-purple-700 font-semibold text-sm hover:bg-purple-50" style="margin-bottom:4px;">⭐ {% if lang == 'es' %}Opiniones{% else %}Reviews{% endif %}</a>
-                <a href="{{ url_for('index') }}#precios" class="block py-2 px-3 rounded-lg text-purple-700 font-semibold text-sm hover:bg-purple-50">💰 {% if lang == 'es' %}Precios{% else %}Pricing{% endif %}</a>
+                <a href="{{ url_for('index') }}#opiniones" class="block py-2 px-3 rounded-lg font-semibold text-sm hover:bg-yellow-50" style="margin-bottom:4px;color:#B8860B;">⭐ {% if lang == 'es' %}Opiniones{% else %}Reviews{% endif %}</a>
+                <a href="{{ url_for('index') }}#galeria" class="block py-2 px-3 rounded-lg text-purple-700 font-semibold text-sm hover:bg-purple-50" style="margin-bottom:4px;">📖 {% if lang == 'es' %}Libros Reales{% else %}Real Books{% endif %}</a>
+                <a href="{{ url_for('index') }}#precios" class="block py-2 px-3 rounded-lg font-semibold text-sm hover:bg-yellow-50" style="color:#B8860B;">💰 {% if lang == 'es' %}Precios{% else %}Pricing{% endif %}</a>
             </div>
         </nav>
     </div>
@@ -312,9 +364,12 @@
             <div style="height:1px;background:rgba(212,175,55,0.2);margin-top:12px;"></div>
 
             <div class="flex flex-col sm:flex-row items-center justify-between gap-2" style="padding-top:8px;">
-                <p style="font-size:12px;color:#555;">
-                    &copy; 2026 Magic Memories Books. {% if lang == 'es' %}Hecho con polvos de estrellas{% else %}Made with stardust{% endif %} <a href="{{ url_for('admin_login_page') }}" class="admin-star">&#127776;</a>
-                </p>
+                <div>
+                    <p style="font-size:12px;color:#555;">
+                        &copy; 2026 Magic Memories Books. {% if lang == 'es' %}Hecho con polvos de estrellas{% else %}Made with stardust{% endif %} <a href="{{ url_for('admin_login_page') }}" class="admin-star">&#127776;</a>
+                    </p>
+                    <p style="font-size:12px;font-style:italic;color:#D4AF37;margin-top:3px;letter-spacing:0.5px;">by Isabel Ojeda</p>
+                </div>
                 <div class="flex items-center gap-3">
                     <span style="font-size:11px;color:#777;">{% if lang == 'es' %}Pagos 100% seguros v&iacute;a PayPal{% else %}100% secure payments via PayPal{% endif %}</span>
                     <svg class="h-4" viewBox="0 0 48 32" fill="none" style="opacity:0.3;"><rect width="48" height="32" rx="4" fill="#1A1F71"/><path d="M19.5 21.5L21.5 10.5H24.5L22.5 21.5H19.5Z" fill="white"/><path d="M33.5 10.8C32.8 10.5 31.7 10.2 30.3 10.2C27.3 10.2 25.2 11.7 25.2 13.9C25.2 15.5 26.7 16.4 27.8 16.9C29 17.5 29.4 17.9 29.4 18.4C29.4 19.2 28.4 19.5 27.5 19.5C26.2 19.5 25.5 19.3 24.4 18.8L23.9 18.6L23.4 21.4C24.2 21.8 25.7 22.1 27.2 22.1C30.4 22.1 32.4 20.6 32.4 18.3C32.4 17 31.6 16 29.8 15.2C28.8 14.7 28.2 14.3 28.2 13.8C28.2 13.3 28.8 12.8 30.1 12.8C31.1 12.8 31.9 13 32.5 13.3L32.8 13.4L33.5 10.8Z" fill="white"/><path d="M37.5 10.5H35.3C34.6 10.5 34 10.7 33.7 11.5L29.5 21.5H32.7L33.3 19.8H37.2L37.5 21.5H40.5L37.5 10.5ZM34.2 17.5C34.5 16.7 35.6 13.8 35.6 13.8L36.7 17.5H34.2Z" fill="white"/><path d="M17.5 10.5L14.5 18L14.2 16.5C13.6 14.7 11.9 12.7 10 11.7L12.7 21.5H16L21 10.5H17.5Z" fill="white"/><path d="M12.5 10.5H7.5L7.5 10.8C11.2 11.7 13.7 14 14.5 16.8L13.7 11.5C13.5 10.8 12.9 10.5 12.5 10.5Z" fill="#F7B600"/></svg>
