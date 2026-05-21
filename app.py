@@ -8128,16 +8128,18 @@ def admin_generate_cp_pdfs(preview_id):
             book_title = get_book_title(book_id, child_name, lang, pet_name=pet_name) or story_name or child_name
 
             generate_cw_cover_pdf(
-                preview_id=preview_id,
-                story_data=story_data,
+                session_id=preview_id,
+                book_title=book_title,
                 output_path=cover_pdf_path,
                 page_count=page_count,
+                story_id=book_id,
             )
             generate_cw_content_pdf(
-                preview_id=preview_id,
-                visor_dir=visor_dir,
+                session_id=preview_id,
+                child_name=child_name,
+                language=lang,
                 output_path=content_pdf_path,
-                story_data=story_data,
+                page_count=page_count,
             )
 
             cover_url   = f'/cp-files/{preview_id}/cover.pdf'
