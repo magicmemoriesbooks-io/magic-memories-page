@@ -22,7 +22,7 @@ else:
     replicate.default_client = replicate.Client(timeout=_replicate_timeout)
 
 FLUX_DEV_MODEL = "black-forest-labs/flux-dev:6e4a938f85952bdabcc15aa329178c4d681c52bf25a0342403287dc26944661d"
-FLUX_2_DEV_MODEL = "black-forest-labs/flux-2-dev:7bba46bdde863cfd7aaee87649a5aa49f39f368495dbea500998d1fcbb262050"
+FLUX_2_DEV_MODEL = "black-forest-labs/flux-2-dev"
 FLUX_KONTEXT_MODEL = "black-forest-labs/flux-kontext-pro"
 FLUX_2_PRO_MODEL = "black-forest-labs/flux-2-pro:285631b5656a1839331cd9af0d82da820e2075db12046d1d061c681b2f206bc6"
 IDEOGRAM_CHARACTER_MODEL = "ideogram-ai/ideogram-character:1f8e198263a0d8171b76c55907c294e933e1e7d55e2d0c54f319c0e4a42c723d"
@@ -101,13 +101,23 @@ def generate_base_character(traits: dict, output_dir: str, gender: str = "neutra
     hair_length = traits.get('hair_length', 'medium')
     hair_type = traits.get('hair_type', 'straight')
     child_age = int(traits.get('child_age', '4'))
-    age_display = f"{child_age} year old" if child_age > 0 else "baby"
-    
     is_baby = age_range in ['0-1', '0-2']
     is_birthday = story_id.startswith('birthday_') if story_id else False
-    
+
+    # For baby stories child_age is now in MONTHS (3,6,9,15,21)
+    # For all other stories child_age is in years
+    if is_baby:
+        _months = child_age  # child_age = months
+        if _months <= 3:   age_display = "1-3 month old"
+        elif _months <= 7: age_display = "4-7 month old"
+        elif _months <= 12: age_display = "8-12 month old"
+        elif _months <= 18: age_display = "12-18 month old"
+        else:               age_display = "18-24 month old"
+    else:
+        age_display = f"{child_age} year old" if child_age > 0 else "baby"
+
     story_config = STORIES.get(story_id, {})
-    is_toddler = is_baby and child_age >= 1
+    is_toddler = is_baby and child_age >= 12  # 12+ months = toddler for baby stories
     if is_toddler and 'preview_prompt_override_toddler' in story_config:
         preview_prompt_override = story_config.get('preview_prompt_override_toddler', None)
         print(f"[PREVIEW] Using TODDLER preview prompt (child_age={child_age})")
@@ -151,9 +161,34 @@ def generate_base_character(traits: dict, output_dir: str, gender: str = "neutra
                 dog_forever_desc=DOG_FOREVER_DESC.format(gender_word=gender_word)
             )
             if is_baby:
-                from services.fixed_stories import adapt_baby_pose_for_age
+                from services.fixed_stories import adapt_baby_pose_for_age, get_baby_hair_description
                 portrait_prompt = adapt_baby_pose_for_age(portrait_prompt, child_age)
-            if hair_length == 'very_little' and 'STRICT:' in portrait_prompt:
+                # Replace Disney/Pixar style with soft luxury illustration style
+                portrait_prompt = portrait_prompt.replace(
+                    "Disney 3D Pixar-style illustration.",
+                    "Soft luxury digital illustration for a baby memory book, premium texture, gentle and cozy art style."
+                )
+                # Inject Gemini-formula CRITICAL Hair block before STRICT
+                pronoun = "His" if gender == "male" else "Her" if gender == "female" else "Their"
+                if hair_length == 'bald':
+                    baby_hair_block = None  # keep existing bald STRICT handling below
+                elif hair_length == 'very_little':
+                    baby_hair_block = (
+                        f"{pronoun} head appears bald — smooth rounded scalp with only a microscopic "
+                        f"ultra-fine peach fuzz dusting barely covering the skin, scalp skin texture "
+                        f"fully visible, scalp shape clearly defined, hair density at zero."
+                    )
+                else:
+                    baby_hair_block = get_baby_hair_description(hair_color, gender)
+                if baby_hair_block:
+                    if 'STRICT:' in portrait_prompt:
+                        portrait_prompt = portrait_prompt.replace(
+                            'STRICT:',
+                            f'CRITICAL (Hair): {baby_hair_block} STRICT:'
+                        )
+                    else:
+                        portrait_prompt += f' CRITICAL (Hair): {baby_hair_block}'
+            if hair_length == 'bald' and 'STRICT:' in portrait_prompt:
                 portrait_prompt = portrait_prompt.replace('STRICT:', 'STRICT: Baby head is completely bald, smooth round scalp,')
             print(f"Using preview_prompt_override for story: {story_id}")
         except KeyError as e:
@@ -178,37 +213,56 @@ Professional illustration, centered composition.
 No text, no watermarks, no signatures."""
     
     if not portrait_prompt and is_baby:
-        child_age = int(traits.get('child_age', '1'))
+        child_age = int(traits.get('child_age', '6'))  # now in months: 3,6,9,15,21
         gender_word = "baby boy" if gender == "male" else "baby girl" if gender == "female" else "baby"
-        gender_features = "masculine baby features, short hair" if gender == "male" else "feminine baby features" if gender == "female" else ""
-        
-        baby_hair_note = ""
+        gender_features = "masculine baby features" if gender == "male" else "feminine baby features" if gender == "female" else ""
+        pronoun_fb = "His" if gender == "male" else "Her" if gender == "female" else "Their"
+
         hair_length = traits.get('hair_length', 'medium')
-        if child_age == 0:
-            age_desc = f"a tiny infant {gender_word} (6-9 months old), very small baby proportions, chubby cheeks, round baby face"
-            pose_desc = "lying peacefully on their back on a soft pastel blanket, tiny arms and legs relaxed"
-        elif child_age == 1:
-            age_desc = f"an adorable {gender_word} (12 months old, 1 year old), baby proportions, chubby cheeks, learning to stand"
-            pose_desc = "sitting happily on a soft pastel blanket, holding a soft toy"
+        if child_age <= 3:
+            age_desc = f"a tiny newborn {gender_word} (1-3 months old), very small baby proportions, chubby cheeks, round baby face"
+            pose_desc = "lying peacefully on their back on a soft pastel blanket, tiny arms and legs relaxed, cannot sit"
+        elif child_age <= 7:
+            age_desc = f"a tiny infant {gender_word} (4-7 months old), very small baby proportions, chubby cheeks, round baby face"
+            pose_desc = "lying on a soft blanket or propped sitting with support, small relaxed arms"
+        elif child_age <= 12:
+            age_desc = f"an adorable {gender_word} (8-12 months old), baby proportions, chubby cheeks, learning to crawl"
+            pose_desc = "sitting supported on a soft pastel blanket, holding a soft toy, or crawling"
+        elif child_age <= 18:
+            age_desc = f"an adorable {gender_word} (12-18 months old), baby proportions, chubby face, just learning to stand"
+            pose_desc = "sitting happily on a soft pastel blanket or standing unsteadily, holding a soft toy"
         else:
-            age_desc = f"a cute toddler {gender_word} (2 years old), small toddler proportions, round face, can walk"
-            pose_desc = "standing on tiny feet in a cozy nursery, taking first steps"
-        
-        if hair_length == 'very_little':
-            baby_hair_note = f"IMPORTANT: This baby has a completely bald smooth head, no hair whatsoever, perfectly round smooth scalp."
-        
-        portrait_prompt = f"""Full body illustration of {age_desc} with {hair_desc}, {eye_desc}, and {skin_desc}.
+            age_desc = f"a cute toddler {gender_word} (18-24 months old), small toddler proportions, round face, can walk"
+            pose_desc = "standing on tiny feet in a cozy nursery, taking confident first steps"
+
+        if hair_length == 'bald':
+            baby_hair_section = "CRITICAL (Hair): This baby has a completely bald smooth head, no hair whatsoever, perfectly round smooth scalp."
+        elif hair_length == 'very_little':
+            baby_hair_section = (
+                f"CRITICAL (Hair): {pronoun_fb} head appears bald — smooth rounded scalp with only a "
+                f"microscopic ultra-fine peach fuzz dusting barely covering the skin, scalp skin texture "
+                f"fully visible, scalp shape clearly defined, hair density at zero."
+            )
+        else:
+            from services.fixed_stories import get_baby_hair_description
+            baby_hair_block = get_baby_hair_description(hair_color, gender)
+            baby_hair_section = f"CRITICAL (Hair): {baby_hair_block}"
+
+        portrait_prompt = f"""Soft luxury digital illustration for a baby memory book, premium texture, gentle and cozy art style.
+
+Subject: {age_desc} with {eye_desc} and {skin_desc}.
 {gender_features}
-{baby_hair_note}
+{baby_hair_section}
+
 The {gender_word} is {pose_desc} in a cozy nursery setting.
 Wearing a simple soft white onesie with no decorations.
-Sweet innocent expression, gentle happy smile.
+Sweet innocent expression, soft gummy smile with lips gently closed.
 Soft pastel pink, cream and lavender background with gentle floating sparkles.
-High quality children's storybook illustration style, soft watercolor textures, magical warm lighting.
+Warm morning sunlight through white curtains, soft natural shadows, peaceful calm atmosphere.
 Clear view of full body, face clearly visible.
 Professional illustration, centered composition.
 No accessories, no jewelry, no earrings.
-No text, no watermarks, no signatures."""
+No text. No watermarks."""
     elif not portrait_prompt and story_id in ['magic_chef', 'magic_chef_illustrated']:
         child_age = int(traits.get('child_age', '5'))
         gender_word = "little boy" if gender == "male" else "little girl" if gender == "female" else "child"
@@ -324,7 +378,7 @@ def generate_scene_with_kontext(scene_prompt: str, base_image_path: str, scene_n
                                  aspect_ratio: str = "3:4", output_dir: str = "generated",
                                  gender: str = "neutral", max_retries: int = 3, age_range: str = "0-1",
                                  additional_references: list = None, hair_length: str = "medium",
-                                 child_age: int = None) -> str:
+                                 child_age: int = None, story_id: str = "") -> str:
     """
     Generate a scene illustration using FLUX 2 Pro, preserving the base character.
     The base image is used as reference to maintain character consistency.
@@ -345,21 +399,29 @@ def generate_scene_with_kontext(scene_prompt: str, base_image_path: str, scene_n
     
     baby_notes = ""
     if is_baby:
+        _pronoun_sc = "His" if gender == "male" else "Her" if gender == "female" else "Their"
         if hair_length == 'very_little':
-            baby_hair_color_note = traits.get('hair_color', 'brown') if traits else 'brown'
-            baby_notes += f"\nCRITICAL HAIR: This {gender_word} has a completely bald smooth head, no hair whatsoever, perfectly round smooth scalp."
-        if child_age is not None and child_age == 0:
-            baby_notes += f"\nCRITICAL POSE: This is a 0-12 month old infant. The {gender_word} CANNOT stand or walk. The {gender_word} MUST ONLY be lying down, sitting supported, or crawling on belly. NEVER show the {gender_word} standing upright or walking on feet."
-    
+            baby_notes += (
+                f"\nCRITICAL HAIR: {_pronoun_sc} head appears bald — smooth rounded scalp with only a "
+                f"microscopic ultra-fine peach fuzz dusting barely covering the skin, scalp skin texture "
+                f"fully visible, scalp shape clearly defined, hair density at zero."
+            )
+        if child_age is not None and child_age <= 12:  # child_age in months; <= 12 months cannot stand/walk
+            baby_notes += f"\nCRITICAL POSE: This is a {child_age}-month-old infant. The {gender_word} CANNOT stand or walk. The {gender_word} MUST ONLY be lying down, sitting supported, or crawling. NEVER show the {gender_word} standing upright or walking on feet."
+
     negative_prompt = get_gender_negative_prompt(gender)
-    
-    if is_baby and child_age is not None and child_age == 0:
+
+    if is_baby and child_age is not None and child_age <= 12:  # months
         pose_instruction = f"The {gender_word} must follow the POSE described in the scene prompt exactly. This infant can ONLY sit, lie down, or crawl."
     elif is_baby:
         pose_instruction = f"ALLOW the {gender_word} to move, interact, and have different body positions as described in the scene."
     else:
         pose_instruction = f"The {gender_word} should be ACTIVE and DYNAMIC - walking, playing, reaching, celebrating - as the story describes."
     
+    if is_baby:
+        _style_suffix = "Soft luxury digital illustration, fine art children's book style, premium baby memory book aesthetic, gentle warm pastel tones, delicate painted textures, soft emotional lighting."
+    else:
+        _style_suffix = "Professional children's storybook illustration, soft watercolor style, magical atmosphere."
     enhanced_prompt = f"""{scene_prompt}
 
 CRITICAL CHARACTER CONSISTENCY: This is the SAME {gender_word} from the reference image.
@@ -367,7 +429,7 @@ Keep the {gender_word}'s APPEARANCE exactly the same: same face shape, same hair
 The {gender_word} must be RECOGNIZABLE as the same child but in a NEW POSE and NEW ACTION as described in the scene.
 {pose_instruction}
 No accessories, no jewelry, no earrings on the baby.{baby_notes}
-Professional children's storybook illustration, soft watercolor style, magical atmosphere.
+{_style_suffix}
 No text, no watermarks, no signatures."""
 
     print(f"Scene prompt (first 200 chars): {scene_prompt[:200]}...")
@@ -552,12 +614,7 @@ def generate_scene_with_flux2dev(scene_prompt: str, reference_image_path: str, s
     else:
         gender_word = "little boy" if gender == "male" else "little girl" if gender == "female" else "child"
 
-    if is_baby and hair_length == 'very_little':
-        reference_note = (
-            f"CRITICAL: Completely bald smooth head, no hair. "
-            f"Same {gender_word} as reference — same face, skin tone."
-        )
-    elif is_baby:
+    if is_baby:
         reference_note = f"CRITICAL: Same {gender_word} as reference — same hair color and style, same face, same skin tone."
     else:
         reference_note = f"CRITICAL: Same {gender_word} as reference photo — match face, hair color, skin tone exactly."
@@ -694,18 +751,20 @@ def generate_scene_with_ideogram(scene_prompt: str, reference_image_path: str, s
                 raise Exception(f"Ideogram Character failed for scene {scene_num} after {max_retries + 1} attempts: {e}")
 
 
-def generate_illustration_replicate(scene_prompt: str, scene_num: int, aspect_ratio: str = "3:4", model: str = None) -> str:
+def generate_illustration_replicate(scene_prompt: str, scene_num: int, aspect_ratio: str = "3:4", model: str = None, negative_prompt: str = None) -> str:
     """
     Generate illustration standalone (no character reference).
     Uses specified model or defaults to FLUX 2 Pro.
     Pass model=FLUX_DEV_MODEL for Quick Stories.
+    Pass negative_prompt for FLUX 2 Dev calls (not supported by FLUX Dev or FLUX 2 Pro).
     Returns URL of generated image.
     """
     use_model = model or FLUX_2_PRO_MODEL
     is_dev_model = "flux-dev" in use_model or "flux-2-dev" in use_model
+    is_flux2dev = "flux-2-dev" in use_model
     model_name = "FLUX 2 Dev" if "flux-2-dev" in use_model else "FLUX Dev" if "flux-dev" in use_model else "FLUX 2 Pro"
     print(f"\n--- Generating Preview/Scene {scene_num} with {model_name} ---")
-    print(f"Prompt: {scene_prompt[:150]}...")
+    print(f"Prompt: {scene_prompt}")
     
     enhanced_prompt = scene_prompt + ". Clean professional illustration, no artist signature, no watermarks, no text overlays, no logos, no letters, no words."
     input_params = {
@@ -715,6 +774,9 @@ def generate_illustration_replicate(scene_prompt: str, scene_num: int, aspect_ra
     }
     if not is_dev_model:
         input_params["safety_tolerance"] = 5
+    if is_flux2dev and negative_prompt:
+        input_params["negative_prompt"] = negative_prompt
+        print(f"[NEG PROMPT] {negative_prompt}")
 
     max_retries = 4
     for attempt in range(max_retries + 1):
@@ -741,6 +803,26 @@ def generate_illustration_replicate(scene_prompt: str, scene_num: int, aspect_ra
                 time.sleep(wait_time)
             else:
                 print(f"Error generating scene {scene_num} after {max_retries + 1} attempts: {e}")
+                if is_flux2dev:
+                    print(f"[FALLBACK] FLUX 2 Dev agotado, intentando con FLUX 2 Pro...")
+                    fallback_params = {
+                        "prompt": enhanced_prompt,
+                        "aspect_ratio": aspect_ratio,
+                        "output_format": "png",
+                        "safety_tolerance": 5,
+                    }
+                    try:
+                        fallback_output = replicate.run(FLUX_2_PRO_MODEL, input=fallback_params)
+                        if isinstance(fallback_output, str):
+                            fallback_url = fallback_output
+                        elif isinstance(fallback_output, list) and len(fallback_output) > 0:
+                            fallback_url = str(fallback_output[0])
+                        else:
+                            fallback_url = str(fallback_output)
+                        print(f"Scene {scene_num}: Fallback FLUX 2 Pro OK!")
+                        return fallback_url
+                    except Exception as fe:
+                        print(f"[FALLBACK] FLUX 2 Pro también falló: {fe}")
                 raise
 
 
@@ -955,7 +1037,7 @@ def generate_cover_only(story_id: str, gender: str, traits: dict,
                     os.rename(f"{output_dir}/scene_0.png", f"{output_dir}/cover.png")
                     cover_path = f"{output_dir}/cover.png"
                 else:
-                    cover_path = generate_scene_with_kontext(cover_scene_prompt, base_path, 0, cover_aspect, output_dir, gender=gender, age_range=age_range, additional_references=additional_refs, hair_length=hair_length, child_age=child_age)
+                    cover_path = generate_scene_with_kontext(cover_scene_prompt, base_path, 0, cover_aspect, output_dir, gender=gender, age_range=age_range, additional_references=additional_refs, hair_length=hair_length, child_age=child_age, story_id=story_id)
                     os.rename(f"{output_dir}/scene_0.png", f"{output_dir}/cover.png")
                     cover_path = f"{output_dir}/cover.png"
             except Exception as e:
@@ -1040,7 +1122,7 @@ def generate_scenes_only(story_id: str, gender: str, traits: dict,
             elif use_flux_dev:
                 _path = generate_scene_with_flux2dev(_prompt, cover_path, _i, scene_aspect, output_dir, gender=gender, age_range=age_range, hair_length=hair_length, child_age=child_age, hair_color=hair_color)
             else:
-                _path = generate_scene_with_kontext(_prompt, cover_path, _i, scene_aspect, output_dir, gender=gender, age_range=age_range, additional_references=additional_refs, hair_length=hair_length, child_age=child_age)
+                _path = generate_scene_with_kontext(_prompt, cover_path, _i, scene_aspect, output_dir, gender=gender, age_range=age_range, additional_references=additional_refs, hair_length=hair_length, child_age=child_age, story_id=story_id)
             return _i, _path
         except Exception as _e:
             print(f"Error generating scene {_i}: {_e}")
@@ -1070,7 +1152,7 @@ def generate_scenes_only(story_id: str, gender: str, traits: dict,
             elif use_flux_dev:
                 closing_path = generate_scene_with_flux2dev(closing_prompt, cover_path, closing_num, scene_aspect, output_dir, gender=gender, age_range=age_range, hair_length=hair_length, child_age=child_age, hair_color=hair_color)
             else:
-                closing_path = generate_scene_with_kontext(closing_prompt, cover_path, closing_num, scene_aspect, output_dir, gender=gender, age_range=age_range, additional_references=additional_refs, hair_length=hair_length, child_age=child_age)
+                closing_path = generate_scene_with_kontext(closing_prompt, cover_path, closing_num, scene_aspect, output_dir, gender=gender, age_range=age_range, additional_references=additional_refs, hair_length=hair_length, child_age=child_age, story_id=story_id)
             os.rename(closing_path, f"{output_dir}/closing.png")
             closing_path = f"{output_dir}/closing.png"
             print(f"[CLOSING] Closing illustration saved: {closing_path}")
