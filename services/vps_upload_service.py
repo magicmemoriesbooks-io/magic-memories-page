@@ -192,7 +192,14 @@ def _get_scene_images(story_data):
     composed = story_data.get('composed_pages') or []
     if composed:
         return composed
-    return story_data.get('scene_paths') or story_data.get('images') or story_data.get('original_scene_paths') or story_data.get('original_images') or []
+    # Prefer clean/original paths (post-payment visor must never show watermarks)
+    originals = story_data.get('original_scene_paths') or story_data.get('original_images') or []
+    if originals:
+        return originals
+    # Fallback: filter out _preview paths from scene_paths/images
+    raw = story_data.get('scene_paths') or story_data.get('images') or []
+    clean = [p for p in raw if '_preview' not in str(p)]
+    return clean if clean else raw
 
 
 def _get_back_cover(story_data, is_illustrated):
@@ -339,6 +346,13 @@ def prepare_book_for_visor(story_data, preview_id, book_uuid=None, is_gift=False
             continue
         if '_preview' in str(img_path):
             continue
+        # For illustrated books, portadilla (page_01) and dedicatoria (page_02)
+        # are already generated as text pages above — skip them in the scene loop
+        # to prevent duplicates when original_scene_paths includes all 24 composed pages.
+        if is_illustrated:
+            _bn = os.path.basename(img_path.lstrip('/'))
+            if _bn in ('page_01.png', 'page_02.png'):
+                continue
         raw_text = _get_scene_text(story_data, text_idx)
         clean_src_path = None
         if is_illustrated:
@@ -375,16 +389,10 @@ def prepare_book_for_visor(story_data, preview_id, book_uuid=None, is_gift=False
             pass
 
     safe_name = child_name.replace(' ', '_').replace("'", "")
-    pdf_filename = None
-    pdf_digital_path = f'generations/email/{preview_id}/{safe_name}_digital.pdf'
-    if os.path.exists(pdf_digital_path):
-        pdf_filename = 'original.pdf'
-        try:
-            import shutil
-            shutil.copy2(pdf_digital_path, os.path.join(local_dir, pdf_filename))
-        except Exception as e:
-            print(f"[VISOR] Error copying PDF: {e}")
-            pdf_filename = None
+    # Point to the app's dynamic download route — always serves the proper
+    # imprimible PDF (28 pages, 3mm bleed, crop marks). Never expose the
+    # internal _digital.pdf (plain image compilation) to end users.
+    pdf_filename = f'/download-book/{preview_id}'
 
     music_file = story_data.get('visor_music', None) or get_music_for_story(story_data)
 
