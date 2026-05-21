@@ -1,25 +1,29 @@
 """
 Printable PDF Generator for Magic Memories Books
-Produces a 26-page A4 PDF suitable for home printing at a copy shop.
+Produces a 28-page A4 (or Letter) PDF suitable for home printing at a copy shop.
 
-Format  : A4 portrait (210 × 297 mm) at 300 DPI
+Format  : A4 portrait (210 × 297 mm) at 300 DPI  /  US Letter (215.9 × 279.4 mm)
 Margins : 10 mm left/right, 12 mm top/bottom (safe print zone)
 Content : 190 × 273 mm — images centred inside the safe area
 
-26-page structure (matches the CP casewrap 26p interior):
-  Page 1     : blank
-  Page 2     : portadilla (visor page_2.jpg)
-  Page 3     : dedicatoria (visor page_3.jpg)
-  Pages 4-22 : 19 story scenes (visor page_4.jpg … page_22.jpg)
-  Pages 23-24: 2 coloring pages (scenes page_8 and page_17 converted to outlines)
-  Page 25    : credits (dynamically generated)
-  Page 26    : blank
+28-page structure (digital edition — portada + contraportada included):
+  Page 1     : portada (visor page_1.jpg or front_cover_path)
+  Page 2     : blank
+  Page 3     : portadilla (visor page_2.jpg)
+  Page 4     : dedicatoria (visor page_3.jpg)
+  Pages 5-23 : 19 story scenes (visor page_4.jpg … page_22.jpg)
+  Pages 24-25: 2 coloring pages (scenes page_8 and page_17 via FLUX Kontext Pro)
+  Page 26    : credits (dynamically generated)
+  Page 27    : blank
+  Page 28    : contraportada fija
+                 A4     → FIXED_BACK_COVER_IMAGES  (static/images/fixed_pages/_backup/)
+                 Letter → FIXED_BACK_COVER_IMAGES_LETTER (…/backup_PhotoMagic_carta/)
 
-Coloring pages are full illustrations converted to clean outlines (no writing lines).
-Uses gelato_pdf_service._scene_to_coloring_page with FLUX Kontext Pro / PIL fallback.
+Coloring pages use FLUX Kontext Pro (via _build_qs_cp_a4_drawing_page_image) for clean
+black outlines on white, with "¡Dibuja tu propia historia!" header. PIL fallback if FLUX fails.
 
-Output: generated/gelato/<session_id>/<name>_imprimible.pdf
-  (saved under generated/gelato/ so the existing /preview-pdf/gelato/ route serves it)
+Output: generated/cloudprinter/<session_id>/<name>_imprimible.pdf
+  (served via /preview-pdf/printable/<session_id>/<filename>)
 """
 
 import os
@@ -74,18 +78,34 @@ BOOK_COLORING_CONFIG = {
 }
 _DEFAULT_BOOK_ID = "magic_chef"
 
+_BC_A4_DIR    = "static/images/fixed_pages/_backup"
+_BC_CARTA_DIR = "static/images/fixed_pages/_backup/backup_PhotoMagic_carta"
+
 FIXED_BACK_COVER_IMAGES = {
-    "magic_chef":           "static/images/fixed_pages/magic_chef_back_cover.png",
-    "dragon_garden":        "static/images/fixed_pages/dragon_garden_back_cover.png",
-    "magic_inventor":       "static/images/fixed_pages/magic_inventor_back_cover.png",
-    "star_keeper":          "static/images/fixed_pages/star_keeper_back_cover.png",
-    "centinela_aurora":     "static/images/fixed_pages/centinela_aurora_back_cover.png",
-    "furry_love":           "static/images/fixed_pages/furry_love_baby_back_cover.png",
-    "furry_love_adventure": "static/images/fixed_pages/furry_love_adventure_back_cover.png",
-    "furry_love_teen":      "static/images/fixed_pages/furry_love_teen_back_cover.png",
-    "furry_love_adult":     "static/images/fixed_pages/furry_love_adult_back_cover.png",
+    "magic_chef":           f"{_BC_A4_DIR}/magic_chef_back_cover.png",
+    "dragon_garden":        f"{_BC_A4_DIR}/dragon_garden_back_cover.png",
+    "magic_inventor":       f"{_BC_A4_DIR}/magic_inventor_back_cover.png",
+    "star_keeper":          f"{_BC_A4_DIR}/star_keeper_back_cover.png",
+    "centinela_aurora":     f"{_BC_A4_DIR}/centinela_aurora_back_cover.png",
+    "furry_love":           f"{_BC_A4_DIR}/furry_love_baby_back_cover.png",
+    "furry_love_adventure": f"{_BC_A4_DIR}/furry_love_adventure_back_cover.png",
+    "furry_love_teen":      f"{_BC_A4_DIR}/furry_love_teen_back_cover.png",
+    "furry_love_adult":     f"{_BC_A4_DIR}/furry_love_adult_back_cover.png",
 }
-_GENERIC_BACK_COVER = "static/images/fixed_pages/back_cover.png"
+
+FIXED_BACK_COVER_IMAGES_LETTER = {
+    "magic_chef":           f"{_BC_CARTA_DIR}/magic_chef_back_cover_letter.png",
+    "dragon_garden":        f"{_BC_CARTA_DIR}/dragon_garden_back_cover_letter.png",
+    "magic_inventor":       f"{_BC_CARTA_DIR}/magic_inventor_back_cover_letter.png",
+    "star_keeper":          f"{_BC_CARTA_DIR}/star_keeper_back_cover_letter.png",
+    "centinela_aurora":     f"{_BC_CARTA_DIR}/centinela_aurora_back_cover_letter.png",
+    "furry_love":           f"{_BC_CARTA_DIR}/furry_love_baby_back_cover_letter.png",
+    "furry_love_adventure": f"{_BC_CARTA_DIR}/furry_love_adventure_back_cover_letter.png",
+    "furry_love_teen":      f"{_BC_CARTA_DIR}/furry_love_teen_back_cover_letter.png",
+    "furry_love_adult":     f"{_BC_CARTA_DIR}/furry_love_adult_back_cover_letter.png",
+}
+
+_GENERIC_BACK_COVER = "static/images/back_cover.jpg"
 
 
 def _try_font(path: str, size: int):
@@ -120,6 +140,54 @@ def _make_blank_page(px_w=None, px_h=None, color="#FFFFFF"):
 
 def _make_blank_a4(color="#FFFFFF"):
     return _make_blank_page(A4_PX_W, A4_PX_H, color)
+
+
+def _fit_image_fullbleed(img: Image.Image, px_w=None, px_h=None, fill_mode: str = 'auto') -> Image.Image:
+    """Scale & crop/extend image to fill the ENTIRE page canvas (bleed to bleed).
+
+    fill_mode:
+      'auto'   – scale by max(scale_w, scale_h), center-crop any overflow (default).
+                 Best for 3:4 scene images: only ~5mm crop top/bottom on Letter.
+      'height' – scale to fill HEIGHT exactly, no vertical crop ever.
+                 If the scaled image is narrower than the canvas, the missing
+                 left/right strips are filled with a heavily-blurred extension of
+                 the image so text near the top/bottom edge is never cut.
+                 Best for A4-ratio (1.42) visor pages on Letter canvas.
+    """
+    from PIL import ImageFilter
+    _px_w = px_w or A4_PX_W
+    _px_h = px_h or A4_PX_H
+    src_w, src_h = img.size
+
+    if fill_mode == 'height':
+        scale = _px_h / src_h
+        new_w = int(src_w * scale)
+        resized = img.resize((new_w, _px_h), Image.Resampling.LANCZOS)
+        if new_w >= _px_w:
+            crop_x = (new_w - _px_w) // 2
+            return resized.crop((crop_x, 0, crop_x + _px_w, _px_h))
+        # Image is narrower than canvas — fill sides with blurred background
+        bg_scale = _px_w / src_w
+        bg_h = int(src_h * bg_scale)
+        bg = img.resize((_px_w, max(bg_h, _px_h)), Image.Resampling.LANCZOS)
+        if bg_h < _px_h:
+            bg = bg.resize((_px_w, _px_h), Image.Resampling.LANCZOS)
+        else:
+            cy = (bg_h - _px_h) // 2
+            bg = bg.crop((0, cy, _px_w, cy + _px_h))
+        bg = bg.filter(ImageFilter.GaussianBlur(radius=60))
+        x_off = (_px_w - new_w) // 2
+        bg.paste(resized, (x_off, 0))
+        return bg
+
+    # Default 'auto': scale by max, center-crop
+    scale = max(_px_w / src_w, _px_h / src_h)
+    new_w = int(src_w * scale)
+    new_h = int(src_h * scale)
+    resized = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+    crop_x = (new_w - _px_w) // 2
+    crop_y = (new_h - _px_h) // 2
+    return resized.crop((crop_x, crop_y, crop_x + _px_w, crop_y + _px_h))
 
 
 def _fit_image_in_content(img: Image.Image,
@@ -226,7 +294,7 @@ def _generate_credits_page_a4(child_name: str, language: str = "es", px_w=None, 
     return page
 
 
-def _get_coloring_pages(book_id: str, gender: str, pages_dir: str) -> list:
+def _get_coloring_pages(book_id: str, gender: str, pages_dir: str, lang: str = 'es') -> list:
     cfg = BOOK_COLORING_CONFIG.get(book_id) or BOOK_COLORING_CONFIG[_DEFAULT_BOOK_ID]
     images = []
 
@@ -244,16 +312,13 @@ def _get_coloring_pages(book_id: str, gender: str, pages_dir: str) -> list:
             else:
                 images.append(None)
     else:
+        from services.pdf_service import _build_qs_cp_a4_drawing_page_image
         for visor_n in cfg["scene_indices"]:
             sp = os.path.join(pages_dir, f"page_{visor_n}.jpg")
             if os.path.exists(sp):
                 try:
-                    from PIL import ImageFilter
-                    scene_img = Image.open(sp).convert("RGB")
-                    gray = scene_img.convert("L")
-                    contour = gray.filter(ImageFilter.CONTOUR)
-                    bw = contour.point(lambda p: 0 if p < 200 else 255)
-                    images.append(bw.convert("RGB"))
+                    cp_img = _build_qs_cp_a4_drawing_page_image(sp, A4_PX_W * 72 / 300, A4_PX_H * 72 / 300, lang=lang)
+                    images.append(cp_img)
                 except Exception as e:
                     print(f"[PRINTABLE PDF] Coloring page error for scene {visor_n}: {e}")
                     images.append(None)
@@ -266,34 +331,60 @@ def _get_coloring_pages(book_id: str, gender: str, pages_dir: str) -> list:
 
 def _load_coloring_page_a4(visor_path: str, slot: int = 0,
                             px_w=None, px_h=None,
-                            content_w_pt=None, content_h_pt=None,
-                            margin_lr_pt=None, margin_tb_pt=None) -> Image.Image:
-    """Convert a colour visor scene to a coloring-book outline, scaled to the given page size."""
-    fit_kwargs = dict(px_w=px_w, px_h=px_h,
-                      content_w_pt=content_w_pt, content_h_pt=content_h_pt,
-                      margin_lr_pt=margin_lr_pt, margin_tb_pt=margin_tb_pt)
-    if not os.path.exists(visor_path):
-        print(f"[PRINTABLE PDF] Coloring source not found: {visor_path} — using blank")
-        return _make_blank_page(px_w, px_h)
-    try:
-        from services.gelato_pdf_service import _scene_to_coloring_page as _gelato_coloring
-        scene_img = Image.open(visor_path).convert("RGB")
-        coloring = _gelato_coloring(scene_img, slot=slot)
-        scene_img.close()
-        return _fit_image_in_content(coloring, **fit_kwargs)
-    except Exception as e:
-        print(f"[PRINTABLE PDF] Coloring page error (slot {slot}): {e} — using PIL CONTOUR fallback")
-        from PIL import ImageFilter
+                            cache_dir: str = None,
+                            force_regenerate: bool = False,
+                            lang: str = 'es',
+                            **_ignored) -> Image.Image:
+    """Convert a colour visor scene to a coloring-book drawing page.
+
+    Delegates to _build_qs_cp_a4_drawing_page_image (services/pdf_service.py) which:
+    - Uses FLUX Kontext Pro for clean black outlines on white
+    - Falls back to PIL brightness/desaturate if FLUX fails
+    - Adds '¡Dibuja tu propia historia!' title bar at the top
+    Returns a PIL Image at exactly px_w × px_h pixels.
+
+    If cache_dir is provided the generated image is saved to
+    {cache_dir}/coloring_page_{scene_num}_{fmt}.png and reused on subsequent
+    calls (unless force_regenerate=True).
+    """
+    import re as _re
+    from services.pdf_service import _build_qs_cp_a4_drawing_page_image
+
+    _px_w = px_w or A4_PX_W
+    _px_h = px_h or A4_PX_H
+    page_w_pt = _px_w * 72 / 300
+    page_h_pt = _px_h * 72 / 300
+
+    fmt_suffix = "a4" if _px_w == A4_PX_W else "letter"
+
+    cache_path = None
+    if cache_dir:
+        m = _re.search(r'(\d+)', os.path.basename(visor_path or ''))
+        if m:
+            scene_num = m.group(1)
+            cache_path = os.path.join(cache_dir, f"coloring_page_{scene_num}_{fmt_suffix}.png")
+
+    if cache_path and os.path.exists(cache_path) and not force_regenerate:
         try:
-            scene_img = Image.open(visor_path).convert("RGB")
-            gray = scene_img.convert("L")
-            contour = gray.filter(ImageFilter.CONTOUR)
-            bw = contour.point(lambda p: 0 if p < 200 else 255)
-            scene_img.close()
-            return _fit_image_in_content(bw.convert("RGB"), **fit_kwargs)
-        except Exception as e2:
-            print(f"[PRINTABLE PDF] PIL CONTOUR also failed: {e2} — using blank")
-            return _make_blank_page(px_w, px_h)
+            cached = Image.open(cache_path).convert("RGB")
+            print(f"[PRINTABLE PDF] Coloring page cache HIT (slot={slot}): {cache_path}")
+            return cached
+        except Exception as ce:
+            print(f"[PRINTABLE PDF] Cache read failed ({cache_path}): {ce} — regenerating")
+
+    try:
+        print(f"[PRINTABLE PDF] Coloring page slot={slot}: {visor_path}")
+        result = _build_qs_cp_a4_drawing_page_image(visor_path, page_w_pt, page_h_pt, lang=lang)
+        if cache_path:
+            try:
+                result.save(cache_path, format="PNG")
+                print(f"[PRINTABLE PDF] Coloring page cached: {cache_path}")
+            except Exception as se:
+                print(f"[PRINTABLE PDF] Cache save failed ({cache_path}): {se}")
+        return result
+    except Exception as e:
+        print(f"[PRINTABLE PDF] Coloring page error (slot {slot}): {e} — using blank")
+        return _make_blank_page(_px_w, _px_h)
 
 
 def generate_personalized_printable_pdf(
@@ -310,16 +401,20 @@ def generate_personalized_printable_pdf(
     print_format: str = "A4",
 ) -> str:
     """
-    Build a 26-page A4 printable PDF for home/copy-shop printing.
+    Build a 28-page A4 (or Letter) printable PDF for home/copy-shop printing.
 
-    26-page structure (mirrors the CP casewrap 26p interior):
-      Page 1     : blank
-      Page 2     : portadilla (visor page_2.jpg)
-      Page 3     : dedicatoria (visor page_3.jpg)
-      Pages 4-22 : 19 story scenes (visor page_4.jpg … page_22.jpg)
-      Pages 23-24: 2 coloring pages (scenes page_8 and page_17 as outlines)
-      Page 25    : credits (dynamically generated)
-      Page 26    : blank
+    28-page structure (digital edition — portada + contraportada included):
+      Page 1     : portada (visor page_1.jpg, fallback front_cover_path)
+      Page 2     : blank
+      Page 3     : portadilla (visor page_2.jpg)
+      Page 4     : dedicatoria (visor page_3.jpg)
+      Pages 5-23 : 19 story scenes (visor page_4.jpg … page_22.jpg)
+      Pages 24-25: 2 coloring pages (scenes page_8 and page_17 as outlines)
+      Page 26    : credits (dynamically generated)
+      Page 27    : blank
+      Page 28    : contraportada fija
+                    A4     → FIXED_BACK_COVER_IMAGES
+                    Letter → FIXED_BACK_COVER_IMAGES_LETTER
 
     Args:
         book_session_id : visor_pb session ID (same as preview_id)
@@ -346,7 +441,7 @@ def generate_personalized_printable_pdf(
 
     fmt_suffix = "LETTER" if print_format == "LETTER" else "A4"
     if output_path is None:
-        out_dir = os.path.join("generated", "gelato", book_session_id)
+        out_dir = os.path.join("generated", "cloudprinter", book_session_id)
         os.makedirs(out_dir, exist_ok=True)
         safe_name = "".join(c for c in (child_name or "libro") if c.isalnum() or c in " _-").strip().replace(" ", "_")
         if not safe_name:
@@ -374,9 +469,9 @@ def generate_personalized_printable_pdf(
     def has_scene(n):
         return os.path.exists(scene_path(n))
 
-    # 26-page structure (mirrors CP casewrap interior)
-    # Page 1: portada (AI-generated front cover) or blank if not available
-    # Page 26: contraportada — prefer fixed back cover (with logo) when available
+    # 28-page digital structure
+    # Page 1  : portada  — visor page_1.jpg preferred; fallback to front_cover_path
+    # Page 28 : contraportada — fixed back cover (with logo), format-specific path
     _fc = front_cover_path.lstrip('/') if front_cover_path else None
     _bc = back_cover_path.lstrip('/') if back_cover_path else None
     if _fc and not os.path.exists(_fc):
@@ -384,34 +479,46 @@ def generate_personalized_printable_pdf(
     if _bc and not os.path.exists(_bc):
         _bc = None
 
-    # Prefer the pre-designed fixed back cover (contains logo) over the AI-generated scene.
-    # Match on exact book_id or strip the '_illustrated' suffix used internally.
-    _fixed_bc_key = book_id if book_id in FIXED_BACK_COVER_IMAGES else (book_id or "").replace("_illustrated", "")
-    _fixed_bc = FIXED_BACK_COVER_IMAGES.get(_fixed_bc_key) or FIXED_BACK_COVER_IMAGES.get(book_id)
+    # Portada: prefer visor page_1.jpg (already rendered cover art)
+    _visor_p1 = scene_path(1)
+    _cover_src = _visor_p1 if os.path.exists(_visor_p1) else _fc
+
+    # Contraportada: prefer fixed back cover (contains logo) — format-specific map.
+    # A4 → FIXED_BACK_COVER_IMAGES, Letter → FIXED_BACK_COVER_IMAGES_LETTER.
+    # Strip '_illustrated' suffix if needed; fallback to generic, then blank.
+    _bc_dict = FIXED_BACK_COVER_IMAGES_LETTER if print_format == "LETTER" else FIXED_BACK_COVER_IMAGES
+    _fixed_bc_key = book_id if book_id in _bc_dict else (book_id or "").replace("_illustrated", "")
+    _fixed_bc = _bc_dict.get(_fixed_bc_key) or _bc_dict.get(book_id)
     if _fixed_bc and os.path.exists(_fixed_bc):
         _bc = _fixed_bc
-        print(f"[PRINTABLE PDF] Using fixed back cover (with logo): {_bc}")
+        print(f"[PRINTABLE PDF] Using fixed back cover ({print_format}): {_bc}")
     elif not _bc and os.path.exists(_GENERIC_BACK_COVER):
         _bc = _GENERIC_BACK_COVER
         print(f"[PRINTABLE PDF] Using generic back cover: {_bc}")
 
+    # Page types:
+    #   fullbleed_h – A4-ratio visor pages (portada, portadilla, dedicatoria): scale to height, blur-extend sides
+    #   fullbleed   – 3:4 scene pages (5-23): center-crop (~5mm top/bottom on Letter = OK)
+    #   coloring    – scene converted to outline, fullbleed
     page_spec = [
-        ("image" if _fc else "blank", _fc, None),       # Page 1  — portada (AI cover) or blank
-        ("image",  scene_path(2), None),                 # Page 2  — portadilla
-        ("image",  scene_path(3), None),                 # Page 3  — dedicatoria
+        ("fullbleed_h" if _cover_src else "blank", _cover_src, None),  # Page 1  — portada
+        ("blank",       None, None),                                     # Page 2  — blank
+        ("fullbleed_h", scene_path(2), None),                            # Page 3  — portadilla (A4 ratio)
+        ("fullbleed_h", scene_path(3), None),                            # Page 4  — dedicatoria (A4 ratio)
     ]
 
-    for n in range(4, 23):                              # Pages 4-22 — 19 story scenes
+    for n in range(4, 23):                              # Pages 5-23 — 19 story scenes (3:4)
         src = scene_path(n) if has_scene(n) else None
-        page_spec.append(("image" if src else "blank", src, None))
+        page_spec.append(("fullbleed" if src else "blank", src, None))
 
-    page_spec.append(("coloring", coloring_scene_path(8),  0))   # Page 23 — coloring A (scene page_8)
-    page_spec.append(("coloring", coloring_scene_path(17), 1))   # Page 24 — coloring B (scene page_17)
-    page_spec.append(("credits",  None, None))           # Page 25 — credits
-    page_spec.append(("image" if _bc else "blank", _bc, None))  # Page 26 — contraportada or blank
+    page_spec.append(("coloring", coloring_scene_path(8),  0))         # Page 24 — coloring A (scene page_8)
+    page_spec.append(("coloring", coloring_scene_path(17), 1))         # Page 25 — coloring B (scene page_17)
+    page_spec.append(("credits",  None, None))                          # Page 26 — créditos
+    page_spec.append(("blank",    None, None))                          # Page 27 — blank
+    page_spec.append(("fullbleed" if _bc else "blank", _bc, None))     # Page 28 — contraportada
 
     total = len(page_spec)
-    assert total == 26, f"Expected 26 pages, got {total}"
+    assert total == 28, f"Expected 28 pages, got {total}"
 
     if print_format == "LETTER":
         _px_w, _px_h       = LETTER_PX_W, LETTER_PX_H
@@ -437,18 +544,30 @@ def generate_personalized_printable_pdf(
     for idx, (ptype, psrc, pdata) in enumerate(page_spec):
         page_num = idx + 1
         label = os.path.basename(psrc) if psrc else ptype
-        print(f"[PRINTABLE PDF] Page {page_num:02d}/26: {ptype:<12} {label}")
+        print(f"[PRINTABLE PDF] Page {page_num:02d}/28: {ptype:<12} {label}")
 
         if ptype == "blank":
             page_img = _make_blank_page(_px_w, _px_h)
         elif ptype == "credits":
             page_img = _generate_credits_page_a4(child_name, language, px_w=_px_w, px_h=_px_h)
         elif ptype == "coloring":
-            page_img = _load_coloring_page_a4(psrc, slot=pdata, **fit_kwargs)
+            page_img = _load_coloring_page_a4(psrc, slot=pdata,
+                                               px_w=_px_w, px_h=_px_h,
+                                               cache_dir=pages_dir,
+                                               force_regenerate=force_regenerate,
+                                               lang=language)
+        elif ptype in ("fullbleed", "fullbleed_h"):
+            _fm = 'height' if ptype == 'fullbleed_h' else 'auto'
+            try:
+                raw = Image.open(psrc).convert("RGB")
+                page_img = _fit_image_fullbleed(raw, px_w=_px_w, px_h=_px_h, fill_mode=_fm)
+            except Exception as e:
+                print(f"[PRINTABLE PDF] Error loading {ptype} {psrc}: {e} — using blank")
+                page_img = _make_blank_page(_px_w, _px_h)
         else:
             try:
                 raw = Image.open(psrc).convert("RGB")
-                page_img = _fit_image_in_content(raw, **fit_kwargs)
+                page_img = _fit_image_fullbleed(raw, px_w=_px_w, px_h=_px_h)
             except Exception as e:
                 print(f"[PRINTABLE PDF] Error loading {psrc}: {e} — using blank")
                 page_img = _make_blank_page(_px_w, _px_h)
@@ -484,5 +603,5 @@ def generate_personalized_printable_pdf(
     gc.collect()
 
     size_mb = os.path.getsize(output_path) / 1024 / 1024
-    print(f"[PRINTABLE PDF] Done: {output_path} ({size_mb:.1f} MB, 26 pages, format={print_format})")
+    print(f"[PRINTABLE PDF] Done: {output_path} ({size_mb:.1f} MB, 28 pages, format={print_format})")
     return os.path.abspath(output_path)
