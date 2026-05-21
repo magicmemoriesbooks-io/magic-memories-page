@@ -1982,6 +1982,9 @@ def generate_baby_preview_api():
         _upload_prefix = 'generated/uploads/furry_photos/'
         child_photo_path = _child_photo_raw if (_child_photo_raw and _child_photo_raw.startswith(_upload_prefix) and os.path.exists(_child_photo_raw)) else ''
         
+        if is_baby:
+            traits['is_baby_story'] = True
+        
         hair_desc = get_hair_description(traits)
         eye_desc = get_eye_description(traits)
         skin_desc = get_unified_skin_description(traits.get('skin_tone', 'light'))
@@ -2030,84 +2033,57 @@ def generate_baby_preview_api():
         
         if is_baby:
             gender_word = "baby boy" if child_gender == "male" else "baby girl" if child_gender == "female" else "baby"
-            age_display = f"{child_age} year old" if child_age > 0 else "baby"
-            
-            is_toddler = child_age >= 1
-            if is_toddler and 'preview_prompt_override_toddler' in story_config:
-                preview_override = story_config.get('preview_prompt_override_toddler')
-                print(f"[PREVIEW] Using TODDLER preview prompt in app.py (child_age={child_age})")
-            else:
-                preview_override = story_config.get('preview_prompt_override')
-            if preview_override:
-                from services.fixed_stories import BUNNY_DESC, PUPPY_DESC, KITTEN_DESC, GUARDIAN_LIGHT_DESC, DOG_FOREVER_DESC
-                scene_style = "clean illustration only, pure artwork, professional children's book quality"
-                skin_tone = get_skin_tone(traits.get('skin_tone', 'light'))
-                gender_child = get_gender_child(child_gender)
-                candle_plural = "s" if child_age != 1 else ""
-                candle_plural_en = "s" if child_age != 1 else ""
-                _hair_desc_pv = hair_desc
-                if traits.get('hair_length') == 'very_little':
-                    _clr_raw = traits.get('hair_color', 'brown')
-                    _clr_map2 = {'black': 'jet black', 'brown': 'medium brown', 'light_brown': 'warm light brown (caramel-honey tone)', 'blonde': 'golden blonde', 'very_light_blonde': 'very light blonde', 'red': 'bright red', 'auburn': 'auburn'}
-                    _clr = _clr_map2.get(_clr_raw, _clr_raw)
-                    _pv_type_map = {'straight': 'straight', 'wavy': 'slightly wavy', 'curly': 'softly curly', 'afro': 'tightly coiled afro'}
-                    _pv_type = _pv_type_map.get(traits.get('hair_type', 'straight'), 'straight')
-                    _hair_desc_pv = "completely bald smooth head, no hair whatsoever, perfectly round smooth scalp"
-                _eye_desc_pv = eye_desc
-                _gl_pv = traits.get('glasses', '')
-                if _gl_pv and _gl_pv not in ('none', ''):
-                    _eye_desc_pv = eye_desc + ", wearing round glasses"
-                prompt = preview_override.format(
-                    gender_word=gender_word,
-                    gender_child=gender_child,
-                    age_display=age_display,
-                    hair_desc=_hair_desc_pv,
-                    eye_desc=_eye_desc_pv,
-                    skin_desc=skin_desc,
-                    skin_tone=skin_tone,
-                    child_age=child_age,
-                    candle_plural=candle_plural,
-                    candle_plural_en=candle_plural_en,
-                    style=scene_style,
-                    bunny_desc=BUNNY_DESC,
-                    puppy_desc=PUPPY_DESC,
-                    kitten_desc=KITTEN_DESC,
-                    guardian_light_desc=GUARDIAN_LIGHT_DESC,
-                    dog_forever_desc=DOG_FOREVER_DESC
-                )
-                from services.fixed_stories import adapt_baby_pose_for_age, enforce_gender_clothing
-                prompt = adapt_baby_pose_for_age(prompt, child_age)
-                prompt = enforce_gender_clothing(prompt, child_gender)
-                
-                hair_length_preview = traits.get('hair_length', 'medium')
-                if hair_length_preview == 'very_little' and 'STRICT:' in prompt:
-                    hair_color_raw = traits.get('hair_color', 'brown')
-                    _clr_map = {'black': 'jet black', 'brown': 'medium brown', 'light_brown': 'warm light brown (caramel-honey tone)', 'blonde': 'golden blonde', 'very_light_blonde': 'very light blonde', 'red': 'bright red', 'auburn': 'auburn'}
-                    hair_color_preview = _clr_map.get(hair_color_raw, hair_color_raw)
-                    _strict_type_map = {'straight': 'straight', 'wavy': 'slightly wavy', 'curly': 'softly curly', 'afro': 'tightly coiled afro'}
-                    _strict_type = _strict_type_map.get(traits.get('hair_type', 'straight'), 'straight')
-                    prompt = prompt.replace('STRICT:', 'STRICT: Baby head is completely bald, smooth round scalp,')
-                
-                print(f"Baby preview using DNA override for: {story_id} (age: {age_display}, hair: {hair_desc})")
-            else:
-                gender_features = "masculine infant features, short wispy hair" if child_gender == "male" else "feminine infant features" if child_gender == "female" else ""
-                no_accessories = "No earrings, no jewelry, no bows, no feminine accessories." if child_gender == "male" else ""
-                
-                if child_age == 0:
-                    age_desc = f"VERY TINY NEWBORN INFANT {gender_word} (6-9 months old)"
-                    pose_desc = "LYING FLAT ON BACK on a soft blanket, CANNOT SIT UP YET, tiny arms and legs relaxed, looking up at ceiling"
-                    body_desc = "extremely small baby body, very chubby round face, short stubby limbs, cannot hold head up well"
-                elif child_age == 1:
-                    age_desc = f"1 YEAR OLD {gender_word} (12 months old)"
-                    pose_desc = "SITTING UPRIGHT on a soft blanket, CAN SIT WITHOUT SUPPORT, holding a soft toy"
-                    body_desc = "small baby body, round chubby face, can sit independently, slightly longer limbs than infant"
-                else:
-                    age_desc = f"2 YEAR OLD TODDLER {gender_word}"
-                    pose_desc = "STANDING ON TWO FEET in a cozy nursery, WALKING, taking confident steps"
-                    body_desc = "toddler body proportions, less chubby face, longer legs, can walk and run"
-                
-                prompt = f"Full body illustration of a {age_desc}, {body_desc}, with {hair_desc}, {eye_desc} and {skin_desc}. {gender_features}. The {gender_word} is {pose_desc}. Wearing soft white onesie, innocent sweet expression. Soft pastel nursery background with gentle light. Children's storybook watercolor illustration style, soft luminous colors, gentle warm lighting. Clean illustration only, pure artwork, professional children's book quality"
-                print(f"Baby preview fallback: age={child_age}, pose={pose_desc}, body={body_desc}")
+            _months = child_age
+            if _months <= 3:    age_display = "1-3 month old"
+            elif _months <= 7:  age_display = "4-7 month old"
+            elif _months <= 12: age_display = "8-12 month old"
+            elif _months <= 18: age_display = "12-18 month old"
+            else:               age_display = "18-24 month old"
+
+            from services.fixed_stories import (
+                BABY_MASTER_PROMPT,
+                get_baby_gender_face_desc, get_baby_hair_desc,
+                get_baby_hair_mandate, get_baby_hair_strict, get_baby_pose_desc,
+                get_baby_clothing_desc, get_baby_anatomy_strict,
+            )
+            skin_tone = get_skin_tone(traits.get('skin_tone', 'light'))
+            _hair_length   = traits.get('hair_length', 'medium')
+            gender_face_desc = get_baby_gender_face_desc(child_gender)
+            baby_hair_desc   = get_baby_hair_desc(
+                _hair_length,
+                traits.get('hair_color', 'brown'),
+                traits.get('hair_type', 'straight'),
+                child_gender
+            )
+            hair_mandate   = get_baby_hair_mandate(_hair_length)
+            hair_strict    = get_baby_hair_strict(_hair_length)
+            pose_desc      = get_baby_pose_desc(child_age)
+            clothing_desc  = get_baby_clothing_desc(child_gender)
+            anatomy_strict = get_baby_anatomy_strict(child_gender, child_age)
+
+            _gl_baby  = traits.get('glasses', '')
+            _eye_baby = eye_desc
+            if _gl_baby and _gl_baby not in ('none', ''):
+                _eye_baby = eye_desc + ", wearing round glasses"
+
+            prompt = BABY_MASTER_PROMPT.format(
+                hair_mandate     = hair_mandate,
+                gender_face_desc = gender_face_desc,
+                age_display      = age_display,
+                hair_desc        = baby_hair_desc,
+                eye_desc         = _eye_baby,
+                skin_desc        = skin_desc,
+                clothing_desc    = clothing_desc,
+                pose_desc        = pose_desc,
+                companion_action = story_config.get('companion_action', ''),
+                env_desc         = story_config.get('env_desc', 'Cozy nursery, soft pastel colors'),
+                atm_desc         = story_config.get('atm_desc', 'Warm dreamy magical light'),
+                hair_strict      = hair_strict,
+                anatomy_strict   = anatomy_strict,
+                companion_strict = story_config.get('companion_strict', 'Exactly ONE human baby in frame.'),
+            )
+            print(f"[BABY MASTER PROMPT] story={story_id} | age={age_display} | hair={traits.get('hair_length')} | gender={child_gender}")
+            print(f"\n===== BABY MASTER PROMPT =====\n{prompt}\n===== FIN =====")
         else:
             gender_word = "little boy" if child_gender == "male" else "little girl" if child_gender == "female" else "child"
             gender_features = "young boy features, 4-5 years old" if child_gender == "male" else "young girl features, 4-5 years old" if child_gender == "female" else "4-5 years old"
@@ -2208,9 +2184,14 @@ def generate_baby_preview_api():
                         if _hl_qs == 'bald':
                             prompt = prompt.replace('STRICT:', 'STRICT: Child has completely smooth bald head, zero hair,', 1)
                         elif _hl_qs == 'very_little':
-                            _is_baby_qs = story_config.get('age_range', '') in ['0-1', '0-2'] or _age_qs < 2
+                            _is_baby_qs = story_config.get('age_range', '') in ['0-1', '0-2']
                             if _is_baby_qs:
-                                prompt = prompt.replace('STRICT:', 'STRICT: Baby head is completely bald, smooth round scalp,', 1)
+                                prompt = prompt.replace(
+                                    'STRICT:',
+                                    'STRICT: Baby head is nearly bald, smooth scalp with only very sparse fine downy fuzz, '
+                                    'appearing almost completely bald, no hair volume, scalp shape clearly visible,',
+                                    1
+                                )
                             else:
                                 prompt = prompt.replace('STRICT:', 'STRICT: Child has extremely short buzz cut or tight pixie, hair barely covers scalp, does not extend past ears,', 1)
                     print(f"Using story-specific preview override for: {story_id} (age: {age_display})")
@@ -2253,13 +2234,21 @@ def generate_baby_preview_api():
             )
         else:
             if is_quick_story and is_baby:
-                preview_model = FLUX_DEV_MODEL
-                print(f"[PREVIEW] Baby Quick Story: using FLUX Dev for character reference consistency")
+                preview_model = FLUX_2_DEV_MODEL
+                print(f"[PREVIEW] Baby Quick Story: using FLUX 2 Dev with negative_prompt")
             elif is_quick_story:
                 preview_model = FLUX_2_DEV_MODEL
+                print(f"[PREVIEW] Non-baby Quick Story: using FLUX 2 Dev")
             else:
                 preview_model = None
-            image_url = generate_illustration_replicate(prompt, 0, aspect_ratio="3:4", model=preview_model)
+            _baby_neg = (
+                "hair tuft, hair spike, topknot, single curl on head, baby hair curl, "
+                "hair wisp sticking up, raised hair, hair protrusion, hair bump, "
+                "pointed hair, hair flick, forelock, cowlick, hair sticking up, "
+                "large ears, big ears, prominent ears, protruding ears, oversized ears, "
+                "elf ears, elephant ears, floppy ears, wide ears"
+            ) if is_baby else None
+            image_url = generate_illustration_replicate(prompt, 0, aspect_ratio="3:4", model=preview_model, negative_prompt=_baby_neg)
             local_path = save_image_locally(image_url, f'{output_dir}/preview_{uuid.uuid4().hex[:8]}.png')
 
         return jsonify({
@@ -4794,6 +4783,7 @@ def shipping_confirm(preview_id):
                     book_title=book_title_g,
                     output_path=cover_pdf_path,
                     page_count=_chosen_pages,
+                    story_id=book_id,
                 )
                 generate_cw_content_pdf(
                     session_id=preview_id,
@@ -6094,14 +6084,14 @@ def confirm_and_send(preview_id):
         instructions_path_email = story_data.get('instructions_path')
         personalized_pdf_url = None
 
-        if want_print:
+        if want_print and not (story_data.get('want_pdf') or story_data.get('pdf_paid')):
             pdf_printable_path = None
             instructions_path_email = None
 
         if is_personalized_book:
             pdf_printable_path = None
             instructions_path_email = None
-        elif visor_url and not pdf_printable_path and not want_print and (story_data.get('want_pdf') or story_data.get('pdf_paid')):
+        elif visor_url and not pdf_printable_path and (story_data.get('want_pdf') or story_data.get('pdf_paid')):
             try:
                 from services.quick_stories.checkout import is_quick_story as check_qs_cs
                 if check_qs_cs(story_data.get('story_id', '')):
@@ -7214,6 +7204,148 @@ def admin_regenerate_scene(preview_id, scene_num):
     lang = story_data.get('lang', story_data.get('language', 'es'))
     output_dir = story_data.get('output_dir', story_data.get('image_dir', f'generated/{preview_id}'))
 
+    # Illustrated/personalized books (furry_love, etc.) use a different generation path
+    from services.personalized_books.generation import is_personalized_book
+    if is_personalized_book(story_id):
+        # scene_num (1-based) maps to pages[]: pages[0]=title, pages[1]=ded, pages[2]=scene1...
+        page_idx = scene_num + 1
+        # Delegate to illustrated page regeneration (reuse the logic from admin_regenerate_page)
+        try:
+            from services.personalized_books.generation import get_personalized_book_id
+            from services.illustrated_book_service import generate_scene_complete, load_book_config
+
+            book_id = get_personalized_book_id(story_id)
+            book_cfg = load_book_config(book_id)
+            scenes = book_cfg.get('scenes', [])
+            scene_cfg_idx = page_idx - 2
+            if scene_cfg_idx < 0 or scene_cfg_idx >= len(scenes):
+                return jsonify({'success': False, 'error': f'Escena {scene_num} fuera del rango (libro tiene {len(scenes)} escenas)'}), 400
+
+            scene_config = scenes[scene_cfg_idx]
+
+            ref_path = None
+            ref_path_2 = None
+            is_furry = book_id in ('furry_love', 'furry_love_adventure', 'furry_love_teen', 'furry_love_adult')
+            if is_furry:
+                human_preview = story_data.get('human_preview_path', story_data.get('character_preview', ''))
+                if human_preview:
+                    hr = human_preview.lstrip('/')
+                    if os.path.exists(hr):
+                        ref_path = hr
+                pet_preview = story_data.get('pet_preview_path', '')
+                if pet_preview:
+                    pr = pet_preview.lstrip('/')
+                    if os.path.exists(pr):
+                        ref_path_2 = pr
+            else:
+                reference_image = story_data.get('character_preview', '') or story_data.get('cover_image', '')
+                if reference_image:
+                    reference_image = reference_image.lstrip('/')
+                    if os.path.exists(reference_image):
+                        ref_path = reference_image
+
+            print(f"[ADMIN-REGEN] Illustrated book: regenerating scene {scene_num} (page_idx={page_idx}) for {preview_id} ({book_id})")
+            img = generate_scene_complete(scene_config, traits, story_data.get('child_name', ''), gender, lang, book_id,
+                                          reference_image_path=ref_path, reference_image_path_2=ref_path_2)
+
+            # Compose text using add_text_to_image — same as generate_full_book, NOT QS composer
+            try:
+                from services.illustrated_book_service import add_text_to_image
+                child_name_for_text = story_data.get('child_name', '')
+                pet_name_for_text = traits.get('pet_name', '')
+                raw_text = scene_config.get(f'text_{lang}', scene_config.get('text_es', ''))
+                raw_text = raw_text.replace('{name}', child_name_for_text)
+                if pet_name_for_text:
+                    raw_text = raw_text.replace('{pet_name}', pet_name_for_text)
+                position = scene_config.get('text_position', 'split')
+                final_img = add_text_to_image(img, raw_text, position, '#FFFFFF', '#000000', 38, 0.143)
+                print(f"[ADMIN-REGEN] Text composed (position={position}): {raw_text[:40]!r}")
+            except Exception as _ce:
+                print(f"[ADMIN-REGEN] Text composition skipped: {_ce}")
+                final_img = img
+
+            # Save path: use canonical composed_dir/page_NN.png — same location as background gen
+            composed_dir = f'generated/composed_{preview_id}'
+            os.makedirs(composed_dir, exist_ok=True)
+            save_path = os.path.join(composed_dir, f'page_{page_idx+1:02d}.png')
+            # Also save preview (watermarked) to keep both files in sync
+            final_img.save(save_path, 'PNG')
+            try:
+                from services.illustrated_book_service import add_watermark
+                wm = add_watermark(final_img)
+                wm.save(save_path.replace('.png', '_preview.png'), 'PNG')
+            except Exception:
+                pass
+
+            # Update visor JPG immediately so eBook reflects new image without needing rebuild
+            try:
+                from PIL import Image as _PilImg
+                visor_dir = f'generations/visor_pb/{preview_id}'
+                os.makedirs(visor_dir, exist_ok=True)
+                visor_jpg = os.path.join(visor_dir, f'page_{page_idx+2}.jpg')
+                if os.path.exists(visor_jpg):
+                    try:
+                        os.remove(visor_jpg)
+                    except OSError:
+                        pass
+                _vi = _PilImg.open(save_path).convert('RGB')
+                _vi.save(visor_jpg, 'JPEG', quality=88)
+                _vi.close()
+                print(f"[ADMIN-REGEN] Visor JPG updated: {visor_jpg}")
+            except Exception as _ve:
+                print(f"[ADMIN-REGEN] Visor JPG update failed: {_ve}")
+            # Invalidate PDF cache so next download regenerates fresh
+            _cp_pdf = f'generations/cloudprinter/{preview_id}/content.pdf'
+            if os.path.exists(_cp_pdf):
+                try:
+                    os.remove(_cp_pdf)
+                except Exception:
+                    pass
+
+            url_path = f'/{save_path}'
+
+            # Update pages_data scene_path → clean path
+            pages_data = story_data.get('pages', [])
+            if 0 <= page_idx < len(pages_data):
+                if pages_data[page_idx].get('scene_path') is not None:
+                    pages_data[page_idx]['scene_path'] = url_path
+                elif pages_data[page_idx].get('fixed_scene') is not None:
+                    pages_data[page_idx]['fixed_scene'] = url_path
+                else:
+                    pages_data[page_idx]['scene_path'] = url_path
+                story_data['pages'] = pages_data
+
+            # Update original_scene_paths and scene_paths for the scenes grid
+            # original_scene_paths is an ALL-PAGES array (24 entries incl. title+ded)
+            # so the correct index is page_idx, not scene_num-1
+            orig_paths = story_data.get('original_scene_paths', story_data.get('original_images', []))
+            if 0 <= page_idx < len(orig_paths):
+                orig_paths[page_idx] = url_path
+                story_data['original_scene_paths'] = orig_paths
+                story_data['original_images'] = orig_paths
+
+            scene_paths = story_data.get('scene_paths', story_data.get('images', []))
+            if 0 <= page_idx < len(scene_paths):
+                scene_paths[page_idx] = url_path
+                story_data['scene_paths'] = scene_paths
+                story_data['images'] = scene_paths
+
+            story_data['visor_uploaded'] = False
+            story_data['pages_composed'] = False
+            story_data.pop('digital_pdf_path', None)
+            story_data.pop('print_pdf_path', None)
+
+            with open(preview_path, 'w', encoding='utf-8') as f:
+                json.dump(story_data, f, ensure_ascii=False, indent=2)
+
+            production_logger.info(f"[ADMIN-REGEN] Illustrated scene {scene_num} OK for {preview_id}: {save_path}")
+            return jsonify({'success': True, 'image_url': url_path})
+
+        except Exception as e:
+            print(f"[ADMIN-REGEN] Illustrated regen error: {e}")
+            import traceback; traceback.print_exc()
+            return jsonify({'success': False, 'error': str(e)[:300]}), 500
+
     from services.fixed_stories import get_scene_prompts, FIXED_STORIES
     from services.replicate_service import generate_scene_with_flux2dev
 
@@ -7284,6 +7416,246 @@ def admin_regenerate_scene(preview_id, scene_num):
         return jsonify({'success': False, 'error': str(e)[:200]}), 500
 
 
+@app.route('/admin/regenerate-page/<preview_id>/<int:page_idx>', methods=['POST'])
+def admin_regenerate_page(preview_id, page_idx):
+    """Admin: regenerate any page in illustrated/furry_love books. No regen limit."""
+    if not check_admin_auth():
+        return jsonify({'success': False, 'error': 'No autorizado'}), 401
+
+    preview_path = f'story_previews/{preview_id}.json'
+    if not os.path.exists(preview_path):
+        return jsonify({'success': False, 'error': 'Preview not found'}), 404
+
+    with open(preview_path, 'r', encoding='utf-8') as f:
+        story_data = json.load(f)
+
+    pages_data = story_data.get('pages', [])
+    if page_idx < 0 or page_idx >= len(pages_data):
+        return jsonify({'success': False, 'error': f'Índice {page_idx} no válido (total: {len(pages_data)} páginas)'}), 400
+
+    page = pages_data[page_idx]
+    if not (page.get('scene_path') or page.get('fixed_scene')):
+        return jsonify({'success': False, 'error': 'Esta página no tiene escena regenerable (es portada, dedicatoria o créditos)'}), 400
+
+    story_id = story_data.get('story_id', '')
+    gender = story_data.get('gender', 'neutral')
+    traits = story_data.get('traits', {})
+    lang = story_data.get('lang', story_data.get('language', 'es'))
+    child_name = story_data.get('child_name', '')
+    output_dir = story_data.get('output_dir', story_data.get('image_dir', f'generated/{preview_id}'))
+
+    try:
+        from services.personalized_books.generation import get_personalized_book_id
+        from services.illustrated_book_service import generate_scene_complete, load_book_config
+
+        book_id = get_personalized_book_id(story_id)
+        book_cfg = load_book_config(book_id)
+        scenes = book_cfg.get('scenes', [])
+
+        # pages[0]=title, pages[1]=dedication, pages[2..N]=scenes, last pages=credits
+        scene_cfg_idx = page_idx - 2
+        if scene_cfg_idx < 0 or scene_cfg_idx >= len(scenes):
+            return jsonify({'success': False, 'error': f'Página {page_idx+1} fuera del rango de escenas (escenas disponibles: {len(scenes)})'}), 400
+
+        scene_config = scenes[scene_cfg_idx]
+
+        # Reference images
+        ref_path = None
+        ref_path_2 = None
+        is_furry = book_id in ('furry_love', 'furry_love_adventure', 'furry_love_teen', 'furry_love_adult')
+        if is_furry:
+            human_preview = story_data.get('human_preview_path', story_data.get('character_preview', ''))
+            if human_preview:
+                hr = human_preview.lstrip('/')
+                if os.path.exists(hr):
+                    ref_path = hr
+            pet_preview = story_data.get('pet_preview_path', '')
+            if pet_preview:
+                pr = pet_preview.lstrip('/')
+                if os.path.exists(pr):
+                    ref_path_2 = pr
+        else:
+            reference_image = story_data.get('character_preview', '') or story_data.get('cover_image', '')
+            if reference_image:
+                reference_image = reference_image.lstrip('/')
+                if os.path.exists(reference_image):
+                    ref_path = reference_image
+
+        print(f"[ADMIN-REGEN-PAGE] Regenerating page {page_idx} (scene {scene_cfg_idx}) for {preview_id} ({book_id}), ref={bool(ref_path)}, ref2={bool(ref_path_2)}")
+
+        img = generate_scene_complete(
+            scene_config, traits, child_name, gender, lang, book_id,
+            reference_image_path=ref_path,
+            reference_image_path_2=ref_path_2
+        )
+
+        # Compose text using add_text_to_image — same as generate_full_book, NOT QS composer
+        try:
+            from services.illustrated_book_service import add_text_to_image
+            raw_text = scene_config.get(f'text_{lang}', scene_config.get('text_es', ''))
+            raw_text = raw_text.replace('{name}', child_name)
+            pet_name_val = traits.get('pet_name', '')
+            if pet_name_val:
+                raw_text = raw_text.replace('{pet_name}', pet_name_val)
+            position = scene_config.get('text_position', 'split')
+            final_img = add_text_to_image(img, raw_text, position, '#FFFFFF', '#000000', 38, 0.143)
+            print(f"[ADMIN-REGEN-PAGE] Text composed (position={position}): {raw_text[:40]!r}")
+        except Exception as comp_err:
+            print(f"[ADMIN-REGEN-PAGE] Text composition skipped: {comp_err}")
+            final_img = img
+
+        # Save to canonical composed_dir path — same location as background generation
+        composed_dir = f'generated/composed_{preview_id}'
+        os.makedirs(composed_dir, exist_ok=True)
+        save_path = os.path.join(composed_dir, f'page_{page_idx+1:02d}.png')
+        final_img.save(save_path, 'PNG')
+        try:
+            from services.illustrated_book_service import add_watermark
+            wm = add_watermark(final_img)
+            wm.save(save_path.replace('.png', '_preview.png'), 'PNG')
+        except Exception:
+            pass
+
+        url_path = f'/{save_path}'
+
+        # Update pages_data
+        if pages_data[page_idx].get('scene_path') is not None:
+            pages_data[page_idx]['scene_path'] = url_path
+        elif pages_data[page_idx].get('fixed_scene') is not None:
+            pages_data[page_idx]['fixed_scene'] = url_path
+        else:
+            pages_data[page_idx]['scene_path'] = url_path
+
+        story_data['pages'] = pages_data
+
+        # Update original_scene_paths so visor picks up new image
+        # original_scene_paths is an ALL-PAGES array — use page_idx directly
+        orig_paths = story_data.get('original_scene_paths', story_data.get('original_images', []))
+        if 0 <= page_idx < len(orig_paths):
+            orig_paths[page_idx] = url_path
+            story_data['original_scene_paths'] = orig_paths
+            story_data['original_images'] = orig_paths
+
+        story_data['visor_uploaded'] = False
+        story_data['pages_composed'] = False
+        story_data.pop('digital_pdf_path', None)
+        story_data.pop('print_pdf_path', None)
+
+        with open(preview_path, 'w', encoding='utf-8') as f:
+            json.dump(story_data, f, ensure_ascii=False, indent=2)
+
+        production_logger.info(f"[ADMIN-REGEN-PAGE] Page {page_idx} OK for {preview_id}: {save_path}")
+        return jsonify({'success': True, 'image_url': url_path})
+
+    except Exception as e:
+        print(f"[ADMIN-REGEN-PAGE] Error: {e}")
+        import traceback; traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)[:300]}), 500
+
+
+@app.route('/admin/rebuild-visor/<preview_id>', methods=['POST'])
+def admin_rebuild_visor(preview_id):
+    """Rebuild visor/eBook from scratch using page_NN.png files on disk.
+    Fixes corrupted original_scene_paths and re-uploads fresh visor pages."""
+    if not check_admin_auth():
+        return jsonify({'success': False, 'error': 'No autorizado'}), 401
+
+    preview_path = f'story_previews/{preview_id}.json'
+    if not os.path.exists(preview_path):
+        return jsonify({'success': False, 'error': 'Preview not found'}), 404
+
+    with open(preview_path, 'r', encoding='utf-8') as f:
+        story_data = json.load(f)
+
+    try:
+        # Use original_scene_paths from JSON — these point to the ACTUAL current images
+        # (may be in personalized_XXXX/ after user regens, or composed_XXXX/ after admin regen)
+        # DO NOT glob the composed_dir: that ignores regenerated pages stored elsewhere.
+        orig_paths = story_data.get('original_scene_paths', story_data.get('original_images', []))
+        if not orig_paths:
+            return jsonify({'success': False, 'error': 'No hay original_scene_paths en el JSON'}), 404
+
+        # Verify all source files exist
+        missing = [p for p in orig_paths if p and not os.path.exists(p.lstrip('/'))]
+        if missing:
+            print(f"[REBUILD-VISOR] WARNING: {len(missing)} rutas no encontradas: {missing[:3]}")
+
+        print(f"[REBUILD-VISOR] Usando original_scene_paths del JSON: {len(orig_paths)} páginas")
+
+        # Convert each source image → visor JPG (page_2.jpg … page_N+1.jpg)
+        from PIL import Image as _PilImage
+        import stat as _stat
+        visor_dir = f'generations/visor_pb/{preview_id}'
+        os.makedirs(visor_dir, exist_ok=True)
+        converted = 0
+        for i, src_path in enumerate(orig_paths):
+            src = src_path.lstrip('/') if src_path else None
+            if not src or not os.path.exists(src):
+                print(f"[REBUILD-VISOR] Saltar página {i}: ruta no encontrada ({src_path})")
+                continue
+            dst = os.path.join(visor_dir, f'page_{i+2}.jpg')   # visor starts at page_2
+            # Remove existing file to avoid permission errors
+            if os.path.exists(dst):
+                try:
+                    os.remove(dst)
+                except OSError:
+                    os.chmod(dst, _stat.S_IRUSR | _stat.S_IWUSR | _stat.S_IRGRP | _stat.S_IWGRP)
+                    os.remove(dst)
+            img = _PilImage.open(src).convert('RGB')
+            img.save(dst, 'JPEG', quality=88)
+            img.close()
+            converted += 1
+            print(f"[REBUILD-VISOR] [{i}] {os.path.basename(src)} → page_{i+2}.jpg")
+
+        story_data['visor_uploaded'] = True
+        # Invalidate PDF cache so next download uses fresh visor
+        _cp_pdf = f'generations/cloudprinter/{preview_id}/content.pdf'
+        if os.path.exists(_cp_pdf):
+            try:
+                os.remove(_cp_pdf)
+                print(f"[REBUILD-VISOR] PDF cache invalidado")
+            except Exception:
+                pass
+        print(f"[REBUILD-VISOR] Done for {preview_id}: {converted}/{len(orig_paths)} páginas convertidas")
+
+        with open(preview_path, 'w', encoding='utf-8') as f:
+            json.dump(story_data, f, ensure_ascii=False, indent=2)
+
+        production_logger.info(f"[REBUILD-VISOR] Done for {preview_id}: {converted}/{len(orig_paths)} pages re-uploaded")
+        return jsonify({'success': True, 'pages': converted,
+                        'message': f'eBook reconstruido con {converted}/{len(orig_paths)} páginas'})
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)[:300]}), 500
+
+
+@app.route('/admin/reset-pdf/<preview_id>', methods=['POST'])
+def admin_reset_pdf(preview_id):
+    """Reset PDF, eBook and compose flags so everything regenerates on next confirmation."""
+    if not check_admin_auth():
+        return jsonify({'success': False, 'error': 'No autorizado'}), 401
+
+    preview_file = f'story_previews/{preview_id}.json'
+    if not os.path.exists(preview_file):
+        return jsonify({'success': False, 'error': 'Preview not found'}), 404
+
+    with open(preview_file, 'r', encoding='utf-8') as f:
+        story_data = json.load(f)
+
+    story_data['book_composing'] = False
+    story_data['generation_error'] = ''
+    story_data['pages_composed'] = False
+    story_data['visor_uploaded'] = False
+    story_data.pop('digital_pdf_path', None)
+    story_data.pop('print_pdf_path', None)
+
+    with open(preview_file, 'w', encoding='utf-8') as f:
+        json.dump(story_data, f, ensure_ascii=False, indent=2)
+
+    production_logger.info(f"[ADMIN] PDF/eBook reset for {preview_id}")
+    return jsonify({'success': True, 'message': 'PDF y eBook reseteados correctamente.'})
+
+
 @app.route('/admin/preview/<preview_id>/pdf')
 def admin_download_pdf(preview_id):
     """Download PDF for a story from admin."""
@@ -7325,6 +7697,72 @@ def admin_download_pdf(preview_id):
     return send_file(pdf_path, as_attachment=True, download_name=f'{child_name}_{preview_id[:8]}.pdf')
 
 
+@app.route('/download-book/<preview_id>')
+def download_book_pdf(preview_id):
+    """Public user-facing route: serves the imprimible PDF (28p, bleed+crop marks).
+    Used by the visor download button and any direct link.
+    Generates the PDF on demand if not yet cached."""
+    import re as _re
+    if not _re.match(r'^[a-zA-Z0-9_\-]+$', preview_id):
+        abort(400)
+
+    preview_path = f'story_previews/{preview_id}.json'
+    story_data = {}
+    child_name = 'libro'
+    lang = 'es'
+
+    if os.path.exists(preview_path):
+        with open(preview_path, 'r') as f:
+            try:
+                story_data = json.load(f)
+                child_name = story_data.get('child_name', 'libro').replace(' ', '_').replace("'", '')
+                lang = story_data.get('lang', 'es')
+            except Exception:
+                pass
+
+    # 1) Already generated — serve immediately
+    pdf_printable = story_data.get('pdf_printable_path', '')
+    if pdf_printable and os.path.exists(pdf_printable):
+        fmt = 'LETTER' if 'LETTER' in pdf_printable else 'A4'
+        return send_file(os.path.abspath(pdf_printable), as_attachment=True,
+                         download_name=f'{child_name}_imprimible_{fmt}.pdf')
+
+    # 2) Not yet cached — generate on demand from visor pages
+    visor_dir = os.path.join('generations', 'visor_pb', preview_id)
+    if os.path.exists(visor_dir) and os.path.exists(os.path.join(visor_dir, 'page_1.jpg')):
+        try:
+            from services.personalized_books.printable_pdf import generate_personalized_printable_pdf
+            from services.personalized_books.generation import get_print_title
+            book_id = story_data.get('story_id', '')
+            gender = story_data.get('gender', 'nino')
+            print_format = story_data.get('print_format', 'A4')
+            traits = story_data.get('traits') or {}
+            pet_name = traits.get('pet_name', '')
+            book_title = get_print_title(book_id, child_name.replace('_', ' '), lang, pet_name=pet_name)
+            pdf_path = generate_personalized_printable_pdf(
+                book_session_id=preview_id,
+                child_name=child_name.replace('_', ' '),
+                gender=gender,
+                language=lang,
+                book_id=book_id,
+                book_title=book_title,
+                print_format=print_format,
+            )
+            if pdf_path and os.path.exists(pdf_path):
+                # Cache for next time
+                story_data['pdf_printable_path'] = pdf_path
+                if os.path.exists(preview_path):
+                    with open(preview_path, 'w') as fw:
+                        json.dump(story_data, fw, ensure_ascii=False, indent=2)
+                fmt = 'LETTER' if print_format == 'LETTER' else 'A4'
+                return send_file(os.path.abspath(pdf_path), as_attachment=True,
+                                 download_name=f'{child_name}_imprimible_{fmt}.pdf')
+        except Exception as e:
+            print(f'[DOWNLOAD-BOOK] Error generating imprimible on demand: {e}')
+
+    abort(404)
+
+
 @app.route('/admin/gelato-order/<preview_id>/download-pdf')
 @app.route('/admin/order/<preview_id>/download-pdf')
 def admin_download_gelato_pdf(preview_id):
@@ -7347,6 +7785,13 @@ def admin_download_gelato_pdf(preview_id):
                 lang = story_data.get('lang', 'es')
             except Exception:
                 pass
+
+    # 0) Printable PDF (28-page, 3mm bleed + crop marks)
+    pdf_printable = story_data.get('pdf_printable_path', '')
+    if pdf_printable and os.path.exists(pdf_printable):
+        fmt = 'LETTER' if 'LETTER' in pdf_printable else 'A4'
+        return send_file(os.path.abspath(pdf_printable), as_attachment=True,
+                         download_name=f'{child_name}_{preview_id[:8]}_imprimible_{fmt}.pdf')
 
     # 1) Cloudprinter content PDF (already generated)
     cp_content = os.path.join('generations', 'cloudprinter', preview_id, 'content.pdf')
@@ -7388,7 +7833,8 @@ def admin_download_gelato_pdf(preview_id):
                         import threading as _t
                         _t.Thread(target=generate_cw_cover_pdf,
                                   kwargs={'session_id': preview_id, 'book_title': book_title,
-                                          'output_path': cover_path, 'page_count': page_count},
+                                          'output_path': cover_path, 'page_count': page_count,
+                                          'story_id': story_data.get('story_id', '')},
                                   daemon=True).start()
                 except Exception:
                     pass
@@ -7679,6 +8125,17 @@ def admin_gift_send_to_cp(preview_id):
             from services.cloudprinter_api_service import submit_pb_print_order, get_pdf_public_url, get_pb_chosen_page_count
             from services.cloudprinter_api_service import resolve_shipping_level
 
+            # Always re-upload visor before building Cloudprinter PDF so any
+            # admin-regenerated scenes are reflected in page_N.jpg
+            try:
+                from services.vps_upload_service import upload_book_to_visor
+                print(f"[ADMIN-CP] Re-uploading visor for {preview_id} to pick up regenerated images…")
+                upload_book_to_visor(preview_id, story_data)
+                story_data['visor_uploaded'] = True
+                print(f"[ADMIN-CP] Visor re-upload done for {preview_id}")
+            except Exception as _vu_err:
+                print(f"[ADMIN-CP] Visor re-upload failed (continuing anyway): {_vu_err}")
+
             out_dir = os.path.join('generations', 'cloudprinter', preview_id)
             os.makedirs(out_dir, exist_ok=True)
             page_count = get_pb_chosen_page_count()
@@ -7706,6 +8163,7 @@ def admin_gift_send_to_cp(preview_id):
                 book_title=book_title,
                 output_path=cover_pdf_path,
                 page_count=page_count,
+                story_id=story_data.get('story_id', ''),
             )
 
             cover_pdf_url   = get_pdf_public_url(preview_id, 'cover.pdf')
@@ -9799,6 +10257,7 @@ def _compose_personalized_book_background(preview_id, **kwargs):
                                 book_title=book_title_g,
                                 output_path=cover_pdf_path,
                                 page_count=_chosen_pages,
+                                story_id=book_id,
                             )
                             generate_cw_content_pdf(
                                 session_id=preview_id,
