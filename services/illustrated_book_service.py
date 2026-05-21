@@ -1785,10 +1785,6 @@ def generate_full_book(
     if failed_scene_indices:
         print(f"[BOOK] WARNING: {len(failed_scene_indices)} scenes failed: {[i+1 for i in failed_scene_indices]}")
     
-    print(f"[BOOK] Generating closing illustration (page 20)...")
-    closing_page = generate_closing_page(traits, child_name, gender, img_size, book_id, reference_image_path=reference_image_path, reference_image_path_2=reference_image_path_2)
-    pages.append(closing_page)
-    
     credits_page = generate_credits_page(language, img_size, child_name)
     pages.append(credits_page)
     
