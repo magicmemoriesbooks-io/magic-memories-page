@@ -178,7 +178,7 @@
                 <span style="background:#fee2e2; color:#991b1b; border-radius:8px; padding:7px 16px; font-size:13px; font-weight:600;">⚠️ Error de impresión</span>
                 <button class="ap-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;" onclick="generateCpPdfsPreview('{{ preview_id }}')">👁 Ver PDFs CP</button>
                 <button class="ap-btn ap-btn-lulu" onclick="openCpModal()">📦 Enviar a Cloudprinter</button>
-                {% elif preview.pages_composed %}
+                {% elif preview.pages_composed or preview.original_scene_paths or preview.scene_paths %}
                 <button class="ap-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;" onclick="generateCpPdfsPreview('{{ preview_id }}')">👁 Ver PDFs CP</button>
                 <button class="ap-btn ap-btn-lulu" onclick="openCpModal()">📦 Enviar a Cloudprinter</button>
                 {% endif %}
