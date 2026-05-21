@@ -8077,6 +8077,123 @@ def admin_reset_compose(preview_id):
     return jsonify({'success': True, 'message': f'Compose state reset. was_composing={was_composing}. Now refresh the order page to re-trigger.'})
 
 
+@app.route('/admin/generate-cp-pdfs/<preview_id>', methods=['POST'])
+def admin_generate_cp_pdfs(preview_id):
+    """Generate cover.pdf + content.pdf for Cloudprinter WITHOUT submitting the order.
+    Lets admin review both PDFs before committing to print."""
+    if not check_admin_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+    import re
+    if not re.match(r'^[a-zA-Z0-9_\-]+$', preview_id):
+        return jsonify({'error': 'Invalid preview ID'}), 400
+
+    preview_file = f'story_previews/{preview_id}.json'
+    if not os.path.exists(preview_file):
+        return jsonify({'error': 'Preview no encontrado'}), 404
+
+    with open(preview_file, 'r', encoding='utf-8') as f:
+        story_data = json.load(f)
+
+    is_illustrated = story_data.get('is_illustrated_book', False)
+
+    if is_illustrated:
+        try:
+            from services.personalized_books.cp_pdf_service import generate_cw_cover_pdf, generate_cw_content_pdf
+            from services.cloudprinter_api_service import get_pb_chosen_page_count
+
+            # Re-upload visor to pick up any regenerated scenes
+            try:
+                from services.vps_upload_service import upload_book_to_visor
+                upload_book_to_visor(preview_id, story_data)
+            except Exception as _vu_err:
+                print(f"[GEN-CP-PDF] Visor re-upload skipped: {_vu_err}")
+
+            out_dir = os.path.join('generations', 'cloudprinter', preview_id)
+            os.makedirs(out_dir, exist_ok=True)
+            page_count = get_pb_chosen_page_count()
+
+            cover_pdf_path   = os.path.join(out_dir, 'cover.pdf')
+            content_pdf_path = os.path.join(out_dir, 'content.pdf')
+
+            child_name  = story_data.get('child_name', '')
+            story_name  = story_data.get('story_name', story_data.get('story_id', ''))
+            lang        = story_data.get('lang', 'es')
+            gender      = story_data.get('gender', 'nino')
+            book_id     = story_data.get('story_id', '')
+            traits      = story_data.get('traits') or {}
+            pet_name    = traits.get('pet_name', '')
+            visor_dir   = os.path.join('generations', 'visor_pb', preview_id)
+
+            from services.personalized_books.generation import get_book_title
+            book_title = get_book_title(book_id, child_name, lang, pet_name=pet_name) or story_name or child_name
+
+            generate_cw_cover_pdf(
+                preview_id=preview_id,
+                story_data=story_data,
+                output_path=cover_pdf_path,
+                page_count=page_count,
+            )
+            generate_cw_content_pdf(
+                preview_id=preview_id,
+                visor_dir=visor_dir,
+                output_path=content_pdf_path,
+                story_data=story_data,
+            )
+
+            cover_url   = f'/cp-files/{preview_id}/cover.pdf'
+            content_url = f'/cp-files/{preview_id}/content.pdf'
+
+            cover_ok   = os.path.exists(cover_pdf_path)
+            content_ok = os.path.exists(content_pdf_path)
+            cover_size   = round(os.path.getsize(cover_pdf_path)   / 1024) if cover_ok   else 0
+            content_size = round(os.path.getsize(content_pdf_path) / 1024) if content_ok else 0
+
+            return jsonify({
+                'success': True,
+                'cover_url':    cover_url,
+                'content_url':  content_url,
+                'cover_size_kb':   cover_size,
+                'content_size_kb': content_size,
+                'message': f'PDFs generados — Portada: {cover_size} KB · Interior: {content_size} KB',
+            })
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    # Quick Story
+    try:
+        from services.cloudprinter_api_service import get_pdf_public_url
+        from services.quick_stories.pdf_service import generate_quick_story_cloudprinter_pdf
+
+        cp_folder = f'generations/cloudprinter/{preview_id}'
+        os.makedirs(cp_folder, exist_ok=True)
+        pdf_output = os.path.join(cp_folder, 'book.pdf')
+
+        _scenes = story_data.get('original_scene_paths', story_data.get('scene_paths', []))
+        _cover  = story_data.get('original_cover', story_data.get('front_cover_path', story_data.get('cover_image', '')))
+        if _cover and _cover.startswith('/'):
+            _cover = _cover[1:]
+        _scenes = [p.lstrip('/') for p in _scenes if p]
+        if not _scenes:
+            return jsonify({'error': 'No se encontraron imágenes del cuento.'}), 400
+
+        generate_quick_story_cloudprinter_pdf(
+            story_data=story_data,
+            output_path=pdf_output,
+        )
+        book_ok   = os.path.exists(pdf_output)
+        book_size = round(os.path.getsize(pdf_output) / 1024) if book_ok else 0
+        return jsonify({
+            'success': True,
+            'book_url': f'/cp-files/{preview_id}/book.pdf',
+            'book_size_kb': book_size,
+            'message': f'PDF generado — {book_size} KB',
+        })
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/admin/gift-send-to-cp/<preview_id>', methods=['POST'])
 def admin_gift_send_to_cp(preview_id):
     """Submit an admin gift book to Cloudprinter. Handles both Quick Story and illustrated PB books."""
