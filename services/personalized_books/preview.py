@@ -28,6 +28,57 @@ _replicate_client = replicate.Client(
 PULID_VERSION = "8baa7ef2255075b46f4d91cd238c21d31181b3e6a864463f967960bb0112525b"
 
 
+def generate_with_flux_kontext(prompt: str, photo_path: str, aspect_ratio: str = "3:4") -> str:
+    """Generate a character preview using FLUX Kontext Pro.
+    Kontext edits/stylizes the entire photo preserving ALL features (face + hair + skin).
+    Better than PuLID for children because it doesn't rely on adult face landmark extraction."""
+    last_error = None
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            with open(photo_path, "rb") as photo_img:
+                print(f"[KONTEXT] Calling flux-kontext-pro attempt {attempt}, prompt_len={len(prompt)}")
+                output = _replicate_client.run(
+                    "black-forest-labs/flux-kontext-pro",
+                    input={
+                        "prompt": prompt,
+                        "input_image": photo_img,
+                        "aspect_ratio": aspect_ratio,
+                        "output_format": "png",
+                    }
+                )
+            print(f"[KONTEXT] flux-kontext-pro returned successfully on attempt {attempt}")
+
+            if isinstance(output, list) and len(output) > 0:
+                image_url = str(output[0])
+            elif hasattr(output, 'url'):
+                image_url = str(output.url())
+            elif hasattr(output, '__iter__'):
+                items = list(output)
+                if items:
+                    image_url = str(items[0])
+                else:
+                    raise Exception("Flux Kontext returned empty output")
+            else:
+                image_url = str(output)
+
+            print(f"[KONTEXT] Generation complete: {image_url[:80]}")
+            return image_url
+
+        except Exception as e:
+            error_msg = str(e)
+            last_error = e
+            print(f"[KONTEXT] Error on attempt {attempt}: {error_msg[:300]}")
+            is_retryable = any(err in error_msg for err in RETRYABLE_ERRORS)
+            if is_retryable and attempt < MAX_RETRIES:
+                wait = RETRY_DELAY + (attempt - 1) * 3
+                print(f"[KONTEXT] Retrying in {wait}s...")
+                time.sleep(wait)
+                continue
+            raise
+
+    raise last_error
+
+
 def generate_with_flux_pulid(prompt: str, face_image_path: str, width: int = 768, height: int = 1024) -> str:
     last_error = None
     for attempt in range(1, MAX_RETRIES + 1):
@@ -205,19 +256,20 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
         outfit_desc = get_outfit_desc(gender)
         hair_action = get_hair_action(traits)
         if has_photo:
-            hair_desc = "hair exactly as shown in the reference photo"
-            hair_strict_text = "HAIR STRICT: match hair exactly to the reference photo."
+            hair_desc = "hair as in the reference photo"
+            actual_eye = get_eye_description(traits)
+            eye_desc = f"{actual_eye}, face exactly as in the reference photo{glasses_desc}"
+            skin_tone = "as in the reference photo"
+            char_physical = f"{hair_desc}, {eye_desc}"
+            hair_strict_text = "PHOTO REFERENCE: Match the child's exact face, skin, eye color and hair from the reference photo."
         else:
             hair_desc = get_hair_description(traits)
             hair_strict_text = get_hair_strict(traits)
-        eye_desc = get_eye_description(traits)
-        skin_tone = get_unified_skin_description(traits.get('skin_tone', 'light'))
+            eye_desc = get_eye_description(traits)
+            skin_tone = get_unified_skin_description(traits.get('skin_tone', 'light'))
+            char_physical = f"{hair_desc}, {eye_desc}, {skin_tone} skin{glasses_desc}"
         gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
         age_display = f"{child_age} year old" if child_age and child_age > 0 else "6 year old"
-        if has_photo:
-            char_physical = f"{hair_desc}, {eye_desc}{glasses_desc}"
-        else:
-            char_physical = f"{hair_desc}, {eye_desc}, {skin_tone} skin{glasses_desc}"
         
         # Use FRONT_COVER schema, adapted for preview context
         prompt = f"Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), {char_physical}, big joyful smile, {hair_action}. OUTFIT: {outfit_desc}. COMPANION: {SPARK_INLINE}. ACTION: {gender_word} sits happily on SPARK's back soaring through the clouds, arms gently holding the dragon, face glowing with joyful excitement. SPARK's wings spread wide and flapping, golden sparkles trailing. SETTING: Beautiful sky WIDE VIEW, fluffy pink and white cotton clouds, magnificent rainbow arching, golden sunlight, sparkles trailing. ATMOSPHERE: Adventure invitation, joyful flight, magical. STRICT: Only ONE {gender_word}, only ONE small dragon SPARK, the {gender_word} is a fully human child: no tail, no wings, no scales on the {gender_word}. {hair_strict_text} ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {STYLE_BASE}"
@@ -236,19 +288,20 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
         
         outfit_desc = chef_get_outfit_desc(gender)
         if has_photo:
-            hair_desc = "hair exactly as shown in the reference photo"
-            hair_strict_text = "HAIR STRICT: match hair exactly to the reference photo."
+            hair_desc = "hair as in the reference photo"
+            actual_eye = get_eye_description(traits)
+            eye_desc = f"{actual_eye}, face exactly as in the reference photo{glasses_desc}"
+            skin_tone = "as in the reference photo"
+            char_physical = f"{hair_desc}, {eye_desc}"
+            hair_strict_text = "PHOTO REFERENCE: Match the child's exact face, skin, eye color and hair from the reference photo."
         else:
             hair_desc = get_hair_description(traits)
             hair_strict_text = get_hair_strict(traits)
-        eye_desc = get_eye_description(traits)
-        skin_tone = get_unified_skin_description(traits.get('skin_tone', 'light'))
+            eye_desc = get_eye_description(traits)
+            skin_tone = get_unified_skin_description(traits.get('skin_tone', 'light'))
+            char_physical = f"{hair_desc}, {eye_desc}, {skin_tone} skin{glasses_desc}"
         gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
         age_display = f"{child_age} year old" if child_age and child_age > 0 else "6 year old"
-        if has_photo:
-            char_physical = f"{hair_desc}, {eye_desc}{glasses_desc}"
-        else:
-            char_physical = f"{hair_desc}, {eye_desc}, {skin_tone} skin{glasses_desc}"
         
         # Use FRONT_COVER schema, adapted for preview context
         prompt = f"Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), {char_physical}, confident joyful smile. OUTFIT: {SWEETIE_HAT_INLINE}, and an elegant white chef jacket with golden buttons. COMPANION: {SWEETIE_CAKE_INLINE}. ACTION: {gender_word} stands in center of magical kitchen with both hands on hips, smiling proudly. SWEETIE floats happily beside the child, frosting swirling around. SETTING: Magical pink kitchen WIDE VIEW, sparkles hearts and golden stars, floating magical desserts everywhere, rainbow cakes, glowing star cookies, swirling colorful ice creams, centered composition for book cover. ATMOSPHERE: Sweet magical invitation, pink and golden warmth. STRICT: Only ONE {gender_word}, only ONE cake character SWEETIE, the {gender_word} is a fully human child: no animal features, no tail. {hair_strict_text} ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {CHEF_STYLE_BASE}"
@@ -266,19 +319,20 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
         
         outfit_desc = inventor_get_outfit_desc(gender)
         if has_photo:
-            hair_desc = "hair exactly as shown in the reference photo"
-            hair_strict_text = "HAIR STRICT: match hair exactly to the reference photo."
+            hair_desc = "hair as in the reference photo"
+            actual_eye = get_eye_description(traits)
+            eye_desc = f"{actual_eye}, face exactly as in the reference photo{glasses_desc}"
+            skin_desc = "as in the reference photo"
+            char_physical = f"{hair_desc}, {eye_desc}"
+            hair_strict_text = "PHOTO REFERENCE: Match the child's exact face, skin, eye color and hair from the reference photo."
         else:
             hair_desc = get_hair_description(traits)
             hair_strict_text = get_hair_strict(traits)
-        eye_desc = get_eye_description(traits)
-        skin_desc = get_unified_skin_description(traits.get('skin_tone', 'light'))
+            eye_desc = get_eye_description(traits)
+            skin_desc = get_unified_skin_description(traits.get('skin_tone', 'light'))
+            char_physical = f"{hair_desc}, {eye_desc}, {skin_desc} skin{glasses_desc}"
         gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
         age_display = f"{child_age} year old" if child_age and child_age > 0 else "6 year old"
-        if has_photo:
-            char_physical = f"{hair_desc}, {eye_desc}{glasses_desc}"
-        else:
-            char_physical = f"{hair_desc}, {eye_desc}, {skin_desc} skin{glasses_desc}"
         
         prompt = f"Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), {char_physical}, confident joyful smile, holding a glowing wrench. OUTFIT: {outfit_desc}. COMPANION: {INVENTOR_BOLT_INLINE}. ACTION: {gender_word} stands in center of workshop facing viewer, holding glowing wrench up with pride. BOLT stands beside the child, waving with one arm, blue eyes bright and friendly. SETTING: Magical inventor workshop WIDE VIEW, floating golden gears, crystal tubes with colorful liquids, warm golden light, sparkles. ATMOSPHERE: Adventure invitation, warm golden, friendship and creativity. STRICT: Only ONE {gender_word}, only ONE small robot BOLT, the {gender_word} is a fully human child: no mechanical parts, no robot features on {gender_word}. {hair_strict_text} ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {INVENTOR_STYLE_BASE}"
         
@@ -297,19 +351,20 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
         outfit_desc = keeper_get_outfit_desc(gender)
         hair_action = get_hair_action(traits)
         if has_photo:
-            hair_desc = "hair exactly as shown in the reference photo"
-            hair_strict_text = "HAIR STRICT: match hair exactly to the reference photo."
+            hair_desc = "hair as in the reference photo"
+            actual_eye = get_eye_description(traits)
+            eye_desc = f"{actual_eye}, face exactly as in the reference photo{glasses_desc}"
+            skin_tone = "as in the reference photo"
+            char_physical = f"{hair_desc}, {eye_desc}"
+            hair_strict_text = "PHOTO REFERENCE: Match the child's exact face, skin, eye color and hair from the reference photo."
         else:
             hair_desc = get_hair_description(traits)
             hair_strict_text = get_hair_strict(traits)
-        eye_desc = get_eye_description(traits)
-        skin_tone = get_unified_skin_description(traits.get('skin_tone', 'light'))
+            eye_desc = get_eye_description(traits)
+            skin_tone = get_unified_skin_description(traits.get('skin_tone', 'light'))
+            char_physical = f"{hair_desc}, {eye_desc}, {skin_tone} skin{glasses_desc}"
         gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
         age_display = f"{child_age} year old" if child_age and child_age > 0 else "6 year old"
-        if has_photo:
-            char_physical = f"{hair_desc}, {eye_desc}{glasses_desc}"
-        else:
-            char_physical = f"{hair_desc}, {eye_desc}, {skin_tone} skin{glasses_desc}"
         
         # Use FRONT_COVER schema, adapted for preview context
         prompt = f"Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), {char_physical}, big joyful confident smile, one hand reaching toward the stars, {hair_action}. OUTFIT: {outfit_desc}. COMPANION: {KEEPER_LUNA_INLINE}. ACTION: {gender_word} stands confidently at the lighthouse entrance with one hand reaching upward. LUNA hovers beside the child's shoulder glowing brightly, violet eyes warm, wings spread wide, comet tail trailing silver sparkles. SETTING: Old stone lighthouse on dramatic clifftop WIDE VIEW, magnificent starry sky with bright constellations and shooting stars, ocean waves crashing below, warm golden-blue light from lighthouse door, centered composition for book cover. ATMOSPHERE: Adventure invitation, celestial magic. STRICT: Only ONE {gender_word}, only ONE small star LUNA, the {gender_word} is a fully human child: no wings, no star features, no glowing features on {gender_word}. {hair_strict_text} ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {KEEPER_STYLE_BASE}"
@@ -329,19 +384,20 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
         outfit_desc = aurora_get_outfit_desc(gender)
         hair_action = get_hair_action(traits)
         if has_photo:
-            hair_desc = "hair exactly as shown in the reference photo"
-            hair_strict_text = "HAIR STRICT: match hair exactly to the reference photo."
+            hair_desc = "hair as in the reference photo"
+            actual_eye = get_eye_description(traits)
+            eye_desc = f"{actual_eye}, face exactly as in the reference photo{glasses_desc}"
+            skin_tone = "as in the reference photo"
+            char_physical = f"{hair_desc}, {eye_desc}"
+            hair_strict_text = "PHOTO REFERENCE: Match the child's exact face, skin, eye color and hair from the reference photo."
         else:
             hair_desc = get_hair_description(traits)
             hair_strict_text = get_hair_strict(traits)
-        eye_desc = get_eye_description(traits)
-        skin_tone = get_unified_skin_description(traits.get('skin_tone', 'light'))
+            eye_desc = get_eye_description(traits)
+            skin_tone = get_unified_skin_description(traits.get('skin_tone', 'light'))
+            char_physical = f"{hair_desc}, {eye_desc}, {skin_tone} skin{glasses_desc}"
         gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
         age_display = f"{child_age} year old" if child_age and child_age > 0 else "6 year old"
-        if has_photo:
-            char_physical = f"{hair_desc}, {eye_desc}{glasses_desc}"
-        else:
-            char_physical = f"{hair_desc}, {eye_desc}, {skin_tone} skin{glasses_desc}"
         
         prompt = (
             f"Disney Pixar 3D style illustration. "
@@ -451,7 +507,12 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
             hair_desc = get_hair_description(traits)
             glasses_val = traits.get('glasses', 'none')
             facial_hair_val = traits.get('facial_hair', 'none')
-            hair_for_prompt = "hair and scalp naturally matching the reference photo" if human_photo_path else hair_desc
+            if human_photo_path and story_id == 'furry_love_adventure_illustrated':
+                hair_for_prompt = hair_desc
+            elif human_photo_path:
+                hair_for_prompt = "hair and scalp naturally matching the reference photo"
+            else:
+                hair_for_prompt = hair_desc
             human_prompt = build_human_preview_prompt_with_photo(gender_word, age_display, eye_desc, hair_for_prompt, glasses=glasses_val, facial_hair=facial_hair_val)
         else:
             human_prompt = build_human_preview_prompt(human_desc)
@@ -462,17 +523,39 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
             pet_prompt = build_pet_preview_prompt(pet_desc)
         
         use_pulid = story_id in ('furry_love_teen_illustrated', 'furry_love_adult_illustrated')
+        use_kontext = story_id == 'furry_love_adventure_illustrated'
         
-        if human_photo_path and use_pulid:
+        if human_photo_path and use_kontext:
+            print(f"[FURRY LOVE PREVIEW] Generating human preview WITH photo using FLUX Kontext Pro (full identity): {human_photo_path}")
+            skin_tone_k = get_unified_skin_description(traits.get('skin_tone', 'light'))
+            kontext_prompt = (
+                f"Transform this child into a Disney Pixar 3D animated character. "
+                f"FULL BODY from head to toe, standing confidently, big joyful smile, arms relaxed at sides. "
+                f"{gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone_k} skin. "
+                f"Wearing a colorful adventure outfit with a small explorer backpack. "
+                f"NEUTRAL SOLID GRADIENT BACKGROUND, soft cream to warm beige, plain studio portrait. "
+                f"Disney Pixar 3D animation style, big expressive eyes, smooth skin, warm cinematic lighting. "
+                f"Clean professional illustration only. ABSOLUTELY NO text, no watermarks, no logos anywhere."
+            )
+            try:
+                human_url = generate_with_flux_kontext(kontext_prompt, human_photo_path, aspect_ratio="3:4")
+            except Exception as kontext_err:
+                print(f"[FURRY LOVE PREVIEW] Kontext failed ({str(kontext_err)[:150]}), falling back to PuLID...")
+                try:
+                    human_url = generate_with_flux_pulid(human_prompt, human_photo_path, width=768, height=1024)
+                except Exception as pulid_err2:
+                    print(f"[FURRY LOVE PREVIEW] PuLID also failed, falling back to FLUX 2 Dev...")
+                    human_url = generate_with_flux2_dev(human_prompt, aspect_ratio="3:4", photo_ref_path=human_photo_path, image_prompt_strength=0.90)
+        elif human_photo_path and use_pulid:
             print(f"[FURRY LOVE PREVIEW] Generating human preview WITH photo using FLUX PuLID (face identity): {human_photo_path}")
             try:
                 human_url = generate_with_flux_pulid(human_prompt, human_photo_path, width=768, height=1024)
             except Exception as pulid_err:
                 print(f"[FURRY LOVE PREVIEW] PuLID failed ({str(pulid_err)[:150]}), falling back to FLUX 2 Dev...")
-                human_url = generate_with_flux2_dev(human_prompt, aspect_ratio="3:4", photo_ref_path=human_photo_path, image_prompt_strength=0.75)
+                human_url = generate_with_flux2_dev(human_prompt, aspect_ratio="3:4", photo_ref_path=human_photo_path, image_prompt_strength=0.90)
         elif human_photo_path:
             print(f"[FURRY LOVE PREVIEW] Generating human preview WITH photo using FLUX 2 Dev (reference): {human_photo_path}")
-            human_url = generate_with_flux2_dev(human_prompt, aspect_ratio="3:4", photo_ref_path=human_photo_path, image_prompt_strength=0.75)
+            human_url = generate_with_flux2_dev(human_prompt, aspect_ratio="3:4", photo_ref_path=human_photo_path, image_prompt_strength=0.90)
         else:
             print(f"[FURRY LOVE PREVIEW] Generating human preview (no photo)...")
             human_url = generate_with_flux2_dev(human_prompt, aspect_ratio="3:4", image_prompt_strength=0.75)
@@ -481,7 +564,7 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
             print(f"[FURRY LOVE PREVIEW] Generating pet preview WITH photo reference: {pet_photo_path}")
         else:
             print(f"[FURRY LOVE PREVIEW] Generating pet preview (no photo)...")
-        pet_url = generate_with_flux2_dev(pet_prompt, aspect_ratio="3:4", photo_ref_path=pet_photo_path or None, image_prompt_strength=0.75)
+        pet_url = generate_with_flux2_dev(pet_prompt, aspect_ratio="3:4", photo_ref_path=pet_photo_path or None, image_prompt_strength=0.90)
         
         output_dir = 'generated/previews'
         os.makedirs(output_dir, exist_ok=True)
@@ -512,9 +595,9 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
     
     if child_photo_path:
         print(f"[UNIVERSOS PREVIEW] Using photo reference: {child_photo_path}")
-    # With photo: 0.80 strength so model respects the child's face much more
+    # With photo: 0.90 strength so model prioritises the child's photo appearance
     # Without photo: 0.50 balanced (all traits come from form text description)
-    _photo_strength = 0.80 if (child_photo_path and os.path.exists(child_photo_path)) else 0.50
+    _photo_strength = 0.90 if (child_photo_path and os.path.exists(child_photo_path)) else 0.50
     _neg_prompt = get_gender_negative_prompt(gender)
     image_url = generate_with_flux2_dev(prompt, aspect_ratio="3:4", photo_ref_path=child_photo_path if child_photo_path else None, image_prompt_strength=_photo_strength, negative_prompt=_neg_prompt)
     
