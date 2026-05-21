@@ -1442,6 +1442,11 @@ def generate_cover_spread(
             main_title = f"El Guardián de Estrellas"
         else:
             main_title = f"The Star Keeper"
+    elif book_id in ("centinela_aurora", "centinela_aurora_illustrated"):
+        if language == "es":
+            main_title = "El Centinela de la Aurora"
+        else:
+            main_title = "The Aurora Sentinel"
     elif book_id == "furry_love":
         pet_name_cover = traits.get('pet_name', '')
         if language == "es":
