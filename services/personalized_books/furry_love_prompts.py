@@ -20,7 +20,7 @@
 #   - TWO reference images per scene (human + pet)
 #   - Text uses {name} for human and {pet_name} for pet
 
-STYLE_BASE = "Disney Pixar 3D style, soft warm golden lighting, tender emotional atmosphere, WIDE SHOT full body from head to feet, characters occupy 40% of frame, cozy home environment visible, clean illustration only. STRICT: All babies wear onesies or pajamas, fully clothed always."
+STYLE_BASE = "Disney Pixar 3D style, soft warm golden lighting, tender emotional atmosphere, WIDE SHOT full body from head to feet, characters occupy 40% of frame, cozy home environment visible, clean illustration only. STRICT: All babies MUST wear a white diaper or a onesie or pajamas — NEVER naked, NEVER without clothing."
 
 FURRY_LOVE_SCENES = [
     {
@@ -174,7 +174,7 @@ BACK_COVER = {
 
 
 def build_human_preview_prompt(human_desc: str) -> str:
-    return f"Disney Pixar 3D style illustration. FULL BODY portrait of {human_desc}, wearing cute comfortable clothes, standing naturally, warm smile, centered in frame, occupying 60% of frame height. NEUTRAL SOLID GRADIENT BACKGROUND (soft cream to warm beige), plain studio background, studio portrait style. Natural friendly expression, relaxed standing pose. Clean professional animation art, clean illustration only. STRICT: Character fully clothed."
+    return f"Disney Pixar 3D style illustration. FULL BODY portrait of {human_desc}, wearing a white diaper or soft onesie or pajamas (NEVER naked), standing naturally, warm smile, centered in frame, occupying 60% of frame height. NEUTRAL SOLID GRADIENT BACKGROUND (soft cream to warm beige), plain studio background, studio portrait style. Natural friendly expression, relaxed standing pose. Clean professional animation art, clean illustration only. STRICT: Character MUST wear a diaper or onesie — NEVER naked."
 
 
 def build_human_preview_prompt_with_photo(gender_word: str, age_display: str, eye_desc: str = "", hair_desc: str = "", glasses: str = "", facial_hair: str = "") -> str:
@@ -182,7 +182,19 @@ def build_human_preview_prompt_with_photo(gender_word: str, age_display: str, ey
     facial_hair_map = {'stubble': 'light stubble', 'short_beard': 'short beard', 'full_beard': 'full thick beard', 'mustache': 'mustache'}
     facial_hair_desc = f" MUST have {facial_hair_map[facial_hair]}" if facial_hair and facial_hair != 'none' and facial_hair in facial_hair_map else ""
     accessories = (glasses_desc + facial_hair_desc).strip()
-    return f"Disney Pixar 3D style illustration. 3D animated character of the {gender_word} from @image1, {eye_desc} eyes, full appearance matching @image1 exactly.{(' ' + accessories + '.') if accessories else ''} FULL BODY portrait, centered, warm expression. NEUTRAL SOLID GRADIENT BACKGROUND (soft cream to warm beige). Clean illustration only."
+    hair_part = f", {hair_desc}" if hair_desc and "matching the reference" not in hair_desc else ""
+    if "baby" in gender_word.lower():
+        # For babies: put clothing FIRST so model doesn't copy bare chest from reference
+        return (
+            f"Disney Pixar 3D style illustration. "
+            f"OUTFIT: the baby wears a soft white onesie or a cute white diaper — body fully clothed below the neck. "
+            f"CHARACTER: 3D animated {gender_word} with FACE and HEAD matching @image1 exactly, {eye_desc} eyes{hair_part}. "
+            f"FULL BODY portrait, centered, warm happy expression. "
+            f"NEUTRAL SOLID GRADIENT BACKGROUND (soft cream to warm beige). "
+            f"STRICT: body below neck is dressed with onesie or diaper — NEVER bare skin below neck, NEVER naked body. "
+            f"Clean illustration only."
+        )
+    return f"Disney Pixar 3D style illustration. 3D animated character of the {gender_word} from @image1, {eye_desc} eyes{hair_part}, full face and skin matching @image1 exactly.{(' ' + accessories + '.') if accessories else ''} FULL BODY portrait, centered, warm expression. NEUTRAL SOLID GRADIENT BACKGROUND (soft cream to warm beige). Clean illustration only."
 
 
 def build_pet_preview_prompt(pet_desc: str) -> str:
@@ -232,11 +244,6 @@ def build_scene_prompt(scene: dict, human_desc: str, pet_name: str, pet_desc: st
     glasses_desc = ", wearing glasses" if glasses == "glasses" else ", wearing sunglasses" if glasses == "sunglasses" else ""
     prompt = prompt.replace('{glasses_desc}', glasses_desc)
     prompt = prompt.replace('{style}', STYLE_BASE)
-
-    hair_growth_desc = _get_hair_growth_desc(scene_id, hair_color)
-    if hair_growth_desc and eye_color_only:
-        anchor = eye_color_only + " eyes" + glasses_desc
-        prompt = prompt.replace(anchor, anchor + " " + hair_growth_desc, 1)
 
     if gender_word and gender_word != 'baby' and '{gender_word}' in scene.get('prompt', ''):
         prompt += f" The character is a {gender_word}."
