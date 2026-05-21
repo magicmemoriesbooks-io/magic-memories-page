@@ -83,20 +83,20 @@ def _cta_button(text: str, url: str) -> str:
 
 
 def _newsletter_invite_html(lang='es'):
-    site_url = os.environ.get('REPLIT_DEV_DOMAIN', 'magicmemoriesbooks.com')
+    site_url = 'magicmemoriesbooks.com'
     if lang == 'es':
         return f"""
         <div style="background:#f3e8ff;padding:20px;border-radius:12px;margin:20px 0;text-align:center;border:1px solid #e9d5ff;">
             <p style="font-size:15px;color:#7c3aed;font-weight:bold;margin:0 0 8px;">¿Te gustó la experiencia?</p>
             <p style="font-size:13px;color:#374151;margin:0 0 12px;">Únete a nuestra comunidad para enterarte de nuevos cuentos y ofertas exclusivas.</p>
-            <a href="https://{site_url}/#newsletter" style="display:inline-block;background-color:#9333ea;background-image:linear-gradient(135deg,#9333ea,#ec4899);color:#ffffff;padding:10px 24px;border-radius:20px;text-decoration:none;font-weight:bold;font-size:13px;">Suscribirme</a>
+            <a href="https://{site_url}/suscribirse" style="display:inline-block;background-color:#9333ea;background-image:linear-gradient(135deg,#9333ea,#ec4899);color:#ffffff;padding:10px 24px;border-radius:20px;text-decoration:none;font-weight:bold;font-size:13px;">Suscribirme</a>
         </div>"""
     else:
         return f"""
         <div style="background:#f3e8ff;padding:20px;border-radius:12px;margin:20px 0;text-align:center;border:1px solid #e9d5ff;">
             <p style="font-size:15px;color:#7c3aed;font-weight:bold;margin:0 0 8px;">Did you enjoy the experience?</p>
             <p style="font-size:13px;color:#374151;margin:0 0 12px;">Join our community to hear about new stories and exclusive offers.</p>
-            <a href="https://{site_url}/#newsletter" style="display:inline-block;background-color:#9333ea;background-image:linear-gradient(135deg,#9333ea,#ec4899);color:#ffffff;padding:10px 24px;border-radius:20px;text-decoration:none;font-weight:bold;font-size:13px;">Subscribe</a>
+            <a href="https://{site_url}/subscribe" style="display:inline-block;background-color:#9333ea;background-image:linear-gradient(135deg,#9333ea,#ec4899);color:#ffffff;padding:10px 24px;border-radius:20px;text-decoration:none;font-weight:bold;font-size:13px;">Subscribe</a>
         </div>"""
 
 
@@ -255,7 +255,7 @@ def send_story_email_with_attachments(
                 {_success_box(f'''
                     <h4 style="margin-top:0;color:#166534;">📦 Tu libro impreso está en camino</h4>
                     <p style="color:#374151;font-size:13px;margin:0;">
-                        Hemos enviado tu libro a producción con Gelato.<br>
+                        Hemos enviado tu libro a producción con Cloudprinter.<br>
                         Recibirás actualizaciones de seguimiento por email.<br><br>
                         <strong>Tiempo estimado:</strong> 14-21 días hábiles<br>
                         <strong>Formato:</strong> Tapa dura, 26 páginas, impresión premium a color
@@ -269,7 +269,7 @@ def send_story_email_with_attachments(
                 {_success_box(f'''
                     <h4 style="margin-top:0;color:#166534;">📦 Your printed book is on its way</h4>
                     <p style="color:#374151;font-size:13px;margin:0;">
-                        We've sent your book to production with Gelato.<br>
+                        We've sent your book to production with Cloudprinter.<br>
                         You'll receive tracking updates by email.<br><br>
                         <strong>Estimated delivery:</strong> 14-21 business days<br>
                         <strong>Format:</strong> Hardcover, 26 pages, premium color print
@@ -429,7 +429,7 @@ def send_print_order_notification(
     cover_pdf_path: Optional[str] = None,
     interior_url: Optional[str] = None,
     cover_url: Optional[str] = None,
-    print_partner: str = 'Gelato'
+    print_partner: str = 'Cloudprinter'
 ) -> dict:
     from datetime import datetime
     
@@ -538,258 +538,6 @@ Cover: {cover_url or 'N/A'}
 send_lulu_order_notification = send_print_order_notification
 
 
-def send_gelato_admin_notification(
-    preview_id: str,
-    gelato_order_id: str,
-    title: str,
-    customer_email: str,
-    shipping_address: dict,
-    combined_pdf_url: str,
-    visor_url: str = '',
-) -> dict:
-    """Send an admin email to pay@ when a new Gelato order is submitted, with the PDF URL so
-    the book can be reviewed before printing."""
-    from datetime import datetime
-
-    admin_email = "pay@magicmemoriesbooks.com"
-
-    address_name = shipping_address.get('name', shipping_address.get('firstName', '') + ' ' + shipping_address.get('lastName', '')).strip() or 'N/A'
-    address_street = shipping_address.get('street1', shipping_address.get('address_line1', 'N/A'))
-    address_city = shipping_address.get('city', 'N/A')
-    address_state = shipping_address.get('state_code', shipping_address.get('state', 'N/A'))
-    address_country = shipping_address.get('country_code', shipping_address.get('country', 'N/A'))
-    address_postal = shipping_address.get('postcode', shipping_address.get('post_code', 'N/A'))
-
-    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-    subject = f"📦 Nuevo pedido Gelato - {title} - {preview_id}"
-
-    def _row(label, value, alt_bg=False):
-        bg = 'background:#eff6ff;' if alt_bg else ''
-        return f'<tr style="{bg}"><td style="padding:10px 12px;color:#6b7280;font-size:13px;width:140px;">{label}</td><td style="padding:10px 12px;color:#1f2937;font-size:14px;font-weight:600;">{value}</td></tr>'
-
-    pdf_links = f'<a href="{combined_pdf_url}" style="color:#2563eb;font-weight:600;">📄 Descargar PDF combinado (34 págs)</a>'
-    visor_link = f'<br><a href="{visor_url}" style="color:#2563eb;font-weight:600;">📖 Ver cuento en el visor</a>' if visor_url else ''
-
-    content = f"""
-        <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:15px;">
-            {_row('Preview ID', preview_id, True)}
-            {_row('Gelato Order ID', gelato_order_id)}
-            {_row('Título', title, True)}
-            {_row('Cliente', customer_email)}
-            {_row('Fecha', timestamp, True)}
-        </table>
-
-        <h3 style="color:#2563eb;margin-top:20px;font-size:16px;">📍 Dirección de Envío</h3>
-        <div style="background:#eff6ff;padding:15px;border-radius:8px;border-left:4px solid #2563eb;margin:10px 0;">
-            <p style="margin:0;color:#1f2937;font-size:14px;">
-                <strong>{address_name}</strong><br>
-                {address_street}<br>
-                {address_city}, {address_state} {address_postal}<br>
-                {address_country}
-            </p>
-        </div>
-
-        <h3 style="color:#2563eb;margin-top:20px;font-size:16px;">📎 Archivos PDF</h3>
-        <div style="background:#eff6ff;padding:15px;border-radius:8px;border-left:4px solid #2563eb;margin:10px 0;">
-            <p style="margin:0;">{pdf_links}{visor_link}</p>
-            <p style="color:#6b7280;font-size:12px;margin-top:8px;">(Los PDFs son demasiado grandes para adjuntar por email)</p>
-        </div>
-
-        <h3 style="color:#16a34a;margin-top:20px;font-size:16px;">🖨️ Ver pedido en Gelato</h3>
-        <div style="background:#f0fdf4;padding:15px;border-radius:8px;border-left:4px solid #16a34a;margin:10px 0;">
-            <a href="https://dashboard.gelato.com/orders" style="display:inline-block;background:#16a34a;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">🖨️ Ver pedidos en Gelato Dashboard</a>
-            <p style="margin:10px 0 0;color:#6b7280;font-size:12px;">Order ID a buscar: <strong>{gelato_order_id}</strong></p>
-        </div>
-    """
-
-    html_body = _admin_wrapper("📦 Nuevo Pedido Gelato", content)
-
-    text_body = f"""
-NUEVO PEDIDO GELATO
-===================
-
-Preview ID: {preview_id}
-Gelato Order ID: {gelato_order_id}
-Título: {title}
-Cliente: {customer_email}
-Fecha: {timestamp}
-
-DIRECCIÓN DE ENVÍO:
-{address_name}
-{address_street}
-{address_city}, {address_state} {address_postal}
-{address_country}
-
-ARCHIVOS PDF:
-Combinado (34p): {combined_pdf_url}
-Visor: {visor_url or 'N/A'}
-
-Ver pedido: https://dashboard.gelato.com/orders
-    """
-
-    if not SMTP_USER or not SMTP_PASSWORD:
-        print(f"[GELATO NOTIFICATION] SMTP not configured. Would send to: {admin_email}")
-        return {'success': True, 'message': 'Gelato notification logged (SMTP not configured)', 'simulated': True}
-
-    try:
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = subject
-        msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
-        msg['To'] = admin_email
-
-        msg.attach(MIMEText(text_body, 'plain', 'utf-8'))
-        msg.attach(MIMEText(html_body, 'html', 'utf-8'))
-
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
-            server.send_message(msg)
-
-        print(f"[GELATO NOTIFICATION] Email sent to {admin_email} with PDF link")
-        return {'success': True, 'message': 'Gelato notification sent'}
-
-    except Exception as e:
-        print(f"[GELATO NOTIFICATION] Error sending email: {str(e)}")
-        return {'success': False, 'message': str(e)}
-
-
-def send_gelato_customer_notification(
-    to_email: str,
-    child_name: str,
-    book_title: str,
-    shipping_address: dict,
-    shipping_method: str = 'MAIL',
-    lang: str = 'es',
-    recovery_url: str = ''
-) -> bool:
-    shipping_labels = {
-        'MAIL': ('Correo Estándar', 'Standard Mail'),
-        'PRIORITY_MAIL': ('Correo Prioritario', 'Priority Mail'),
-        'GROUND_HD': ('Envío Terrestre', 'Ground Shipping'),
-        'GROUND': ('Envío Terrestre', 'Ground Shipping'),
-        'EXPEDITED': ('Envío Exprés', 'Expedited Shipping'),
-        'EXPRESS': ('Envío Express', 'Express Shipping'),
-    }
-    SHIPPING_OPTIONS_INLINE = {
-        'MAIL':          {'days': '14-21', 'total_days': '17-26'},
-        'PRIORITY_MAIL': {'days': '7-10',  'total_days': '10-15'},
-        'GROUND_HD':     {'days': '7-10',  'total_days': '10-15'},
-        'GROUND':        {'days': '7-10',  'total_days': '10-15'},
-        'EXPEDITED':     {'days': '3-5',   'total_days': '6-10'},
-        'EXPRESS':       {'days': '1-3',   'total_days': '4-8'},
-    }
-    LULU_PRODUCTION_DAYS = 3
-    method_label = shipping_labels.get(shipping_method, (shipping_method, shipping_method))
-    method_name = method_label[0] if lang == 'es' else method_label[1]
-
-    option_info = SHIPPING_OPTIONS_INLINE.get(shipping_method, SHIPPING_OPTIONS_INLINE.get('MAIL', {}))
-    transit_days = option_info.get('days', '14-21')
-    total_days = option_info.get('total_days', '17-26')
-
-    addr_name = shipping_address.get('name', '')
-    addr_street = shipping_address.get('street1', '')
-    addr_city = shipping_address.get('city', '')
-    addr_state = shipping_address.get('state_code', '')
-    addr_postal = shipping_address.get('postcode', '')
-    addr_country = shipping_address.get('country_code', '')
-    addr_html = f"<strong>{addr_name}</strong><br>{addr_street}<br>{addr_city}, {addr_state} {addr_postal}<br>{addr_country}"
-
-    ebook_section_es = ''
-    ebook_section_en = ''
-    if recovery_url:
-        ebook_section_es = f"""
-            {_info_box(f'''
-                <h3 style="margin-top:0;color:#7c3aed;">📱 Tu eBook de Regalo (6 meses)</h3>
-                <p style="color:#374151;font-size:14px;margin:0 0 12px 0;">
-                    Mientras esperas tu libro impreso, puedes leer tu cuento en la app interactiva.
-                </p>
-                {_cta_button("📖 Abrir mi eBook ahora", recovery_url)}
-            ''')}"""
-        ebook_section_en = f"""
-            {_info_box(f'''
-                <h3 style="margin-top:0;color:#7c3aed;">📱 Your Gift eBook (6 months)</h3>
-                <p style="color:#374151;font-size:14px;margin:0 0 12px 0;">
-                    While you wait for your printed book, you can read your story in the interactive app.
-                </p>
-                {_cta_button("📖 Open my eBook now", recovery_url)}
-            ''')}"""
-
-    if lang == 'es':
-        subject = f"Tu libro '{book_title}' para {child_name} está en camino a la imprenta"
-        content = f"""
-            <p style="font-size:16px;color:#374151;">¡Buenas noticias! Tu libro personalizado ha sido enviado a nuestra imprenta.</p>
-            {_success_box(f'''
-                <h3 style="margin-top:0;color:#166534;">📖 "{book_title}"</h3>
-                <p style="color:#374151;font-size:14px;">Tu libro para <strong>{child_name}</strong> ya está siendo impreso.</p>
-            ''')}
-            {_info_box(f'''
-                <h3 style="margin-top:0;color:#7c3aed;">📦 Detalles del Envío</h3>
-                <table style="width:100%;font-size:14px;color:#374151;">
-                    <tr><td style="padding:6px 0;font-weight:600;width:160px;">Método de envío:</td><td>{method_name}</td></tr>
-                    <tr><td style="padding:6px 0;font-weight:600;">Dirección:</td><td>{addr_html}</td></tr>
-                    <tr><td style="padding:6px 0;font-weight:600;">Producción Gelato:</td><td>{LULU_PRODUCTION_DAYS} días hábiles</td></tr>
-                    <tr><td style="padding:6px 0;font-weight:600;">Tránsito postal:</td><td>{transit_days} días hábiles</td></tr>
-                    <tr><td style="padding:6px 0;font-weight:700;color:#7c3aed;">Tiempo total estimado:</td><td><strong style="color:#7c3aed;">{total_days} días hábiles</strong></td></tr>
-                </table>
-            ''')}
-            {ebook_section_es}
-            {_alert_box(f'''
-                <p style="margin:0;color:#92400e;font-size:14px;">
-                    <strong>¿No has recibido tu libro después de {total_days.split("-")[1]} días hábiles?</strong><br>
-                    Escríbenos a <strong>pay@magicmemoriesbooks.com</strong> con tu email de compra y te ayudaremos a rastrear tu pedido.
-                </p>
-            ''')}
-            {_newsletter_invite_html('es')}"""
-        html_content = _email_wrapper("📖 ¡Tu Libro Está en Imprenta!", content, to_email)
-    else:
-        subject = f"Your book '{book_title}' for {child_name} is on its way to the printer"
-        content = f"""
-            <p style="font-size:16px;color:#374151;">Great news! Your personalized book has been sent to our printer.</p>
-            {_success_box(f'''
-                <h3 style="margin-top:0;color:#166534;">📖 "{book_title}"</h3>
-                <p style="color:#374151;font-size:14px;">Your book for <strong>{child_name}</strong> is now being printed.</p>
-            ''')}
-            {_info_box(f'''
-                <h3 style="margin-top:0;color:#7c3aed;">📦 Shipping Details</h3>
-                <table style="width:100%;font-size:14px;color:#374151;">
-                    <tr><td style="padding:6px 0;font-weight:600;width:160px;">Shipping method:</td><td>{method_name}</td></tr>
-                    <tr><td style="padding:6px 0;font-weight:600;">Delivery address:</td><td>{addr_html}</td></tr>
-                    <tr><td style="padding:6px 0;font-weight:600;">Gelato production:</td><td>{LULU_PRODUCTION_DAYS} business days</td></tr>
-                    <tr><td style="padding:6px 0;font-weight:600;">Postal transit:</td><td>{transit_days} business days</td></tr>
-                    <tr><td style="padding:6px 0;font-weight:700;color:#7c3aed;">Total estimated time:</td><td><strong style="color:#7c3aed;">{total_days} business days</strong></td></tr>
-                </table>
-            ''')}
-            {ebook_section_en}
-            {_alert_box(f'''
-                <p style="margin:0;color:#92400e;font-size:14px;">
-                    <strong>Haven't received your book after {total_days.split("-")[1]} business days?</strong><br>
-                    Email us at <strong>pay@magicmemoriesbooks.com</strong> with your purchase email and we'll help track your order.
-                </p>
-            ''')}
-            {_newsletter_invite_html('en')}"""
-        html_content = _email_wrapper("📖 Your Book Is Being Printed!", content, to_email)
-
-    msg = MIMEMultipart('alternative')
-    msg['Subject'] = subject
-    msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
-    msg['To'] = to_email
-
-    msg.attach(MIMEText(html_content, 'html'))
-
-    try:
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
-            server.sendmail(FROM_EMAIL, to_email, msg.as_string())
-        print(f"[EMAIL] Gelato customer notification sent to {to_email}")
-        return True
-    except Exception as e:
-        print(f"[EMAIL] Failed to send Gelato customer notification: {e}")
-        return False
-
-
-send_lulu_customer_notification = send_gelato_customer_notification
 
 
 def send_printable_pdf_notification(
@@ -1130,8 +878,8 @@ def send_admin_gift_email(
             <p style="margin:5px 0 0;color:#1f2937;font-size:14px;"><strong>Fecha:</strong> {timestamp}</p>
         </div>
         
-        <h3 style="color:#dc2626;margin-top:25px;font-size:16px;">Archivos para Lulu</h3>
-        <p style="color:#374151;font-size:14px;">Descarga estos archivos y súbelos manualmente a Lulu para imprimir:</p>
+        <h3 style="color:#dc2626;margin-top:25px;font-size:16px;">Archivos para Cloudprinter</h3>
+        <p style="color:#374151;font-size:14px;">Descarga estos archivos y súbelos manualmente a Cloudprinter para imprimir:</p>
         
         <div style="text-align:center;margin:20px 0;">
             <a href="{interior_url}" style="display:inline-block;background-color:#dc2626;background-image:linear-gradient(135deg,#dc2626,#b91c1c);color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin:5px;">📄 Descargar Interior PDF</a>
@@ -1669,6 +1417,7 @@ def send_print_failure_admin_email(preview_id: str, child_name: str, error_messa
 send_lulu_failure_email = send_print_failure_email
 send_lulu_failure_admin_email = send_print_failure_admin_email
 send_lulu_resolved_email = send_print_resolved_email
+
 send_cp_failure_email = send_print_failure_email
 send_cp_failure_admin_email = send_print_failure_admin_email
 
@@ -2202,7 +1951,7 @@ def send_ebook_email(to_email: str, story_data: dict, visor_url: str, is_gift: b
                     <li style="padding:3px 0;color:#374151;">📖 <strong>Encuadernación:</strong> Tapa dura (hardcover)</li>
                     <li style="padding:3px 0;color:#374151;">🎨 <strong>Interior:</strong> Color premium, papel satinado</li>
                     <li style="padding:3px 0;color:#374151;">📄 <strong>Páginas:</strong> 26 páginas a todo color</li>
-                    <li style="padding:3px 0;color:#374151;">💡 Puedes usar servicios como <strong>Lulu.com</strong> o tu imprenta local</li>
+                    <li style="padding:3px 0;color:#374151;">💡 También puedes llevar el PDF a tu imprenta local</li>
                 """
             else:
                 dl_title = "📥 Your book for printing"
@@ -2214,7 +1963,7 @@ def send_ebook_email(to_email: str, story_data: dict, visor_url: str, is_gift: b
                     <li style="padding:3px 0;color:#374151;">📖 <strong>Binding:</strong> Hardcover</li>
                     <li style="padding:3px 0;color:#374151;">🎨 <strong>Interior:</strong> Premium color, satin paper</li>
                     <li style="padding:3px 0;color:#374151;">📄 <strong>Pages:</strong> 24 full-color pages</li>
-                    <li style="padding:3px 0;color:#374151;">💡 You can use services like <strong>Lulu.com</strong> or your local print shop</li>
+                    <li style="padding:3px 0;color:#374151;">💡 You can also take this PDF to your local print shop</li>
                 """
             download_section = f'''
             <div style="background:#f0fdf4;padding:20px;border-radius:12px;margin:20px 0;border:1px solid #bbf7d0;">
@@ -2821,12 +2570,10 @@ def send_cart_confirmation_email(to_email: str, items: list, total_usd: float, l
 
     product_type_labels = {
         'personalized_pdf': ('PDF Imprimible 🖨️', 'Printable PDF 🖨️'),
-        'gelato_personalized': ('Libro Impreso (Gelato) 📖', 'Printed Book (Gelato) 📖'),
-        'personalized_print': ('Libro Impreso 📖', 'Printed Book 📖'),
+        'cp_personalized': ('Libro Impreso 📖', 'Printed Book 📖'),
         'qs_digital': ('PDF Digital 💻', 'Digital PDF 💻'),
         'qs_print': ('Libro Impreso 📦', 'Printed Book 📦'),
         'universo_ebook': ('eBook Interactivo 📱', 'Interactive eBook 📱'),
-        'universo_print': ('Libro Universo Impreso 📖', 'Universo Printed Book 📖'),
         'ebook': ('eBook Interactivo 📱', 'Interactive eBook 📱'),
         'personalized': ('Libro Personalizado 📖', 'Personalised Book 📖'),
     }
@@ -2854,7 +2601,6 @@ def send_cart_confirmation_email(to_email: str, items: list, total_usd: float, l
         visor_url = item.get('visor_url', '')
         pdf_url = item.get('pdf_download_url', '')
         tracking = item.get('tracking_number', '')
-        gelato_id = item.get('gelato_order_id', '')
         lulu_submitted = item.get('lulu_submitted', False)
         item_links = []
         if visor_url:
@@ -2869,7 +2615,7 @@ def send_cart_confirmation_email(to_email: str, items: list, total_usd: float, l
             tk_lbl = 'Seguimiento' if lang == 'es' else 'Tracking'
             item_links.append(f'<span style="color:#059669;">📦 {tk_lbl}: {tracking}</span>')
             access_links_text += f'    {tk_lbl}: {tracking}\n'
-        elif lulu_submitted or gelato_id:
+        elif lulu_submitted:
             pr_lbl = 'En producción — recibirás número de seguimiento por email' if lang == 'es' else 'In production — tracking number will be emailed'
             item_links.append(f'<span style="color:#d97706;">🔄 {pr_lbl}</span>')
             access_links_text += f'    {pr_lbl}\n'
