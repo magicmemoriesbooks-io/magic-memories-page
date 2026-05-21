@@ -164,7 +164,7 @@ MAGIC_CHEF_SCENES = [
 
 CLOSING_SCENE = {
     "id": 20,
-    "prompt": "Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, sleeping peacefully with gentle smile. OUTFIT: Cozy pajamas with cupcake patterns, magical chef's hat resting on head. ACTION: {gender_word} sleeps in a cozy bed, a gold winner's medal on the nightstand, a small plush rainbow cake toy (SWEETIE plush) snuggled beside. SETTING: Cozy bedroom at night WIDE VIEW, stars through window, soft moonlight, magical sparkles floating gently. ATMOSPHERE: Dreamy peaceful slumber, warm glow. STRICT: Only ONE {gender_word}, NO real cake character, only plush toy, {gender_word} is 100% human child. {style}",
+    "prompt": "Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, eyes gently closed, peaceful smile, face clearly visible from a 3/4 angle. OUTFIT: Cozy pajamas with cupcake patterns, magical chef's hat resting beside on pillow. ACTION: {gender_word} rests in a cozy bed, snuggled under a warm blanket, a gold winner's medal resting on the nightstand, a small stuffed plush cake toy snuggled beside {gender_word}. SETTING: Cozy bedroom at night WIDE VIEW, stars through window, soft moonlight, magical sparkles floating gently around the bed. ATMOSPHERE: Dreamy peaceful slumber, warm golden glow, fairy-tale magic. The stuffed plush toy is clearly a toy, soft fabric, button eyes. Only one child character in the scene. {style}",
     "text_position": "none"
 }
 
@@ -202,17 +202,22 @@ def build_scene_prompt(scene: dict, child_name: str, gender: str, age: int, trai
 
     outfit_desc = get_outfit_desc(gender)
     hair_action = get_hair_action(traits)
+    _gl = traits.get('glasses', '')
     if has_photo:
-        hair_desc = "hair exactly as shown in the reference photo"
-        hair_strict = "HAIR STRICT: match hair exactly to the reference photo."
+        hair_desc = "hair as in the reference photo"
+        actual_eye = get_eye_description(traits)
+        eye_desc = f"{actual_eye}, face exactly as in the reference photo"
+        if _gl:
+            eye_desc += ", wearing round glasses"
+        skin_tone = "as in the reference photo"
+        hair_strict = "PHOTO REFERENCE: Match the child's exact face, skin, eye color and hair from the reference photo."
     else:
         hair_desc = get_hair_description(traits)
         hair_strict = get_hair_strict(traits)
-    eye_desc = get_eye_description(traits)
-    _gl = traits.get('glasses', '')
-    if _gl:
-        eye_desc = eye_desc + ", wearing round glasses"
-    skin_tone = get_unified_skin_description(traits.get('skin_tone', 'light'))
+        eye_desc = get_eye_description(traits)
+        if _gl:
+            eye_desc = eye_desc + ", wearing round glasses"
+        skin_tone = get_unified_skin_description(traits.get('skin_tone', 'light'))
     gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
     _age = age if age and age > 0 else 6
     age_display = f"{_age} year old"
