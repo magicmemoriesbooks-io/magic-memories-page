@@ -278,17 +278,18 @@ def _embed_page(c, img: Image.Image):
     c.drawImage(ImageReader(buf), 0, 0, width=PAGE_W_PT, height=PAGE_H_PT)
 
 
+_BC = "static/images/fixed_pages/_backup"
 FIXED_BACK_COVERS = {
-    "dragon_garden":               "static/images/fixed_pages/dragon_garden_back_cover.png",
+    "dragon_garden":               f"{_BC}/dragon_garden_back_cover.png",
     "magic_chef":                  "static/images/fixed_pages/magic_chef_back_cover.png",
     "magic_inventor":              "static/images/fixed_pages/magic_inventor_back_cover.png",
-    "star_keeper":                 "static/images/fixed_pages/star_keeper_back_cover.png",
-    "furry_love":                  "static/images/fixed_pages/furry_love_baby_back_cover.png",
-    "furry_love_adventure":        "static/images/fixed_pages/furry_love_adventure_back_cover.png",
-    "furry_love_teen":             "static/images/fixed_pages/furry_love_teen_back_cover.png",
-    "furry_love_adult":            "static/images/fixed_pages/furry_love_adult_back_cover.png",
-    "centinela_aurora":            "static/images/fixed_pages/centinela_aurora_back_cover.png",
-    "centinela_aurora_illustrated":"static/images/fixed_pages/centinela_aurora_back_cover.png",
+    "star_keeper":                 f"{_BC}/star_keeper_back_cover.png",
+    "furry_love":                  f"{_BC}/furry_love_baby_back_cover.png",
+    "furry_love_adventure":        f"{_BC}/furry_love_adventure_back_cover.png",
+    "furry_love_teen":             f"{_BC}/furry_love_teen_back_cover.png",
+    "furry_love_adult":            f"{_BC}/furry_love_adult_back_cover.png",
+    "centinela_aurora":            f"{_BC}/centinela_aurora_back_cover.png",
+    "centinela_aurora_illustrated":f"{_BC}/centinela_aurora_back_cover.png",
 }
 
 def generate_cw_cover_pdf(
@@ -520,22 +521,15 @@ def generate_cw_content_pdf(
         print(f"[CP PDF] visor page_{n}.jpg not found — using blank")
         return _blank_page()
 
-    def _load_coloring(visor_n: int, composed_n: int = None) -> Image.Image:
+    def _load_coloring(visor_n: int) -> Image.Image:
         """Load coloring page for Option B (26p).
 
         Priority:
-        1. Pre-rendered coloring PNG from composed dir (generated/composed_{id}/page_N.png)
-           — already the final coloring art, no conversion needed.
-        2. Convert clean_page_{n}.png (text-free) via _scene_to_coloring_page.
-        3. Convert visor page_{n}.jpg as last resort.
+        1. clean_page_{n}.png in visor_pb dir (text-free scene, best quality).
+        2. visor page_{n}.jpg as fallback.
+        NOTE: The composed dir (generated/composed_{id}/page_N.png) is NOT used
+        because pages 23+ in that dir are credits/fixed pages, not coloring scenes.
         """
-        if composed_n is not None:
-            composed_dir = os.path.join("generated", f"composed_{session_id}")
-            pre = os.path.join(composed_dir, f"page_{composed_n}.png")
-            if os.path.exists(pre) and os.path.getsize(pre) > 50_000:
-                print(f"[CP PDF] coloring page_{composed_n}: pre-rendered (composed dir)")
-                return _fit_page(Image.open(pre).convert("RGB"))
-
         clean_p = os.path.join(pages_dir, f"clean_page_{visor_n}.png")
         p = clean_p if os.path.exists(clean_p) else _visor_path(visor_n)
         if os.path.exists(p):
@@ -554,9 +548,9 @@ def generate_cw_content_pdf(
     for n in range(4, 23):                           # Pages 4-22 — 19 scenes
         page_spec.append(("visor", n))
     if page_count == CW_PAGES_26:
-        # Option B: 2 coloring pages before credits.
-        page_spec.append(("coloring", (8, 23)))     # Page 23 — coloring A (scene 8, composed page_23)
-        page_spec.append(("coloring", (17, 24)))    # Page 24 — coloring B (scene 17, composed page_24)
+        # Option B: 2 coloring pages before credits (always from visor scenes).
+        page_spec.append(("coloring", 8))      # Page 23 — coloring A (visor scene page_8)
+        page_spec.append(("coloring", 17))     # Page 24 — coloring B (visor scene page_17)
     page_spec.append(("credits", None))             # Page 25 — credits
     page_spec.append(("blank", None))               # Page 26 — blank
 
@@ -573,12 +567,9 @@ def generate_cw_content_pdf(
             img = _generate_credits_page(child_name, language)
             label = "credits"
         elif ptype == "coloring":
-            if isinstance(pdata, tuple):
-                visor_n, composed_n = pdata
-            else:
-                visor_n, composed_n = pdata, None
-            img = _load_coloring(visor_n, composed_n)
-            label = f"coloring_page_{composed_n or visor_n}"
+            visor_n = pdata  # always an int (scene index)
+            img = _load_coloring(visor_n)
+            label = f"coloring_scene_{visor_n}"
         else:
             img = _load_visor(pdata)
             label = f"page_{pdata}.jpg"
