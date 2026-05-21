@@ -39,6 +39,20 @@
     .ap-cp-msg { margin-top:14px; font-size:13px; font-weight:600; padding:8px 14px; border-radius:8px; }
     .ap-cp-msg.ok { background:#dcfce7; color:#166534; }
     .ap-cp-msg.err { background:#fee2e2; color:#991b1b; }
+    .cp-ship-options { display:flex; flex-direction:column; gap:8px; margin-top:6px; }
+    .cp-ship-opt { display:flex; align-items:center; gap:10px; padding:10px 14px; border:2px solid #e5e7eb; border-radius:10px; cursor:pointer; transition:border-color .15s,background .15s; }
+    .cp-ship-opt:hover { border-color:#16a34a; background:#f0fdf4; }
+    .cp-ship-opt.selected { border-color:#16a34a; background:#f0fdf4; }
+    .cp-ship-opt input[type=radio] { accent-color:#16a34a; width:16px; height:16px; flex-shrink:0; }
+    .cp-ship-opt-info { flex:1; }
+    .cp-ship-opt-name { font-size:13px; font-weight:700; color:#1a1a1a; }
+    .cp-ship-opt-days { font-size:11px; color:#6b7280; margin-top:1px; }
+    .cp-ship-opt-price { text-align:right; }
+    .cp-ship-opt-ship { font-size:12px; color:#6b7280; }
+    .cp-ship-opt-total { font-size:15px; font-weight:800; color:#15803d; }
+    .cp-ship-opt-total.expensive { color:#dc2626; }
+    .cp-ship-loading { font-size:12px; color:#6b7280; padding:10px 0; text-align:center; }
+    .cp-ship-error { font-size:12px; color:#dc2626; padding:8px 12px; background:#fee2e2; border-radius:8px; }
     .ap-scene-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
     .ap-scene-card { background: #f9fafb; border-radius: 8px; overflow: hidden; border: 1px solid #e5e7eb; }
     .ap-scene-card img { width: 100%; height: 160px; object-fit: cover; cursor: pointer; }
@@ -144,7 +158,7 @@
             {% set gelato_pdf_available = preview.gelato_combined_pdf or (preview.pages_composed and is_gelato_book) %}
             {% set has_pdf = preview.lulu_order_folder or preview.pdf_path or preview.digital_pdf_path or preview.pdf_printable_path or gelato_pdf_available %}
             {% if gelato_pdf_available or is_gelato_book %}
-            <a href="{{ url_for('admin_download_gelato_pdf', preview_id=preview_id) }}" class="ap-btn ap-btn-pdf" target="_blank">📄 Descargar PDF Gelato</a>
+            <a href="{{ url_for('admin_download_gelato_pdf', preview_id=preview_id) }}" class="ap-btn ap-btn-pdf" target="_blank">📄 Descargar PDF Impresión</a>
             {% elif has_pdf %}
             <a href="{{ url_for('admin_download_pdf', preview_id=preview_id) }}" class="ap-btn ap-btn-pdf" target="_blank">📄 Descargar PDF</a>
             {% endif %}
@@ -156,15 +170,27 @@
             {% if is_gelato_book %}
                 {% if preview.cp_pb_order_ref %}
                 <span style="background:#dcfce7; color:#166534; border-radius:8px; padding:7px 16px; font-size:13px; font-weight:600;">✅ Enviado a CP — Ref {{ preview.cp_pb_order_ref }}</span>
+                <button class="ap-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;" onclick="generateCpPdfsPreview('{{ preview_id }}')">👁 Ver PDFs CP</button>
                 <button class="ap-btn ap-btn-lulu" onclick="openCpModal()" style="font-size:12px; padding:6px 14px;">🔄 Reenviar a Cloudprinter</button>
                 {% elif preview.gelato_order_id %}
-                <span style="background:#dcfce7; color:#166534; border-radius:8px; padding:7px 16px; font-size:13px; font-weight:600;">✅ Gelato — {{ preview.gelato_order_id }}</span>
+                <span style="background:#dcfce7; color:#166534; border-radius:8px; padding:7px 16px; font-size:13px; font-weight:600;">✅ Enviado — Ref {{ preview.gelato_order_id }}</span>
                 {% elif preview.gelato_status == 'error' %}
-                <span style="background:#fee2e2; color:#991b1b; border-radius:8px; padding:7px 16px; font-size:13px; font-weight:600;">⚠️ Error Gelato</span>
+                <span style="background:#fee2e2; color:#991b1b; border-radius:8px; padding:7px 16px; font-size:13px; font-weight:600;">⚠️ Error de impresión</span>
+                <button class="ap-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;" onclick="generateCpPdfsPreview('{{ preview_id }}')">👁 Ver PDFs CP</button>
                 <button class="ap-btn ap-btn-lulu" onclick="openCpModal()">📦 Enviar a Cloudprinter</button>
                 {% elif preview.pages_composed %}
+                <button class="ap-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;" onclick="generateCpPdfsPreview('{{ preview_id }}')">👁 Ver PDFs CP</button>
                 <button class="ap-btn ap-btn-lulu" onclick="openCpModal()">📦 Enviar a Cloudprinter</button>
                 {% endif %}
+                <div id="cp-pdf-preview-links" style="display:none; flex-basis:100%; margin-top:8px; padding:10px 14px; background:#fef9c3; border-radius:8px; font-size:13px;">
+                    <strong>📋 PDFs generados — revísalos antes de enviar:</strong>
+                    <div style="margin-top:6px; display:flex; gap:8px; flex-wrap:wrap;">
+                        <a id="cp-cover-link" href="#" target="_blank" class="ap-btn ap-btn-pdf" style="font-size:12px; padding:5px 12px;">📕 cover.pdf</a>
+                        <a id="cp-content-link" href="#" target="_blank" class="ap-btn" style="font-size:12px; padding:5px 12px; background:#3b82f6; color:#fff; border-radius:8px; text-decoration:none; font-weight:600;">📄 content.pdf</a>
+                        <a id="cp-book-link" href="#" target="_blank" class="ap-btn" style="font-size:12px; padding:5px 12px; background:#6b7280; color:#fff; border-radius:8px; text-decoration:none; font-weight:600; display:none;">📚 book.pdf</a>
+                    </div>
+                    <p id="cp-pdf-preview-msg" style="margin:4px 0 0; color:#92400e;"></p>
+                </div>
             {% else %}
                 {% if preview.cp_order_ref %}
                 <span style="background:#dcfce7; color:#166534; border-radius:8px; padding:7px 16px; font-size:13px; font-weight:600;">✅ Enviado a CP — Ref {{ preview.cp_order_ref }}</span>
@@ -261,17 +287,27 @@
 
     {% if preview.pages %}
     <div class="ap-card">
-        <div class="ap-card-header ap-hdr-pages">Páginas del Cuento ({{ preview.pages|length }})</div>
+        <div class="ap-card-header ap-hdr-pages" style="display:flex;align-items:center;justify-content:space-between;">
+            <span>Páginas del Cuento ({{ preview.pages|length }})</span>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <button class="ap-btn ap-btn-reset" style="font-size:12px;padding:5px 14px;" onclick="adminResetPdf('{{ preview_id }}', this)">🔄 Resetear PDF y eBook</button>
+                <span id="reset-pdf-msg" style="display:none;font-size:12px;padding:4px 10px;border-radius:6px;"></span>
+            </div>
+        </div>
         <div class="ap-card-body">
             {% for page in preview.pages %}
-            <div class="ap-page-item">
-                {% set pg_img = page.fixed_scene or page.scene_path or page.image %}
+            {% set pg_img_raw = page.fixed_scene or page.scene_path or page.image %}
+            {% set pg_img = pg_img_raw.replace('_preview.png', '.png') if pg_img_raw else '' %}
+            <div class="ap-page-item" id="page-card-{{ loop.index0 }}">
                 {% if pg_img %}
-                <img src="{% if pg_img.startswith('/') %}{{ pg_img }}{% else %}/{{ pg_img }}{% endif %}" class="ap-page-img" alt="Pág {{ page.page_num }}">
+                <img id="page-img-{{ loop.index0 }}" src="{% if pg_img.startswith('/') %}{{ pg_img }}{% else %}/{{ pg_img }}{% endif %}?t={{ range(1000000)|random }}" class="ap-page-img" onclick="openLB(this.src)" alt="Pág {{ page.page_num }}" style="cursor:zoom-in;">
                 {% endif %}
-                <div>
+                <div style="flex:1;">
                     <div class="ap-page-num">Página {{ page.page_num }}</div>
                     <div class="ap-page-text">{{ page.text }}</div>
+                    {% if page.scene_path or page.fixed_scene %}
+                    <button class="ap-regen-btn" id="page-regen-btn-{{ loop.index0 }}" onclick="adminRegenPage('{{ preview_id }}', {{ loop.index0 }}, this)" style="margin-top:8px;">↺ Regenerar</button>
+                    {% endif %}
                 </div>
             </div>
             {% endfor %}
@@ -319,26 +355,19 @@
             </div>
             <div>
                 <label>País</label>
-                <select id="cp-country">
-                    {% for code, label in [('ES','España'),('MX','México'),('US','Estados Unidos'),('AR','Argentina'),('CO','Colombia'),('CL','Chile'),('GB','Reino Unido'),('DE','Alemania'),('FR','Francia')] %}
-                    <option value="{{ code }}" {% if (preview.shipping_address or {}).get('country_code', 'ES') == code %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
+                <select id="cp-country" onchange="fetchCpQuote()">
+                    {% set lang = 'es' %}
+                    {% include '_cp_country_options.html' %}
                 </select>
             </div>
         </div>
-        <div class="ap-cp-row">
-            <div>
-                <label>Teléfono</label>
-                <input id="cp-phone" type="text" placeholder="+34 600 000 000" value="{{ (preview.shipping_address or {}).get('phone_number', '') if preview.shipping_address else '' }}">
-            </div>
-            <div>
-                <label>Envío</label>
-                <select id="cp-shipping">
-                    <option value="cp_saver">Estándar (CP Saver)</option>
-                    <option value="cp_express">Express</option>
-                </select>
-            </div>
+        <label>Teléfono</label>
+        <input id="cp-phone" type="text" placeholder="+34 600 000 000" value="{{ (preview.shipping_address or {}).get('phone_number', '') if preview.shipping_address else '' }}">
+        <label>Opciones de envío</label>
+        <div id="cp-ship-wrap">
+            <div class="cp-ship-loading">⏳ Consultando precios...</div>
         </div>
+        <input type="hidden" id="cp-shipping" value="cp_saver">
         <div id="cp-msg"></div>
         <div class="ap-cp-actions">
             <button class="ap-btn ap-btn-back" onclick="closeCpModal()" id="cp-cancel-btn">Cancelar</button>
@@ -383,9 +412,67 @@ function resetCompose() {
 function openCpModal() {
     document.getElementById('cp-modal').classList.add('active');
     document.getElementById('cp-msg').innerHTML = '';
+    var countryCode = '{{ (preview.shipping_address or {}).get("country_code", "US") if preview.shipping_address else "US" }}';
+    var sel = document.getElementById('cp-country');
+    if (countryCode && sel) { sel.value = countryCode; }
+    fetchCpQuote();
 }
 function closeCpModal() {
     document.getElementById('cp-modal').classList.remove('active');
+}
+function fetchCpQuote() {
+    var countryCode = document.getElementById('cp-country').value || 'US';
+    var stateCode = document.getElementById('cp-state').value.trim();
+    var wrap = document.getElementById('cp-ship-wrap');
+    wrap.innerHTML = '<div class="cp-ship-loading">⏳ Consultando precios de envío para ' + countryCode + '...</div>';
+    document.getElementById('cp-shipping').value = 'cp_saver';
+    fetch('/api/cp-pb-quote', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({country_code: countryCode, state_code: stateCode})
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+        var opts = data.options || {};
+        var keys = Object.keys(opts);
+        if (!keys.length) {
+            wrap.innerHTML = '<div class="cp-ship-error">⚠️ Sin opciones de envío para este país. Verifica el código de país.</div>';
+            return;
+        }
+        // Sort by total price ascending
+        keys.sort(function(a,b){ return (opts[a].total||99) - (opts[b].total||99); });
+        var cheapestKey = keys[0];
+        var html = '<div class="cp-ship-options">';
+        keys.forEach(function(key, idx){
+            var o = opts[key];
+            var level = o.shipping_level || key.split('_').slice(0,2).join('_') || key;
+            var isFirst = (idx === 0);
+            var priceClass = isFirst ? '' : ' expensive';
+            var badge = isFirst ? ' ✅' : '';
+            html += '<label class="cp-ship-opt' + (isFirst?' selected':'') + '" onclick="selectCpShip(this,\'' + level + '\')">';
+            html += '<input type="radio" name="cp_ship_radio" value="' + level + '"' + (isFirst?' checked':'') + '>';
+            html += '<div class="cp-ship-opt-info">';
+            html += '<div class="cp-ship-opt-name">' + (o.name_es || level) + badge + '</div>';
+            html += '<div class="cp-ship-opt-days">' + (o.days_es || '') + '</div>';
+            html += '</div>';
+            html += '<div class="cp-ship-opt-price">';
+            html += '<div class="cp-ship-opt-ship">Envío: ' + parseFloat(o.ship_cost||0).toFixed(2) + ' €</div>';
+            html += '<div class="cp-ship-opt-total' + priceClass + '">Total: ' + parseFloat(o.total||0).toFixed(2) + ' €</div>';
+            html += '</div>';
+            html += '</label>';
+        });
+        html += '</div>';
+        wrap.innerHTML = html;
+        document.getElementById('cp-shipping').value = opts[cheapestKey].shipping_level || cheapestKey;
+    })
+    .catch(function(){
+        wrap.innerHTML = '<div class="cp-ship-error">❌ Error al consultar precios. Se usará envío estándar.</div>';
+    });
+}
+function selectCpShip(el, level) {
+    document.querySelectorAll('.cp-ship-opt').forEach(function(e){ e.classList.remove('selected'); });
+    el.classList.add('selected');
+    document.getElementById('cp-shipping').value = level;
 }
 function submitCpOrder() {
     var name = document.getElementById('cp-name').value.trim();
@@ -477,6 +564,105 @@ function adminRegenScene(previewId, sceneNum, btn) {
         setTimeout(function() { btn.innerHTML = '↺ Regenerar'; btn.style.background = ''; btn.disabled = false; }, 3000);
     });
 }
+function adminRegenPage(previewId, pageIdx, btn) {
+    if (!confirm('¿Regenerar página ' + (pageIdx + 1) + '? Tomará ~30-60 segundos con FLUX 2 Dev + imagen de referencia.')) return;
+    var img = document.getElementById('page-img-' + pageIdx);
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Generando...';
+    if (img) { img.style.opacity = '0.4'; }
+    fetch('/admin/regenerate-page/' + previewId + '/' + pageIdx, { method: 'POST' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        btn.disabled = false;
+        if (data.success) {
+            btn.innerHTML = '✅ Listo';
+            btn.style.background = '#16a34a';
+            if (img && data.image_url) {
+                img.src = data.image_url + '?t=' + Date.now();
+                img.style.opacity = '1';
+            }
+            setTimeout(function() { btn.innerHTML = '↺ Regenerar'; btn.style.background = ''; btn.disabled = false; }, 4000);
+        } else {
+            btn.innerHTML = '❌ Error';
+            btn.style.background = '#dc2626';
+            if (img) img.style.opacity = '1';
+            alert('Error regenerando página ' + (pageIdx + 1) + ': ' + (data.error || 'desconocido'));
+            setTimeout(function() { btn.innerHTML = '↺ Regenerar'; btn.style.background = ''; btn.disabled = false; }, 3000);
+        }
+    })
+    .catch(function() {
+        btn.disabled = false;
+        btn.innerHTML = '❌ Conexión';
+        btn.style.background = '#dc2626';
+        if (img) img.style.opacity = '1';
+        setTimeout(function() { btn.innerHTML = '↺ Regenerar'; btn.style.background = ''; btn.disabled = false; }, 3000);
+    });
+}
+function adminResetPdf(previewId, btn) {
+    if (!confirm('¿Resetear PDF y eBook? Las imágenes ya regeneradas se mantendrán. El PDF y el visor se regenerarán la próxima vez que el cliente confirme impresión.')) return;
+    var msg = document.getElementById('reset-pdf-msg');
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Reseteando...';
+    fetch('/admin/reset-pdf/' + previewId, { method: 'POST' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        btn.disabled = false;
+        btn.innerHTML = '🔄 Resetear PDF y eBook';
+        msg.style.display = 'inline-block';
+        if (data.success) {
+            msg.style.background = '#dcfce7'; msg.style.color = '#166534';
+            msg.innerHTML = '✅ PDF y eBook reseteados — se regenerarán en la próxima confirmación.';
+        } else {
+            msg.style.background = '#fee2e2'; msg.style.color = '#991b1b';
+            msg.innerHTML = '❌ Error: ' + (data.error || 'desconocido');
+        }
+    })
+    .catch(function() {
+        btn.disabled = false;
+        btn.innerHTML = '🔄 Resetear PDF y eBook';
+        msg.style.display = 'inline-block';
+        msg.style.background = '#fee2e2'; msg.style.color = '#991b1b';
+        msg.innerHTML = '❌ Error de conexión';
+    });
+}
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { closeLB(); closeCpModal(); } });
+
+function generateCpPdfsPreview(previewId) {
+    var linksDiv = document.getElementById('cp-pdf-preview-links');
+    var msg = document.getElementById('cp-pdf-preview-msg');
+    if (!linksDiv) return;
+    linksDiv.style.display = 'block';
+    msg.textContent = '⏳ Generando PDFs… puede tardar 30–60 segundos';
+    document.getElementById('cp-cover-link').style.display = 'none';
+    document.getElementById('cp-content-link').style.display = 'none';
+    document.getElementById('cp-book-link').style.display = 'none';
+    fetch('/admin/generate-cp-pdfs/' + previewId, { method: 'POST' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            msg.textContent = '✅ Listos — descárgalos y revísalos antes de enviar';
+            msg.style.color = '#166534';
+            if (data.cover_url) {
+                var coverLink = document.getElementById('cp-cover-link');
+                var contentLink = document.getElementById('cp-content-link');
+                coverLink.href = data.cover_url;
+                coverLink.style.display = '';
+                contentLink.href = data.content_url;
+                contentLink.style.display = '';
+            } else if (data.book_url) {
+                var bookLink = document.getElementById('cp-book-link');
+                bookLink.href = data.book_url;
+                bookLink.style.display = '';
+            }
+        } else {
+            msg.textContent = '❌ Error: ' + (data.error || 'Error desconocido');
+            msg.style.color = '#991b1b';
+        }
+    })
+    .catch(function(e) {
+        msg.textContent = '❌ Error de red: ' + e.message;
+        msg.style.color = '#991b1b';
+    });
+}
 </script>
 {% endblock %}
