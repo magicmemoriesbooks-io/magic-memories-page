@@ -138,8 +138,13 @@ document.addEventListener('DOMContentLoaded', function() {
             dl.style.display = 'flex';
             dl.addEventListener('click', function() {
                 var a = document.createElement('a');
-                a.href = basePath + '/' + bookData.download_pdf;
-                a.download = bookData.download_pdf;
+                var dlUrl = bookData.download_pdf;
+                // Absolute URLs (starting with / or http) are used as-is (app download route).
+                // Relative filenames (legacy 'original.pdf') are resolved against basePath.
+                a.href = (dlUrl.charAt(0) === '/' || dlUrl.indexOf('http') === 0)
+                    ? dlUrl
+                    : (basePath + '/' + dlUrl);
+                a.download = '';
                 a.click();
             });
         }
@@ -405,6 +410,9 @@ document.addEventListener('DOMContentLoaded', function() {
         return texts;
     }
 
+    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    var isSafari = !isIOS && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
     function startTTS() {
         var texts = getVisibleTexts();
         if (!texts.length) return;
@@ -413,15 +421,17 @@ document.addEventListener('DOMContentLoaded', function() {
         autoNarrate = true;
         ttsQueue = texts.slice();
         duckMusic();
-        speakNext();
         var btn = document.getElementById('tts-play-btn');
         btn.querySelector('.ic-play').style.display = 'none';
         btn.querySelector('.ic-pause').style.display = 'block';
         btn.classList.add('speaking');
+        // iOS/Safari: cancel() needs a moment to settle before speak() works
+        var delay = (isIOS || isSafari) ? 250 : 0;
+        setTimeout(function() { if (isTTSActive) speakNext(); }, delay);
     }
 
     function speakNext() {
-        if (!ttsQueue.length) { finishTTS(); return; }
+        if (!isTTSActive || !ttsQueue.length) { finishTTS(); return; }
         var text = ttsQueue.shift();
         currentUtterance = new SpeechSynthesisUtterance(text);
         currentUtterance.lang = (bookData.language === 'en') ? 'en-US' : 'es-ES';
@@ -435,7 +445,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (isTTSActive && ttsQueue.length) setTimeout(speakNext, 350);
             else finishTTS();
         };
-        currentUtterance.onerror = function() {
+        currentUtterance.onerror = function(e) {
+            if (e && e.error === 'interrupted') return; // cancelled intentionally
             if (isTTSActive && ttsQueue.length) speakNext();
             else finishTTS();
         };
@@ -448,13 +459,27 @@ document.addEventListener('DOMContentLoaded', function() {
         currentUtterance = null;
         unduckMusic();
         var btn = document.getElementById('tts-play-btn');
+        if (!btn) return;
         btn.querySelector('.ic-play').style.display = 'block';
         btn.querySelector('.ic-pause').style.display = 'none';
         btn.classList.remove('speaking');
     }
 
     function stopTTS() {
-        speechSynthesis.cancel();
+        // Clear callbacks FIRST — prevents onend from re-triggering speakNext after cancel
+        if (currentUtterance) {
+            currentUtterance.onend = null;
+            currentUtterance.onerror = null;
+        }
+        isTTSActive = false;
+        ttsQueue = [];
+        currentUtterance = null;
+        // Safari/iOS: cancel() is unreliable — call it multiple times
+        try { speechSynthesis.cancel(); } catch(e) {}
+        if (isSafari || isIOS) {
+            setTimeout(function() { try { speechSynthesis.cancel(); } catch(e) {} }, 50);
+            setTimeout(function() { try { speechSynthesis.cancel(); } catch(e) {} }, 150);
+        }
         finishTTS();
     }
 
