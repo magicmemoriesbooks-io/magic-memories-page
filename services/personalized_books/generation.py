@@ -198,13 +198,17 @@ def get_book_title(book_id: str, child_name: str, lang: str = 'es', pet_name: st
         'furry_love_teen': {
             'es': f"{child_name} y su compañero fiel",
             'en': f"{child_name} and Their Faithful Companion"
-        }
+        },
+        'centinela_aurora': {
+            'es': f"El Centinela de la Aurora - {child_name}",
+            'en': f"The Aurora Sentinel - {child_name}"
+        },
     }
     book_titles = titles.get(book_id, titles['dragon_garden'])
     return book_titles.get(lang, book_titles['en'])
 
 
 def get_print_title(book_id: str, child_name: str, lang: str = 'es', pet_name: str = '') -> str:
-    """Return the human-readable print title for a book. Used by Gelato/print routes."""
+    """Return the human-readable print title for a book. Used by Cloudprinter/print routes."""
     return get_book_title(book_id, child_name, lang, pet_name)
 
