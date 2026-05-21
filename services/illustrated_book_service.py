@@ -1022,7 +1022,7 @@ def generate_closing_page(
             return Image.new("RGB", img_size, "#FFFEF5")
     
     gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
-    reference_note = f"@image1=the {gender_word} character. Same face, skin tone, and hair as the reference."
+    reference_note = f"@image1=the {gender_word} character. Preserve exactly: same face, same hair color, same hair length, same hair style, same skin tone as the reference."
     enhanced_prompt = f"{reference_note}\n{prompt}"
 
     from services.replicate_service import get_gender_negative_prompt as _get_neg
@@ -1039,7 +1039,7 @@ def generate_closing_page(
                     "output_format": "png",
                     "go_fast": False,
                     "negative_prompt": _neg_prompt,
-                    "image_prompt_strength": 0.9
+                    "image_prompt_strength": 0.75
                 }
             )
         
@@ -1074,7 +1074,7 @@ def generate_closing_page(
                         "output_format": "png",
                         "go_fast": False,
                         "negative_prompt": _neg_prompt,
-                        "image_prompt_strength": 0.9
+                        "image_prompt_strength": 0.75
                     }
                 )
             if isinstance(output, list) and len(output) > 0:
