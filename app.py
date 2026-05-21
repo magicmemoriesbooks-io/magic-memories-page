@@ -10986,6 +10986,7 @@ def _dispatch_printable_pdf_email(preview_id, customer_email, lang='es'):
         pdf_url = f"https://{base_url}/preview-pdf/printable/{preview_id}/{pdf_filename}"
 
         story_data['printable_pdf_path'] = printable_pdf_path
+        story_data['pdf_printable_path'] = printable_pdf_path   # alias usado por download-book route
         story_data['printable_pdf_url']  = pdf_url
         with open(preview_file, 'w', encoding='utf-8') as f:
             json.dump(story_data, f, ensure_ascii=False, indent=2)
