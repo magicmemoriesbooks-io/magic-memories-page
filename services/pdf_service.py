@@ -721,7 +721,8 @@ QUICK_STORY_CP_A4_W_MM = 210.0 + 2 * 3.0   # 216mm
 QUICK_STORY_CP_A4_H_MM = 297.0 + 2 * 3.0   # 303mm
 QUICK_STORY_CP_A4_W = QUICK_STORY_CP_A4_W_MM / 25.4 * inch   # ≈ 612.28pt
 QUICK_STORY_CP_A4_H = QUICK_STORY_CP_A4_H_MM / 25.4 * inch   # ≈ 858.90pt
-QUICK_STORY_CP_A4_BACK_COVER = 'static/images/qs_back_cover_a4.png'
+QUICK_STORY_CP_A4_BACK_COVER     = 'static/images/qs_back_cover_a4.png'
+QUICK_STORY_CP_LETTER_BACK_COVER = 'static/images/fixed_pages/_backup/backup_PhotoMagic_carta/qs_back_cover_letter.png'
 
 # US Letter home-print — Trim: 8.5×11" = 215.9×279.4mm; 3mm bleed each side
 QUICK_STORY_CP_LETTER_W_MM = 215.9 + 2 * 3.0   # ≈ 221.9mm (rounds to 222mm)
@@ -908,14 +909,35 @@ def _apply_print_color_correction(img):
     return img
 
 
-def _draw_full_page_image(c, image_path, page_width, page_height):
+def _apply_bleed_blur(img, bleed_px, blur_radius=10):
+    """Blend a gaussian-blurred copy over the outer bleed band using a gradient mask."""
+    import numpy as np
+    from PIL import ImageFilter as _IF
+    w, h = img.size
+    bp = max(1, bleed_px)
+    blurred = img.filter(_IF.GaussianBlur(radius=blur_radius))
+    mask = np.zeros((h, w), dtype=np.float32)
+    ramp = np.linspace(1.0, 0.0, bp, dtype=np.float32)
+    mask[:bp, :]  = np.maximum(mask[:bp, :],  ramp[:, None])
+    mask[-bp:, :] = np.maximum(mask[-bp:, :], ramp[::-1, None])
+    mask[:, :bp]  = np.maximum(mask[:, :bp],  ramp[None, :])
+    mask[:, -bp:] = np.maximum(mask[:, -bp:], ramp[None, ::-1])
+    mask_img = Image.fromarray((mask * 255).clip(0, 255).astype(np.uint8), 'L')
+    return Image.composite(blurred, img, mask_img)
+
+
+def _draw_full_page_image(c, image_path, page_width, page_height, blur_bleed_mm=3.0):
     if image_path and os.path.exists(image_path):
         try:
             img = Image.open(image_path)
             if img.mode != 'RGB':
                 img = img.convert('RGB')
             img = _apply_print_color_correction(img)
-            img_fitted = ImageOps.fit(img, (int(page_width * 300 / 72), int(page_height * 300 / 72)), Image.Resampling.LANCZOS)
+            dpi = 300
+            img_fitted = ImageOps.fit(img, (int(page_width * dpi / 72), int(page_height * dpi / 72)), Image.Resampling.LANCZOS)
+            if blur_bleed_mm > 0:
+                bleed_px = int(blur_bleed_mm / 25.4 * dpi)
+                img_fitted = _apply_bleed_blur(img_fitted, bleed_px)
             img_buffer = BytesIO()
             img_fitted.save(img_buffer, format='JPEG', quality=95)
             img_buffer.seek(0)
@@ -1192,12 +1214,12 @@ def _draw_text_overlay(c, text, page_width, page_height, fonts, language='es'):
         c.drawString(below_left_x, line_y, line.strip())
 
 
-def _build_qs_cp_a4_drawing_page_image(image_path, page_w_pt, page_h_pt):
+def _build_qs_cp_a4_drawing_page_image(image_path, page_w_pt, page_h_pt, lang='es'):
     """Convert a raw scene image to a coloring-book drawing page (PIL Image).
 
     Primary: FLUX Kontext Pro (clean black outlines on white).
     Fallback: PIL brightness ×1.6 + desaturate ×0.5.
-    Then adds title bar 'Dibuja tu propia historia!' and ruled guide lines in bottom 40%.
+    Then adds title bar and ruled guide lines in bottom 40%.
     Returns a PIL Image in RGB mode.
     """
     from PIL import Image as _PIL, ImageEnhance, ImageDraw, ImageFont, ImageFilter
@@ -1266,7 +1288,7 @@ def _build_qs_cp_a4_drawing_page_image(image_path, page_w_pt, page_h_pt):
     title_box_h = int(h_px * 0.13)
     draw.rectangle([(0, 0), (w_px, title_box_h)], fill=(255, 255, 255))
 
-    title = '¡Dibuja tu propia historia!'
+    title = '¡Dibuja tu propia historia!' if lang == 'es' else 'Draw your own story!'
     font = None
     for fp in [
         '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
@@ -1465,20 +1487,25 @@ def _draw_qs_cp_a4_dedicatoria(c, dedication, language, fonts, pw, ph):
 
 
 def _draw_trim_marks_on_page(c, pw, ph, bleed_mm=3.0):
-    """Draw simple L-shaped trim marks at the 4 page corners inside the bleed area."""
+    """Draw L-shaped trim marks at the 4 page corners in light gray, outside the image area."""
     bleed = bleed_mm / 25.4 * inch
-    mark = 5.0 / 25.4 * inch
+    mark = 6.0 / 25.4 * inch
+    gap = 1.5 / 25.4 * inch
     c.saveState()
-    c.setStrokeColor(HexColor('#000000'))
-    c.setLineWidth(0.6)
-    c.line(bleed, ph - bleed, bleed + mark, ph - bleed)
-    c.line(bleed, ph - bleed, bleed, ph - bleed - mark)
-    c.line(pw - bleed, ph - bleed, pw - bleed - mark, ph - bleed)
-    c.line(pw - bleed, ph - bleed, pw - bleed, ph - bleed - mark)
-    c.line(bleed, bleed, bleed + mark, bleed)
-    c.line(bleed, bleed, bleed, bleed + mark)
-    c.line(pw - bleed, bleed, pw - bleed - mark, bleed)
-    c.line(pw - bleed, bleed, pw - bleed, bleed + mark)
+    c.setStrokeColor(HexColor('#555555'))
+    c.setLineWidth(0.75)
+    tl_x, tl_y = bleed - gap, ph - bleed + gap
+    c.line(tl_x, tl_y, tl_x - mark, tl_y)
+    c.line(tl_x, tl_y, tl_x, tl_y + mark)
+    tr_x, tr_y = pw - bleed + gap, ph - bleed + gap
+    c.line(tr_x, tr_y, tr_x + mark, tr_y)
+    c.line(tr_x, tr_y, tr_x, tr_y + mark)
+    bl_x, bl_y = bleed - gap, bleed - gap
+    c.line(bl_x, bl_y, bl_x - mark, bl_y)
+    c.line(bl_x, bl_y, bl_x, bl_y - mark)
+    br_x, br_y = pw - bleed + gap, bleed - gap
+    c.line(br_x, br_y, br_x + mark, br_y)
+    c.line(br_x, br_y, br_x, br_y - mark)
     c.restoreState()
 
 
@@ -1588,7 +1615,7 @@ def _create_qs_cp_a4_kids_pdf(story_data, images, output_path, print_format='A4'
             src_path = images[di] if di < len(images) and images[di] else (images[0] if images else None)
             print(f'[QS CP A4 KIDS] Drawing page {di}: using composed image (no original found)')
         print(f'[QS CP A4 KIDS] Generating drawing page from scene {di}...')
-        drawing_pil = _build_qs_cp_a4_drawing_page_image(src_path, pw, ph)
+        drawing_pil = _build_qs_cp_a4_drawing_page_image(src_path, pw, ph, lang=language)
         if drawing_pil:
             _draw_pil_image_full_page(c, drawing_pil, pw, ph)
             drawing_pil.close()
@@ -1601,20 +1628,20 @@ def _create_qs_cp_a4_kids_pdf(story_data, images, output_path, print_format='A4'
     c.rect(0, 0, pw, ph, fill=True)
     c.showPage()
 
-    back_cover = story_data.get('cp_back_cover_override', '') or QUICK_STORY_CP_A4_BACK_COVER
+    _bc_default = QUICK_STORY_CP_LETTER_BACK_COVER if print_format == 'LETTER' else QUICK_STORY_CP_A4_BACK_COVER
+    back_cover = story_data.get('cp_back_cover_override', '') or _bc_default
     if not os.path.exists(back_cover):
         back_cover = QUICK_STORY_BACK_COVER
     if not _draw_full_page_image(c, back_cover, pw, ph):
         c.setFillColor(HexColor('#FDF6E3'))
         c.rect(0, 0, pw, ph, fill=True)
-    c.showPage()
 
     c.save()
 
     if not skip_sanitize:
         sanitize_pdf_with_ghostscript(output_path)
 
-    print(f'[QS CP A4 KIDS] 16-page A4 PDF saved: {output_path}')
+    print(f'[QS CP A4 KIDS] 16-page {print_format} PDF saved: {output_path}')
     return output_path
 
 
@@ -1836,13 +1863,13 @@ def _create_qs_cp_a4_baby_pdf(story_data, images, output_path, print_format='A4'
                           title_text='Notas especiales...' if language == 'es' else 'Special notes...')
     c.showPage()
 
-    back_cover = story_data.get('cp_back_cover_override', '') or QUICK_STORY_CP_A4_BACK_COVER
+    _bc_default = QUICK_STORY_CP_LETTER_BACK_COVER if print_format == 'LETTER' else QUICK_STORY_CP_A4_BACK_COVER
+    back_cover = story_data.get('cp_back_cover_override', '') or _bc_default
     if not os.path.exists(back_cover):
         back_cover = QUICK_STORY_BACK_COVER
     if not _draw_full_page_image(c, back_cover, pw, ph):
         c.setFillColor(HexColor('#FDF6E3'))
         c.rect(0, 0, pw, ph, fill=True)
-    c.showPage()
 
     c.save()
 
@@ -3052,13 +3079,12 @@ def generate_print_instructions_pdf(output_path, language='es', print_format='A4
             (f"• Tamaño final: {size_label_es}", False),
             ("• Total de páginas: 16 páginas (incluye portada y contraportada)", False),
             (f"• Formato: {format_label_es}", False),
-            ("• Encuadernación: Grapado por el lomo (saddle stitch)", False),
+            ("• Encuadernación: Grapado (saddle stitch) o Espiral/Resorte (coil)", False),
             ("", False),
             ("Recomendaciones para la Imprenta:", True),
             ("", False),
             ("• Papel interior: Estucado brillante o mate 80# (120 g/m²)", False),
             ("• Portada y contraportada: Cartulina más gruesa (200-250 g/m²)", False),
-            ("• Encuadernación: Grapado (saddle stitch)", False),
             ("• Perfil de color: CMYK", False),
             ("• Resolución: 300 DPI mínimo", False),
             ("• Imprimir a sangre completa (sin márgenes blancos)", False),
@@ -3075,7 +3101,7 @@ def generate_print_instructions_pdf(output_path, language='es', print_format='A4
             ("Página 15: Página en blanco", False),
             ("Página 16: Contraportada", False),
             ("", False),
-            ("Instrucciones de Armado:", True),
+            ("OPCIÓN A — Armado con Grapas (Saddle Stitch):", True),
             ("", False),
             (paper_step_es, False),
             ("2. Portada (p.1) y contraportada (p.16): cartulina 200-250 g/m²", False),
@@ -3084,9 +3110,20 @@ def generate_print_instructions_pdf(output_path, language='es', print_format='A4
             ("5. Grape por el lomo (2-3 grapas en el centro)", False),
             ("6. Doble por la línea del lomo", False),
             ("", False),
+            ("OPCIÓN B — Armado con Espiral/Resorte (Coil Binding):", True),
+            ("", False),
+            (paper_step_es, False),
+            ("2. Imprima portada y contraportada en cartulina 200-250 g/m²", False),
+            ("3. Imprima las páginas interiores en papel 120 g/m² a doble cara", False),
+            ("4. Recorte cada página por las marcas de esquina", False),
+            ("5. Perfore el margen izquierdo de todas las páginas en orden", False),
+            ("6. Inserte el espiral/resorte de plástico o metal y ciérrelo", False),
+            ("   (use calibre 20-25mm para 16 páginas)", False),
+            ("", False),
             ("Notas Importantes:", True),
             ("", False),
             ("• El PDF ya incluye el sangrado de 3 mm en cada borde", False),
+            ("• Las marcas en las esquinas son la guía de corte", False),
             ("• Para mejor calidad, use una imprenta profesional", False),
         ]
     else:
@@ -3096,13 +3133,12 @@ def generate_print_instructions_pdf(output_path, language='es', print_format='A4
             (f"• Final size: {size_label_en}", False),
             ("• Total pages: 16 pages (includes front and back covers)", False),
             (f"• Format: {format_label_en}", False),
-            ("• Binding: Saddle stitch (stapled along the spine)", False),
+            ("• Binding: Saddle stitch (stapled) or Coil/Spiral binding", False),
             ("", False),
             ("Print Shop Recommendations:", True),
             ("", False),
             ("• Interior paper: Glossy or matte coated 80# (120 gsm)", False),
             ("• Covers: Heavier cardstock (200-250 gsm)", False),
-            ("• Binding: Saddle stitch (stapled)", False),
             ("• Color profile: CMYK", False),
             ("• Resolution: 300 DPI minimum", False),
             ("• Print full bleed (no white margins)", False),
@@ -3119,7 +3155,7 @@ def generate_print_instructions_pdf(output_path, language='es', print_format='A4
             ("Page 15: Blank page", False),
             ("Page 16: Back cover", False),
             ("", False),
-            ("Assembly Instructions:", True),
+            ("OPTION A — Saddle Stitch (Stapled Binding):", True),
             ("", False),
             (paper_step_en, False),
             ("2. Cover (p.1) and back cover (p.16): cardstock 200-250 gsm", False),
@@ -3128,9 +3164,20 @@ def generate_print_instructions_pdf(output_path, language='es', print_format='A4
             ("5. Staple along the spine (2-3 staples in the center)", False),
             ("6. Fold along the spine line", False),
             ("", False),
+            ("OPTION B — Coil / Spiral Binding:", True),
+            ("", False),
+            (paper_step_en, False),
+            ("2. Print cover and back cover on cardstock 200-250 gsm", False),
+            ("3. Print interior pages on 120 gsm paper, double-sided", False),
+            ("4. Trim each page along the corner marks", False),
+            ("5. Punch holes along the left margin of all pages in order", False),
+            ("6. Insert plastic or metal coil and close it", False),
+            ("   (use 20-25mm diameter coil for 16 pages)", False),
+            ("", False),
             ("Important Notes:", True),
             ("", False),
             ("• The PDF already includes 3mm bleed on each edge", False),
+            ("• Corner marks are the cutting guide", False),
             ("• For best quality, use a professional print shop", False),
         ]
     
@@ -3378,4 +3425,149 @@ def create_illustrated_book_pdf(story_data, scene_paths, output_path, format_typ
         sanitize_pdf_with_ghostscript(output_path)
     
     print(f"Illustrated book PDF created: {output_path} ({format_type})")
+    return output_path
+
+
+def create_quick_story_pdf(story_data: dict, output_path: str) -> str:
+    """
+    Generate a PDF for quick/birthday/illustrated quick stories.
+    Includes scene images when available (one image + text per page).
+    """
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.colors import HexColor
+    from reportlab.pdfgen import canvas as rl_canvas
+    from reportlab.lib.utils import ImageReader
+
+    child_name = story_data.get('child_name', '')
+    author_name = story_data.get('author_name', '')
+    story_name = story_data.get('story_name', '') or story_data.get('title', '') or child_name
+    lang = story_data.get('lang', 'es')
+    story_texts = story_data.get('story_texts', [])
+    cover_image_raw = story_data.get('cover_image', '') or story_data.get('cover_preview', '')
+
+    raw_scene_paths = story_data.get('scene_paths', []) or story_data.get('images', []) or []
+    scene_paths = []
+    for sp in raw_scene_paths:
+        p = sp.lstrip('/')
+        if os.path.exists(p):
+            scene_paths.append(p)
+
+    cover_path = None
+    if cover_image_raw:
+        cover_path = cover_image_raw.lstrip('/')
+        if not os.path.exists(cover_path):
+            cover_path = None
+
+    white = HexColor('#FFFFFF')
+    dark_text = HexColor('#2D3748')
+    light_bg = HexColor('#FAFAFA')
+    purple = HexColor('#6B46C1')
+
+    c = rl_canvas.Canvas(output_path, pagesize=A4)
+    width, height = A4
+    set_pdf_metadata(c, story_name, author_name or 'Magic Memories Books')
+
+    def wrap_text(c_obj, text, font, size, max_w):
+        words = (text or '').split()
+        lines_out = []
+        current = ''
+        for word in words:
+            test = (current + ' ' + word).strip()
+            if c_obj.stringWidth(test, font, size) <= max_w:
+                current = test
+            else:
+                if current:
+                    lines_out.append(current)
+                current = word
+        if current:
+            lines_out.append(current)
+        return lines_out
+
+    # -- Cover page --
+    if cover_path:
+        try:
+            img = ImageReader(cover_path)
+            c.drawImage(img, 0, 0, width=width, height=height,
+                        preserveAspectRatio=True, anchor='c')
+        except Exception:
+            c.setFillColor(purple)
+            c.rect(0, 0, width, height, fill=True, stroke=False)
+            c.setFillColor(white)
+            c.setFont('Helvetica-Bold', 26)
+            c.drawCentredString(width / 2, height / 2 + 20, story_name)
+    else:
+        c.setFillColor(purple)
+        c.rect(0, 0, width, height, fill=True, stroke=False)
+        c.setFillColor(white)
+        c.setFont('Helvetica-Bold', 26)
+        c.drawCentredString(width / 2, height / 2 + 20, story_name)
+    c.showPage()
+
+    # -- Story pages: image + text --
+    margin_x = 36
+    text_w = width - 2 * margin_x
+    font_body = 'Helvetica'
+
+    for i, page_data in enumerate(story_texts):
+        scene_img_path = scene_paths[i] if i < len(scene_paths) else None
+
+        c.setFillColor(white)
+        c.rect(0, 0, width, height, fill=True, stroke=False)
+
+        if scene_img_path:
+            # Scene image already has text overlaid inside it — fill the full page
+            try:
+                img = ImageReader(scene_img_path)
+                c.drawImage(img, 0, 0, width=width, height=height,
+                            preserveAspectRatio=True, anchor='c')
+            except Exception:
+                pass
+        else:
+            # Text-only page (no scene image)
+            text_above = (page_data.get('text_above', '') or '').strip()
+            text_below = (page_data.get('text_below', '') or '').strip()
+            text_main = (page_data.get('text', '') or '').strip()
+            if not text_main:
+                text_main = (text_above + (' ' if text_above and text_below else '') + text_below).strip()
+            if not text_main:
+                c.showPage()
+                continue
+
+            font_size = 18
+            line_h = font_size * 1.6
+            text_area_top = height - 60
+
+            c.setFillColor(light_bg)
+            c.rect(0, 0, width, height, fill=True, stroke=False)
+
+            lines = wrap_text(c, text_main, font_body, font_size, text_w)
+            total_text_h = len(lines) * line_h
+            y = (height + total_text_h) / 2
+            c.setFillColor(dark_text)
+            for line in lines:
+                if y < 30:
+                    break
+                c.setFont(font_body, font_size)
+                c.drawCentredString(width / 2, y, line)
+                y -= line_h
+
+        c.showPage()
+
+    # -- Back cover --
+    c.setFillColor(purple)
+    c.rect(0, 0, width, height, fill=True, stroke=False)
+    c.setFillColor(white)
+    c.setFont('Helvetica-Bold', 20)
+    c.drawCentredString(width / 2, height / 2 + 50, 'Magic Memories Books')
+    c.setFont('Helvetica', 13)
+    tagline = 'Cuentos personalizados con IA' if lang == 'es' else 'AI-Powered Personalized Stories'
+    c.drawCentredString(width / 2, height / 2 + 20, tagline)
+    c.setFont('Helvetica', 11)
+    c.drawCentredString(width / 2, height / 2 - 10, 'magicmemoriesbooks.com')
+    if author_name:
+        label = 'Creado por' if lang == 'es' else 'Created by'
+        c.drawCentredString(width / 2, height / 2 - 35, f'{label} {author_name}')
+
+    c.save()
+    print(f"[QUICK PDF] Generated PDF: {output_path} ({len(story_texts)} pages, {len(scene_paths)} scene images)")
     return output_path
