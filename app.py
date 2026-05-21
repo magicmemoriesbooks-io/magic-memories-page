@@ -3166,11 +3166,11 @@ def story_checkout(preview_id):
             'allow_print': True,
             'pdf_base_price': Config.PERSONALIZED_PDF_PRICE // 100,
             'pdf_product_type': 'personalized_pdf',
-            'pdf_description_es': 'PDF de alta resolución para imprimir en casa o copistería (26 págs). Entrega por email.',
-            'pdf_description_en': 'High-res PDF to print at home or a copy shop (26 pages). Email delivery.',
+            'pdf_description_es': 'PDF de alta resolución para imprimir en casa o copistería (28 págs). Entrega por email.',
+            'pdf_description_en': 'High-res PDF to print at home or a copy shop (28 pages). Email delivery.',
             'print_base_price': Config.CP_PB_BASE_PRICE // 100,
             'print_product_type': 'cp_personalized',
-            'product_description': '26 páginas, 19 ilustraciones, tapa dura' if lang == 'es' else '26 pages, 19 illustrations, hardcover',
+            'product_description': '28 páginas, 19 ilustraciones, tapa dura' if lang == 'es' else '28 pages, 19 illustrations, hardcover',
             'print_description_es': 'Libro tapa dura A4 (impreso y enviado por Cloudprinter)',
             'print_description_en': 'A4 hardcover book (printed & shipped by Cloudprinter)',
             'print_book_image': '/static/images/book_fotomagic_real.jpg',
@@ -5752,10 +5752,9 @@ def regenerate_page(preview_id, page_num):
     with open(preview_file, 'r', encoding='utf-8') as f:
         story_data = json.load(f)
     
-    # Pages 3-21 are scene pages (19 scenes), page 22 is closing
-    # Page numbers in array: page 3 = index 2, page 21 = index 20
-    if page_num < 3 or page_num > 22:
-        return jsonify({'success': False, 'error': 'Solo se pueden regenerar las páginas 3 a 22'}), 400
+    # Pages 3-21 are scene pages (19 scenes). Page numbers: page 3 = index 2, page 21 = index 20
+    if page_num < 3 or page_num > 21:
+        return jsonify({'success': False, 'error': 'Solo se pueden regenerar las páginas 3 a 21'}), 400
     
     # Check regeneration limit (max 2 per page)
     regen_counts = story_data.get('page_regenerations', {})
