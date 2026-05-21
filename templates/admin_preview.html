@@ -439,8 +439,8 @@ function fetchCpQuote() {
             wrap.innerHTML = '<div class="cp-ship-error">⚠️ Sin opciones de envío para este país. Verifica el código de país.</div>';
             return;
         }
-        // Sort by total price ascending
-        keys.sort(function(a,b){ return (opts[a].total||99) - (opts[b].total||99); });
+        // Sort by shipping cost ascending
+        keys.sort(function(a,b){ return (opts[a].ship_cost||99) - (opts[b].ship_cost||99); });
         var cheapestKey = keys[0];
         var html = '<div class="cp-ship-options">';
         keys.forEach(function(key, idx){
@@ -456,8 +456,7 @@ function fetchCpQuote() {
             html += '<div class="cp-ship-opt-days">' + (o.days_es || '') + '</div>';
             html += '</div>';
             html += '<div class="cp-ship-opt-price">';
-            html += '<div class="cp-ship-opt-ship">Envío: ' + parseFloat(o.ship_cost||0).toFixed(2) + ' €</div>';
-            html += '<div class="cp-ship-opt-total' + priceClass + '">Total: ' + parseFloat(o.total||0).toFixed(2) + ' €</div>';
+            html += '<div class="cp-ship-opt-ship" style="font-size:15px;font-weight:800;color:#15803d;">Envío: ' + parseFloat(o.ship_cost||0).toFixed(2) + ' €</div>';
             html += '</div>';
             html += '</label>';
         });
