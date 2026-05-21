@@ -1324,7 +1324,8 @@ def generate_cover_spread(
         front_board_right = front_x + front_bleed_w
         author_x = front_board_left + (front_bleed_w - text_width) // 2
         
-        margin_bottom_px = int(board_h_px * 0.05)
+        cm1_px = int(10 / 25.4 * DPI)  # 1 cm in pixels at 300 DPI
+        margin_bottom_px = int(board_h_px * 0.05) + cm1_px
         author_y = wrap_px + board_h_px - margin_bottom_px - text_height
         
         for dx, dy in [(-2, -2), (-2, 2), (2, -2), (2, 2), (-2, 0), (2, 0), (0, -2), (0, 2)]:
