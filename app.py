@@ -10646,15 +10646,7 @@ def _process_personalized_book_post_payment(preview_id, customer_email):
         return
 
     from services.pdf_service import create_pdf_from_images
-    from services.illustrated_book_service import generate_illustrated_book_pdf, save_cover_as_pdf
     from services.email_service import send_story_email_with_attachments
-    from PIL import Image
-
-    def _create_pb_folder(pid):
-        """Create a folder for personalized book PDFs."""
-        folder = os.path.join('generations', 'pb_orders', pid)
-        os.makedirs(folder, exist_ok=True)
-        return folder
 
     try:
         with open(preview_file, 'r', encoding='utf-8') as f:
@@ -10674,14 +10666,11 @@ def _process_personalized_book_post_payment(preview_id, customer_email):
         )
         front_cover = story_data.get('original_cover', story_data.get('front_cover_path', ''))
         back_cover = story_data.get('back_cover_path', '')
-        cover_spread_path = story_data.get('cover_spread_path', '')
 
         if front_cover and front_cover.startswith('/'):
             front_cover = front_cover[1:]
         if back_cover and back_cover.startswith('/'):
             back_cover = back_cover[1:]
-        if cover_spread_path and cover_spread_path.startswith('/'):
-            cover_spread_path = cover_spread_path[1:]
 
         if not back_cover or not os.path.exists(back_cover):
             fixed_back_covers = {
@@ -10719,49 +10708,15 @@ def _process_personalized_book_post_payment(preview_id, customer_email):
             print(f"[POST-PAYMENT] WARNING: No original images found for {preview_id}")
             pdf_digital_path = None
 
-        lulu_folder = story_data.get('lulu_order_folder', '')
-        if not lulu_folder or not os.path.exists(lulu_folder):
-            lulu_folder = _create_pb_folder(preview_id)
-            story_data['lulu_order_folder'] = lulu_folder
-
-        if all_pages:
-            print(f"[POST-PAYMENT] Creating 300 DPI print interior PDF...")
-            clean_interior = [p.lstrip('/') for p in all_pages]
-            interior_images = []
-            for p in clean_interior:
-                if os.path.exists(p):
-                    img = Image.open(p).convert('RGB')
-                    interior_images.append(img)
-                else:
-                    print(f"[POST-PAYMENT] Missing interior page: {p}")
-
-            if interior_images:
-                interior_pdf_path = os.path.join(lulu_folder, 'interior.pdf')
-                generate_illustrated_book_pdf(interior_images, interior_pdf_path, for_print=True)
-                print(f"[POST-PAYMENT] Interior PDF saved: {interior_pdf_path} ({len(interior_images)} pages)")
-
-        if cover_spread_path and os.path.exists(cover_spread_path):
-            print(f"[POST-PAYMENT] Creating cover spread PDF...")
-            cover_img = Image.open(cover_spread_path).convert('RGB')
-            cover_pdf_path = os.path.join(lulu_folder, 'cover.pdf')
-            save_cover_as_pdf(cover_img, cover_pdf_path)
-            print(f"[POST-PAYMENT] Cover PDF saved: {cover_pdf_path}")
-        else:
-            print(f"[POST-PAYMENT] No cover spread found at: {cover_spread_path}")
-
         story_data['assets_ready'] = True
-        story_data['lulu_order_folder'] = lulu_folder
         story_data['files_generated'] = {
             'pdf_digital': pdf_digital_path,
-            'lulu_interior': os.path.join(lulu_folder, 'interior.pdf') if os.path.exists(os.path.join(lulu_folder, 'interior.pdf')) else None,
-            'lulu_cover': os.path.join(lulu_folder, 'cover.pdf') if os.path.exists(os.path.join(lulu_folder, 'cover.pdf')) else None,
         }
 
         with open(preview_file, 'w', encoding='utf-8') as f:
             json.dump(story_data, f, ensure_ascii=False, indent=2)
 
-        print(f"[POST-PAYMENT] Assets prepared for {preview_id}, awaiting user approval")
-        print(f"[POST-PAYMENT]   Lulu folder: {lulu_folder}")
+        print(f"[POST-PAYMENT] Assets prepared for {preview_id} — digital PDF (visor): {pdf_digital_path}")
 
     except Exception as e:
         print(f"[POST-PAYMENT] ERROR for {preview_id}: {e}")
