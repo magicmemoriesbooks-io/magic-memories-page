@@ -278,11 +278,25 @@ def _embed_page(c, img: Image.Image):
     c.drawImage(ImageReader(buf), 0, 0, width=PAGE_W_PT, height=PAGE_H_PT)
 
 
+FIXED_BACK_COVERS = {
+    "dragon_garden":               "static/images/fixed_pages/dragon_garden_back_cover.png",
+    "magic_chef":                  "static/images/fixed_pages/magic_chef_back_cover.png",
+    "magic_inventor":              "static/images/fixed_pages/magic_inventor_back_cover.png",
+    "star_keeper":                 "static/images/fixed_pages/star_keeper_back_cover.png",
+    "furry_love":                  "static/images/fixed_pages/furry_love_baby_back_cover.png",
+    "furry_love_adventure":        "static/images/fixed_pages/furry_love_adventure_back_cover.png",
+    "furry_love_teen":             "static/images/fixed_pages/furry_love_teen_back_cover.png",
+    "furry_love_adult":            "static/images/fixed_pages/furry_love_adult_back_cover.png",
+    "centinela_aurora":            "static/images/fixed_pages/centinela_aurora_back_cover.png",
+    "centinela_aurora_illustrated":"static/images/fixed_pages/centinela_aurora_back_cover.png",
+}
+
 def generate_cw_cover_pdf(
     session_id: str,
     book_title: str = "Magic Memories Books",
     output_path: str = None,
     page_count: int = CW_PAGES_SELECTED,
+    story_id: str = "",
 ) -> str:
     """
     Build the casewrap cover spread PDF for photobook_cw_a4_p_fc.
@@ -333,12 +347,28 @@ def generate_cw_cover_pdf(
     front_img.close()
 
     # ── Back cover ─────────────────────────────────────────────────────────────
-    back_img, back_src = _load_cover_image(composed_dir, "back_cover", "#F3E8FF", COV_TRIM_PX, COV_TRIM_H_PX)
-    if back_src:
+    # Use fixed back cover for known story types (logo already baked in)
+    _fixed_back_path = None
+    if story_id:
+        # Try exact match first, then strip _illustrated suffix
+        for _sid in [story_id, story_id.replace('_illustrated', '').rstrip('_')]:
+            _candidate = FIXED_BACK_COVERS.get(_sid)
+            if _candidate and os.path.exists(_candidate):
+                _fixed_back_path = _candidate
+                print(f"[CP PDF] back_cover using fixed PNG for {_sid}: {_candidate}")
+                break
+
+    if _fixed_back_path:
+        back_img = Image.open(_fixed_back_path).convert("RGB")
         back_panel = ImageOps.fit(back_img, (COV_TRIM_PX, COV_TRIM_H_PX), Image.Resampling.LANCZOS)
         back_img.close()
     else:
-        back_panel = back_img
+        back_img, back_src = _load_cover_image(composed_dir, "back_cover", "#F3E8FF", COV_TRIM_PX, COV_TRIM_H_PX)
+        if back_src:
+            back_panel = ImageOps.fit(back_img, (COV_TRIM_PX, COV_TRIM_H_PX), Image.Resampling.LANCZOS)
+            back_img.close()
+        else:
+            back_panel = back_img
 
     # Logo is already baked into the fixed back cover PNG — no overlay needed here.
 
@@ -406,15 +436,19 @@ def generate_cw_cover_pdf(
             pass
     gc.collect()
 
-    # Navy blue safety band over all 4 wrap+bleed edges.
-    # If the casewrap fold is slightly off, only solid navy blue is visible — not title or text.
-    NAVY = "#0D1428"
-    _bd = ImageDraw.Draw(spread)
-    _bd.rectangle([0,               0,               cov_w_px - 1, fill_h - 1],        fill=NAVY)  # top
-    _bd.rectangle([0,               cov_h_px - fill_h, cov_w_px - 1, cov_h_px - 1],   fill=NAVY)  # bottom
-    _bd.rectangle([0,               0,               fill_w - 1,   cov_h_px - 1],      fill=NAVY)  # left
-    _bd.rectangle([cov_w_px - fill_w, 0,             cov_w_px - 1, cov_h_px - 1],     fill=NAVY)  # right
-    del _bd
+    # Blur the wrap+bleed border zones so image colors flow naturally into the casewrap fold.
+    # A strong Gaussian blur diffuses any text/title that might appear in the bleed area,
+    # leaving only soft color — no readable letters in the fold zone.
+    from PIL import ImageFilter as _IF
+    _BLUR = 55  # radius in px — strong enough to erase text, keeps colour atmosphere
+    for _zone, _pos in [
+        (spread.crop((0,             0,             fill_w,   cov_h_px)),  (0,             0)),             # left
+        (spread.crop((cov_w_px - fill_w, 0,         cov_w_px, cov_h_px)),  (cov_w_px - fill_w, 0)),         # right
+        (spread.crop((0,             0,             cov_w_px, fill_h)),    (0,             0)),             # top
+        (spread.crop((0, cov_h_px - fill_h,         cov_w_px, cov_h_px)),  (0, cov_h_px - fill_h)),         # bottom
+    ]:
+        spread.paste(_zone.filter(_IF.GaussianBlur(radius=_BLUR)), _pos)
+        _zone.close()
 
     buf = BytesIO()
     spread.save(buf, format="JPEG", quality=92, dpi=(DPI, DPI))
@@ -486,20 +520,28 @@ def generate_cw_content_pdf(
         print(f"[CP PDF] visor page_{n}.jpg not found — using blank")
         return _blank_page()
 
-    def _load_coloring(visor_n: int) -> Image.Image:
-        """Load visor scene and convert to coloring-page outline (Option B, 26p).
+    def _load_coloring(visor_n: int, composed_n: int = None) -> Image.Image:
+        """Load coloring page for Option B (26p).
 
-        Prefers clean_page_{n}.png (no text overlay) when available so that
-        the FLUX coloring conversion receives a text-free input image.
-        Falls back to the composed visor page (page_{n}.jpg) if the clean
-        version does not exist.
+        Priority:
+        1. Pre-rendered coloring PNG from composed dir (generated/composed_{id}/page_N.png)
+           — already the final coloring art, no conversion needed.
+        2. Convert clean_page_{n}.png (text-free) via _scene_to_coloring_page.
+        3. Convert visor page_{n}.jpg as last resort.
         """
+        if composed_n is not None:
+            composed_dir = os.path.join("generated", f"composed_{session_id}")
+            pre = os.path.join(composed_dir, f"page_{composed_n}.png")
+            if os.path.exists(pre) and os.path.getsize(pre) > 50_000:
+                print(f"[CP PDF] coloring page_{composed_n}: pre-rendered (composed dir)")
+                return _fit_page(Image.open(pre).convert("RGB"))
+
         clean_p = os.path.join(pages_dir, f"clean_page_{visor_n}.png")
         p = clean_p if os.path.exists(clean_p) else _visor_path(visor_n)
         if os.path.exists(p):
             img = Image.open(p).convert("RGB")
             src_tag = "clean" if p == clean_p else "visor"
-            print(f"[CP PDF] coloring source for page_{visor_n}: {src_tag}")
+            print(f"[CP PDF] coloring source for page_{visor_n}: {src_tag} (converting)")
             return _scene_to_coloring_page(img, lang=language)
         print(f"[CP PDF] coloring source page_{visor_n} not found — using blank")
         return _blank_page()
@@ -513,13 +555,10 @@ def generate_cw_content_pdf(
         page_spec.append(("visor", n))
     if page_count == CW_PAGES_26:
         # Option B: 2 coloring pages before credits.
-        # Source scenes at 0-based indexes [4] and [13] from the 19-scene list (pages 4-22):
-        #   index 4  → page_4 + 4 = page_8  (5th  story scene)
-        #   index 13 → page_4 + 13 = page_17 (14th story scene)
-        page_spec.append(("coloring", 8))           # Page 23 — coloring A (scene index 4 = page_8)
-        page_spec.append(("coloring", 17))          # Page 24 — coloring B (scene index 13 = page_17)
-    page_spec.append(("credits", None))             # Page 23/25 — credits
-    page_spec.append(("blank", None))               # Page 24/26 — blank
+        page_spec.append(("coloring", (8, 23)))     # Page 23 — coloring A (scene 8, composed page_23)
+        page_spec.append(("coloring", (17, 24)))    # Page 24 — coloring B (scene 17, composed page_24)
+    page_spec.append(("credits", None))             # Page 25 — credits
+    page_spec.append(("blank", None))               # Page 26 — blank
 
     assert len(page_spec) == page_count, f"Expected {page_count} pages, got {len(page_spec)}"
 
@@ -534,8 +573,12 @@ def generate_cw_content_pdf(
             img = _generate_credits_page(child_name, language)
             label = "credits"
         elif ptype == "coloring":
-            img = _load_coloring(pdata)
-            label = f"coloring_from_page_{pdata}.jpg"
+            if isinstance(pdata, tuple):
+                visor_n, composed_n = pdata
+            else:
+                visor_n, composed_n = pdata, None
+            img = _load_coloring(visor_n, composed_n)
+            label = f"coloring_page_{composed_n or visor_n}"
         else:
             img = _load_visor(pdata)
             label = f"page_{pdata}.jpg"
