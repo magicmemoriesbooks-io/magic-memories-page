@@ -3077,16 +3077,16 @@ def story_preview_full(preview_id):
     # Use book-specific fixed back cover if available, otherwise fall back to dynamic or generic
     _bid_preview = story_data.get('story_id', story_data.get('book_id', ''))
     _fixed_back_covers_preview = {
-        "dragon_garden": "static/images/fixed_pages/dragon_garden_back_cover.png",
+        "dragon_garden": "static/images/fixed_pages/_backup/dragon_garden_back_cover.png",
         "magic_chef": "static/images/fixed_pages/magic_chef_back_cover.png",
         "magic_inventor": "static/images/fixed_pages/magic_inventor_back_cover.png",
-        "star_keeper": "static/images/fixed_pages/star_keeper_back_cover.png",
-        "furry_love": "static/images/fixed_pages/furry_love_baby_back_cover.png",
-        "furry_love_adventure": "static/images/fixed_pages/furry_love_adventure_back_cover.png",
-        "furry_love_teen": "static/images/fixed_pages/furry_love_teen_back_cover.png",
-        "furry_love_adult": "static/images/fixed_pages/furry_love_adult_back_cover.png",
-        "centinela_aurora": "static/images/fixed_pages/centinela_aurora_back_cover.png",
-        "centinela_aurora_illustrated": "static/images/fixed_pages/centinela_aurora_back_cover.png",
+        "star_keeper": "static/images/fixed_pages/_backup/star_keeper_back_cover.png",
+        "furry_love": "static/images/fixed_pages/_backup/furry_love_baby_back_cover.png",
+        "furry_love_adventure": "static/images/fixed_pages/_backup/furry_love_adventure_back_cover.png",
+        "furry_love_teen": "static/images/fixed_pages/_backup/furry_love_teen_back_cover.png",
+        "furry_love_adult": "static/images/fixed_pages/_backup/furry_love_adult_back_cover.png",
+        "centinela_aurora": "static/images/fixed_pages/_backup/centinela_aurora_back_cover.png",
+        "centinela_aurora_illustrated": "static/images/fixed_pages/_backup/centinela_aurora_back_cover.png",
     }
     _book_specific_back = _fixed_back_covers_preview.get(_bid_preview)
     if _book_specific_back and os.path.exists(_book_specific_back):
@@ -6402,16 +6402,16 @@ def generate_pdf(preview_id):
         if not back_cover or not os.path.exists(back_cover):
             _bid = story_data.get('story_id', story_data.get('book_id', ''))
             _fixed_backs = {
-                "dragon_garden": "static/images/fixed_pages/dragon_garden_back_cover.png",
+                "dragon_garden": "static/images/fixed_pages/_backup/dragon_garden_back_cover.png",
                 "magic_chef": "static/images/fixed_pages/magic_chef_back_cover.png",
                 "magic_inventor": "static/images/fixed_pages/magic_inventor_back_cover.png",
-                "star_keeper": "static/images/fixed_pages/star_keeper_back_cover.png",
-                "furry_love": "static/images/fixed_pages/furry_love_baby_back_cover.png",
-                "furry_love_adventure": "static/images/fixed_pages/furry_love_adventure_back_cover.png",
-                "furry_love_teen": "static/images/fixed_pages/furry_love_teen_back_cover.png",
-                "furry_love_adult": "static/images/fixed_pages/furry_love_adult_back_cover.png",
-                "centinela_aurora_illustrated": "static/images/fixed_pages/centinela_aurora_back_cover.png",
-                "centinela_aurora": "static/images/fixed_pages/centinela_aurora_back_cover.png"
+                "star_keeper": "static/images/fixed_pages/_backup/star_keeper_back_cover.png",
+                "furry_love": "static/images/fixed_pages/_backup/furry_love_baby_back_cover.png",
+                "furry_love_adventure": "static/images/fixed_pages/_backup/furry_love_adventure_back_cover.png",
+                "furry_love_teen": "static/images/fixed_pages/_backup/furry_love_teen_back_cover.png",
+                "furry_love_adult": "static/images/fixed_pages/_backup/furry_love_adult_back_cover.png",
+                "centinela_aurora_illustrated": "static/images/fixed_pages/_backup/centinela_aurora_back_cover.png",
+                "centinela_aurora": "static/images/fixed_pages/_backup/centinela_aurora_back_cover.png"
             }
             back_cover = _fixed_backs.get(_bid, 'static/images/fixed_pages/back_cover.png')
         
@@ -10674,15 +10674,15 @@ def _process_personalized_book_post_payment(preview_id, customer_email):
 
         if not back_cover or not os.path.exists(back_cover):
             fixed_back_covers = {
-                "dragon_garden": "static/images/fixed_pages/dragon_garden_back_cover.png",
+                "dragon_garden": "static/images/fixed_pages/_backup/dragon_garden_back_cover.png",
                 "magic_chef": "static/images/fixed_pages/magic_chef_back_cover.png",
                 "magic_inventor": "static/images/fixed_pages/magic_inventor_back_cover.png",
-                "star_keeper": "static/images/fixed_pages/star_keeper_back_cover.png",
-                "furry_love": "static/images/fixed_pages/furry_love_baby_back_cover.png",
-                "furry_love_adventure": "static/images/fixed_pages/furry_love_adventure_back_cover.png",
-                "furry_love_teen": "static/images/fixed_pages/furry_love_teen_back_cover.png",
-                "furry_love_adult": "static/images/fixed_pages/furry_love_adult_back_cover.png",
-                "centinela_aurora": "static/images/fixed_pages/centinela_aurora_back_cover.png"
+                "star_keeper": "static/images/fixed_pages/_backup/star_keeper_back_cover.png",
+                "furry_love": "static/images/fixed_pages/_backup/furry_love_baby_back_cover.png",
+                "furry_love_adventure": "static/images/fixed_pages/_backup/furry_love_adventure_back_cover.png",
+                "furry_love_teen": "static/images/fixed_pages/_backup/furry_love_teen_back_cover.png",
+                "furry_love_adult": "static/images/fixed_pages/_backup/furry_love_adult_back_cover.png",
+                "centinela_aurora": "static/images/fixed_pages/_backup/centinela_aurora_back_cover.png"
             }
             back_cover = fixed_back_covers.get(book_id, 'static/images/fixed_pages/back_cover.png')
 
