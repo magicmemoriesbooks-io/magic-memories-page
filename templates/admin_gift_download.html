@@ -33,59 +33,222 @@
                     </table>
                 </div>
             </div>
-        </div>
-        
-        <div class="col-md-6">
+
+            {% if story_data.cover_preview %}
             <div class="card mb-4">
-                <div class="card-header text-white" style="background: linear-gradient(135deg, #10B981, #059669);">
-                    <h5 class="mb-0">Archivos para Gelato (Libro Personalizado)</h5>
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">Vista Previa de Portada</h5>
                 </div>
-                <div class="card-body">
-                    {% if interior_exists and cover_exists %}
-                    <p class="text-success mb-3"><strong>Los PDFs están listos.</strong></p>
-                    
-                    <div class="d-grid gap-2">
-                        <a href="/admin/pb-files/{{ folder_name }}/interior.pdf" class="btn btn-lg btn-primary" download>
-                            📄 Descargar Interior PDF
-                        </a>
-                        <a href="/admin/pb-files/{{ folder_name }}/cover.pdf" class="btn btn-lg btn-success" download>
-                            📕 Descargar Cover PDF
-                        </a>
-                    </div>
-                    
-                    <div class="alert alert-info mt-3">
-                        <small>
-                            <strong>Instrucciones (Gelato):</strong><br>
-                            1. Ve a <a href="https://www.gelato.com" target="_blank">gelato.com</a><br>
-                            2. Sube el Interior PDF como contenido<br>
-                            3. Sube el Cover PDF como portada<br>
-                            4. Configura: Hardcover, A4, Color<br>
-                            5. Completa la dirección de envío
-                        </small>
-                    </div>
-                    {% else %}
-                    <p class="text-warning">Los PDFs aún no están listos. Espera a que la composición termine.</p>
-                    {% if not interior_exists %}
-                    <p class="text-muted"><small>Interior PDF: No disponible</small></p>
-                    {% endif %}
-                    {% if not cover_exists %}
-                    <p class="text-muted"><small>Cover PDF: No disponible</small></p>
-                    {% endif %}
-                    {% endif %}
+                <div class="card-body text-center">
+                    <img src="{{ story_data.cover_preview }}" alt="Portada" style="max-width: 300px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
                 </div>
             </div>
+            {% endif %}
         </div>
-    </div>
 
-    {% if story_data.cover_preview %}
-    <div class="card mb-4">
-        <div class="card-header bg-dark text-white">
-            <h5 class="mb-0">Vista Previa de Portada</h5>
-        </div>
-        <div class="card-body text-center">
-            <img src="{{ story_data.cover_preview }}" alt="Portada" style="max-width: 300px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+        <div class="col-md-6">
+
+            <!-- PASO 1: Generar y revisar PDFs CP -->
+            <div class="card mb-4 border-warning">
+                <div class="card-header text-dark" style="background: #fef3c7;">
+                    <h5 class="mb-0">📋 Paso 1 — Generar y revisar PDFs antes de enviar</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">Genera los PDFs de Cloudprinter y descárgalos para verificar que todo está correcto <strong>antes</strong> de hacer el pedido.</p>
+
+                    <button id="btnGeneratePdfs" onclick="generateCpPdfs()" class="btn btn-warning btn-lg w-100 fw-bold">
+                        ⚙️ Generar PDFs CP (sin enviar)
+                    </button>
+
+                    <div id="pdfGenStatus" class="mt-3" style="display:none;">
+                        <div id="pdfGenSpinner" class="text-center py-3" style="display:none;">
+                            <div class="spinner-border text-warning" role="status"></div>
+                            <p class="mt-2 text-muted">Generando PDFs… puede tardar 30–60 segundos</p>
+                        </div>
+                        <div id="pdfGenError" class="alert alert-danger" style="display:none;"></div>
+                        <div id="pdfGenSuccess" style="display:none;">
+                            <div class="alert alert-success mb-3">
+                                <strong>✅ PDFs generados correctamente</strong>
+                                <div id="pdfGenMsg" class="mt-1 small"></div>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <a id="downloadCover" href="#" target="_blank" class="btn btn-outline-dark btn-lg">
+                                    📕 Ver / Descargar cover.pdf (portada + contraportada)
+                                </a>
+                                <a id="downloadContent" href="#" target="_blank" class="btn btn-outline-primary btn-lg">
+                                    📄 Ver / Descargar content.pdf (interior 26 páginas)
+                                </a>
+                                <a id="downloadBook" href="#" target="_blank" class="btn btn-outline-secondary btn-lg" style="display:none;">
+                                    📚 Ver / Descargar book.pdf (Quick Story)
+                                </a>
+                            </div>
+                            <p class="text-muted small mt-2">Abre cada PDF, revísalo y si todo está bien pasa al Paso 2.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PASO 2: Enviar a Cloudprinter -->
+            <div class="card mb-4">
+                <div class="card-header text-white" style="background: linear-gradient(135deg, #10B981, #059669);">
+                    <h5 class="mb-0">🚀 Paso 2 — Enviar a Cloudprinter</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">Rellena la dirección de envío y haz clic en <strong>Enviar</strong>. Los PDFs ya generados en el Paso 1 se usarán directamente.</p>
+
+                    <form id="cpOrderForm">
+                        <div class="row g-2 mb-2">
+                            <div class="col-12">
+                                <input type="text" class="form-control" name="name" placeholder="Nombre completo *" required>
+                            </div>
+                            <div class="col-12">
+                                <input type="text" class="form-control" name="street1" placeholder="Dirección (calle y número) *" required>
+                            </div>
+                            <div class="col-12">
+                                <input type="text" class="form-control" name="street2" placeholder="Piso, puerta, etc. (opcional)">
+                            </div>
+                            <div class="col-6">
+                                <input type="text" class="form-control" name="city" placeholder="Ciudad *" required>
+                            </div>
+                            <div class="col-6">
+                                <input type="text" class="form-control" name="postal_code" placeholder="Código postal *" required>
+                            </div>
+                            <div class="col-6">
+                                <input type="text" class="form-control" name="state_code" placeholder="Provincia/Estado">
+                            </div>
+                            <div class="col-6">
+                                <select class="form-select" name="country_code">
+                                    {% include '_cp_country_options.html' %}
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <input type="tel" class="form-control" name="phone_number" placeholder="Teléfono (opcional)">
+                            </div>
+                            <div class="col-12">
+                                <input type="email" class="form-control" name="email" placeholder="Email confirmación (opcional)">
+                            </div>
+                            <div class="col-12">
+                                <select class="form-select" name="shipping_level">
+                                    <option value="cp_saver">Económico (cp_saver)</option>
+                                    <option value="cp_standard">Estándar (cp_standard)</option>
+                                    <option value="cp_express">Express (cp_express)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button type="button" onclick="sendToCloudprinter()" class="btn btn-success btn-lg w-100 fw-bold mt-2">
+                            🖨️ Enviar pedido a Cloudprinter
+                        </button>
+                    </form>
+
+                    <div id="cpOrderStatus" class="mt-3" style="display:none;">
+                        <div id="cpOrderSpinner" class="text-center py-3" style="display:none;">
+                            <div class="spinner-border text-success" role="status"></div>
+                            <p class="mt-2 text-muted">Enviando a Cloudprinter…</p>
+                        </div>
+                        <div id="cpOrderError" class="alert alert-danger" style="display:none;"></div>
+                        <div id="cpOrderSuccess" class="alert alert-success" style="display:none;"></div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
-    {% endif %}
 </div>
+
+<script>
+const PREVIEW_ID = "{{ preview_id }}";
+
+async function generateCpPdfs() {
+    const btn = document.getElementById('btnGeneratePdfs');
+    const status = document.getElementById('pdfGenStatus');
+    const spinner = document.getElementById('pdfGenSpinner');
+    const errBox = document.getElementById('pdfGenError');
+    const successBox = document.getElementById('pdfGenSuccess');
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Generando…';
+    status.style.display = 'block';
+    spinner.style.display = 'block';
+    errBox.style.display = 'none';
+    successBox.style.display = 'none';
+
+    try {
+        const resp = await fetch(`/admin/generate-cp-pdfs/${PREVIEW_ID}`, { method: 'POST' });
+        const data = await resp.json();
+        spinner.style.display = 'none';
+
+        if (data.success) {
+            document.getElementById('pdfGenMsg').textContent = data.message || '';
+            if (data.cover_url) {
+                document.getElementById('downloadCover').href = data.cover_url;
+                document.getElementById('downloadContent').href = data.content_url;
+                document.getElementById('downloadCover').style.display = '';
+                document.getElementById('downloadContent').style.display = '';
+                document.getElementById('downloadBook').style.display = 'none';
+            } else if (data.book_url) {
+                document.getElementById('downloadBook').href = data.book_url;
+                document.getElementById('downloadBook').style.display = '';
+                document.getElementById('downloadCover').style.display = 'none';
+                document.getElementById('downloadContent').style.display = 'none';
+            }
+            successBox.style.display = 'block';
+            btn.textContent = '🔄 Regenerar PDFs';
+            btn.disabled = false;
+        } else {
+            errBox.textContent = '❌ Error: ' + (data.error || 'Error desconocido');
+            errBox.style.display = 'block';
+            btn.textContent = '⚙️ Generar PDFs CP (sin enviar)';
+            btn.disabled = false;
+        }
+    } catch (e) {
+        spinner.style.display = 'none';
+        errBox.textContent = '❌ Error de red: ' + e.message;
+        errBox.style.display = 'block';
+        btn.textContent = '⚙️ Generar PDFs CP (sin enviar)';
+        btn.disabled = false;
+    }
+}
+
+async function sendToCloudprinter() {
+    const form = document.getElementById('cpOrderForm');
+    const formData = new FormData(form);
+    const payload = {};
+    formData.forEach((v, k) => { payload[k] = v; });
+
+    const statusDiv = document.getElementById('cpOrderStatus');
+    const spinner = document.getElementById('cpOrderSpinner');
+    const errBox = document.getElementById('cpOrderError');
+    const successBox = document.getElementById('cpOrderSuccess');
+
+    statusDiv.style.display = 'block';
+    spinner.style.display = 'block';
+    errBox.style.display = 'none';
+    successBox.style.display = 'none';
+
+    try {
+        const resp = await fetch(`/admin/gift-send-to-cp/${PREVIEW_ID}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        const data = await resp.json();
+        spinner.style.display = 'none';
+
+        if (data.success) {
+            successBox.innerHTML = `✅ <strong>Pedido enviado a Cloudprinter</strong><br>
+                Referencia: <strong>${data.cp_order_ref || '—'}</strong><br>
+                ${data.message || ''}`;
+            successBox.style.display = 'block';
+        } else {
+            errBox.textContent = '❌ Error: ' + (data.error || 'Error desconocido');
+            errBox.style.display = 'block';
+        }
+    } catch (e) {
+        spinner.style.display = 'none';
+        errBox.textContent = '❌ Error de red: ' + e.message;
+        errBox.style.display = 'block';
+    }
+}
+</script>
 {% endblock %}
