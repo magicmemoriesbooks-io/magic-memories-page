@@ -7218,11 +7218,8 @@ def admin_regenerate_scene(preview_id, scene_num):
             book_cfg = load_book_config(book_id)
             scenes = book_cfg.get('scenes', [])
             scene_cfg_idx = page_idx - 2
-            if scene_cfg_idx < 0 or scene_cfg_idx >= len(scenes):
-                return jsonify({'success': False, 'error': f'Escena {scene_num} fuera del rango (libro tiene {len(scenes)} escenas)'}), 400
 
-            scene_config = scenes[scene_cfg_idx]
-
+            # Resolve reference images (shared for both regular scenes and closing)
             ref_path = None
             ref_path_2 = None
             is_furry = book_id in ('furry_love', 'furry_love_adventure', 'furry_love_teen', 'furry_love_adult')
@@ -7244,25 +7241,47 @@ def admin_regenerate_scene(preview_id, scene_num):
                     if os.path.exists(reference_image):
                         ref_path = reference_image
 
-            print(f"[ADMIN-REGEN] Illustrated book: regenerating scene {scene_num} (page_idx={page_idx}) for {preview_id} ({book_id})")
-            img = generate_scene_complete(scene_config, traits, story_data.get('child_name', ''), gender, lang, book_id,
-                                          reference_image_path=ref_path, reference_image_path_2=ref_path_2)
-
-            # Compose text using add_text_to_image — same as generate_full_book, NOT QS composer
-            try:
-                from services.illustrated_book_service import add_text_to_image
-                child_name_for_text = story_data.get('child_name', '')
-                pet_name_for_text = traits.get('pet_name', '')
-                raw_text = scene_config.get(f'text_{lang}', scene_config.get('text_es', ''))
-                raw_text = raw_text.replace('{name}', child_name_for_text)
-                if pet_name_for_text:
-                    raw_text = raw_text.replace('{pet_name}', pet_name_for_text)
-                position = scene_config.get('text_position', 'split')
-                final_img = add_text_to_image(img, raw_text, position, '#FFFFFF', '#000000', 38, 0.143)
-                print(f"[ADMIN-REGEN] Text composed (position={position}): {raw_text[:40]!r}")
-            except Exception as _ce:
-                print(f"[ADMIN-REGEN] Text composition skipped: {_ce}")
+            # Closing scene: scene_num == len(scenes)+1 (e.g. scene 20 for 19-scene books)
+            is_closing = (scene_cfg_idx >= len(scenes))
+            if is_closing:
+                from services.illustrated_book_service import generate_closing_page
+                print(f"[ADMIN-REGEN] Closing scene detected (scene_num={scene_num}), calling generate_closing_page for {book_id}")
+                img = generate_closing_page(
+                    traits=traits,
+                    child_name=story_data.get('child_name', ''),
+                    gender=gender,
+                    img_size=(1024, 1365),
+                    book_id=book_id,
+                    reference_image_path=ref_path,
+                    reference_image_path_2=ref_path_2
+                )
                 final_img = img
+            else:
+                if scene_cfg_idx < 0:
+                    return jsonify({'success': False, 'error': f'Escena {scene_num} fuera del rango (libro tiene {len(scenes)} escenas)'}), 400
+
+                scene_config = scenes[scene_cfg_idx]
+
+                print(f"[ADMIN-REGEN] Illustrated book: regenerating scene {scene_num} (page_idx={page_idx}) for {preview_id} ({book_id})")
+                img = generate_scene_complete(scene_config, traits, story_data.get('child_name', ''), gender, lang, book_id,
+                                              reference_image_path=ref_path, reference_image_path_2=ref_path_2)
+
+            # Compose text — closing scene has no text (text_position="none")
+            if not is_closing:
+                try:
+                    from services.illustrated_book_service import add_text_to_image
+                    child_name_for_text = story_data.get('child_name', '')
+                    pet_name_for_text = traits.get('pet_name', '')
+                    raw_text = scene_config.get(f'text_{lang}', scene_config.get('text_es', ''))
+                    raw_text = raw_text.replace('{name}', child_name_for_text)
+                    if pet_name_for_text:
+                        raw_text = raw_text.replace('{pet_name}', pet_name_for_text)
+                    position = scene_config.get('text_position', 'split')
+                    final_img = add_text_to_image(img, raw_text, position, '#FFFFFF', '#000000', 38, 0.143)
+                    print(f"[ADMIN-REGEN] Text composed (position={position}): {raw_text[:40]!r}")
+                except Exception as _ce:
+                    print(f"[ADMIN-REGEN] Text composition skipped: {_ce}")
+                    final_img = img
 
             # Save path: use canonical composed_dir/page_NN.png — same location as background gen
             composed_dir = f'generated/composed_{preview_id}'
