@@ -361,13 +361,13 @@ def prepare_book_for_visor(story_data, preview_id, book_uuid=None, is_gift=False
                 clean_src_path = _cs_candidate
         text_idx += 1
         if is_illustrated or text_composed:
-            add_image_page(img_path, narration=raw_text, clean_src=clean_src_path)
+            add_image_page(img_path, text=raw_text, narration=raw_text, clean_src=clean_src_path)
         else:
             add_image_page(img_path, text=raw_text)
 
     if closing_image:
         if text_composed:
-            add_image_page(closing_image, narration=closing_message)
+            add_image_page(closing_image, text=closing_message, narration=closing_message)
         else:
             add_image_page(closing_image, closing_message)
 
