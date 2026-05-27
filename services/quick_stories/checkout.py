@@ -1,6 +1,6 @@
 # Quick Stories Checkout Configuration
 # $20 - Digital Only (PDF digital + PDF imprimible con instrucciones)
-# $20 base + Lulu dynamic pricing for Printed Book
+# $20 base + Cloudprinter dynamic pricing for Printed Book
 
 QUICK_STORY_PRICE_DIGITAL = 20
 QUICK_STORY_PRICE_PRINT = 20
