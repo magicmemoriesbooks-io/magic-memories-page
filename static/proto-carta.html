@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prototipo Carta — 222×285mm</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Helvetica Neue', sans-serif;
+    padding: 20px;
+  }
+
+  .label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /*
+    Carta: lienzo 222×285mm — a 3px/mm = 666×855px
+    Escala para caber en pantalla: × 0.6 → 400×513px
+    Pero vamos a mostrarlo en contenedor scrollable
+    Usamos escala 0.68 → 453×581px (cómodo en iframe de 622×800)
+  */
+
+  .outer-wrap {
+    position: relative;
+  }
+
+  /* El contexto exterior — simula fondo gris de trabajo */
+  .print-context {
+    background: #b0b0b0;
+    padding: 30px;
+    display: inline-block;
+    position: relative;
+  }
+
+  /* La página completa: canvas/lienzo con sangría (full bleed) */
+  .page-canvas {
+    /* 222×285mm a 2.4px/mm → 532.8×684px */
+    width: 533px;
+    height: 684px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    /* La imagen llena TODA la página — borde a borde, incluyendo sangría */
+    background-image: url('/static/images/proto_cover_sample.png');
+    background-size: cover;
+    background-position: center center;
+  }
+
+  /* Zona de sangría — overlay tenue para visualizar el área de sangría */
+  .bleed-overlay {
+    position: absolute;
+    inset: 0;
+    border: 7px solid rgba(0, 100, 255, 0.25);
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* Línea de corte (trim line) — 3mm desde el borde = 7px */
+  .trim-line {
+    position: absolute;
+    inset: 7px;
+    border: 1.5px dashed rgba(255, 0, 0, 0.7);
+    pointer-events: none;
+    z-index: 11;
+  }
+
+  /* Área segura (safe area) — 10mm desde trim = 31px desde borde */
+  .safe-area {
+    position: absolute;
+    inset: 31px;
+    border: 1px dotted rgba(255, 200, 0, 0.6);
+    pointer-events: none;
+    z-index: 12;
+  }
+
+  /* Marcas de corte en las esquinas (crop marks / L-marks) */
+  .crop-marks {
+    position: absolute;
+    inset: -24px;
+    pointer-events: none;
+    z-index: 20;
+  }
+
+  /* Cada marca: línea horizontal + vertical formando L */
+  .cm { position: absolute; }
+
+  /* Esquina superior izquierda */
+  .cm.tl { top: 24px; left: 24px; }
+  .cm.tl::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -22px;
+    width: 16px; height: 1.5px;
+    background: #000;
+  }
+  .cm.tl::after {
+    content: '';
+    position: absolute;
+    top: -22px; left: 0;
+    width: 1.5px; height: 16px;
+    background: #000;
+  }
+
+  /* Esquina superior derecha */
+  .cm.tr { top: 24px; right: 24px; }
+  .cm.tr::before {
+    content: '';
+    position: absolute;
+    top: 0; right: -22px;
+    width: 16px; height: 1.5px;
+    background: #000;
+  }
+  .cm.tr::after {
+    content: '';
+    position: absolute;
+    top: -22px; right: 0;
+    width: 1.5px; height: 16px;
+    background: #000;
+  }
+
+  /* Esquina inferior izquierda */
+  .cm.bl { bottom: 24px; left: 24px; }
+  .cm.bl::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: -22px;
+    width: 16px; height: 1.5px;
+    background: #000;
+  }
+  .cm.bl::after {
+    content: '';
+    position: absolute;
+    bottom: -22px; left: 0;
+    width: 1.5px; height: 16px;
+    background: #000;
+  }
+
+  /* Esquina inferior derecha */
+  .cm.br { bottom: 24px; right: 24px; }
+  .cm.br::before {
+    content: '';
+    position: absolute;
+    bottom: 0; right: -22px;
+    width: 16px; height: 1.5px;
+    background: #000;
+  }
+  .cm.br::after {
+    content: '';
+    position: absolute;
+    bottom: -22px; right: 0;
+    width: 1.5px; height: 16px;
+    background: #000;
+  }
+
+  /* Leyenda */
+  .legend {
+    margin-top: 18px;
+    background: rgba(0,0,0,0.75);
+    color: #fff;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 11px;
+    line-height: 1.8;
+    max-width: 590px;
+  }
+  .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .swatch {
+    width: 28px;
+    height: 3px;
+    flex-shrink: 0;
+    border-radius: 2px;
+  }
+  .swatch.bleed   { background: rgba(0,100,255,0.8); border: 2px solid rgba(0,100,255,0.8); }
+  .swatch.trim    { background: transparent; border: 1.5px dashed rgba(255,50,50,0.9); }
+  .swatch.safe    { background: transparent; border: 1px dotted rgba(255,200,0,0.9); }
+  .swatch.marks   { background: #000; }
+
+  .note {
+    margin-top: 10px;
+    font-size: 10.5px;
+    color: #444;
+    max-width: 590px;
+    text-align: center;
+    line-height: 1.5;
+  }
+  .note strong { color: #111; }
+</style>
+</head>
+<body>
+
+<div class="label">📄 Carta — Lienzo 222 × 285 mm | Trim 216 × 279 mm | Sangría 3 mm</div>
+
+<div class="outer-wrap">
+  <div class="print-context">
+    <div class="page-canvas">
+      <!-- Overlays visuales -->
+      <div class="bleed-overlay"></div>
+      <div class="trim-line"></div>
+      <div class="safe-area"></div>
+    </div>
+
+    <!-- Marcas de corte FUERA del lienzo, en el área de contexto -->
+    <div class="crop-marks">
+      <div class="cm tl"></div>
+      <div class="cm tr"></div>
+      <div class="cm bl"></div>
+      <div class="cm br"></div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-row"><div class="swatch marks"></div> <span><strong>Marcas L negras</strong> — dónde apoya la guillotina de la copistería</span></div>
+  <div class="legend-row"><div class="swatch bleed"></div> <span><strong>Zona de sangría 3 mm</strong> — imagen llega hasta aquí; se recorta tras cortar</span></div>
+  <div class="legend-row"><div class="swatch trim"></div> <span><strong>Línea de corte (roja punteada)</strong> — tamaño final 216 × 279 mm</span></div>
+  <div class="legend-row"><div class="swatch safe"></div> <span><strong>Área segura (amarilla punteada)</strong> — texto y elementos importantes dentro de aquí</span></div>
+</div>
+
+<div class="note">
+  ✅ <strong>Imagen llenando borde a borde</strong> — sin bordes blancos.<br>
+  La copistería corta por las marcas L negras. El texto del título está dentro del área segura.
+</div>
+
+</body>
+</html>
