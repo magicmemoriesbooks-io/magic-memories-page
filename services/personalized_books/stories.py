@@ -1,6 +1,6 @@
 # Personalized Books Story Definitions
-# Universos Ilustrados (8 books) — 30 pages, 22 illustrations, Gelato hardcover A4
-# $30 base + $10 Gelato shipping
+# Universos Ilustrados (8 books) — 30 pages, 22 illustrations, Cloudprinter hardcover A4
+# $30 base + Cloudprinter shipping
 
 PERSONALIZED_BOOKS = {
     "dragon_garden_illustrated": {
@@ -10,7 +10,7 @@ PERSONALIZED_BOOKS = {
         "category": "personalized",
         "price": 30,
         "includes_print": True,
-        "fulfillment": "gelato",
+        "fulfillment": "cloudprinter",
         "print_pages": 30,
         "illustrations": 22,
         "has_closing_scene": True,
@@ -23,7 +23,7 @@ PERSONALIZED_BOOKS = {
         "category": "personalized",
         "price": 30,
         "includes_print": True,
-        "fulfillment": "gelato",
+        "fulfillment": "cloudprinter",
         "print_pages": 30,
         "illustrations": 22,
         "has_closing_scene": True,
@@ -36,7 +36,7 @@ PERSONALIZED_BOOKS = {
         "category": "personalized",
         "price": 30,
         "includes_print": True,
-        "fulfillment": "gelato",
+        "fulfillment": "cloudprinter",
         "print_pages": 30,
         "illustrations": 22,
         "has_closing_scene": True,
@@ -49,7 +49,7 @@ PERSONALIZED_BOOKS = {
         "category": "personalized",
         "price": 30,
         "includes_print": True,
-        "fulfillment": "gelato",
+        "fulfillment": "cloudprinter",
         "print_pages": 30,
         "illustrations": 22,
         "has_closing_scene": True,
@@ -62,7 +62,7 @@ PERSONALIZED_BOOKS = {
         "category": "personalized",
         "price": 30,
         "includes_print": True,
-        "fulfillment": "gelato",
+        "fulfillment": "cloudprinter",
         "print_pages": 30,
         "illustrations": 22,
         "has_closing_scene": True,
@@ -75,7 +75,7 @@ PERSONALIZED_BOOKS = {
         "category": "personalized",
         "price": 30,
         "includes_print": True,
-        "fulfillment": "gelato",
+        "fulfillment": "cloudprinter",
         "print_pages": 30,
         "illustrations": 22,
         "has_closing_scene": True,
@@ -88,7 +88,7 @@ PERSONALIZED_BOOKS = {
         "category": "personalized",
         "price": 30,
         "includes_print": True,
-        "fulfillment": "gelato",
+        "fulfillment": "cloudprinter",
         "print_pages": 30,
         "illustrations": 22,
         "has_closing_scene": True,
@@ -114,7 +114,7 @@ PERSONALIZED_BOOKS = {
         "category": "personalized",
         "price": 30,
         "includes_print": True,
-        "fulfillment": "gelato",
+        "fulfillment": "cloudprinter",
         "print_pages": 30,
         "illustrations": 22,
         "has_closing_scene": True,
