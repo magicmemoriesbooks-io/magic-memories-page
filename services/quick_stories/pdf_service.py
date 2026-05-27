@@ -5,15 +5,16 @@ from io import BytesIO
 from PIL import Image
 
 
-def generate_quick_story_pdf(story_data: dict, output_path: str = None, print_format: str = 'A4') -> str:
+def generate_quick_story_pdf(story_data: dict, output_path: str = None, print_format: str = 'A4', format_type: str = 'cloudprinter') -> str:
     """
-    Generate printable PDF for Quick Stories (home printing / copy shop).
+    Generate PDF for Quick Stories.
 
     Baby books (0-2): 16 pages, A4 or Letter portrait with bleed.
     Kids books (3-8): 16 pages, A4 or Letter portrait with bleed.
     Birthday books: dispatched as baby or kids based on age_range.
 
     print_format: 'A4' (default) or 'LETTER' (US/LATAM)
+    format_type: 'cloudprinter' (print-ready, blank cover pages) or 'digital' (clean readable PDF)
     """
     from services.pdf_service import (
         create_baby_quick_story_pdf,
@@ -38,17 +39,19 @@ def generate_quick_story_pdf(story_data: dict, output_path: str = None, print_fo
     images = [img.lstrip('/') if img else '' for img in images]
     images = [img for img in images if img]
 
+    draw_marks = format_type == 'cloudprinter'
+
     if is_baby:
         return create_baby_quick_story_pdf(
             story_data, images, output_path,
-            format_type='cloudprinter', print_format=print_format, skip_sanitize=True,
-            draw_trim_marks=True
+            format_type=format_type, print_format=print_format, skip_sanitize=True,
+            draw_trim_marks=draw_marks
         )
     else:
         return create_kids_quick_story_pdf(
             story_data, images, output_path,
-            format_type='cloudprinter', print_format=print_format, skip_sanitize=True,
-            draw_trim_marks=True
+            format_type=format_type, print_format=print_format, skip_sanitize=True,
+            draw_trim_marks=draw_marks
         )
 
 
