@@ -1015,16 +1015,18 @@ def _draw_cover_title_overlay(c, title, author, page_width, page_height, fonts):
         author_size = 14
         cm2_pts = 2 * 28.35
         author_y = cm2_pts
-        author_purple = Color(0.63, 0.43, 0.75, alpha=0.9)
-        
-        for dx, dy in [(-1,0),(1,0),(0,-1),(0,1)]:
+        author_black = Color(0, 0, 0, alpha=1.0)
+        author_white_border = Color(1, 1, 1, alpha=1.0)
+        author_border_offsets = [(-2,0),(2,0),(0,-2),(0,2),(-1,-1),(1,-1),(-1,1),(1,1)]
+
+        for dx, dy in author_border_offsets:
             c.saveState()
-            c.setFillColor(white_border)
+            c.setFillColor(author_white_border)
             c.setFont(author_font, author_size)
             c.drawCentredString(page_width / 2 + dx, author_y + dy, author_text)
             c.restoreState()
-        
-        c.setFillColor(author_purple)
+
+        c.setFillColor(author_black)
         c.setFont(author_font, author_size)
         c.drawCentredString(page_width / 2, author_y, author_text)
 
