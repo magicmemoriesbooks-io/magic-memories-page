@@ -7,6 +7,38 @@
 {% block twitter_title %}{{ self.og_title() }}{% endblock %}
 {% block twitter_description %}{{ self.og_description() }}{% endblock %}
 {% block twitter_image %}{{ self.og_image() }}{% endblock %}
+{% block meta_keywords %}{% if lang == 'es' %}cuentos infantiles personalizados, libros personalizados con foto, cuento con nombre del niño, regalo personalizado niños, libro infantil con IA, cuentos únicos, personalizar cuento, cuentos con fotos reales{% else %}personalized children's books, custom kids story book, children's book with child's photo, personalized gift for children, AI children's story, custom fairy tale, personalized storybook USA, personalized book Dubai{% endif %}{% endblock %}
+{% block schema_ld %},
+        {
+          "@type": "Service",
+          "@id": "https://magicmemoriesbooks.com/#service",
+          "name": "{% if lang == 'es' %}Cuentos Infantiles Personalizados con IA{% else %}AI Personalized Children's Books{% endif %}",
+          "provider": {"@id": "https://magicmemoriesbooks.com/#organization"},
+          "description": "{% if lang == 'es' %}Creamos cuentos infantiles únicos donde tu hijo/a es el protagonista. Con su nombre, su foto y sus rasgos físicos en cada ilustración generada con IA. Disponible en todo el mundo.{% else %}We create unique children's stories where your child is the main character. With their name, photo and physical features in every AI-generated illustration. Available worldwide including USA and UAE.{% endif %}",
+          "url": "https://magicmemoriesbooks.com/",
+          "areaServed": ["US", "AE", "ES", "MX", "AR", "CO", "Worldwide"],
+          "offers": [
+            {
+              "@type": "Offer",
+              "name": "{% if lang == 'es' %}eBook Personalizado{% else %}Personalized eBook{% endif %}",
+              "price": "9.99",
+              "priceCurrency": "USD",
+              "availability": "https://schema.org/InStock",
+              "url": "https://magicmemoriesbooks.com/story-selection"
+            },
+            {
+              "@type": "Offer",
+              "name": "{% if lang == 'es' %}Libro Impreso Personalizado{% else %}Personalized Printed Book{% endif %}",
+              "price": "29.99",
+              "priceCurrency": "USD",
+              "availability": "https://schema.org/InStock",
+              "url": "https://magicmemoriesbooks.com/personalized-books"
+            }
+          ],
+          "serviceType": "{% if lang == 'es' %}Libro infantil personalizado{% else %}Personalized children's book{% endif %}",
+          "termsOfService": "https://magicmemoriesbooks.com/terms"
+        }
+{% endblock %}
 
 {% block content %}
 <style>
@@ -382,20 +414,30 @@
       <!-- Subtext -->
       <p class="hero-sub fade-up d3">
         {% if lang == 'es' %}
-          Sin foto o con foto, personaliza la historia y recibe un libro ilustrado único con IA — ebook inmediato, PDF imprimible, tapa blanda o dura. Listo en minutos.
+          Sin foto o con foto, personaliza la historia y recibe un libro ilustrado único con IA — ebook inmediato, formato imprimible (A4 y Carta), tapa blanda o dura. Listo en minutos.
         {% else %}
-          With or without a photo, personalize the story and receive a unique AI-illustrated book — instant eBook, printable PDF, softcover or hardcover. Ready in minutes.
+          With or without a photo, personalize the story and receive a unique AI-illustrated book — instant eBook, print-ready format (A4 & US Letter), softcover or hardcover. Ready in minutes.
         {% endif %}
       </p>
 
       <!-- CTAs -->
-      <div class="flex flex-col sm:flex-row gap-3 fade-up d4">
-        <a href="{{ url_for('express_catalog') }}" class="btn-gold" style="white-space:nowrap;">
-          ⚡ {% if lang == 'es' %}Cuentos Express desde $6{% else %}Express Stories from $6{% endif %}
-        </a>
-        <a href="{{ url_for('universos_catalog') }}" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;font-family:'Quicksand',sans-serif;font-weight:700;font-size:15px;padding:14px 22px;border-radius:50px;text-decoration:none;transition:all .2s;white-space:nowrap;box-shadow:0 8px 24px rgba(124,58,237,.35);" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 12px 32px rgba(124,58,237,.5)'" onmouseout="this.style.transform='';this.style.boxShadow='0 8px 24px rgba(124,58,237,.35)'">
-          📸 {% if lang == 'es' %}Cuentos FotoMágicos desde $9{% else %}Photo Magic Stories from $9{% endif %}
-        </a>
+      <div class="fade-up d4" style="display:flex;flex-wrap:nowrap;gap:12px;align-items:flex-start;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;">
+          <a href="{{ url_for('express_catalog') }}" class="btn-gold" style="white-space:nowrap;">
+            ⚡ {% if lang == 'es' %}Cuentos Express desde $6{% else %}Express Stories from $6{% endif %}
+          </a>
+          <span style="font-family:'Quicksand',sans-serif;font-size:14px;color:#888;text-align:center;">
+            {% if lang == 'es' %}Tapa blanda: 16 págs. (incl. 2 de colorín){% else %}Softcover: 16 pgs. (incl. 2 coloring){% endif %}
+          </span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;">
+          <a href="{{ url_for('universos_catalog') }}" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;font-family:'Quicksand',sans-serif;font-weight:700;font-size:15px;padding:14px 22px;border-radius:50px;text-decoration:none;transition:all .2s;white-space:nowrap;box-shadow:0 8px 24px rgba(124,58,237,.35);" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 12px 32px rgba(124,58,237,.5)'" onmouseout="this.style.transform='';this.style.boxShadow='0 8px 24px rgba(124,58,237,.35)'">
+            📸 {% if lang == 'es' %}Cuentos FotoMágicos desde $9{% else %}Photo Magic Stories from $9{% endif %}
+          </a>
+          <span style="font-family:'Quicksand',sans-serif;font-size:14px;color:#888;text-align:center;">
+            {% if lang == 'es' %}Tapa dura: 24 págs. (incl. 2 de colorín){% else %}Hardcover: 24 pgs. (incl. 2 coloring){% endif %}
+          </span>
+        </div>
       </div>
 
       <!-- Stats -->
@@ -495,7 +537,7 @@
             <span class="product-tag">📖 {% if lang == 'es' %}16 páginas{% else %}16 pages{% endif %}</span>
             <span class="product-tag">📰 {% if lang == 'es' %}Tapa blanda{% else %}Softcover{% endif %}</span>
             <span class="product-tag">📱 {% if lang == 'es' %}eBook digital{% else %}Digital eBook{% endif %}</span>
-            <span class="product-tag">🖨️ {% if lang == 'es' %}PDF imprimible{% else %}Printable PDF{% endif %}</span>
+            <span class="product-tag">🖨️ {% if lang == 'es' %}Formato imprimible (A4 y Carta){% else %}Print-ready format (A4 & US Letter){% endif %}</span>
             <span class="product-tag">💌 {% if lang == 'es' %}Dedicatoria{% else %}Dedication{% endif %}</span>
             <span class="product-tag">🌍 A4 Color</span>
             <span class="product-tag">🎨 {% if lang == 'es' %}Páginas para colorear{% else %}Coloring pages{% endif %}</span>
@@ -503,7 +545,7 @@
           <div class="mt-auto">
             <div class="mb-4">
               <span style="font-family:'Quicksand',sans-serif;font-size:12px;color:#9ca3af;">{% if lang == 'es' %}Desde{% else %}From{% endif %}</span>
-              <div class="product-price" style="color:#B8860B;">$6 <span style="font-size:14px;font-weight:400;color:#9ca3af;">{% if lang == 'es' %}eBook · $13 PDF imprimible · $15 tapa blanda + envío{% else %}eBook · $13 Printable PDF · $15 softcover + shipping{% endif %}</span></div>
+              <div class="product-price" style="color:#B8860B;">$6 <span style="font-size:14px;font-weight:400;color:#9ca3af;">{% if lang == 'es' %}eBook · $13 PDF imprimible (A4 y Carta) · $15 tapa blanda + envío{% else %}eBook · $13 Print-ready PDF (A4 & US Letter) · $15 softcover + shipping{% endif %}</span></div>
             </div>
             <a href="{{ url_for('express_catalog') }}" class="product-cta" style="background:linear-gradient(135deg,#D4AF37,#B8860B);color:#fff;font-weight:800;">
               {% if lang == 'es' %}Ver cuentos express →{% else %}See express stories →{% endif %}
@@ -528,7 +570,7 @@
           <div class="flex flex-wrap gap-2 mb-6">
             <span class="product-tag">📖 {% if lang == 'es' %}26 páginas{% else %}26 pages{% endif %}</span>
             <span class="product-tag">🏆 {% if lang == 'es' %}Tapa dura{% else %}Hardcover{% endif %}</span>
-            <span class="product-tag">🖨️ {% if lang == 'es' %}PDF imprimible{% else %}Printable PDF{% endif %}</span>
+            <span class="product-tag">🖨️ {% if lang == 'es' %}Formato imprimible (A4 y Carta){% else %}Print-ready format (A4 & US Letter){% endif %}</span>
             <span class="product-tag">📱 {% if lang == 'es' %}eBook incluido{% else %}eBook included{% endif %}</span>
             <span class="product-tag">💌 {% if lang == 'es' %}Dedicatoria{% else %}Dedication{% endif %}</span>
             <span class="product-tag">🌍 A4 Color</span>
@@ -537,7 +579,7 @@
           <div class="mt-auto">
             <div class="mb-4">
               <span style="font-family:'Quicksand',sans-serif;font-size:12px;color:#9ca3af;">{% if lang == 'es' %}Desde{% else %}From{% endif %}</span>
-              <div class="product-price" style="color:#7c3aed;">$9 <span style="font-size:14px;font-weight:400;color:#9ca3af;">{% if lang == 'es' %}eBook · $24 PDF imprimible · $26 tapa dura + envío{% else %}eBook · $24 Printable PDF · $26 hardcover + shipping{% endif %}</span></div>
+              <div class="product-price" style="color:#7c3aed;">$9 <span style="font-size:14px;font-weight:400;color:#9ca3af;">{% if lang == 'es' %}eBook · $24 PDF imprimible (A4 y Carta) · $26 tapa dura + envío{% else %}eBook · $24 Print-ready PDF (A4 & US Letter) · $26 hardcover + shipping{% endif %}</span></div>
             </div>
             <a href="{{ url_for('universos_catalog') }}" class="product-cta" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;">
               {% if lang == 'es' %}Crear mi Cuento FotoMágico →{% else %}Create my Photo Magic Story →{% endif %}
@@ -639,7 +681,7 @@
         ('cover_zebra_stripes.jpg','La Cebra Única','Unique Zebra'),
         ('cover_dog_forever.jpg','Mi Perro Para Siempre','My Dog Forever'),
         ('cover_dragon_friend.jpg','Amigo Dragón','Dragon Friend'),
-        ('cover_chronicles_valley.jpg','Crónicas del Valle','Valley Chronicles'),
+        ('cover_chronicles_valley.jpg','El Mundo Secreto','The Secret World'),
         ('cover_sunset_map.jpg','Mapa del Atardecer','Sunset Map'),
         ('cover_centinela_aurora.jpg','Centinela de la Aurora','Aurora Sentinel')
       ] %}
@@ -779,7 +821,154 @@
 
 
 <!-- ══════════════════════════════════════════════════════
-     8. FINAL CTA BANNER
+     8. REAL BOOKS GALLERY
+══════════════════════════════════════════════════════ -->
+{% if gallery_items %}
+<section id="galeria" class="py-20 px-6" style="background:#12100f;scroll-margin-top:80px;">
+  <div class="max-w-6xl mx-auto">
+
+    <div class="text-center mb-12">
+      <p class="section-label" style="color:#D4AF37;">
+        {% if lang == 'es' %}Libros reales · Magia real{% else %}Real books · Real magic{% endif %}
+      </p>
+      <h2 style="font-family:'Playfair Display',serif;font-size:clamp(26px,4vw,40px);font-weight:700;color:#fff;margin-top:8px;line-height:1.2;">
+        {% if lang == 'es' %}Así lucen por dentro y por fuera{% else %}See them inside and out{% endif %}
+      </h2>
+      <p style="font-family:'Quicksand',sans-serif;font-size:15px;color:rgba(255,255,255,0.45);margin-top:10px;">
+        {% if lang == 'es' %}Fotos de libros reales de nuestras familias{% else %}Real photos from our families{% endif %}
+      </p>
+    </div>
+
+    <div class="mmg-masonry">
+      {% for item in gallery_items %}
+        {% if item.type == 'image' %}
+        <div class="mmg-item" onclick="mmgOpen('{{ item.url }}','image')">
+          <img src="{{ item.url }}" alt="Magic Memories Book — libro personalizado real" loading="lazy">
+          <div class="mmg-overlay"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35M11 8v6M8 11h6"/></svg></div>
+        </div>
+        {% elif item.type == 'video' %}
+        <div class="mmg-item mmg-video-item" onclick="mmgOpen('{{ item.url }}','video')">
+          <video src="{{ item.url }}" muted loop playsinline preload="auto"{% if item.poster %} poster="{{ item.poster }}"{% endif %}></video>
+          <div class="mmg-overlay">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+          </div>
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+  </div>
+</section>
+
+<!-- Lightbox -->
+<div id="mmg-lightbox" onclick="mmgClose()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.94);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out;">
+  <button onclick="mmgClose()" style="position:absolute;top:20px;right:24px;background:none;border:none;color:#fff;font-size:32px;cursor:pointer;line-height:1;z-index:10001;">&times;</button>
+  <button onclick="mmgPrev(event)" style="position:absolute;left:16px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.12);border:none;color:#fff;font-size:28px;cursor:pointer;border-radius:50%;width:48px;height:48px;z-index:10001;">&#8249;</button>
+  <button onclick="mmgNext(event)" style="position:absolute;right:16px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.12);border:none;color:#fff;font-size:28px;cursor:pointer;border-radius:50%;width:48px;height:48px;z-index:10001;">&#8250;</button>
+  <img id="mmg-lb-img" src="" alt="" style="max-width:90vw;max-height:88vh;border-radius:6px;box-shadow:0 24px 80px rgba(0,0,0,0.7);display:none;object-fit:contain;">
+  <video id="mmg-lb-vid" src="" muted loop playsinline style="max-width:90vw;max-height:88vh;border-radius:6px;display:none;"></video>
+</div>
+
+<style>
+.mmg-masonry {
+  columns: 2;
+  column-gap: 12px;
+}
+@media(min-width:640px){ .mmg-masonry { columns: 3; column-gap: 14px; } }
+@media(min-width:1024px){ .mmg-masonry { columns: 4; column-gap: 16px; } }
+.mmg-item {
+  break-inside: avoid;
+  margin-bottom: 14px;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: zoom-in;
+  position: relative;
+  background: #1a1a1a;
+}
+.mmg-item img, .mmg-item video {
+  width: 100%;
+  display: block;
+  transition: transform .4s ease;
+  max-height: 320px;
+  object-fit: cover;
+}
+.mmg-item:hover img, .mmg-item:hover video { transform: scale(1.04); }
+.mmg-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .3s;
+  opacity: 0;
+}
+.mmg-item:hover .mmg-overlay { background: rgba(0,0,0,0.28); opacity: 1; }
+.mmg-video-item video { max-height: 340px; object-fit: cover; }
+#mmg-lightbox.open { display:flex !important; }
+</style>
+
+<script>
+(function(){
+  var items = [];
+  var cur = 0;
+  document.querySelectorAll('.mmg-item').forEach(function(el, i){
+    var type = el.classList.contains('mmg-video-item') ? 'video' : 'image';
+    var src = type==='image' ? el.querySelector('img').src : el.querySelector('video').src;
+    items.push({type:type, src:src});
+    // hover play for videos
+    if(type==='video'){
+      var v = el.querySelector('video');
+      el.addEventListener('mouseenter',function(){ v.play(); });
+      el.addEventListener('mouseleave',function(){ v.pause(); });
+    }
+  });
+
+  window.mmgOpen = function(src, type){
+    cur = items.findIndex(function(x){ return x.src===src || x.src.endsWith(src); });
+    if(cur===-1) cur=0;
+    mmgShow(cur);
+    var lb = document.getElementById('mmg-lightbox');
+    lb.classList.add('open');
+    lb.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  };
+  window.mmgClose = function(){
+    var lb = document.getElementById('mmg-lightbox');
+    lb.classList.remove('open');
+    lb.style.display = 'none';
+    document.getElementById('mmg-lb-vid').pause();
+    document.body.style.overflow = '';
+  };
+  window.mmgPrev = function(e){ e.stopPropagation(); cur=(cur-1+items.length)%items.length; mmgShow(cur); };
+  window.mmgNext = function(e){ e.stopPropagation(); cur=(cur+1)%items.length; mmgShow(cur); };
+
+  function mmgShow(i){
+    var item = items[i];
+    var img = document.getElementById('mmg-lb-img');
+    var vid = document.getElementById('mmg-lb-vid');
+    if(item.type==='image'){
+      img.src = item.src; img.style.display='block';
+      vid.pause(); vid.style.display='none';
+    } else {
+      vid.src = item.src; vid.style.display='block'; vid.play();
+      img.style.display='none';
+    }
+  }
+
+  document.addEventListener('keydown',function(e){
+    var lb = document.getElementById('mmg-lightbox');
+    if(lb.style.display==='none') return;
+    if(e.key==='Escape') mmgClose();
+    if(e.key==='ArrowLeft') mmgPrev(e);
+    if(e.key==='ArrowRight') mmgNext(e);
+  });
+})();
+</script>
+{% endif %}
+
+<!-- ══════════════════════════════════════════════════════
+     9. FINAL CTA BANNER
 ══════════════════════════════════════════════════════ -->
 <section class="cta-banner py-20 px-6">
   <div class="max-w-3xl mx-auto text-center">
