@@ -83,8 +83,8 @@ QUICK_STORIES = {
         "includes_print": False
     },
     "chronicles_valley": {
-        "title_es": "{name} y las Crónicas del Valle",
-        "title_en": "{name} and the Valley Chronicles",
+        "title_es": "{name} y el Mundo Secreto",
+        "title_en": "{name} and the Secret World",
         "age_range": "5-7",
         "category": "great_adventures",
         "price": 25,
