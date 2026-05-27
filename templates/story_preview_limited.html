@@ -115,17 +115,15 @@
     <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
         <h3 class="font-display text-lg font-bold text-purple-800 mb-4 text-center">{% if lang == 'es' %}Portada de tu Cuento{% else %}Your Story Cover{% endif %}</h3>
         <div class="flex justify-center">
-            <div class="{{ 'aspect-square' if is_baby else 'aspect-[3/4]' }} w-64 md:w-80 rounded-xl overflow-hidden shadow-lg border-4 border-purple-200 relative">
+            <div id="coverImageBox" class="aspect-[3/4] w-64 md:w-80 bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 rounded-2xl flex items-center justify-center border-2 border-purple-200 overflow-hidden shadow-lg">
                 {% if story_data.cover_image %}
-                <img src="{{ story_data.cover_image }}" alt="{% if lang == 'es' %}Portada{% else %}Cover{% endif %}" class="w-full h-full object-cover">
+                <img src="{{ story_data.cover_image }}" alt="{% if lang == 'es' %}Portada{% else %}Cover{% endif %}" class="w-full h-full object-contain rounded-2xl">
                 {% elif story_data.character_image %}
-                <img src="{{ story_data.character_image }}" alt="{% if lang == 'es' %}Portada{% else %}Cover{% endif %}" class="w-full h-full object-cover">
+                <img src="{{ story_data.character_image }}" alt="{% if lang == 'es' %}Portada{% else %}Cover{% endif %}" class="w-full h-full object-contain rounded-2xl">
                 {% elif story_data.images and story_data.images[0] %}
-                <img src="{{ story_data.images[0] }}" alt="{% if lang == 'es' %}Portada{% else %}Cover{% endif %}" class="w-full h-full object-cover">
+                <img src="{{ story_data.images[0] }}" alt="{% if lang == 'es' %}Portada{% else %}Cover{% endif %}" class="w-full h-full object-contain rounded-2xl">
                 {% else %}
-                <div class="w-full h-full bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
-                    <span class="text-6xl">📚</span>
-                </div>
+                <span class="text-6xl">📚</span>
                 {% endif %}
             </div>
         </div>
@@ -399,7 +397,7 @@ async function regenerateCover(previewId) {
         });
         const data = await response.json();
         if (data.success) {
-            const coverImg = document.querySelector('.aspect-\\[3\\/4\\] img, .aspect-square img');
+            const coverImg = document.querySelector('#coverImageBox img');
             if (coverImg) {
                 coverImg.src = data.cover_image + '?t=' + Date.now();
             }
