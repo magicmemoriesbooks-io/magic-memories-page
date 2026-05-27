@@ -874,7 +874,7 @@ def create_cover_from_character(character_image_path: str, output_dir: str,
     
     title_color = (180, 130, 210, 255)
     border_color = (255, 255, 255, 255)
-    author_color = (160, 110, 190, 230)
+    author_color = (0, 0, 0, 255)
     
     if title:
         margin_px = int(w * 0.19)
@@ -948,10 +948,8 @@ def create_cover_from_character(character_image_path: str, output_dir: str,
         cm2_pixels = int(h * 0.125) if h > 0 else 127
         author_y = h - cm2_pixels - author_h
         
-        for dx in range(-1, 2):
-            for dy in range(-1, 2):
-                if dx != 0 or dy != 0:
-                    draw.text((author_x + dx, author_y + dy), author_text, fill=border_color, font=author_font)
+        for dx, dy in [(-2,0),(2,0),(0,-2),(0,2),(-1,-1),(1,-1),(-1,1),(1,1),(-2,-1),(2,-1),(-2,1),(2,1),(-1,-2),(1,-2),(-1,2),(1,2)]:
+            draw.text((author_x + dx, author_y + dy), author_text, fill=border_color, font=author_font)
         draw.text((author_x, author_y), author_text, fill=author_color, font=author_font)
     
     img = img.convert('RGB')
