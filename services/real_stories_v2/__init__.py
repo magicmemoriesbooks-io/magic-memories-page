@@ -13,7 +13,7 @@
 # 2. Preview both characters → Approve/Regenerate
 # 3. Preview story text with book typography
 # 4. Payment (PayPal) → Background scene generation
-# 5. Approve illustrations → PDF composition → Lulu/ebook
+# 5. Approve illustrations → PDF composition → Cloudprinter/ebook
 
 __version__ = "3.0.0"
 
