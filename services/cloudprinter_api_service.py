@@ -14,11 +14,30 @@ CLOUDPRINTER_API_BASE = "https://api.cloudprinter.com/cloudcore/1.0"
 QS_PRODUCT = "magazine_sas_a4_p_fc"
 # cp_ground is the standard level for this product (cp_saver not universally available)
 QS_SHIPPING_LEVEL = "cp_ground"
-# 130gsm Machine Coated Silk + total_pages — verified via API quote (€3.26/book)
+# 130gsm Machine Coated Silk + total_pages — verified via API quote (~$2.75/book)
 # pageblock_200mcs does NOT exist for this product; valid options: 90, 130, 150 gsm
 QS_OPTIONS = [
     {"type": "pageblock_130mcs", "count": "16"},
     {"type": "total_pages", "count": "16"},
+]
+
+# US-local option: 250gsm MCS cover routes production to Cloudprinter's US node (California).
+# Confirmed valid via API quote — print ~$4.40 + ship ~$5.45 (local Ground) vs
+# Mexico route: print ~$2.75 + ship ~$17.91.  No more $6 subsidy needed for US orders.
+US_QS_OPTIONS = [
+    {"type": "pageblock_130mcs", "count": "16"},
+    {"type": "cover_250mcs",     "count": "1"},
+    {"type": "total_pages",      "count": "16"},
+]
+
+# UAE (AE) option: Magazine SAS A4 P FC TNR spec recommended by Cloudprinter (Nataliia).
+# 150gsm pageblock + 170gsm cover routes to a closer node, ship cost ~$6.71 (same as
+# standard ground) vs the expensive route from the default node.
+# Spec: Cover 170gsm MCS, Pageblock 150gsm MCS, 16 pages, gloss cover lamination.
+AE_QS_OPTIONS = [
+    {"type": "pageblock_150mcs", "count": "16"},
+    {"type": "cover_170mcs",     "count": "1"},
+    {"type": "total_pages",      "count": "16"},
 ]
 
 CLOUDPRINTER_AVAILABLE_COUNTRIES = {
@@ -26,16 +45,22 @@ CLOUDPRINTER_AVAILABLE_COUNTRIES = {
     'ES', 'PT', 'FR', 'DE', 'GB', 'IT', 'NL', 'BE', 'CH', 'AT',
     'PL', 'SE', 'NO', 'DK', 'FI', 'IE', 'GR', 'RO', 'CZ', 'HU',
     'HR', 'SK', 'SI', 'BG', 'CY', 'LU', 'EE', 'LV', 'LT', 'MT',
-    # Americas (Canada not available for magazine_sas_a4_p_fc)
+    'RS', 'AL',                                    # Serbia, Albania — verified both products
+    'TR', 'GE',                                    # Turkey, Georgia — verified photobook only (magazine may quote empty)
+    # Americas (Canada not available for either product)
     'US', 'MX', 'AR', 'BR', 'CO', 'CL', 'PE',
+    'UY', 'EC', 'BO', 'GT', 'CR', 'PA',           # Uruguay, Ecuador, Bolivia, Guatemala, Costa Rica, Panama — verified
     # Oceania
     'AU', 'NZ',
     # Asia-Pacific
     'SG', 'KR', 'PH', 'TH', 'MY', 'ID', 'VN', 'IN',
+    'HK', 'TW', 'BD',                             # Hong Kong, Taiwan, Bangladesh — verified
     # Middle East
-    'AE', 'SA', 'IL',
+    'AE', 'SA', 'IL', 'QA',
+    'JO', 'KW', 'BH', 'OM',                       # Jordan, Kuwait, Bahrain, Oman — verified
     # Africa & Eastern Europe
     'ZA', 'EG', 'MA', 'NG', 'GH', 'TZ', 'KE', 'UA',
+    'TN', 'MU', 'ET',                             # Tunisia, Mauritius, Ethiopia — verified
 }
 
 COUNTRIES_NEEDING_STATE = {'US', 'AU'}
@@ -169,20 +194,37 @@ def resolve_shipping_level(key: str) -> str:
     return key
 
 
+def _get_qs_options_for_country(country_code: str) -> list:
+    """Return the correct QS product options for a given country.
+    US orders use US_QS_OPTIONS (250gsm MCS cover) to route to the local US
+    production node (California) and avoid expensive Mexico→US shipping.
+    AE (UAE) orders use AE_QS_OPTIONS (150gsm pageblock + 170gsm cover, TNR spec)
+    recommended by Cloudprinter to keep shipping at ~$6.71.
+    All other countries use the standard QS_OPTIONS.
+    """
+    cc = country_code.upper()
+    if cc == 'US':
+        return US_QS_OPTIONS
+    if cc == 'AE':
+        return AE_QS_OPTIONS
+    return QS_OPTIONS
+
+
 def get_shipping_quote(country_code: str, state_code: str = '') -> dict:
     """
     Get shipping quote from Cloudprinter for QS product to a given country.
     Returns dict of available shipping options with costs, or empty dict on failure.
 
     For US and AU, state_code is required by the CP API.
+    US orders automatically use the 250gsm MCS cover option (US_QS_OPTIONS) to
+    obtain quotes from the local California node (~$5.45 ground vs ~$17.91 from Mexico).
 
     API response format (magazine_sas_a4_p_fc):
       {
-        "subtotals": {"items": "3.26", ...},  ← print cost only
-        "price": "3.26",                       ← print cost (NOT total)
+        "subtotals": {"items": "4.40", ...},  ← print cost only
+        "price": "4.40",                       ← print cost (NOT total)
         "shipments": [{"quotes": [
-          {"shipping_level": "cp_ground", "price": "12.88", ...},
-          {"shipping_level": "cp_fast",   "price": "18.52", ...},
+          {"shipping_level": "cp_ground", "price": "5.45", ...},
         ]}]
       }
     """
@@ -190,7 +232,8 @@ def get_shipping_quote(country_code: str, state_code: str = '') -> dict:
     mode = "SANDBOX" if is_sandbox_mode() else "PRODUCTION"
     cc = country_code.upper()
     state = state_code.upper().strip() if state_code else ''
-    print(f"[CP API] Shipping quote to {cc}{' state=' + state if state else ''} ({mode})")
+    options = _get_qs_options_for_country(cc)
+    print(f"[CP API] Shipping quote to {cc}{' state=' + state if state else ''} ({mode}, {'US-local 250gsm' if cc == 'US' else 'standard'})")
 
     if cc not in CLOUDPRINTER_AVAILABLE_COUNTRIES:
         print(f"[CP API] Country {cc} not in CP available list for magazine_sas_a4_p_fc")
@@ -210,7 +253,7 @@ def get_shipping_quote(country_code: str, state_code: str = '') -> dict:
             "reference": "quote-1",
             "product": QS_PRODUCT,
             "count": "1",
-            "options": QS_OPTIONS
+            "options": options
         }]
     }
     if state:
@@ -323,7 +366,14 @@ def submit_print_order(
     ts = str(int(_t.time()))[-6:]
     order_ref = f"MM-{preview_id[:10]}-{ts}"
 
-    print(f"[CP API] Submitting order {order_ref} ({mode})")
+    dest_country = shipping_address.get("country_code", "").upper()
+    if dest_country == "US":
+        node_label = "US-local 250gsm (CA node)"
+    elif dest_country == "AE":
+        node_label = "AE-TNR 150gsm/170gsm (Dubai node)"
+    else:
+        node_label = "standard"
+    print(f"[CP API] Submitting order {order_ref} ({mode}) → {dest_country} [{node_label}]")
 
     try:
         md5sum = compute_md5(pdf_path)
@@ -378,7 +428,7 @@ def submit_print_order(
                 "url": pdf_url,
                 "md5sum": md5sum
             }],
-            "options": QS_OPTIONS
+            "options": _get_qs_options_for_country(addr.get("country_code", ""))
         }]
     }
 
@@ -768,6 +818,11 @@ def submit_pb_print_order(
             if isinstance(data, dict) and data.get("referenceid"):
                 cp_ref = data.get("referenceid", order_ref)
                 print(f"[CP PB API] PB order submitted OK: {cp_ref}")
+                return True, "PB order submitted successfully", cp_ref
+            elif isinstance(data, dict) and data.get("order"):
+                # CP confirmed with 'order' field (alternate response format)
+                cp_ref = data.get("order", order_ref)
+                print(f"[CP PB API] PB order submitted OK (order field): {cp_ref}")
                 return True, "PB order submitted successfully", cp_ref
             elif isinstance(data, dict) and data.get("error"):
                 err = data["error"]
