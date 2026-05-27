@@ -167,7 +167,7 @@ HAIR (MOST IMPORTANT - MUST BE EXACTLY THE SAME):
 - COLOR: {hair_color} hair - THIS IS THE EXACT COLOR, NEVER CHANGE IT
 - STYLE: {hair_type} hair texture
 - LENGTH: {hair_length} - ALWAYS show hair at this exact length
-- REMINDER: If BLONDE, hair must be a natural dark honey-blonde tone. If LIGHT BLONDE, hair must be a warm light golden blonde.
+- REMINDER: If BLONDE, hair must be a dark dirty blonde tone, slightly ashy, not golden. If LIGHT BLONDE, hair must be pale platinum blonde, cool-toned.
 
 FACIAL FEATURES:
 - EYES: Large expressive {eyes} eyes with visible iris color
@@ -181,8 +181,8 @@ EXPRESSION & OUTFIT:
 
 !!! ABSOLUTE REQUIREMENT - HAIR COLOR !!!
 The character's {hair_color} {hair_length} {hair_type} hair MUST appear EXACTLY the same in this illustration as in all other illustrations. 
-If BLONDE: Hair must be a natural dark honey-blonde, warm and not too bright.
-If LIGHT BLONDE: Hair must be light golden blonde, natural warm tone.
+If BLONDE: Hair must be dark dirty blonde, slightly ashy tone, not golden.
+If LIGHT BLONDE: Hair must be pale platinum blonde, cool-toned and light.
 DO NOT vary the hair color or style in any way."""
 
 def generate_story_text(order, story_template=None):
