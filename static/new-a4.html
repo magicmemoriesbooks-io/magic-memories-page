@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>A4 — Prototipo limpio</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: #888;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 30px 20px 20px;
+  gap: 14px;
+  font-family: Arial, sans-serif;
+}
+
+.label {
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+/*
+  Escala: 2px/mm
+  A4 trim:  210×297mm → 420×594px
+  Sangrado: 3mm        → 6px cada lado
+  Canvas sangrado: 432×606px
+  page-wrap: 432+40 × 606+40 = 472×646px (20px margen p/marcas)
+  Esquinas trim en page-wrap: (26,26) TL | (446,26) TR | (26,620) BL | (446,620) BR
+*/
+.pw {
+  position: relative;
+  width: 472px;
+  height: 646px;
+  flex-shrink: 0;
+}
+
+/* Canvas de sangrado: imagen llena los 432×606px completos */
+.bleed {
+  position: absolute;
+  top: 20px; left: 20px;
+  width: 432px; height: 606px;
+}
+
+.bleed img {
+  display: block;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+/* Anotaciones de título/autor — superpuestas sobre la imagen */
+.ann {
+  position: absolute;
+  left: 0; right: 0;
+  height: 2px;
+  pointer-events: none;
+}
+.ann-title  { background: rgba(0,210,90,.9); top: 72px;  }
+.ann-author { background: rgba(255,60,60,.9); top: 530px; }
+
+.tag {
+  position: absolute;
+  left: 6px;
+  background: rgba(0,0,0,.72);
+  color: #fff;
+  font-size: 9px; font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.tag-title  { top: 74px;  border-left: 3px solid rgba(0,210,90,.9); }
+.tag-author { top: 534px; border-left: 3px solid rgba(255,60,60,.9); }
+
+/*
+  MARCAS L — totalmente fuera del canvas sangrado.
+  Negras (estándar imprenta), 1.5px × 14px, en zona gris de 20px.
+  Con gap de 2px desde el borde del canvas sangrado.
+
+  TL: esquina trim (26,26)
+    H: x=2..18 y=26       (en margen izq, y=26 cruza imagen → superposición mínima)
+    V: x=26    y=2..18
+  TR: esquina trim (446,26)
+    H: x=454..470 y=26
+    V: x=446   y=2..18
+  BL: esquina trim (26,620)
+    H: x=2..18 y=620
+    V: x=26    y=628..644
+  BR: esquina trim (446,620)
+    H: x=454..470 y=620
+    V: x=446   y=628..644
+*/
+.m { position: absolute; background: #000; }
+
+.tl-h { top:25px;  left:2px;   width:16px; height:1.5px; }
+.tl-v { top:2px;   left:25px;  width:1.5px; height:16px; }
+
+.tr-h { top:25px;  right:2px;  width:16px; height:1.5px; }
+.tr-v { top:2px;   right:25px; width:1.5px; height:16px; }
+
+.bl-h { bottom:25px; left:2px;  width:16px; height:1.5px; }
+.bl-v { bottom:2px;  left:25px; width:1.5px; height:16px; }
+
+.br-h { bottom:25px; right:2px;  width:16px; height:1.5px; }
+.br-v { bottom:2px;  right:25px; width:1.5px; height:16px; }
+</style>
+</head>
+<body>
+
+<div class="label">A4 — 210×297mm trim · 3mm sangrado · Marcas L esquinas</div>
+
+<div class="pw">
+
+  <!-- Canvas sangrado: imagen full-bleed sin ningún clip ni overflow -->
+  <div class="bleed">
+    <img src="/static/images/proto_cover.png" alt="Portada A4">
+  </div>
+
+  <!-- Anotaciones de posición (encima de la imagen, hijos de pw) -->
+  <div class="ann ann-title"></div>
+  <div class="ann ann-author"></div>
+  <div class="tag tag-title">TÍTULO — 3.3cm del corte superior</div>
+  <div class="tag tag-author">AUTOR — 3.5cm del corte inferior</div>
+
+  <!-- Marcas L: 8 segmentos, fuera del canvas, en la zona gris de 20px -->
+  <div class="m tl-h"></div><div class="m tl-v"></div>
+  <div class="m tr-h"></div><div class="m tr-v"></div>
+  <div class="m bl-h"></div><div class="m bl-v"></div>
+  <div class="m br-h"></div><div class="m br-v"></div>
+
+</div>
+
+<div class="label" style="font-size:10px; color:#ccc;">
+  Marcas negras = trim · Verde = título 3.3cm · Rojo = autor 3.5cm
+</div>
+
+</body>
+</html>
