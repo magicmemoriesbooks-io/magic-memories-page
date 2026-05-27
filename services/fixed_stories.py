@@ -1230,8 +1230,8 @@ STORIES = {
         "closing_message_en": "{name}, true friendship makes every adventure magical and unforgettable."
     },
     "chronicles_valley": {
-        "title_es": "Las Crónicas de {name}",
-        "title_en": "The Chronicles of {name}",
+        "title_es": "{name} y el Mundo Secreto",
+        "title_en": "{name} and the Secret World",
         "age_range": "5-7",
         "text_layout": "split",
         "use_preview_as_cover": True,
@@ -1268,10 +1268,10 @@ STORIES = {
             },
             {
                 "text_above_es": "La bicicleta llevó a {name} hasta una biblioteca circular cuyas estanterías rozaban las estrellas.",
-                "text_below_es": "En el centro, sobre un atril de madera tallada, descansaba un libro en blanco con un título dorado: «Las Crónicas de {name}».",
+                "text_below_es": "En el centro, sobre un atril de madera tallada, descansaba un libro en blanco con un título dorado: «El Mundo Secreto de {name}».",
                 "text_above_en": "The bicycle carried {name} to a circular library whose shelves touched the stars.",
-                "text_below_en": "In the center, on a carved wooden lectern, rested a blank book with a golden title: 'The Chronicles of {name}.'",
-                "scene_template": """Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, awed reverent expression, eyes wide looking up at the infinite shelves. A normal human body, two arms, two legs, smooth skin. OUTFIT: Cream medieval-style tunic with brown pants and leather boots. ACTION: The {gender_word} stands ALONE inside the library before a carved wooden lectern, {hair_action}, both {skin_tone} hands touching an open blank book that glows with soft golden light. Looking up in wonder. SETTING: Magnificent circular library with no ceiling WIDE VIEW, bookshelves spiral upward and fade into a beautiful starry night sky, thousands of colorful books, warm candlelight mixed with starlight, carved wooden lectern in center. ATMOSPHERE: Sacred wisdom, cosmic knowledge, wonder at infinite stories, warm candlelight glow. STRICT: Only ONE {gender_word}, NO other children, NO other people, NO duplicates. The {gender_word} is completely alone in the library. {style}"""
+                "text_below_en": "In the center, on a carved wooden lectern, rested a blank book with a golden title: 'The Secret World of {name}.'",
+                "scene_template": """Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, awed reverent expression, eyes wide looking up at the infinite shelves. A normal human body, two arms, two legs, smooth skin. OUTFIT: Cream medieval-style tunic with brown pants and leather boots. ACTION: The {gender_word} stands ALONE inside the library before a carved wooden lectern, {hair_action}, both {skin_tone} hands touching an open blank book that glows with soft golden light. Looking up in wonder. SETTING: Magnificent circular library with no ceiling WIDE VIEW, bookshelves spiral upward and fade into a beautiful starry night sky, thousands of colorful books, warm candlelight mixed with starlight, carved wooden lectern in center. ATMOSPHERE: Sacred wisdom, cosmic knowledge, wonder at infinite stories, warm candlelight glow. STRICT: Only ONE {gender_word}. The {gender_word} is completely alone in the library. {style}"""
             },
             {
                 "text_above_es": "{name} tomó una pluma y escribió con cuidado: «la curiosidad es la llave que abre todas las puertas».",
@@ -1516,7 +1516,7 @@ STORIES = {
                 "text_below_es": "Cuando dijo uno en particular, el perro movió las orejas y lo miró fijamente. Ese sería su nombre.",
                 "text_above_en": "{name} thought about what to call the dog. Trying several names out loud, listening carefully to each one.",
                 "text_below_en": "When one particular name was said, the dog perked up its ears and looked directly. That would be the name.",
-                "scene_template": """Disney Pixar 3D style illustration. CHARACTER 1: The human {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, joyful excited expression with mouth slightly open saying a name. A normal human body, two arms, two legs, smooth skin. OUTFIT: Soft gray hoodie and blue jeans. CHARACTER 2: {dog_forever_desc}, ears perked up high, head tilted to one side, big round dark brown eyes looking directly at the {gender_word} with recognition and excitement, tail wagging fast. ACTION: The {gender_word} sits cross-legged on the floor on the LEFT, {hair_action}, leaning forward with both {skin_tone} hands on knees, speaking a name. Amigo sits on the RIGHT on a soft rug, ears up, alert and attentive, recognizing his name. SETTING: Cozy living room WIDE VIEW, soft warm lamp light, comfortable cushions on floor, bookshelf in background, warm evening atmosphere. ATMOSPHERE: Magical naming moment, connection, recognition, joy and excitement. COMPOSITION: The {gender_word} on the LEFT facing the dog; Amigo on the RIGHT with perked ears. Clear physical separation. {style}"""
+                "scene_template": """Disney Pixar 3D style illustration. CHARACTER 1: The human {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, joyful excited expression with mouth slightly open saying a name. A normal human body, two arms, two legs, smooth skin. OUTFIT: Soft gray hoodie and blue jeans. CHARACTER 2: {dog_forever_desc}, head tilted to one side with curiosity, big gentle dark brown eyes looking directly at the {gender_word} with recognition and excitement, tail wagging fast, floppy golden ears lifted slightly with attention. ACTION: The {gender_word} sits cross-legged on the floor on the LEFT, {hair_action}, leaning forward with both {skin_tone} hands on knees, speaking a name. Amigo sits on the RIGHT on a soft rug, alert and attentive, recognizing his name. SETTING: Cozy living room WIDE VIEW, soft warm lamp light, comfortable cushions on floor, bookshelf in background, warm evening atmosphere. ATMOSPHERE: Magical naming moment, connection, recognition, joy and excitement. COMPOSITION: The {gender_word} on the LEFT facing the dog; Amigo on the RIGHT listening attentively. Clear physical separation. {style}"""
             },
             {
                 "text_above_es": "Los primeros días juntos fueron de aprendizaje. {name} le enseñó a sentarse y Amigo le enseñó a ser paciente.",
@@ -1805,8 +1805,8 @@ def get_baby_hair_description(hair_color: str, gender: str = "male") -> str:
         'black':            ('rich dark ebony', 'shadow'),
         'brown':            ('warm medium golden brown', 'normal'),
         'light_brown':      ('warm light caramel golden brown', 'normal'),
-        'blonde':           ('warm golden honey blonde', 'normal'),
-        'very_light_blonde':('soft pale sandy light blonde', 'normal'),
+        'blonde':           ('warm dark dirty blonde', 'normal'),
+        'very_light_blonde':('soft pale platinum blonde', 'normal'),
         'red':              ('warm pale terracotta-tinted reddish-brown', 'vivid'),
         'auburn':           ('warm subtle auburn terracotta-tinted', 'vivid'),
     }
@@ -1866,8 +1866,8 @@ def get_baby_hair_desc(hair_length: str, hair_color: str, hair_type: str, gender
         'black':             'rich dark ebony',
         'brown':             'warm medium brown',
         'light_brown':       'warm light caramel brown',
-        'blonde':            'warm golden honey blonde',
-        'very_light_blonde': 'soft pale sandy blonde',
+        'blonde':            'warm dark dirty blonde',
+        'very_light_blonde': 'soft pale platinum blonde',
         'red':               'warm pale terracotta-tinted',
         'auburn':            'warm subtle auburn',
     }
@@ -1973,8 +1973,8 @@ def get_hair_description(traits: dict, gender: str = None) -> str:
         'black': 'jet black',
         'brown': 'medium brown',
         'light_brown': 'warm light brown (caramel-honey tone)',
-        'blonde': 'dark blonde, honey-toned',
-        'very_light_blonde': 'light golden blonde',
+        'blonde': 'dark dirty blonde',
+        'very_light_blonde': 'pale platinum blonde',
         'red': 'bright red',
         'auburn': 'auburn'
     }
@@ -1995,7 +1995,7 @@ def get_hair_description(traits: dict, gender: str = None) -> str:
     if length == 'very_little':
         sc_map = {
             'black': 'jet black', 'brown': 'medium brown', 'light_brown': 'warm light brown (caramel-honey tone)',
-            'blonde': 'golden blonde', 'very_light_blonde': 'very light blonde',
+            'blonde': 'dark dirty blonde', 'very_light_blonde': 'pale platinum blonde',
             'red': 'bright red', 'auburn': 'auburn',
         }
         sc = sc_map.get(color, c)
@@ -2557,10 +2557,19 @@ def adapt_baby_pose_for_age(prompt: str, child_age: int) -> str:
 
 
 def enforce_gender_clothing(prompt: str, gender: str) -> str:
+    # If the prompt already has an OUTFIT block, use only a light gender reminder
+    # so we don't override the scene's specific clothing description
+    has_outfit = 'OUTFIT:' in prompt
     if gender == 'male':
-        rule = " GENDER-CLOTHING: This is a BOY - wearing masculine clothing only: plain t-shirt, shorts, overalls, pants, suspenders, or sneakers. Boyish neutral colors, simple clean clothes for a boy."
+        if has_outfit:
+            rule = " Only ONE boy character."
+        else:
+            rule = " GENDER-CLOTHING: This is a BOY - wearing masculine clothing only: plain t-shirt, shorts, overalls, pants, suspenders, or sneakers. Boyish neutral colors, simple clean clothes for a boy."
     elif gender == 'female':
-        rule = " GENDER-CLOTHING: This is a GIRL - wearing feminine clothing: dress, skirt, bow, ribbons, or cute accessories. Girly colors and styles appropriate."
+        if has_outfit:
+            rule = " Only ONE girl character."
+        else:
+            rule = " GENDER-CLOTHING: This is a GIRL - wearing feminine clothing: dress, skirt, bow, ribbons, or cute accessories. Girly colors and styles appropriate."
     else:
         return prompt
     if 'STRICT:' in prompt:
@@ -2607,7 +2616,7 @@ def get_scene_prompts(story_id: str, child_name: str, gender: str, traits: dict,
     if is_baby_story:
         _baby_color_map = {
             'black': 'jet black', 'brown': 'medium brown', 'light_brown': 'warm light brown (caramel-honey tone)',
-            'blonde': 'golden blonde', 'very_light_blonde': 'very light blonde',
+            'blonde': 'dark dirty blonde', 'very_light_blonde': 'pale platinum blonde',
             'red': 'bright red', 'auburn': 'auburn',
         }
         hair_desc = f"{_baby_color_map.get(hair_color, hair_color)} hair"
@@ -2616,10 +2625,12 @@ def get_scene_prompts(story_id: str, child_name: str, gender: str, traits: dict,
         # Detailed hair_desc overrides the reference and causes inconsistency between scenes.
         _ref_color_map = {
             'black': 'jet black', 'brown': 'medium brown', 'light_brown': 'warm light brown',
-            'blonde': 'golden blonde', 'very_light_blonde': 'very light blonde',
+            'blonde': 'dark dirty blonde', 'very_light_blonde': 'pale platinum blonde',
             'red': 'bright red', 'auburn': 'auburn',
         }
         hair_desc = f"{_ref_color_map.get(hair_color, hair_color)} hair"
+        # Also neutralize hair_action — any mention of hair in ACTION distracts FLUX from the reference
+        hair_action = ""
 
     # Age display based on child's age
     age_display = f"{child_age} year old" if child_age > 0 else "baby"
@@ -2687,13 +2698,18 @@ def get_scene_prompts(story_id: str, child_name: str, gender: str, traits: dict,
             **gender_endings
         )
         
+        # Clean up double commas that appear when hair_action="" (reference-based QS)
+        import re as _re
+        prompt = _re.sub(r',\s*,', ',', prompt)
+        prompt = _re.sub(r',\s+(OUTFIT:|ACTION:|SETTING:|ATMOSPHERE:|STRICT:)', r'. \1', prompt)
+
         if is_baby_story:
             prompt = adapt_baby_pose_for_age(prompt, child_age)
         
         prompt = enforce_gender_clothing(prompt, gender)
         
         if hair_length == 'very_little' and 'STRICT:' in prompt and not is_baby_story:
-            prompt = prompt.replace('STRICT:', 'STRICT: Child head is completely bald, smooth round scalp,')
+            prompt = prompt.replace('STRICT:', 'STRICT: Child head is completely bald, smooth round scalp,', 1)
 
         prompts.append(prompt)
     
@@ -2727,7 +2743,7 @@ def get_closing_prompt(story_id: str, child_name: str, gender: str, traits: dict
         # Detailed hair_desc overrides reference and causes inconsistency.
         _close_color_map = {
             'black': 'jet black', 'brown': 'medium brown', 'light_brown': 'warm light brown',
-            'blonde': 'golden blonde', 'very_light_blonde': 'very light blonde',
+            'blonde': 'dark dirty blonde', 'very_light_blonde': 'pale platinum blonde',
             'red': 'bright red', 'auburn': 'auburn',
         }
         _hc = traits.get('hair_color', 'brown')
