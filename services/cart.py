@@ -13,10 +13,9 @@ EU_AND_FREE_SHIPPING_COUNTRIES = {
     'GR', 'CY', 'MT', 'IE',
 }
 
-PHYSICAL_PRODUCT_TYPES = {'gelato_personalized', 'qs_print', 'universo_print', 'personalized_print'}
+PHYSICAL_PRODUCT_TYPES = {'qs_print', 'cp_personalized'}
 
-_GELATO_TYPES = {'gelato_personalized', 'personalized_print', 'universo_print'}
-_CP_TYPES = {'qs_print'}
+_CP_TYPES = {'qs_print', 'cp_personalized'}
 
 
 def _get_cart(session) -> list:
@@ -76,9 +75,9 @@ def cart_clear(session):
 
 
 def _infer_item_type(product_type: str) -> str:
-    if product_type in ('gelato_personalized', 'personalized_pdf', 'personalized_print'):
+    if product_type in ('cp_personalized', 'personalized_pdf', 'personalized'):
         return 'personalized'
-    if product_type in ('universo_ebook', 'universo_print'):
+    if product_type in ('universo_ebook',):
         return 'universo'
     if product_type in ('qs_digital', 'qs_print'):
         return 'qs'
@@ -96,15 +95,6 @@ def get_cart_shipping_estimate(country_code: str, physical_items: list) -> float
     cc = country_code.upper()
     lead_item = max(physical_items, key=lambda i: i.get('price', 0))
     lead_type = lead_item.get('product_type', '')
-    if lead_type in _GELATO_TYPES:
-        try:
-            from services.gelato_api_service import get_shipping_quote
-            options = get_shipping_quote(cc)
-            if options:
-                return round(min(float(opt['gelato_cost']) for opt in options.values()), 2)
-            return _fallback_shipping(cc)
-        except Exception:
-            return _fallback_shipping(cc)
     if lead_type in _CP_TYPES:
         try:
             from services.cloudprinter_api_service import get_shipping_quote
