@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Carta — Prototipo limpio con difuminado</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: #888;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 30px 20px 20px;
+  gap: 14px;
+  font-family: Arial, sans-serif;
+}
+
+.label {
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+/*
+  Escala: 2px/mm
+  Carta trim: 216×279mm → 432×558px
+  Sangrado:   3mm        → 6px cada lado
+  Canvas sangrado: 444×570px
+  page-wrap:  484×610px  (20px margen para marcas)
+
+  Esquinas trim en page-wrap: (26,26) TL | (458,26) TR | (26,584) BL | (458,584) BR
+
+  Imagen A4 (410×574) en canvas Carta (444×570):
+    Escalar al alto (570): scale=570/574=0.993 → fw=407px
+    Centrado: fx=(444-407)/2=18.5≈19px, fy=0
+
+  Fondo difuminado: canvas HTML5 (dibujo con js) para EVITAR artefactos CSS.
+    Escalar a cover (444×570): scale=max(444/410,570/574)=1.083
+    bgW=444, bgH=574×1.083=621, bgY=(570-621)/2=-25.5
+*/
+.pw {
+  position: relative;
+  width: 484px;
+  height: 610px;
+  flex-shrink: 0;
+}
+
+/* Canvas sangrado: 444×570, posición 20,20 en pw */
+.bleed {
+  position: absolute;
+  top: 20px; left: 20px;
+  width: 444px; height: 570px;
+}
+
+/* Canvas HTML5 para el fondo difuminado (ocupa todo el bleed) */
+#bgCanvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 444px; height: 570px;
+}
+
+/* Imagen A4 centrada encima del canvas difuminado */
+#fgImg {
+  position: absolute;
+  top: 0;
+  left: 19px;
+  width: 407px;
+  height: 570px;
+  display: block;
+}
+
+/* Anotaciones: hijos de .pw para poder posicionarlos sobre todo */
+.ann {
+  position: absolute;
+  left: 20px; right: 20px;
+  height: 2px;
+  pointer-events: none;
+}
+.ann-title  { background: rgba(0,210,90,.9); top: 88px;  }
+.ann-author { background: rgba(255,60,60,.9); top: 518px; }
+
+.tag {
+  position: absolute;
+  left: 26px;
+  background: rgba(0,0,0,.72);
+  color: #fff;
+  font-size: 9px; font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.tag-title  { top: 90px;  border-left: 3px solid rgba(0,210,90,.9); }
+.tag-author { top: 522px; border-left: 3px solid rgba(255,60,60,.9); }
+
+/*
+  MARCAS L — en zona gris de 20px (fuera del canvas sangrado).
+  Negras, 1.5px × 16px, gap 2px desde borde del bleed.
+
+  TL: (26,26) | TR: (458,26) | BL: (26,584) | BR: (458,584)
+*/
+.m { position: absolute; background: #000; }
+
+.tl-h { top:25px;    left:2px;    width:16px; height:1.5px; }
+.tl-v { top:2px;     left:25px;   width:1.5px; height:16px; }
+
+.tr-h { top:25px;    right:2px;   width:16px; height:1.5px; }
+.tr-v { top:2px;     right:25px;  width:1.5px; height:16px; }
+
+.bl-h { bottom:25px; left:2px;    width:16px; height:1.5px; }
+.bl-v { bottom:2px;  left:25px;   width:1.5px; height:16px; }
+
+.br-h { bottom:25px; right:2px;   width:16px; height:1.5px; }
+.br-v { bottom:2px;  right:25px;  width:1.5px; height:16px; }
+</style>
+</head>
+<body>
+
+<div class="label">Carta — 216×279mm trim · 3mm sangrado · Difuminado lateral · Marcas L</div>
+
+<div class="pw">
+
+  <!-- Canvas sangrado -->
+  <div class="bleed">
+    <!-- El fondo difuminado lo dibuja JS en este canvas HTML5.
+         No usa CSS filter → sin artefacto de borde. -->
+    <canvas id="bgCanvas" width="444" height="570"></canvas>
+
+    <!-- Imagen A4 centrada encima del difuminado -->
+    <img id="fgImg" src="/static/images/proto_cover.png" alt="Portada">
+  </div>
+
+  <!-- Anotaciones encima de todo -->
+  <div class="ann ann-title"></div>
+  <div class="ann ann-author"></div>
+  <div class="tag tag-title">TÍTULO — 3.1cm del corte superior</div>
+  <div class="tag tag-author">AUTOR — 3.3cm del corte inferior</div>
+
+  <!-- Marcas L: 8 segmentos en la zona gris -->
+  <div class="m tl-h"></div><div class="m tl-v"></div>
+  <div class="m tr-h"></div><div class="m tr-v"></div>
+  <div class="m bl-h"></div><div class="m bl-v"></div>
+  <div class="m br-h"></div><div class="m br-v"></div>
+
+</div>
+
+<div class="label" style="font-size:10px; color:#ccc;">
+  Difuminado lateral · Marcas negras = trim · Verde = título 3.1cm · Rojo = autor 3.3cm
+</div>
+
+<script>
+(function() {
+  const canvas = document.getElementById('bgCanvas');
+  const ctx    = canvas.getContext('2d');
+  const W = 444, H = 570;
+
+  const img = new Image();
+  img.src = '/static/images/proto_cover.png';
+
+  img.onload = function() {
+    const iw = img.naturalWidth;   // 410
+    const ih = img.naturalHeight;  // 574
+
+    // Escalar a cover (cubre todo el canvas Carta)
+    const scale = Math.max(W / iw, H / ih); // max(444/410, 570/574) = 1.083
+    const bgW = iw * scale;
+    const bgH = ih * scale;
+    const bgX = (W - bgW) / 2;   // ~0 px (igual que canvas width)
+    const bgY = (H - bgH) / 2;   // ~-25.5 px
+
+    // ── Paso 1: Dibujar el fondo difuminado ─────────────────────────────
+    // Extendemos 80px más allá del canvas en cada lado para que el halo
+    // del blur quede completamente FUERA del area de dibujo del canvas.
+    // El canvas recorta en sus propios límites SIN artefacto de borde.
+    ctx.save();
+    ctx.filter = 'blur(22px) brightness(1.3) saturate(1.6)';
+    ctx.drawImage(img, bgX - 80, bgY - 80, bgW + 160, bgH + 160);
+    ctx.restore();
+
+    // ── Paso 2: Dibujar la imagen A4 centrada, SIN blur ─────────────────
+    const fgScale = H / ih;          // 570/574 = 0.993
+    const fgW     = iw * fgScale;    // 407px
+    const fgX     = (W - fgW) / 2;  // 18.5px
+
+    ctx.save();
+    ctx.filter = 'none';
+    ctx.drawImage(img, fgX, 0, fgW, H);
+    ctx.restore();
+
+    // Ocultar el <img> fg (ya no es necesario — todo está en el canvas)
+    document.getElementById('fgImg').style.display = 'none';
+  };
+
+  img.onerror = function() {
+    // Fallback: si la imagen no carga, relleno gris
+    ctx.fillStyle = '#bbb';
+    ctx.fillRect(0, 0, W, H);
+  };
+})();
+</script>
+
+</body>
+</html>
