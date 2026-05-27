@@ -266,7 +266,7 @@ def prepare_book_for_visor(story_data, preview_id, book_uuid=None, is_gift=False
     pages = []
     page_num = 0
 
-    def add_image_page(img_path, text='', narration='', clean_src=None):
+    def add_image_page(img_path, text='', narration='', clean_src=None, compose_split=None):
         nonlocal page_num
         clean_path = img_path.lstrip('/')
         if not os.path.exists(clean_path):
@@ -277,6 +277,14 @@ def prepare_book_for_visor(story_data, preview_id, book_uuid=None, is_gift=False
         output_path = os.path.join(local_dir, output_filename)
         try:
             img = Image.open(clean_path)
+            if compose_split:
+                txt_above, txt_below, compose_lang = compose_split
+                try:
+                    from services.quick_stories.image_composer import compose_kids_text_on_image
+                    img = compose_kids_text_on_image(img, txt_above, txt_below, compose_lang)
+                    print(f"[VISOR] Parchment composed on {output_filename} (above={bool(txt_above)}, below={bool(txt_below)})")
+                except Exception as _ce:
+                    print(f"[VISOR] Parchment compose failed for {output_filename}: {_ce}")
             if img.mode in ('RGBA', 'P'):
                 img = img.convert('RGB')
             img.save(output_path, 'JPEG', quality=85, optimize=True)
@@ -336,9 +344,12 @@ def prepare_book_for_visor(story_data, preview_id, book_uuid=None, is_gift=False
                       bg_color='#FFFBF5', title_text=ded_title, title_color='#8B6914',
                       body_text=dedication, body_color='#4A3728', border=True)
 
-    text_composed = story_data.get('qs_text_composed', False)
-
     composed_dir_for_clean = f'generated/composed_{preview_id}'
+
+    # For QS split-layout stories, always re-compose parchments during visor preparation.
+    # This is reliable regardless of whether prior PIL composition ran on the source images.
+    is_qs_split = not is_illustrated and story_data.get('text_layout') == 'split'
+    pages_data_for_compose = story_data.get('pages', [])
 
     text_idx = 0
     for img_path in scene_images:
@@ -359,15 +370,27 @@ def prepare_book_for_visor(story_data, preview_id, book_uuid=None, is_gift=False
             _cs_candidate = os.path.join(composed_dir_for_clean, f'clean_scene_{text_idx}.png')
             if os.path.exists(_cs_candidate):
                 clean_src_path = _cs_candidate
-        text_idx += 1
-        if is_illustrated or text_composed:
-            add_image_page(img_path, text=raw_text, narration=raw_text, clean_src=clean_src_path)
+        if is_qs_split and text_idx < len(pages_data_for_compose):
+            _page = pages_data_for_compose[text_idx]
+            _txt_above = _page.get('text_above', '')
+            _txt_below = _page.get('text_below', '')
+            if not _txt_above and not _txt_below:
+                _txt_above = raw_text
+            text_idx += 1
+            add_image_page(img_path, text='', narration=raw_text,
+                           compose_split=(_txt_above, _txt_below, language))
         else:
-            add_image_page(img_path, text=raw_text)
+            text_idx += 1
+            if is_illustrated:
+                add_image_page(img_path, text=raw_text, narration=raw_text, clean_src=clean_src_path)
+            else:
+                add_image_page(img_path, text=raw_text)
 
     if closing_image:
-        if text_composed:
-            add_image_page(closing_image, text=closing_message, narration=closing_message)
+        if is_qs_split and closing_message:
+            # Re-compose closing message as parchment in the visor JPEG copy
+            add_image_page(closing_image, text='', narration=closing_message,
+                           compose_split=('', closing_message, language))
         else:
             add_image_page(closing_image, closing_message)
 
