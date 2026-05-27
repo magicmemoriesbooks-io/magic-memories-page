@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carta — Fondo Extendido</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: #888;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    padding: 36px 20px 20px;
+    gap: 10px;
+  }
+
+  .top-bar { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:#fff; letter-spacing:.05em; text-transform:uppercase; }
+  .badge   { background:#7c3aed; color:#fff; font-size:10px; font-weight:700; padding:3px 9px; border-radius:10px; }
+
+  /*
+    .page-outer: contenedor mayor que el canvas.
+    Canvas Carta = 522×670px, más 20px de margen en cada lado = 562×710px.
+  */
+  .page-outer {
+    position: relative;
+    width:  562px;   /* 522 + 20 + 20 */
+    height: 710px;   /* 670 + 20 + 20 */
+    flex-shrink: 0;
+  }
+
+  /*
+    Canvas Carta full-bleed: 522×670px
+    Posicionado 20px desde cada borde de .page-outer.
+    Imagen A4 escalada al alto: escala=670/574=1.167 → ancho=479px → blur lateral 21px.
+  */
+  .page-canvas {
+    position: absolute;
+    top: 20px; left: 20px;
+    width: 522px;
+    height: 670px;
+    clip-path: inset(0);
+    background: #888;
+  }
+
+  /* Fondo blur — extendido 80px más allá del canvas en todos los lados.
+     blur(26px) genera un halo de ~52px; con 80px de margen el halo
+     queda completamente fuera del area visible */
+  .bg-img {
+    position:absolute;
+    top:-80px; left:-80px;
+    width:calc(100% + 160px);
+    height:calc(100% + 160px);
+    object-fit:cover; object-position:center top;
+    filter:blur(26px) brightness(1.35) saturate(1.55);
+  }
+
+  /* Imagen A4 centrada (479×670px) — sin sombra ni borde */
+  .fg-img {
+    position:absolute; top:0; left:21px;
+    width:479px; height:670px;
+    display:block;
+    /* SIN box-shadow — la imagen se integra al blur sin bordes visibles */
+  }
+
+  /*
+    ── MARCAS DE CORTE L ────────────────────────────────────────────
+    Canvas empieza en (20,20) dentro de .page-outer.
+    Trim = 7px desde el borde del canvas = 20+7=27px desde borde de .page-outer.
+
+    TL: trim en (27, 27) — canvas izquierdo en x=20, superior en y=20
+      horizontal: x=0→14  (FUERA del canvas, que empieza en x=20) ✓
+      vertical:   y=0→14  (FUERA del canvas, que empieza en y=20) ✓
+
+    TR: trim en (535, 27) — canvas derecho en x=542
+      horizontal: x=548→562  (FUERA del canvas) ✓
+      vertical:   y=0→14     (FUERA del canvas) ✓
+
+    BL: trim en (27, 683) — canvas inferior en y=690
+      horizontal: x=0→14    (FUERA del canvas) ✓
+      vertical:   y=696→710  (FUERA del canvas) ✓
+
+    BR: trim en (535, 683)
+      horizontal: x=548→562  (FUERA del canvas) ✓
+      vertical:   y=696→710  (FUERA del canvas) ✓
+  */
+
+  /* TL */
+  .cm-tl-h { position:absolute; top:27px;  left:0;    width:20px;  height:3px; background:#fff; }
+  .cm-tl-v { position:absolute; top:0;     left:27px; width:3px; height:20px;  background:#fff; }
+  /* TR */
+  .cm-tr-h { position:absolute; top:27px;  left:548px; width:20px;  height:3px; background:#fff; }
+  .cm-tr-v { position:absolute; top:0;     left:535px; width:3px; height:20px;  background:#fff; }
+  /* BL */
+  .cm-bl-h { position:absolute; top:683px; left:0;    width:20px;  height:3px; background:#fff; }
+  .cm-bl-v { position:absolute; top:696px; left:27px; width:3px; height:20px;  background:#fff; }
+  /* BR */
+  .cm-br-h { position:absolute; top:683px; left:548px; width:20px;  height:3px; background:#fff; }
+  .cm-br-v { position:absolute; top:696px; left:535px; width:3px; height:20px;  background:#fff; }
+
+  /*
+    ── ANOTACIONES (dentro de .page-canvas) ──
+    Carta: 522×670px | 2.351px/mm
+    Título:  0.12×670  = 80px  → 31.0mm ≈ 3.1cm desde trim
+    Autor:   0.875×670 = 586px → (670−586)/2.351−3 = 32.7mm ≈ 3.3cm desde trim
+  */
+  .annotations { position:absolute; inset:0; pointer-events:none; }
+
+  .ann-line { position:absolute; left:0; right:0; height:1.5px; }
+  .ann-line.green { background:rgba(0,230,100,.9); top:80px; }
+  .ann-line.red   { background:rgba(255,70,70,.9); top:586px; }
+
+  .ann-tag {
+    position:absolute; left:8px;
+    background:rgba(0,0,0,.72); color:#fff;
+    font-size:9px; font-weight:700; padding:2px 7px; border-radius:3px;
+    white-space:nowrap; letter-spacing:.03em;
+  }
+  .ann-tag.green { top:67px;  border-left:3px solid rgba(0,230,100,.9); }
+  .ann-tag.red   { top:590px; border-left:3px solid rgba(255,70,70,.9); }
+
+  /* ── Leyenda ── */
+  .legend { display:flex; flex-wrap:wrap; gap:10px; align-items:center; background:rgba(0,0,0,.7); border-radius:8px; padding:8px 14px; color:#fff; font-size:11px; max-width:562px; }
+  .leg-item { display:flex; align-items:center; gap:6px; }
+  .leg-sw { width:18px; height:2px; border-radius:1px; flex-shrink:0; }
+  .leg-sw.w { background:#fff; }
+  .leg-sw.g { background:rgba(0,230,100,.9); }
+  .leg-sw.r { background:rgba(255,70,70,.9); }
+  .diff { display:inline-block; background:#7c3aed; color:#fff; font-size:9px; font-weight:700; padding:1px 5px; border-radius:8px; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <span>Carta — 216×279mm trim / 222×285mm sangrado</span>
+  <span class="badge">Fondo Extendido v2</span>
+</div>
+
+<div class="page-outer">
+
+  <!-- Canvas Carta: overflow:hidden (imagen y anotaciones) -->
+  <div class="page-canvas">
+    <img class="bg-img" src="/static/images/proto_a4_clean.png" alt="fondo blur" />
+    <img class="fg-img" src="/static/images/proto_a4_clean.png" alt="Portada Carta" />
+    <div class="annotations">
+      <div class="ann-line green"></div>
+      <div class="ann-tag green">TÍTULO — 3.1cm del corte superior</div>
+      <div class="ann-line red"></div>
+      <div class="ann-tag red">AUTOR — 3.3cm del corte inferior</div>
+    </div>
+  </div>
+
+  <!-- Marcas L: hijos de page-outer, definitivamente FUERA de page-canvas -->
+  <div class="cm-tl-h"></div><div class="cm-tl-v"></div>
+  <div class="cm-tr-h"></div><div class="cm-tr-v"></div>
+  <div class="cm-bl-h"></div><div class="cm-bl-v"></div>
+  <div class="cm-br-h"></div><div class="cm-br-v"></div>
+
+</div>
+
+<div class="legend">
+  <div class="leg-item"><div class="leg-sw w"></div><span>Marcas L = trim (3mm sangrado)</span></div>
+  <div class="leg-item"><div class="leg-sw g"></div><span>Título top <strong>3.1cm</strong> <span class="diff">−0.2cm vs A4</span></span></div>
+  <div class="leg-item"><div class="leg-sw r"></div><span>Autor bottom <strong>3.3cm</strong> <span class="diff">−0.2cm vs A4</span></span></div>
+</div>
+
+</body>
+</html>
