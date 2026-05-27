@@ -196,17 +196,22 @@ def build_scene_prompt(scene: dict, child_name: str, gender: str, age: int, trai
 
     outfit_desc = get_outfit_desc(gender)
     hair_action = get_hair_action(traits)
+    _gl = traits.get('glasses', '')
     if has_photo:
-        hair_desc = "hair exactly as shown in the reference photo"
-        hair_strict = "HAIR STRICT: match hair exactly to the reference photo."
+        hair_desc = "hair as in the reference photo"
+        actual_eye = get_eye_description(traits)
+        eye_desc = f"{actual_eye}, face exactly as in the reference photo"
+        if _gl:
+            eye_desc += ", wearing round glasses"
+        skin_tone = "as in the reference photo"
+        hair_strict = "PHOTO REFERENCE: Match the child's exact face, skin, eye color and hair from the reference photo."
     else:
         hair_desc = get_hair_description(traits)
         hair_strict = get_hair_strict(traits)
-    eye_desc = get_eye_description(traits)
-    _gl = traits.get('glasses', '')
-    if _gl:
-        eye_desc = eye_desc + ", wearing round glasses"
-    skin_tone = get_unified_skin_description(traits.get('skin_tone', 'light'))
+        eye_desc = get_eye_description(traits)
+        if _gl:
+            eye_desc = eye_desc + ", wearing round glasses"
+        skin_tone = get_unified_skin_description(traits.get('skin_tone', 'light'))
     gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
     _age = age if age and age > 0 else 6
     age_display = f"{_age} year old"
