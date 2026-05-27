@@ -20,11 +20,7 @@
                 {% if lang == 'es' %}Seguimiento de tu libro{% else %}Track Your Book{% endif %}
             </h1>
             <p class="text-gray-600 mt-2">
-                {% if lang == 'es' %}
-                    {{ story_data.get('child_name', 'Tu') }} y Spark: Una Aventura en el Jardín Mágico
-                {% else %}
-                    {{ story_data.get('child_name', 'Your') }} and Spark: A Magical Garden Adventure
-                {% endif %}
+                {{ story_data.get('story_name', story_data.get('title', story_data.get('child_name', ''))) }}
             </p>
         </div>
 
@@ -188,7 +184,7 @@
             </div>
         </div>
 
-        {% if not lulu_job_id and cp_available %}
+        {% if not lulu_job_id and cp_available and not story_data.get('want_print') and not story_data.get('cp_submitted') and not cp_order_ref %}
         <div class="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-4 text-center">
             <p class="text-xl mb-1">📚</p>
             <h4 class="font-semibold text-amber-800 mb-1 text-sm">
@@ -197,7 +193,7 @@
             <p class="text-amber-700 text-xs mb-2">
                 {% if lang == 'es' %}Recibe el cuento como un libro físico enviado a tu domicilio.{% else %}Receive the story as a physical book delivered to your home.{% endif %}
             </p>
-            <a href="/print-order/{{ story_data.get('preview_id', '') }}" class="inline-block px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-colors text-xs">
+            <a href="/?print={{ preview_id }}" class="inline-block px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-colors text-xs">
                 {% if lang == 'es' %}Ver opciones →{% else %}See options →{% endif %}
             </a>
         </div>
