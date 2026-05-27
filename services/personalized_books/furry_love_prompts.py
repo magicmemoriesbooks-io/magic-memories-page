@@ -210,8 +210,8 @@ _HAIR_COLOR_MAP = {
     'black': 'jet black',
     'brown': 'medium brown',
     'light_brown': 'warm light brown (caramel-honey tone)',
-    'blonde': 'golden blonde',
-    'very_light_blonde': 'very light blonde',
+    'blonde': 'dark dirty blonde',
+    'very_light_blonde': 'pale platinum blonde',
     'red': 'bright red',
     'auburn': 'auburn',
 }
