@@ -148,7 +148,7 @@
                     <p class="text-sm text-purple-600 font-semibold mb-3 text-center">
                         {% if lang == 'es' %}Portada{% else %}Front Cover{% endif %}
                     </p>
-                    <div class="aspect-square rounded-lg overflow-hidden shadow-md border-2 border-purple-200 cursor-pointer relative" onclick="openLightbox(0)">
+                    <div class="aspect-[3/4] rounded-lg overflow-hidden shadow-md border-2 border-purple-200 cursor-pointer relative" onclick="openLightbox(0)">
                         <img id="scene-img-0" src="{{ story_data.images[0] }}" alt="{% if lang == 'es' %}Portada{% else %}Front Cover{% endif %}" class="w-full h-full object-cover">
                     </div>
                 </div>
@@ -192,7 +192,7 @@
                         {% if lang == 'es' %}Escena {{ interior_idx + 1 }}{% else %}Scene {{ interior_idx + 1 }}{% endif %}
                     {% endif %}
                 </p>
-                <div class="aspect-square rounded-lg overflow-hidden shadow-md border-2 border-purple-200 cursor-pointer relative" onclick="openLightbox({{ i }})">
+                <div class="aspect-[3/4] rounded-lg overflow-hidden shadow-md border-2 border-purple-200 cursor-pointer relative" onclick="openLightbox({{ i }})">
                     <img id="scene-img-{{ i }}" src="{{ story_data.images[i] }}" alt="{% if lang == 'es' %}Página {{ page_num }}{% else %}Page {{ page_num }}{% endif %}" class="w-full h-full object-cover">
                     {% if not images_have_text %}
                     {% if is_split and interior_idx < num_pages %}
@@ -246,7 +246,7 @@
                     <p class="text-sm text-purple-600 font-semibold mb-3 text-center">
                         {% if lang == 'es' %}Página de cierre{% else %}Closing page{% endif %}
                     </p>
-                    <div class="aspect-square rounded-lg overflow-hidden shadow-md border-2 border-purple-200 relative">
+                    <div class="aspect-[3/4] rounded-lg overflow-hidden shadow-md border-2 border-purple-200 relative">
                         <img src="{{ story_data.closing_image }}" alt="{% if lang == 'es' %}Cierre{% else %}Closing{% endif %}" class="w-full h-full object-cover">
                         {% if story_data.get('closing_message') %}
                         <div style="position: absolute; bottom: 4%; left: 6%; right: 6%; pointer-events: none;">
@@ -269,7 +269,7 @@
                     <p class="text-sm text-purple-600 font-semibold mb-3 text-center">
                         {% if lang == 'es' %}Contraportada{% else %}Back Cover{% endif %}
                     </p>
-                    <div class="aspect-square rounded-lg overflow-hidden shadow-md border-2 border-purple-200 cursor-pointer" onclick="openLightbox({{ total_images - 1 }})">
+                    <div class="aspect-[3/4] rounded-lg overflow-hidden shadow-md border-2 border-purple-200 cursor-pointer" onclick="openLightbox({{ total_images - 1 }})">
                         <img id="scene-img-{{ total_images - 1 }}" src="{{ story_data.images[total_images - 1] }}" alt="{% if lang == 'es' %}Contraportada{% else %}Back Cover{% endif %}" class="w-full h-full object-cover">
                     </div>
                 </div>
