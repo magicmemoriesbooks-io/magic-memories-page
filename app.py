@@ -2516,7 +2516,7 @@ def regenerate_cover(preview_id):
                 age_display_regen = f"{age_val_regen} year old adult"
             else:
                 age_display_regen = f"{age_val_regen} month old baby" if age_val_regen < 2 else f"{age_val_regen} year old toddler"
-            _hair_color_map_regen = {'black': 'jet black', 'brown': 'medium brown', 'light_brown': 'warm light brown (caramel-honey tone)', 'blonde': 'dark blonde', 'very_light_blonde': 'light golden blonde', 'red': 'bright red', 'auburn': 'auburn'}
+            _hair_color_map_regen = {'black': 'jet black', 'brown': 'medium brown', 'light_brown': 'warm light brown (caramel-honey tone)', 'blonde': 'dark dirty blonde', 'very_light_blonde': 'pale platinum blonde', 'red': 'bright red', 'auburn': 'auburn'}
             hair_color_regen = _hair_color_map_regen.get(traits.get('hair_color', 'brown'), traits.get('hair_color', 'brown'))
             glasses_regen = traits.get('glasses', 'none')
             facial_hair_regen = traits.get('facial_hair', 'none')
@@ -2713,7 +2713,7 @@ def generate_fixed_story_api():
                     age_display_cover = f"{age_val} year old adult"
                 
                 glasses_cover = traits.get('glasses', 'none')
-                _hair_color_map_cv = {'black': 'jet black', 'brown': 'medium brown', 'light_brown': 'warm light brown (caramel-honey tone)', 'blonde': 'dark blonde', 'very_light_blonde': 'light golden blonde', 'red': 'bright red', 'auburn': 'auburn'}
+                _hair_color_map_cv = {'black': 'jet black', 'brown': 'medium brown', 'light_brown': 'warm light brown (caramel-honey tone)', 'blonde': 'dark dirty blonde', 'very_light_blonde': 'pale platinum blonde', 'red': 'bright red', 'auburn': 'auburn'}
                 hair_color_cover = _hair_color_map_cv.get(traits.get('hair_color', 'brown'), traits.get('hair_color', 'brown'))
                 cover_prompt = build_scene_prompt(FRONT_COVER, human_desc, pet_name_cover, pet_desc_cover, age_display=age_display_cover, eye_desc=eye_desc_cover, gender_word=gender_word_cover, glasses=glasses_cover, hair_color=hair_color_cover)
                 
@@ -7811,11 +7811,17 @@ def admin_download_gelato_pdf(preview_id):
         return send_file(os.path.abspath(pdf_printable), as_attachment=True,
                          download_name=f'{child_name}_{preview_id[:8]}_imprimible_{fmt}.pdf')
 
-    # 1) Cloudprinter content PDF (already generated)
+    # 1) Cloudprinter content PDF — personalized books
     cp_content = os.path.join('generations', 'cloudprinter', preview_id, 'content.pdf')
     if os.path.exists(cp_content):
         return send_file(os.path.abspath(cp_content), as_attachment=True,
                          download_name=f'{child_name}_{preview_id[:8]}_libro.pdf')
+
+    # 1.5) Quick Story CP book.pdf already generated — serve directly without regenerating
+    qs_book = os.path.join('generations', 'cloudprinter', preview_id, 'book.pdf')
+    if os.path.exists(qs_book):
+        return send_file(os.path.abspath(qs_book), as_attachment=True,
+                         download_name=f'{child_name}_{preview_id[:8]}_cuento.pdf')
 
     # 3) CP book with scenes ready but PDF not yet generated — generate on demand
     visor_dir = os.path.join('generations', 'visor_pb', preview_id)
@@ -7861,19 +7867,20 @@ def admin_download_gelato_pdf(preview_id):
         except Exception as gen_err:
             return f"Error generando PDF para {preview_id}: {gen_err}", 500
 
-    # 4) Quick story — generate CP book.pdf (same as what goes to Cloudprinter)
+    # 4) Quick story — generate CP book.pdf on demand
     story_texts = story_data.get('story_texts', [])
-    if story_texts:
+    has_qs_images = bool(
+        story_data.get('scene_paths') or story_data.get('images') or
+        story_data.get('original_scene_paths') or story_data.get('original_images')
+    )
+    if story_texts or has_qs_images:
         try:
             from services.quick_stories.pdf_service import generate_quick_story_pdf
             from services.cloudprinter_api_service import get_pdf_public_url
             cp_out_dir = os.path.join('generations', 'cloudprinter', preview_id)
             os.makedirs(cp_out_dir, exist_ok=True)
             book_pdf_path = os.path.join(cp_out_dir, 'book.pdf')
-            # Always regenerate so we get the latest scenes
-            if os.path.exists(book_pdf_path):
-                os.remove(book_pdf_path)
-            generate_quick_story_pdf(story_data, book_pdf_path, format_type='cloudprinter')
+            generate_quick_story_pdf(story_data, book_pdf_path, print_format='A4')
             if os.path.exists(book_pdf_path):
                 # Persist cp_pdf_url in story JSON so the page shows "Descargar PDF Cloudprinter"
                 try:
@@ -9232,20 +9239,63 @@ def admin_quick_story_detail(preview_id):
     """Admin detail view for a quick story."""
     if not check_admin_auth():
         return redirect(url_for('admin_login_page'))
-    
+
     preview_file = f'story_previews/{preview_id}.json'
     if not os.path.exists(preview_file):
         return "Story not found", 404
-    
+
     with open(preview_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
-    
-    pages = data.get('pages', [])
-    
-    return render_template('admin_quick_story_detail.html', 
-                          preview_id=preview_id,
-                          story=data,
-                          pages=pages)
+
+    raw_pages = data.get('pages', [])
+
+    # Images are stored separately from the text pages array.
+    # Prefer scene_paths (PIL-composed with text) for text_composed stories,
+    # otherwise use original_scene_paths (clean), falling back to images/original_images.
+    text_composed = data.get('qs_text_composed', False)
+    if text_composed:
+        scene_imgs = (data.get('scene_paths') or data.get('images') or
+                      data.get('original_scene_paths') or data.get('original_images') or [])
+    else:
+        scene_imgs = (data.get('original_scene_paths') or data.get('original_images') or
+                      data.get('scene_paths') or data.get('images') or [])
+
+    # Strip _preview paths so admin sees clean images
+    scene_imgs = [p for p in scene_imgs if p and '_preview' not in str(p)]
+
+    # Also capture regen counts so the template can show remaining slots
+    regen_counts = data.get('scene_regenerations', {})
+
+    # Combine text pages with their corresponding images into a single list
+    pages = []
+    for i, page in enumerate(raw_pages):
+        entry = dict(page)
+        entry['scene_num'] = i + 1
+        img = scene_imgs[i] if i < len(scene_imgs) else ''
+        entry['img_url'] = ('/' + img.lstrip('/')) if img else ''
+        entry['regen_used'] = regen_counts.get(str(i + 1), 0)
+        pages.append(entry)
+
+    # If no pages array but we have images (edge case), build minimal entries
+    if not pages and scene_imgs:
+        for i, img in enumerate(scene_imgs):
+            pages.append({
+                'scene_num': i + 1,
+                'text': '',
+                'img_url': ('/' + img.lstrip('/')) if img else '',
+                'regen_used': regen_counts.get(str(i + 1), 0),
+            })
+
+    cover_img = (data.get('cover_image') or data.get('original_cover') or
+                 data.get('cover_preview') or '')
+    if cover_img:
+        cover_img = '/' + cover_img.lstrip('/')
+
+    return render_template('admin_quick_story_detail.html',
+                           preview_id=preview_id,
+                           story=data,
+                           pages=pages,
+                           cover_img=cover_img)
 
 
 def _generate_scenes_background(preview_id, **kwargs):
