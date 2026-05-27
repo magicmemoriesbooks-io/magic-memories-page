@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — María y su Amigo el Dragón</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Playfair+Display:wght@700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: linear-gradient(135deg, #fdf6e3 0%, #fceec8 30%, #fdf3d0 55%, #f5e6b8 80%, #eedfa0 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 20px;
+  }
+
+  .ad-card {
+    width: 900px;
+    max-width: 100%;
+    background: linear-gradient(160deg, #fffdf5 0%, #fdf6dc 50%, #faeec5 100%);
+    border-radius: 28px;
+    box-shadow: 0 24px 80px rgba(160,120,40,0.22), 0 4px 20px rgba(0,0,0,0.08);
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Sparkle decorations */
+  .ad-card::before {
+    content: '✦ ✧ ✦';
+    position: absolute;
+    top: 18px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: #c8951a;
+    letter-spacing: 8px;
+    opacity: 0.5;
+  }
+
+  .header {
+    text-align: center;
+    padding: 36px 30px 10px;
+  }
+
+  .brand-label {
+    display: inline-block;
+    background: linear-gradient(90deg, #7c3aed, #a855f7);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 2.5px;
+    padding: 5px 16px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .title {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: #3b1f00;
+    line-height: 1.25;
+    margin-bottom: 6px;
+  }
+  .title span { color: #7c3aed; }
+
+  .subtitle {
+    font-size: 14px;
+    color: #7a6030;
+    font-weight: 600;
+    margin-bottom: 0;
+  }
+
+  /* Products row */
+  .products {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 32px;
+    padding: 28px 40px 14px;
+  }
+
+  .product-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Price tag */
+  .price-tag {
+    background: #fff;
+    border: 2px solid #e8d48a;
+    border-radius: 12px;
+    padding: 8px 14px;
+    text-align: center;
+    box-shadow: 0 3px 10px rgba(160,120,40,0.15);
+    min-width: 110px;
+  }
+  .price-tag .product-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: #7a6030;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 4px;
+  }
+  .price-tag .price-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .price-tag .old-price {
+    font-size: 13px;
+    color: #bbb;
+    text-decoration: line-through;
+    font-weight: 600;
+  }
+  .price-tag .new-price {
+    font-size: 22px;
+    font-weight: 900;
+    color: #7c3aed;
+  }
+  .price-tag .check { font-size: 14px; }
+
+  /* ── SOFTCOVER BOOK ── */
+  .book-wrap {
+    position: relative;
+    width: 170px;
+    filter: drop-shadow(0 14px 28px rgba(80,40,0,0.25));
+    transform: perspective(600px) rotateY(8deg) rotateX(2deg);
+    transition: transform 0.3s;
+    cursor: pointer;
+  }
+  .book-wrap:hover { transform: perspective(600px) rotateY(3deg) rotateX(0deg) scale(1.03); }
+
+  .book-cover {
+    width: 100%;
+    aspect-ratio: 210/297; /* A4 */
+    border-radius: 3px 10px 10px 3px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(0,0,0,0.12);
+  }
+  .book-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* Soft spine */
+  .book-spine {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 8px;
+    background: linear-gradient(to right, #2a1a00, #6b3d00 60%, #3d2200);
+    border-radius: 3px 0 0 3px;
+  }
+
+  /* Soft cover curl at bottom-right */
+  .book-cover::after {
+    content: '';
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.35) 50%);
+    border-radius: 0 0 10px 0;
+  }
+
+  /* Label on book */
+  .softcover-badge {
+    position: absolute;
+    top: 8px; right: -4px;
+    background: #fff9e6;
+    border: 1.5px solid #e8d48a;
+    border-radius: 8px 8px 8px 0;
+    padding: 3px 8px;
+    font-size: 9px;
+    font-weight: 800;
+    color: #7a6030;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+
+  /* ── TABLET ── */
+  .tablet-wrap {
+    position: relative;
+    filter: drop-shadow(0 14px 30px rgba(40,40,100,0.22));
+    transform: perspective(600px) rotateY(-4deg) rotateX(2deg);
+    transition: transform 0.3s;
+    cursor: pointer;
+  }
+  .tablet-wrap:hover { transform: perspective(600px) rotateY(-1deg) rotateX(0) scale(1.03); }
+
+  .tablet {
+    width: 150px;
+    background: #1a1a2e;
+    border-radius: 16px;
+    padding: 10px 8px;
+    border: 2px solid #2d2d4e;
+    position: relative;
+  }
+
+  /* home button */
+  .tablet::after {
+    content: '';
+    display: block;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    border: 2px solid #444;
+    margin: 6px auto 0;
+    background: #222;
+  }
+
+  .tablet-screen {
+    width: 100%;
+    aspect-ratio: 210/297;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    background: #000;
+  }
+  .tablet-screen img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* Screen glow */
+  .tablet-screen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .ebook-badge {
+    position: absolute;
+    top: -10px; left: 50%; transform: translateX(-50%);
+    background: linear-gradient(90deg, #7c3aed, #a855f7);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-radius: 10px;
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── PDF SHEETS ── */
+  .pdf-wrap {
+    position: relative;
+    filter: drop-shadow(0 10px 22px rgba(80,40,0,0.18));
+    transform: perspective(600px) rotateY(-10deg) rotateX(2deg);
+    transition: transform 0.3s;
+    cursor: pointer;
+    width: 160px;
+  }
+  .pdf-wrap:hover { transform: perspective(600px) rotateY(-5deg) rotateX(0) scale(1.03); }
+
+  .sheet {
+    width: 100%;
+    aspect-ratio: 210/297;
+    border-radius: 4px;
+    background: #fff;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid #e0d0b0;
+  }
+  .sheet img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* Stacked sheets effect */
+  .sheet-stack {
+    position: absolute;
+    inset: 0;
+  }
+  .sheet-2 {
+    position: absolute;
+    top: 5px; left: -5px;
+    width: 100%;
+    aspect-ratio: 210/297;
+    background: #f8f0dc;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    z-index: -1;
+  }
+  .sheet-3 {
+    position: absolute;
+    top: 10px; left: -10px;
+    width: 100%;
+    aspect-ratio: 210/297;
+    background: #f0e8d0;
+    border-radius: 4px;
+    border: 1px solid #d8d0b8;
+    z-index: -2;
+  }
+
+  .pdf-badge {
+    position: absolute;
+    bottom: 12px; left: 50%; transform: translateX(-50%);
+    background: linear-gradient(90deg, #059669, #10b981);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 4px 12px;
+    border-radius: 10px;
+    white-space: nowrap;
+    letter-spacing: 0.3px;
+    box-shadow: 0 2px 8px rgba(5,150,105,0.4);
+  }
+
+  /* ── BOTTOM BANNER ── */
+  .banner {
+    background: linear-gradient(90deg, #7c3aed 0%, #6d28d9 50%, #5b21b6 100%);
+    color: #fff;
+    text-align: center;
+    padding: 16px 24px;
+    margin: 10px 24px 24px;
+    border-radius: 16px;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    box-shadow: 0 6px 20px rgba(124,58,237,0.35);
+    position: relative;
+    overflow: hidden;
+  }
+  .banner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.05) 100%);
+  }
+  .banner span {
+    color: #fde68a;
+  }
+  .banner .dot { margin: 0 10px; opacity: 0.6; }
+
+  /* Stars */
+  .stars-row {
+    text-align: center;
+    padding: 6px 0 0;
+    font-size: 13px;
+    color: #c8951a;
+    letter-spacing: 2px;
+  }
+
+  /* Magic Express badge */
+  .magic-badge {
+    text-align: center;
+    padding: 0 0 16px;
+  }
+  .magic-badge span {
+    display: inline-block;
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    color: #3b1f00;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    padding: 5px 18px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    box-shadow: 0 2px 8px rgba(245,158,11,0.4);
+  }
+</style>
+</head>
+<body>
+<div class="ad-card">
+
+  <div class="header">
+    <div class="brand-label">✨ Magic Express Stories</div>
+    <h1 class="title">María y su Amigo<br>el <span>Dragón</span></h1>
+    <p class="subtitle">Cuento personalizado • Listo en minutos</p>
+    <div class="stars-row">★★★★★</div>
+  </div>
+
+  <div class="products">
+
+    <!-- SOFTCOVER BOOK -->
+    <div class="product-col">
+      <div class="price-tag">
+        <div class="product-name">📖 Tapa Blanda</div>
+        <div class="price-row">
+          <span class="old-price">$16</span>
+          <span class="new-price">$15</span>
+          <span class="check">✅</span>
+        </div>
+      </div>
+      <div class="book-wrap">
+        <div class="book-spine"></div>
+        <div class="book-cover">
+          <img src="/static/images/maria_dragon_cover.png" alt="Portada María y su Amigo el Dragón">
+          <div class="softcover-badge">Tapa Blanda A4</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABLET / EBOOK -->
+    <div class="product-col">
+      <div class="price-tag">
+        <div class="product-name">📱 eBook 6 meses</div>
+        <div class="price-row">
+          <span class="new-price">$6</span>
+        </div>
+      </div>
+      <div class="tablet-wrap">
+        <div class="ebook-badge">📚 eBook Digital</div>
+        <div class="tablet">
+          <div class="tablet-screen">
+            <img src="/static/images/maria_dragon_cover.png" alt="eBook">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PDF PRINTABLE -->
+    <div class="product-col">
+      <div class="price-tag">
+        <div class="product-name">🖨️ PDF Imprimible</div>
+        <div class="price-row">
+          <span class="new-price">$13</span>
+        </div>
+      </div>
+      <div class="pdf-wrap">
+        <div class="sheet-3"></div>
+        <div class="sheet-2"></div>
+        <div class="sheet">
+          <img src="/static/images/maria_dragon_cover.png" alt="PDF Imprimible">
+          <div class="pdf-badge">🖨️ PDF Imprimible</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="magic-badge">
+    <span>⚡ MAGIC EXPRESS — Listo al instante</span>
+  </div>
+
+  <div class="banner">
+    <span>¡10% de descuento esta semana!</span>
+    <span class="dot">•</span>
+    Envío a +56 países
+    <span class="dot">•</span>
+    <span>Personalización siempre gratis</span>
+  </div>
+
+</div>
+</body>
+</html>
