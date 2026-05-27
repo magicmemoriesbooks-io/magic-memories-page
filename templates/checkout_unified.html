@@ -253,14 +253,19 @@
                 <input type="checkbox" name="formatOption" value="print" onchange="toggleFormat(this)"
                     class="mt-1 w-5 h-5 text-amber-600 focus:ring-amber-500 cursor-pointer rounded">
                 <div class="flex-1">
-                    <div class="flex justify-between items-start">
-                        <div>
+                    <div class="flex justify-between items-start gap-3">
+                        <div class="flex-1">
                             <p class="font-bold text-gray-800">
                                 {% if lang == 'es' %}Libro Impreso{% else %}Printed Book{% endif %} 📖
                             </p>
                             <p class="text-sm text-gray-600 mt-1">
                                 {% if lang == 'es' %}{{ checkout_config.print_description_es }}{% else %}{{ checkout_config.print_description_en }}{% endif %}
                             </p>
+                            {% if checkout_config.get('print_book_spec_es') %}
+                            <p class="text-sm font-semibold text-gray-700 mt-1">
+                                {% if lang == 'es' %}{{ checkout_config.print_book_spec_es }}{% else %}{{ checkout_config.print_book_spec_en }}{% endif %}
+                            </p>
+                            {% endif %}
                             {% if checkout_config.get('print_product_type') in ('qs_print', 'cp_personalized') %}
                             <p class="text-xs text-amber-700 font-medium mt-1">
                                 {% if lang == 'es' %}Impresión incluida · Envío calculado por país{% else %}Print included · Shipping calculated by country{% endif %}
@@ -269,8 +274,21 @@
                             <p class="text-xs text-green-600 font-medium mt-1" id="printEbookGift">
                                 {% if lang == 'es' %}+ eBook interactivo de regalo (6 meses){% else %}+ Gift interactive eBook (6 months){% endif %}
                             </p>
+                            {% set _visor = story_data.get('visor_url', '') %}
+                            {% if _visor %}
+                            <a href="{{ _visor }}" target="_blank" rel="noopener" onclick="event.stopPropagation()"
+                               style="display:inline-flex;align-items:center;gap:4px;margin-top:6px;font-size:12px;color:#6d28d9;font-weight:600;text-decoration:none;">
+                                👁 {% if lang == 'es' %}Ver eBook de muestra{% else %}Preview eBook{% endif %}
+                            </a>
+                            {% endif %}
                         </div>
-                        <p class="font-bold text-lg text-amber-700 ml-4 whitespace-nowrap" id="printPriceLabel">${{ checkout_config.print_base_price }}+ USD</p>
+                        <div class="flex flex-col items-end gap-2 flex-shrink-0">
+                            <p class="font-bold text-lg text-amber-700 whitespace-nowrap" id="printPriceLabel">${{ checkout_config.print_base_price }}+ USD</p>
+                            {% if checkout_config.get('print_book_image') %}
+                            <img src="{{ checkout_config.print_book_image }}" alt="Libro impreso"
+                                 style="width:72px;height:auto;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.18);object-fit:cover;">
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </label>
@@ -612,7 +630,7 @@
     </div>
 </div>
 
-<script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=USD&intent=capture" data-namespace="paypal_sdk"></script>
+<script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=USD&intent=capture&enable-funding=card&components=buttons" data-namespace="paypal_sdk"></script>
 <script>
 const CFG = {
     previewId: '{{ preview_id }}',
