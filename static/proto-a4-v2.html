@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A4 — Posición Título y Autor</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: #888;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    padding: 36px 20px 20px;
+    gap: 10px;
+  }
+
+  .top-bar { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:#fff; letter-spacing:.05em; text-transform:uppercase; }
+  .badge   { background:#1d4ed8; color:#fff; font-size:10px; font-weight:700; padding:3px 9px; border-radius:10px; }
+
+  /*
+    .page-outer: contenedor mayor que el canvas.
+    Canvas A4 = 518×727px, más 20px de margen en cada lado = 558×767px.
+    Las marcas L son hijos de .page-outer — fuera del area de overflow:hidden.
+  */
+  .page-outer {
+    position: relative;
+    width:  558px;   /* 518 + 20 + 20 */
+    height: 767px;   /* 727 + 20 + 20 */
+    flex-shrink: 0;
+  }
+
+  /*
+    Canvas A4 full-bleed: 518×727px
+    Posicionado 20px desde cada borde de .page-outer.
+    overflow:hidden contiene SOLO la imagen y anotaciones.
+  */
+  .page-canvas {
+    position: absolute;
+    top: 20px; left: 20px;
+    width: 518px;
+    height: 727px;
+    clip-path: inset(0);
+    background: #888; /* fondo neutro — no debe verse si la imagen carga bien */
+  }
+
+  .cover-img {
+    position: absolute; inset:0;
+    width:100%; height:100%;
+    object-fit:cover; object-position:center top;
+    display:block;
+  }
+
+  /*
+    ── MARCAS DE CORTE L ────────────────────────────────────────────
+    Posicionadas en coordenadas de .page-outer (position:relative).
+    Canvas empieza en (20,20) dentro de .page-outer.
+    Trim = 7px desde el borde del canvas = 20+7=27px desde borde de .page-outer.
+
+    Cada L tiene 2 segmentos de 14px de largo.
+    Los segmentos están FUERA del canvas (en la zona de 20px de margen).
+
+    TL: trim en (27, 27)
+      horizontal → empieza en x=0, termina en x=14   (fuera del canvas que empieza en x=20)
+      vertical   → empieza en y=0, termina en y=14   (fuera del canvas que empieza en y=20)
+
+    TR: trim en (531, 27) — canvas derecho en x=538
+      horizontal → empieza en x=544, termina en x=558
+      vertical   → empieza en y=0,   termina en y=14
+
+    BL: trim en (27, 740) — canvas inferior en y=747
+      horizontal → empieza en x=0,   termina en x=14
+      vertical   → empieza en y=753, termina en y=767
+
+    BR: trim en (531, 740)
+      horizontal → empieza en x=544, termina en x=558
+      vertical   → empieza en y=753, termina en y=767
+  */
+
+  /* TL */
+  .cm-tl-h { position:absolute; top:27px; left:0;    width:20px;  height:3px; background:#fff; }
+  .cm-tl-v { position:absolute; top:0;    left:27px; width:3px; height:20px;  background:#fff; }
+  /* TR */
+  .cm-tr-h { position:absolute; top:27px; left:544px; width:20px;  height:3px; background:#fff; }
+  .cm-tr-v { position:absolute; top:0;    left:531px; width:3px; height:20px;  background:#fff; }
+  /* BL */
+  .cm-bl-h { position:absolute; top:740px; left:0;    width:20px;  height:3px; background:#fff; }
+  .cm-bl-v { position:absolute; top:753px; left:27px; width:3px; height:20px;  background:#fff; }
+  /* BR */
+  .cm-br-h { position:absolute; top:740px; left:544px; width:20px;  height:3px; background:#fff; }
+  .cm-br-v { position:absolute; top:753px; left:531px; width:3px; height:20px;  background:#fff; }
+
+  /*
+    ── ANOTACIONES (dentro de .page-canvas, clipadas) ──
+    A4: 518×727px | 2.398px/mm
+    Título:  int(727×0.12)  = 87px  → 33.3mm ≈ 3.3cm desde trim
+    Autor:   int(727×0.875) = 636px → (727−636)/2.398−3 = 34.9mm ≈ 3.5cm desde trim
+  */
+  .annotations { position:absolute; inset:0; pointer-events:none; }
+
+  .ann-line { position:absolute; left:0; right:0; height:1.5px; }
+  .ann-line.green { background:rgba(0,230,100,.9); top:87px; }
+  .ann-line.red   { background:rgba(255,70,70,.9);  top:636px; }
+
+  .ann-tag {
+    position:absolute; left:8px;
+    background:rgba(0,0,0,.72); color:#fff;
+    font-size:9px; font-weight:700; padding:2px 7px; border-radius:3px;
+    white-space:nowrap; letter-spacing:.03em;
+  }
+  .ann-tag.green { top:74px;  border-left:3px solid rgba(0,230,100,.9); }
+  .ann-tag.red   { top:640px; border-left:3px solid rgba(255,70,70,.9); }
+
+  /* ── Leyenda ── */
+  .legend { display:flex; flex-wrap:wrap; gap:10px; align-items:center; background:rgba(0,0,0,.7); border-radius:8px; padding:8px 14px; color:#fff; font-size:11px; max-width:558px; }
+  .leg-item { display:flex; align-items:center; gap:6px; }
+  .leg-sw { width:18px; height:2px; border-radius:1px; flex-shrink:0; }
+  .leg-sw.w { background:#fff; }
+  .leg-sw.g { background:rgba(0,230,100,.9); }
+  .leg-sw.r { background:rgba(255,70,70,.9); }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <span>A4 — 210×297mm trim / 216×303mm sangrado</span>
+  <span class="badge">Posiciones texto v2</span>
+</div>
+
+<div class="page-outer">
+
+  <!-- Canvas A4: overflow:hidden para imagen y anotaciones -->
+  <div class="page-canvas">
+    <img class="cover-img" src="/static/images/proto_a4_clean.png" alt="Portada A4" />
+    <div class="annotations">
+      <div class="ann-line green"></div>
+      <div class="ann-tag green">TÍTULO — 3.3cm del corte superior</div>
+      <div class="ann-line red"></div>
+      <div class="ann-tag red">AUTOR — 3.5cm del corte inferior</div>
+    </div>
+  </div>
+
+  <!-- Marcas L: hijos de page-outer, FUERA de page-canvas (overflow:hidden no las afecta) -->
+  <div class="cm-tl-h"></div><div class="cm-tl-v"></div>
+  <div class="cm-tr-h"></div><div class="cm-tr-v"></div>
+  <div class="cm-bl-h"></div><div class="cm-bl-v"></div>
+  <div class="cm-br-h"></div><div class="cm-br-v"></div>
+
+</div>
+
+<div class="legend">
+  <div class="leg-item"><div class="leg-sw w"></div><span>Marcas L = trim (3mm sangrado)</span></div>
+  <div class="leg-item"><div class="leg-sw g"></div><span>Título top <strong>3.3cm</strong> desde corte</span></div>
+  <div class="leg-item"><div class="leg-sw r"></div><span>Autor bottom <strong>3.5cm</strong> desde corte</span></div>
+</div>
+
+</body>
+</html>
