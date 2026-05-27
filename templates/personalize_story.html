@@ -178,9 +178,11 @@
                                 <option value="8" selected>8 {% if lang == 'es' %}años{% else %}years{% endif %}</option>
                                 <option value="9">9 {% if lang == 'es' %}años{% else %}years{% endif %}</option>
                                 {% elif is_baby %}
-                                <option value="0">0 {% if lang == 'es' %}años{% else %}years{% endif %}</option>
-                                <option value="1" selected>1 {% if lang == 'es' %}año{% else %}year{% endif %}</option>
-                                <option value="2">2 {% if lang == 'es' %}años{% else %}years{% endif %}</option>
+                                <option value="3">{% if lang == 'es' %}1-3 meses{% else %}1-3 months{% endif %}</option>
+                                <option value="6" selected>{% if lang == 'es' %}4-7 meses{% else %}4-7 months{% endif %}</option>
+                                <option value="9">{% if lang == 'es' %}8-12 meses{% else %}8-12 months{% endif %}</option>
+                                <option value="15">{% if lang == 'es' %}12-18 meses{% else %}12-18 months{% endif %}</option>
+                                <option value="21">{% if lang == 'es' %}18-24 meses{% else %}18-24 months{% endif %}</option>
                                 {% else %}
                                 <option value="3">3 {% if lang == 'es' %}años{% else %}years{% endif %}</option>
                                 <option value="4">4 {% if lang == 'es' %}años{% else %}years{% endif %}</option>
@@ -217,11 +219,11 @@
                             </label>
                             <label class="cursor-pointer">
                                 <input type="radio" name="hair_color" value="blonde" class="peer sr-only">
-                                <div class="w-10 h-10 rounded-full border-2 border-gray-700 peer-checked:border-purple-500 peer-checked:ring-2 peer-checked:ring-purple-300 transition-all hover:scale-110" style="background-color: #C4A44E;" title="{% if lang == 'es' %}Rubio{% else %}Blonde{% endif %}"></div>
+                                <div class="w-10 h-10 rounded-full border-2 border-gray-700 peer-checked:border-purple-500 peer-checked:ring-2 peer-checked:ring-purple-300 transition-all hover:scale-110" style="background-color: #C4953A;" title="{% if lang == 'es' %}Rubio{% else %}Blonde{% endif %}"></div>
                             </label>
                             <label class="cursor-pointer">
                                 <input type="radio" name="hair_color" value="very_light_blonde" class="peer sr-only">
-                                <div class="w-10 h-10 rounded-full border-2 border-gray-700 peer-checked:border-purple-500 peer-checked:ring-2 peer-checked:ring-purple-300 transition-all hover:scale-110" style="background-color: #E8D5A0;" title="{% if lang == 'es' %}Rubio Muy Claro{% else %}Very Light Blonde{% endif %}"></div>
+                                <div class="w-10 h-10 rounded-full border-2 border-gray-700 peer-checked:border-purple-500 peer-checked:ring-2 peer-checked:ring-purple-300 transition-all hover:scale-110" style="background-color: #F1D88A;" title="{% if lang == 'es' %}Rubio Muy Claro{% else %}Very Light Blonde{% endif %}"></div>
                             </label>
                             <label class="cursor-pointer">
                                 <input type="radio" name="hair_color" value="red" class="peer sr-only">
@@ -295,12 +297,14 @@
                                     <span class="text-xs">{% if lang == 'es' %}Medio{% else %}Medium{% endif %}</span>
                                 </div>
                             </label>
+                            {% if not is_baby %}
                             <label class="cursor-pointer flex-1">
                                 <input type="radio" name="hair_length" value="long" class="peer sr-only">
                                 <div class="border-2 border-gray-200 rounded-xl py-2 px-3 text-center transition-all peer-checked:border-purple-500 peer-checked:bg-purple-50 hover:border-purple-300 text-sm">
                                     <span class="text-xs">{% if lang == 'es' %}Largo{% else %}Long{% endif %}</span>
                                 </div>
                             </label>
+                            {% endif %}
                         </div>
                     </div>
 
