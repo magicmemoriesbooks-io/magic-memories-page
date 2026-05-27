@@ -21,7 +21,7 @@
         <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
             {% for i in range(num_gallery) %}
             <div class="relative group">
-                <div class="aspect-square rounded-xl overflow-hidden shadow-md border-4 border-amber-100 hover:border-amber-300 transition-all cursor-pointer" onclick="openImageModal({{ i }})">
+                <div class="aspect-[3/4] rounded-xl overflow-hidden shadow-md border-4 border-amber-100 hover:border-amber-300 transition-all cursor-pointer" onclick="openImageModal({{ i }})">
                     {% if story_data.images and i < story_data.images|length %}
                     <img src="{{ story_data.images[i] }}" alt="{% if lang == 'es' %}Ilustración {{ i + 1 }}{% else %}Illustration {{ i + 1 }}{% endif %}" class="w-full h-full object-cover group-hover:scale-105 transition-transform">
                     {% else %}
