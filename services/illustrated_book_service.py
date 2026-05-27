@@ -185,8 +185,8 @@ def get_hair_description(traits: dict, gender: str = None) -> str:
         'black': 'jet black',
         'brown': 'medium brown',
         'light_brown': 'warm light brown (caramel-honey tone)',
-        'blonde': 'golden blonde',
-        'very_light_blonde': 'very light blonde',
+        'blonde': 'dark dirty blonde',
+        'very_light_blonde': 'pale platinum blonde',
         'red': 'bright red',
         'auburn': 'auburn'
     }
@@ -205,7 +205,7 @@ def get_hair_description(traits: dict, gender: str = None) -> str:
 
     if length == 'very_little':
         sc_map = {'black': 'jet black', 'brown': 'medium brown', 'light_brown': 'warm light brown (caramel-honey tone)',
-                  'blonde': 'golden blonde', 'very_light_blonde': 'very light blonde',
+                  'blonde': 'dark dirty blonde', 'very_light_blonde': 'pale platinum blonde',
                   'red': 'bright red', 'auburn': 'auburn'}
         sc = sc_map.get(color, c)
         return f"nearly bald smooth round head, smooth scalp clearly visible, only the faintest sparse {sc} baby down, barely-there peach fuzz almost invisible, almost no hair"
