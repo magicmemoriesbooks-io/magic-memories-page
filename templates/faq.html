@@ -5,6 +5,24 @@
 {% block og_title %}{% if lang == 'es' %}Preguntas Frecuentes — Magic Memories Books{% else %}Frequently Asked Questions — Magic Memories Books{% endif %}{% endblock %}
 {% block og_description %}{% if lang == 'es' %}Cómo funcionan los cuentos personalizables con fotos reales, tiempos de entrega, formatos disponibles (ebook, PDF, libro impreso) y más.{% else %}How personalized stories with real photos work, delivery times, available formats (ebook, PDF, printed book) and more.{% endif %}{% endblock %}
 
+{% block schema_ld %},
+        {
+          "@type": "FAQPage",
+          "@id": "https://magicmemoriesbooks.com/faq#faqpage",
+          "mainEntity": [
+            {"@type":"Question","name":"How does personalization work?","acceptedAnswer":{"@type":"Answer","text":"You choose a story, customize the main character (name, appearance, age) and optionally upload a photo. Our AI generates unique illustrations and adapted text. You review everything before paying."}},
+            {"@type":"Question","name":"What payment methods do you accept?","acceptedAnswer":{"@type":"Answer","text":"We accept PayPal and major credit cards (Visa, Mastercard, American Express) through our secure payment platform. All transactions are protected with SSL encryption."}},
+            {"@type":"Question","name":"What formats are available?","acceptedAnswer":{"@type":"Answer","text":"We offer printed hardcover book with home delivery, digital PDF via email, and interactive eBook with online viewer. You can choose digital only or print + digital."}},
+            {"@type":"Question","name":"Do you ship to the USA and UAE (Dubai)?","acceptedAnswer":{"@type":"Answer","text":"Yes! We ship worldwide including the United States and the UAE. Digital stories (eBook and PDF) are available instantly worldwide. Printed books ship to all countries."}},
+            {"@type":"Question","name":"Is it safe to upload photos of my child?","acceptedAnswer":{"@type":"Answer","text":"Yes. We comply with COPPA and GDPR. Photos are used exclusively for illustration generation and are automatically deleted within 72 hours. We require explicit consent before any upload."}},
+            {"@type":"Question","name":"Can I create a book without uploading a photo?","acceptedAnswer":{"@type":"Answer","text":"Of course! The photo is completely optional. You can customize the character by selecting their hair color, eyes, skin tone and more. The AI will create illustrations based on that description."}},
+            {"@type":"Question","name":"In what languages are the stories available?","acceptedAnswer":{"@type":"Answer","text":"All our stories are available in Spanish and English. You can select the language during personalization."}},
+            {"@type":"Question","name":"How long does it take to receive the printed book?","acceptedAnswer":{"@type":"Answer","text":"Delivery time depends on the shipping method. Standard: 7-14 business days. Priority: 5-7 days. Expedited: 3-5 days. Express: 1-3 days. Digital books are delivered instantly."}},
+            {"@type":"Question","name":"Do you have a refund policy?","acceptedAnswer":{"@type":"Answer","text":"Since each book is unique and personalized, we do not offer refunds. However, you get to review and approve all content before paying. After payment you have one regeneration opportunity."}}
+          ]
+        }
+{% endblock %}
+
 {% block content %}
 <div class="max-w-4xl mx-auto px-4 py-12">
     <a href="{{ url_for('index') }}" class="inline-flex items-center text-sm font-medium text-purple-600 hover:text-purple-800 transition mb-4" style="font-family:'Quicksand',sans-serif;">
@@ -47,8 +65,8 @@
             {
                 'q_es': '¿Cuál es la calidad de impresión?',
                 'q_en': 'What is the print quality?',
-                'a_es': 'Nuestros libros se imprimen con Gelato y Cloudprinter, líderes mundiales en impresión bajo demanda. Papel de alta calidad a todo color, encuadernación profesional. Cada libro es una pieza única.',
-                'a_en': 'Our books are printed with Gelato and Cloudprinter, world leaders in print-on-demand. High-quality full-color paper, professional binding. Each book is a unique piece.'
+                'a_es': 'Nuestros libros se imprimen con Cloudprinter, líder mundial en impresión bajo demanda. Papel de alta calidad a todo color, encuadernación profesional. Cada libro es una pieza única.',
+                'a_en': 'Our books are printed with Cloudprinter, a world leader in print-on-demand. High-quality full-color paper, professional binding. Each book is a unique piece.'
             },
             {
                 'q_es': '¿Tienen política de reembolso?',
