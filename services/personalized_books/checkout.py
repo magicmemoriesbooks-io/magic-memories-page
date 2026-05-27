@@ -1,5 +1,5 @@
 # Personalized Books Checkout Configuration
-# Impreso tapa dura: $33 base + Gelato shipping (dynamic pricing)
+# Impreso tapa dura: $33 base + Cloudprinter shipping (dynamic pricing)
 # PDF Imprimible: $30 fixed (no shipping)
 
 PERSONALIZED_BOOK_PRICE = 33
@@ -12,7 +12,7 @@ PERSONALIZED_BOOK_CONFIG = {
     'includes_print': True,
     'delivery_method': 'email_and_print',
     'pdf_type': 'digital_and_print',
-    'print_partner': 'lulu',
+    'print_partner': 'cloudprinter',
     'print_specs': {
         'format': 'A4_vertical',
         'pages': 24,
