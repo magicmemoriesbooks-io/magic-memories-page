@@ -70,7 +70,7 @@
         <!-- PDF Imprimible 12p -->
         <div class="pcard">
             <div class="pcard-header" style="background:linear-gradient(135deg,#fefce8,#fef9c3);">
-                <span class="pcard-badge" style="background:#fde68a;color:#92400e;">🖨️ {% if lang == 'es' %}PDF Imprimible{% else %}Printable PDF{% endif %}</span>
+                <span class="pcard-badge" style="background:#fde68a;color:#92400e;">🖨️ {% if lang == 'es' %}Formato imprimible (A4 y Carta){% else %}Print-ready format (A4 & US Letter){% endif %}</span>
                 <div class="pcard-price" style="color:#92400e;">$15 <span style="font-size:1rem;color:#6b7280;">USD</span></div>
                 <div class="pcard-from">{% if lang == 'es' %}Entrega inmediata · Imprime en casa{% else %}Immediate delivery · Print at home{% endif %}</div>
             </div>
@@ -80,7 +80,7 @@
                 <div class="feature-row"><span class="feature-icon">🎨</span><span>{% if lang == 'es' %}Alta resolución · Colores perfectos al imprimir{% else %}High resolution · Perfect colors when printed{% endif %}</span></div>
                 <div class="feature-row"><span class="feature-icon">✂️</span><span>{% if lang == 'es' %}Listo para imprimir en casa, Staples, FedEx, etc.{% else %}Ready to print at home, Staples, FedEx, etc.{% endif %}</span></div>
                 <div class="feature-row"><span class="feature-icon">📱</span><span>{% if lang == 'es' %}Incluye eBook gratis {% else %}Includes free eBook {% endif %}<span class="included-tag">GRATIS</span></span></div>
-                <a href="{{ url_for('express_catalog') }}" class="cta-btn" style="margin-top:20px;">{% if lang == 'es' %}Crear mi PDF Imprimible{% else %}Create my Printable PDF{% endif %} →</a>
+                <a href="{{ url_for('express_catalog') }}" class="cta-btn" style="margin-top:20px;">{% if lang == 'es' %}Crear mi PDF imprimible{% else %}Create my Print-ready PDF{% endif %} →</a>
             </div>
         </div>
 
@@ -95,7 +95,7 @@
                 <p style="font-family:'Quicksand',sans-serif;font-size:13px;color:#6b7280;margin-bottom:14px;">{% if lang == 'es' %}Libro físico 21×21 cm engrapable, impresión profesional. Enviado directamente a tu puerta.{% else %}Physical 21×21 cm stapled book, professional printing. Shipped directly to your door.{% endif %}</p>
                 <div class="feature-row"><span class="feature-icon">📗</span><span>{% if lang == 'es' %}16 páginas · Formato A4{% else %}16 pages · A4 format{% endif %}</span></div>
                 <div class="feature-row"><span class="feature-icon">🌍</span><span>{% if lang == 'es' %}Envío a +150 países · Producción local{% else %}Ships to 150+ countries · Local production{% endif %}</span></div>
-                <div class="feature-row"><span class="feature-icon">🏭</span><span>{% if lang == 'es' %}Impreso por Gelato — calidad de imprenta{% else %}Printed by Gelato — print shop quality{% endif %}</span></div>
+                <div class="feature-row"><span class="feature-icon">🏭</span><span>{% if lang == 'es' %}Impreso por Cloudprinter — calidad de imprenta{% else %}Printed by Cloudprinter — print shop quality{% endif %}</span></div>
                 <div class="feature-row"><span class="feature-icon">📱</span><span>{% if lang == 'es' %}Incluye eBook gratis {% else %}Includes free eBook {% endif %}<span class="included-tag">GRATIS</span></span></div>
                 <a href="{{ url_for('express_catalog') }}" class="cta-btn" style="margin-top:20px;background:linear-gradient(135deg,#16a34a,#15803d);">{% if lang == 'es' %}Crear mi libro Express{% else %}Create my Express book{% endif %} →</a>
                 <p class="shipping-note">{% if lang == 'es' %}Envío calculado al finalizar la compra{% else %}Shipping calculated at checkout{% endif %}</p>
@@ -131,7 +131,7 @@
         <div class="pcard" style="border-color:#fbbf24;box-shadow:0 4px 24px rgba(251,191,36,0.15);">
             <div class="pcard-header" style="background:linear-gradient(135deg,#fffbeb,#fef3c7);">
                 <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
-                    <span class="pcard-badge" style="background:#fde68a;color:#92400e;margin-bottom:0;">🖨️ {% if lang == 'es' %}PDF Imprimible A4{% else %}Printable A4 PDF{% endif %}</span>
+                    <span class="pcard-badge" style="background:#fde68a;color:#92400e;margin-bottom:0;">🖨️ {% if lang == 'es' %}Formato imprimible (A4 y Carta){% else %}Print-ready format (A4 & US Letter){% endif %}</span>
                     <span style="font-size:11px;font-weight:700;background:#f59e0b;color:#fff;padding:3px 8px;border-radius:20px;">{% if lang == 'es' %}MÁS POPULAR{% else %}MOST POPULAR{% endif %}</span>
                 </div>
                 <div class="pcard-price" style="color:#92400e;">$24 <span style="font-size:1rem;color:#6b7280;">USD</span></div>
@@ -146,7 +146,7 @@
                 </div>
                 <div class="feature-row"><span class="feature-icon">📱</span><span>{% if lang == 'es' %}Incluye eBook gratis {% else %}Includes free eBook {% endif %}<span class="included-tag">GRATIS</span></span></div>
                 <div class="feature-row"><span class="feature-icon">⚡</span><span>{% if lang == 'es' %}Todo por email en minutos{% else %}Everything by email in minutes{% endif %}</span></div>
-                <a href="{{ url_for('universos_catalog') }}" class="cta-btn" style="margin-top:20px;background:linear-gradient(135deg,#f59e0b,#d97706);">{% if lang == 'es' %}Crear mi PDF Imprimible{% else %}Create my Printable PDF{% endif %} →</a>
+                <a href="{{ url_for('universos_catalog') }}" class="cta-btn" style="margin-top:20px;background:linear-gradient(135deg,#f59e0b,#d97706);">{% if lang == 'es' %}Crear mi PDF imprimible{% else %}Create my Print-ready PDF{% endif %} →</a>
             </div>
         </div>
 
