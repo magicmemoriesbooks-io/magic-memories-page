@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prototipo A4 — 216×303mm</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Helvetica Neue', sans-serif;
+    padding: 20px;
+  }
+
+  .label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .outer-wrap {
+    position: relative;
+  }
+
+  .print-context {
+    background: #b0b0b0;
+    padding: 30px;
+    display: inline-block;
+    position: relative;
+  }
+
+  /*
+    A4: lienzo 216×303mm a 2.4px/mm → 518×727px
+    La imagen AI es de proporción A4 → encaja perfectamente sin crop
+    (a diferencia de Carta donde sí hay crop horizontal)
+  */
+  .page-canvas {
+    width: 518px;
+    height: 727px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    /* A4: imagen AI es proporción A4 → encaje perfecto, sin center-crop */
+    background-image: url('/static/images/proto_cover_sample.png');
+    background-size: cover;
+    background-position: center center;
+  }
+
+  .bleed-overlay {
+    position: absolute;
+    inset: 0;
+    border: 7px solid rgba(0, 100, 255, 0.25);
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .trim-line {
+    position: absolute;
+    inset: 7px;
+    border: 1.5px dashed rgba(255, 0, 0, 0.7);
+    pointer-events: none;
+    z-index: 11;
+  }
+
+  .safe-area {
+    position: absolute;
+    inset: 31px;
+    border: 1px dotted rgba(255, 200, 0, 0.6);
+    pointer-events: none;
+    z-index: 12;
+  }
+
+  .crop-marks {
+    position: absolute;
+    inset: -24px;
+    pointer-events: none;
+    z-index: 20;
+  }
+
+  .cm { position: absolute; }
+
+  .cm.tl { top: 24px; left: 24px; }
+  .cm.tl::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -22px;
+    width: 16px; height: 1.5px;
+    background: #000;
+  }
+  .cm.tl::after {
+    content: '';
+    position: absolute;
+    top: -22px; left: 0;
+    width: 1.5px; height: 16px;
+    background: #000;
+  }
+
+  .cm.tr { top: 24px; right: 24px; }
+  .cm.tr::before {
+    content: '';
+    position: absolute;
+    top: 0; right: -22px;
+    width: 16px; height: 1.5px;
+    background: #000;
+  }
+  .cm.tr::after {
+    content: '';
+    position: absolute;
+    top: -22px; right: 0;
+    width: 1.5px; height: 16px;
+    background: #000;
+  }
+
+  .cm.bl { bottom: 24px; left: 24px; }
+  .cm.bl::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: -22px;
+    width: 16px; height: 1.5px;
+    background: #000;
+  }
+  .cm.bl::after {
+    content: '';
+    position: absolute;
+    bottom: -22px; left: 0;
+    width: 1.5px; height: 16px;
+    background: #000;
+  }
+
+  .cm.br { bottom: 24px; right: 24px; }
+  .cm.br::before {
+    content: '';
+    position: absolute;
+    bottom: 0; right: -22px;
+    width: 16px; height: 1.5px;
+    background: #000;
+  }
+  .cm.br::after {
+    content: '';
+    position: absolute;
+    bottom: -22px; right: 0;
+    width: 1.5px; height: 16px;
+    background: #000;
+  }
+
+  .legend {
+    margin-top: 18px;
+    background: rgba(0,0,0,0.75);
+    color: #fff;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 11px;
+    line-height: 1.8;
+    max-width: 575px;
+  }
+  .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .swatch {
+    width: 28px;
+    height: 3px;
+    flex-shrink: 0;
+    border-radius: 2px;
+  }
+  .swatch.bleed   { background: rgba(0,100,255,0.8); border: 2px solid rgba(0,100,255,0.8); }
+  .swatch.trim    { background: transparent; border: 1.5px dashed rgba(255,50,50,0.9); }
+  .swatch.safe    { background: transparent; border: 1px dotted rgba(255,200,0,0.9); }
+  .swatch.marks   { background: #000; }
+
+  .note {
+    margin-top: 10px;
+    font-size: 10.5px;
+    color: #444;
+    max-width: 575px;
+    text-align: center;
+    line-height: 1.5;
+  }
+  .note strong { color: #111; }
+
+  .a4-badge {
+    background: #1a7f3c;
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 3px;
+    letter-spacing: 0.05em;
+    margin-left: 6px;
+  }
+</style>
+</head>
+<body>
+
+<div class="label">
+  📄 A4 — Lienzo 216 × 303 mm | Trim 210 × 297 mm | Sangría 3 mm
+  <span class="a4-badge">Sin center-crop — imagen nativa A4</span>
+</div>
+
+<div class="outer-wrap">
+  <div class="print-context">
+    <div class="page-canvas">
+      <div class="bleed-overlay"></div>
+      <div class="trim-line"></div>
+      <div class="safe-area"></div>
+    </div>
+
+    <div class="crop-marks">
+      <div class="cm tl"></div>
+      <div class="cm tr"></div>
+      <div class="cm bl"></div>
+      <div class="cm br"></div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-row"><div class="swatch marks"></div> <span><strong>Marcas L negras</strong> — dónde apoya la guillotina de la copistería</span></div>
+  <div class="legend-row"><div class="swatch bleed"></div> <span><strong>Zona de sangría 3 mm</strong> — imagen llega hasta aquí; se recorta tras cortar</span></div>
+  <div class="legend-row"><div class="swatch trim"></div> <span><strong>Línea de corte (roja punteada)</strong> — tamaño final 210 × 297 mm</span></div>
+  <div class="legend-row"><div class="swatch safe"></div> <span><strong>Área segura (amarilla punteada)</strong> — texto y elementos importantes dentro de aquí</span></div>
+</div>
+
+<div class="note">
+  ✅ <strong>A4 usa imagen nativa</strong> — las imágenes de IA ya son proporción A4 (1:1.414), encajan perfectamente.<br>
+  <strong>Carta requiere center-crop</strong> — la imagen A4 se recorta centrada para cubrir el formato más ancho (1:1.291).
+</div>
+
+</body>
+</html>
