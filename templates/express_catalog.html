@@ -381,12 +381,12 @@
 
         <div class="story-card" onclick="window.location.href='/personalize-story?story=chronicles_valley'">
             <div class="story-card-img">
-                <img src="{{ url_for('static', filename='images/cover_chronicles_valley.jpg') }}" alt="Crónicas"
+                <img src="{{ url_for('static', filename='images/cover_chronicles_valley.jpg') }}" alt="El Mundo Secreto"
                      onerror="this.parentElement.innerHTML='<div style=\'background:#ede9fe;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>📖</div>'">
             </div>
             <div class="story-card-body">
                 <div>
-                    <h3 style="color:#4c1d95;">{% if lang == 'es' %}Las Crónicas de [Nombre]{% else %}The Chronicles of [Name]{% endif %}</h3>
+                    <h3 style="color:#4c1d95;">{% if lang == 'es' %}[Nombre] y el Mundo Secreto{% else %}[Name] and the Secret World{% endif %}</h3>
                     <p>{% if lang == 'es' %}Una aventura mágica de descubrimiento e imaginación{% else %}A magical adventure of discovery and imagination{% endif %}</p>
                     <div class="story-tags">
                         <span class="tag" style="background:#ede9fe;color:#4c1d95;">16 {% if lang == 'es' %}páginas{% else %}pages{% endif %}</span>
