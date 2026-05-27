@@ -28,10 +28,12 @@
     .ap-btn-back { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
     .ap-btn-lulu { background: linear-gradient(135deg, #16a34a, #15803d); color: #fff; }
     .ap-btn-reset { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; }
-    .ap-cp-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center; }
+    .ap-cp-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:flex-start; justify-content:center; overflow-y:auto; padding:20px 0; }
     .ap-cp-modal.active { display:flex; }
-    .ap-cp-box { background:#fff; border-radius:14px; padding:28px; width:100%; max-width:460px; box-shadow:0 8px 32px rgba(0,0,0,0.18); }
-    .ap-cp-box h3 { margin:0 0 18px; font-size:17px; color:#1a1a1a; }
+    .ap-cp-box { background:#fff; border-radius:14px; padding:28px; width:100%; max-width:460px; box-shadow:0 8px 32px rgba(0,0,0,0.18); position:relative; margin:auto; }
+    .ap-cp-box h3 { margin:0 0 18px; font-size:17px; color:#1a1a1a; padding-right:28px; }
+    .ap-cp-close-btn { position:absolute; top:14px; right:16px; background:none; border:none; font-size:22px; cursor:pointer; color:#6b7280; line-height:1; padding:2px 6px; border-radius:4px; }
+    .ap-cp-close-btn:hover { background:#f3f4f6; color:#111; }
     .ap-cp-box label { display:block; font-size:12px; font-weight:600; color:#555; margin-bottom:4px; margin-top:12px; }
     .ap-cp-box input, .ap-cp-box select { width:100%; padding:8px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:13px; box-sizing:border-box; }
     .ap-cp-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
@@ -162,6 +164,9 @@
             {% elif has_pdf %}
             <a href="{{ url_for('admin_download_pdf', preview_id=preview_id) }}" class="ap-btn ap-btn-pdf" target="_blank">📄 Descargar PDF</a>
             {% endif %}
+            {% if not is_gelato_book and (preview.scene_paths or preview.images or preview.original_scene_paths or preview.story_texts) %}
+            <a href="{{ url_for('admin_download_gelato_pdf', preview_id=preview_id) }}" class="ap-btn ap-btn-pdf" target="_blank">⬇️ Ver/Bajar PDF CP</a>
+            {% endif %}
             {% if preview.visor_url %}
             <a href="{{ preview.visor_url }}" class="ap-btn ap-btn-ebook" target="_blank">📖 Ver eBook</a>
             {% elif preview.project_hash %}
@@ -194,6 +199,9 @@
             {% else %}
                 {% if preview.cp_order_ref %}
                 <span style="background:#dcfce7; color:#166534; border-radius:8px; padding:7px 16px; font-size:13px; font-weight:600;">✅ Enviado a CP — Ref {{ preview.cp_order_ref }}</span>
+                {% if preview.cp_pdf_url %}
+                <a href="{{ preview.cp_pdf_url }}" target="_blank" class="ap-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-size:12px;padding:6px 14px;">📄 Ver PDF CP</a>
+                {% endif %}
                 <button class="ap-btn ap-btn-lulu" onclick="openCpModal()" style="font-size:12px; padding:6px 14px;">🔄 Reenviar a Cloudprinter</button>
                 {% elif preview.lulu_job_id %}
                 <span style="background:#fef9c3; color:#854d0e; border-radius:8px; padding:7px 16px; font-size:13px; font-weight:600;">🕰 Antiguo Lulu — {{ preview.lulu_job_id }}</span>
@@ -226,11 +234,18 @@
     </div>
     {% endif %}
 
-    {% set cover_path = preview.cover_raw_path or preview.front_cover_path or preview.cover_spread_path %}
-    {% if cover_path or preview.back_cover_path %}
+    {% set cover_path = preview.cover_raw_path or preview.front_cover_path or preview.cover_spread_path or preview.cover_image or preview.original_cover %}
+    {% set char_preview = preview.character_preview %}
+    {% if cover_path or preview.back_cover_path or char_preview %}
     <div class="ap-card">
-        <div class="ap-card-header ap-hdr-covers">Portadas</div>
-        <div class="ap-card-body" style="display:flex; gap:16px; flex-wrap:wrap;">
+        <div class="ap-card-header ap-hdr-covers">Portadas &amp; Referencia</div>
+        <div class="ap-card-body" style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;">
+            {% if char_preview %}
+            <div style="text-align:center;">
+                <p style="font-size:12px; color:#666; margin-bottom:6px; font-weight:700;">🎨 Imagen de referencia</p>
+                <img src="/{{ char_preview.lstrip('/') }}?t={{ range(1000000)|random }}" class="ap-cover-img" onclick="openLB(this.src)" alt="Referencia" style="border:2px solid #f59e0b;">
+            </div>
+            {% endif %}
             {% if cover_path %}
             <div style="text-align:center;">
                 <p style="font-size:12px; color:#666; margin-bottom:6px;">Portada</p>
@@ -323,6 +338,7 @@
 
 <div id="cp-modal" class="ap-cp-modal" onclick="if(event.target===this)closeCpModal()">
     <div class="ap-cp-box">
+        <button class="ap-cp-close-btn" onclick="closeCpModal()" title="Cerrar">&times;</button>
         <h3>📦 Enviar a Cloudprinter — {{ preview.child_name }}</h3>
         <div class="ap-cp-row">
             <div>
