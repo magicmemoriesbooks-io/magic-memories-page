@@ -7814,6 +7814,35 @@ def admin_download_gelato_pdf(preview_id):
     # 1) Cloudprinter content PDF — personalized books
     cp_content = os.path.join('generations', 'cloudprinter', preview_id, 'content.pdf')
     if os.path.exists(cp_content):
+        # Generate complete 28-page digital PDF (portada + contenido + contraportada)
+        # instead of the 26-page Cloudprinter interior which has no covers
+        try:
+            _visor_dir_chk = os.path.join('generations', 'visor_pb', preview_id)
+            if os.path.exists(os.path.join(_visor_dir_chk, 'page_1.jpg')):
+                from services.personalized_books.printable_pdf import generate_personalized_printable_pdf
+                _gender_dl = story_data.get('gender', 'nino')
+                _book_id_dl = story_data.get('story_id', '')
+                _fmt_dl = story_data.get('print_format', 'A4')
+                _fmt_sfx_dl = 'LETTER' if _fmt_dl == 'LETTER' else 'A4'
+                _out_dl = os.path.join('generated', 'cloudprinter', preview_id)
+                os.makedirs(_out_dl, exist_ok=True)
+                _safe_dl = child_name.replace(' ', '_').replace("'", '')
+                _full_pdf = os.path.join(_out_dl, f'{_safe_dl}_completo_{_fmt_sfx_dl}.pdf')
+                generate_personalized_printable_pdf(
+                    book_session_id=preview_id,
+                    child_name=child_name,
+                    gender=_gender_dl,
+                    language=lang,
+                    book_id=_book_id_dl,
+                    output_path=_full_pdf,
+                    force_regenerate=True,
+                )
+                if os.path.exists(_full_pdf):
+                    print(f"[ADMIN PDF] Serving 28-page complete PDF for {preview_id}")
+                    return send_file(os.path.abspath(_full_pdf), as_attachment=True,
+                                     download_name=f'{child_name}_{preview_id[:8]}_completo_{_fmt_sfx_dl}.pdf')
+        except Exception as _full_pdf_err:
+            print(f"[ADMIN PDF] Complete PDF failed ({_full_pdf_err}), falling back to content.pdf")
         return send_file(os.path.abspath(cp_content), as_attachment=True,
                          download_name=f'{child_name}_{preview_id[:8]}_libro.pdf')
 
@@ -10595,7 +10624,7 @@ def _compose_personalized_book_background(preview_id, **kwargs):
                             from services.personalized_books.printable_pdf import generate_personalized_printable_pdf
                             _admin_gender   = story_data.get('gender', story_data.get('child_gender', 'nino'))
                             _admin_lang     = story_data.get('lang', 'es')
-                            _admin_book_id  = story_data.get('book_id', '')
+                            _admin_book_id  = story_data.get('story_id', story_data.get('book_id', ''))
                             _admin_fmt      = story_data.get('print_format', 'A4')
                             from services.personalized_books.generation import get_print_title
                             _admin_pet      = (story_data.get('traits') or {}).get('pet_name', '')
