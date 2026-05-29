@@ -118,7 +118,7 @@ FURRY_LOVE_SCENES = [
         "id": 12,
         "text_es": "Los días de lluvia eran especiales. {name} y {pet_name} se sentaban juntos frente a la ventana, viendo las gotas resbalarse por el cristal. Afuera todo era gris, pero adentro, juntos, todo era cálido.",
         "text_en": "Rainy days were special. {name} and {pet_name} sat together by the window, watching drops slide down the glass. Outside everything was gray, but inside, together, everything was warm.",
-        "prompt": "Disney Pixar 3D style illustration. STRICT: exactly ONE 9-month-old baby at LEFT side of the window seat, exactly ONE dog at RIGHT side of the window seat bodies touching, the dog is clearly much larger and taller than the baby, quiet rainy companionship scene, no extra characters. HUMAN: A 9-month-old {gender_word} with {eye_desc} eyes{glasses_desc}, sitting at LEFT of a wide window seat, wearing a cozy lavender onesie, one tiny hand touching the glass where raindrops slide down outside, peaceful curious expression. PET: {pet_desc}, sitting at RIGHT of the same window seat right beside the baby, bodies gently pressed together, also gazing at the rain, calm and content, a warm solid presence. TOGETHER: baby and dog sit shoulder to shoulder on the window seat, their bodies touching, both watching the rain fall outside in quiet companionship. SETTING: Cozy window seat WIDE VIEW, large window with rain streaming down outside, gray sky beyond, warm interior with a soft blanket, a small glowing lamp nearby. ATMOSPHERE: Cozy rainy day, warmth inside against the gray outside, quiet intimate togetherness, soft lamplight. {style}",
+        "prompt": "Disney Pixar 3D style illustration. STRICT: exactly ONE 9-month-old baby at LEFT side of the window seat, exactly ONE dog at RIGHT side of the window seat bodies touching, {dog_size_note}, quiet rainy companionship scene, no extra characters. HUMAN: A 9-month-old {gender_word} with {eye_desc} eyes{glasses_desc}, sitting at LEFT of a wide window seat, wearing a cozy lavender onesie, one tiny hand touching the glass where raindrops slide down outside, peaceful curious expression. PET: {pet_desc}, sitting at RIGHT of the same window seat right beside the baby, bodies gently pressed together, also gazing at the rain, calm and content, a warm solid presence. TOGETHER: baby and dog sit shoulder to shoulder on the window seat, their bodies touching, both watching the rain fall outside in quiet companionship. SETTING: Cozy window seat WIDE VIEW, large window with rain streaming down outside, gray sky beyond, warm interior with a soft blanket, a small glowing lamp nearby. ATMOSPHERE: Cozy rainy day, warmth inside against the gray outside, quiet intimate togetherness, soft lamplight. {style}",
         "text_position": "split"
     },
     {
@@ -132,7 +132,7 @@ FURRY_LOVE_SCENES = [
         "id": 14,
         "text_es": "Por las noches, cuando alguien leía un cuento, {name} se recostaba contra {pet_name}. {name} miraba las páginas, {pet_name} miraba a {name}. Y los dos se iban quedando dormidos juntos, en un nido de amor.",
         "text_en": "At night, when someone read a story, {name} leaned against {pet_name}. {name} looked at the pages, {pet_name} looked at {name}. And they both drifted off to sleep together, in a nest of love.",
-        "prompt": "Disney Pixar 3D style illustration. STRICT: exactly ONE 11-month-old baby at LEFT of couch, exactly ONE dog at RIGHT of the same couch with baby leaning against it, the dog is much larger than the baby — the baby is small and nestled against the dog's big warm body, cozy evening reading scene, no extra characters. HUMAN: An 11-month-old {gender_word} with {eye_desc} eyes{glasses_desc}{baby_bow}, sitting at LEFT of the couch in soft star-print pajamas, leaning sideways against the dog's warm body, one hand resting on an open picture book, eyes growing heavy and sleepy. PET: {pet_desc}, sitting at RIGHT of the same couch, the baby leaning fully against its warm flank, looking down at the baby with tender sleepy eyes, body warm and perfectly still. TOGETHER: the baby leans their full small weight against the dog's side, both drifting peacefully toward sleep over the open colorful picture book. SETTING: Cozy living room evening WIDE VIEW, soft couch with a warm blanket and cushions, amber lamp casting a soft glow, open picture book with bright illustrations. ATMOSPHERE: Bedtime warmth, drowsy coziness, amber lamplight, drifting into dreams together. {style}",
+        "prompt": "Disney Pixar 3D style illustration. STRICT: exactly ONE 11-month-old baby at LEFT of couch, exactly ONE dog at RIGHT of the same couch with baby leaning against it, {dog_size_note}, cozy evening reading scene, no extra characters. HUMAN: An 11-month-old {gender_word} with {eye_desc} eyes{glasses_desc}{baby_bow}, sitting at LEFT of the couch in soft star-print pajamas, leaning sideways against the dog's warm body, one hand resting on an open picture book, eyes growing heavy and sleepy. PET: {pet_desc}, sitting at RIGHT of the same couch, the baby leaning fully against its warm flank, looking down at the baby with tender sleepy eyes, body warm and perfectly still. TOGETHER: the baby leans their full small weight against the dog's side, both drifting peacefully toward sleep over the open colorful picture book. SETTING: Cozy living room evening WIDE VIEW, soft couch with a warm blanket and cushions, amber lamp casting a soft glow, open picture book with bright illustrations. ATMOSPHERE: Bedtime warmth, drowsy coziness, amber lamplight, drifting into dreams together. {style}",
         "text_position": "split"
     },
     {
@@ -251,6 +251,24 @@ def _get_hair_growth_desc(scene_id: int, hair_color: str) -> str:
     return ""
 
 
+_SMALL_DOG_KEYWORDS = [
+    'chihuahua', 'maltese', 'maltés', 'maltés', 'maltes', 'yorkie', 'yorkshire',
+    'shih tzu', 'shih-tzu', 'toy', 'miniature', 'miniatura', 'pomeranian', 'pomeranio',
+    'pomerania', 'dachshund', 'salchicha', 'bichon', 'bichón', 'french bulldog',
+    'bulldog francés', 'bulldog frances', 'pug', 'puggle', 'papillon', 'papillón',
+    'cavalier', 'pequeño', 'pequeña', 'chico', 'chica', 'small', 'tiny', 'little',
+    'teacup', 'mini', 'enano', 'enana',
+]
+
+def _get_dog_size_note(pet_desc: str) -> str:
+    """Return a size-relationship note for STRICT sections based on the dog's description."""
+    desc_lower = (pet_desc or '').lower()
+    for kw in _SMALL_DOG_KEYWORDS:
+        if kw in desc_lower:
+            return "the dog is small, roughly the same size as or slightly smaller than the baby"
+    return "the dog is clearly much larger than the baby, the baby appears tiny beside the dog"
+
+
 def build_scene_prompt(scene: dict, human_desc: str, pet_name: str, pet_desc: str, eye_desc: str = "", gender_word: str = "baby", glasses: str = "", hair_color: str = "", **kwargs) -> str:
     prompt = scene.get('prompt', '')
     scene_id = scene.get('id', 0)
@@ -263,6 +281,9 @@ def build_scene_prompt(scene: dict, human_desc: str, pet_name: str, pet_desc: st
     prompt = prompt.replace('{gender_word}', gender_word)
     glasses_desc = ", wearing glasses" if glasses == "glasses" else ", wearing sunglasses" if glasses == "sunglasses" else ""
     prompt = prompt.replace('{glasses_desc}', glasses_desc)
+
+    if '{dog_size_note}' in prompt:
+        prompt = prompt.replace('{dog_size_note}', _get_dog_size_note(pet_desc))
 
     is_girl = gender_word.lower() in ('girl', 'niña', 'baby girl')
     baby_bow = ", a tiny pink bow hair clip" if is_girl and scene_id >= 14 else ""
