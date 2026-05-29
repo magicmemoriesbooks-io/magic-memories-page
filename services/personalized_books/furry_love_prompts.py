@@ -251,22 +251,15 @@ def _get_hair_growth_desc(scene_id: int, hair_color: str) -> str:
     return ""
 
 
-_SMALL_DOG_KEYWORDS = [
-    'chihuahua', 'maltese', 'maltés', 'maltés', 'maltes', 'yorkie', 'yorkshire',
-    'shih tzu', 'shih-tzu', 'toy', 'miniature', 'miniatura', 'pomeranian', 'pomeranio',
-    'pomerania', 'dachshund', 'salchicha', 'bichon', 'bichón', 'french bulldog',
-    'bulldog francés', 'bulldog frances', 'pug', 'puggle', 'papillon', 'papillón',
-    'cavalier', 'pequeño', 'pequeña', 'chico', 'chica', 'small', 'tiny', 'little',
-    'teacup', 'mini', 'enano', 'enana',
-]
-
-def _get_dog_size_note(pet_desc: str) -> str:
-    """Return a size-relationship note for STRICT sections based on the dog's description."""
-    desc_lower = (pet_desc or '').lower()
-    for kw in _SMALL_DOG_KEYWORDS:
-        if kw in desc_lower:
-            return "the dog is small, roughly the same size as or slightly smaller than the baby"
-    return "the dog is clearly much larger than the baby, the baby appears tiny beside the dog"
+def _get_dog_size_note(pet_size: str) -> str:
+    """Return a size-relationship note for STRICT sections based on the explicit pet_size value
+    (small / medium / large) selected by the user in the form."""
+    if pet_size == 'small':
+        return "the dog is small, roughly the same size as or slightly smaller than the baby"
+    if pet_size == 'large':
+        return "the dog is clearly much larger than the baby, the baby appears tiny beside the dog"
+    # medium — state an honest proportional relationship without over-specifying
+    return "the dog is medium-sized, noticeably bigger than the baby"
 
 
 def build_scene_prompt(scene: dict, human_desc: str, pet_name: str, pet_desc: str, eye_desc: str = "", gender_word: str = "baby", glasses: str = "", hair_color: str = "", **kwargs) -> str:
@@ -283,7 +276,8 @@ def build_scene_prompt(scene: dict, human_desc: str, pet_name: str, pet_desc: st
     prompt = prompt.replace('{glasses_desc}', glasses_desc)
 
     if '{dog_size_note}' in prompt:
-        prompt = prompt.replace('{dog_size_note}', _get_dog_size_note(pet_desc))
+        pet_size = kwargs.get('pet_size', 'medium')
+        prompt = prompt.replace('{dog_size_note}', _get_dog_size_note(pet_size))
 
     is_girl = gender_word.lower() in ('girl', 'niña', 'baby girl')
     baby_bow = ", a tiny pink bow hair clip" if is_girl and scene_id >= 14 else ""
