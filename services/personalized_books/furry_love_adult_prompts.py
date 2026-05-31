@@ -174,28 +174,48 @@ BACK_COVER = {
 }
 
 
-def build_human_preview_prompt(human_desc: str) -> str:
+def build_human_preview_prompt(human_desc: str, **kwargs) -> str:
     return f"Disney Pixar 3D style illustration. FULL BODY portrait of {human_desc}, wearing casual outdoor hiking clothes (flannel shirt, cargo pants, hiking boots), standing naturally with one hand on backpack strap, relaxed confident smile, centered in frame, occupying 60% of frame height. NEUTRAL SOLID GRADIENT BACKGROUND (soft cream to warm beige), plain studio background. Natural friendly expression, relaxed standing pose. Clean professional animation art, clean illustration only. STRICT: Character fully clothed."
 
 
-def build_human_preview_prompt_with_photo(gender_word: str, age_display: str, eye_desc: str = "", hair_desc: str = "", glasses: str = "", facial_hair: str = "") -> str:
-    glasses_desc = " MUST be wearing glasses" if glasses == "glasses" else " MUST be wearing sunglasses" if glasses == "sunglasses" else ""
-    facial_hair_map = {'stubble': 'light stubble', 'short_beard': 'short beard', 'full_beard': 'full thick beard', 'mustache': 'mustache'}
-    facial_hair_desc = f" MUST have {facial_hair_map[facial_hair]}" if facial_hair and facial_hair != 'none' and facial_hair in facial_hair_map else ""
-    accessories = (glasses_desc + facial_hair_desc).strip()
-    return f"Disney Pixar 3D style illustration. 3D animated character of the {gender_word} from @image1, {eye_desc} eyes, full appearance matching @image1 exactly.{(' ' + accessories + '.') if accessories else ''} FULL BODY portrait, centered, relaxed confident expression. NEUTRAL SOLID GRADIENT BACKGROUND (soft cream to warm beige). Clean illustration only."
+def build_human_preview_prompt_with_photo(gender_word: str, age_display: str, eye_desc: str = "", hair_desc: str = "", glasses: str = "", facial_hair: str = "", skin_tone: str = "") -> str:
+    skin_strict = f"Maintain {skin_tone} complexion — do not lighten the skin tone. " if skin_tone else ""
+    eye_part = f"{eye_desc} eyes, " if eye_desc else ""
+    return (
+        f"Disney Pixar 3D style illustration. 3D animated {gender_word} with face shape, skin complexion, hair amount and color, "
+        f"and {eye_part}all matching @image1 exactly — do not invent or change any physical feature. "
+        f"FULL BODY portrait, centered, relaxed confident expression. "
+        f"NEUTRAL SOLID GRADIENT BACKGROUND (soft cream to warm beige). "
+        f"{skin_strict}"
+        f"Clean illustration only."
+    )
 
 
-def build_pet_preview_prompt(pet_desc: str) -> str:
-    return f"Disney Pixar 3D style illustration. FULL BODY portrait of {pet_desc}, sitting or standing naturally, friendly expression, centered in frame, occupying 50% of frame height. NEUTRAL SOLID GRADIENT BACKGROUND (soft cream to warm beige), plain studio background. Warm lighting, expressive eyes. Clean professional animation art, clean illustration only."
+def build_pet_preview_prompt(pet_desc: str, pet_size: str = "medium") -> str:
+    size_desc_map = {
+        "small":  "compact small body, fits fully in frame with space around it",
+        "medium": "full body fits naturally and comfortably in frame",
+        "large":  "big imposing body fills the frame, broad and tall",
+    }
+    size_desc = size_desc_map.get(pet_size, size_desc_map["medium"])
+    return f"Disney Pixar 3D style illustration. FULL BODY portrait of {pet_desc}, sitting or standing naturally, friendly expression, centered in frame, occupying 50% of frame height, {size_desc}. NEUTRAL SOLID GRADIENT BACKGROUND (soft cream to warm beige), plain studio background. Warm lighting, expressive eyes. Clean professional animation art, clean illustration only."
 
 
-def build_pet_preview_prompt_with_photo(pet_desc: str = "", pet_species: str = "dog") -> str:
+def build_pet_preview_prompt_with_photo(pet_desc: str = "", pet_species: str = "dog", pet_size: str = "medium") -> str:
     animal = "cat" if pet_species == "cat" else "dog"
-    return f"Disney Pixar 3D style. 3D animated character of the {animal} from @image1. FULL BODY portrait, sitting or standing naturally, friendly expression, centered, occupying 50% of frame height. NEUTRAL SOLID GRADIENT BACKGROUND (soft cream to warm beige). Warm lighting. Clean animation art, clean illustration only."
+    size_desc_map = {
+        "small":  "a small-sized animal — compact body, fits fully in frame with space around it",
+        "medium": "a medium-sized animal — full body fits naturally and comfortably in frame",
+        "large":  "a large-sized animal — big imposing body fills the frame, broad and tall",
+    }
+    size_desc = size_desc_map.get(pet_size, size_desc_map["medium"])
+    desc_hint = f" ({pet_desc})" if pet_desc else ""
+    return f"High-quality 3D animated children's book illustration. 3D animated character of the {animal} from @image1{desc_hint}. FULL BODY portrait, sitting or standing naturally, friendly expression, centered. {size_desc}. NEUTRAL SOLID GRADIENT BACKGROUND (soft cream to warm beige). Warm lighting. Clean animation art, clean illustration only."
 
 
 def build_scene_prompt(scene: dict, human_desc: str, pet_name: str, pet_desc: str, age_display: str = "30 year old adult", eye_desc: str = "", gender_word: str = "person", glasses: str = "", facial_hair: str = "", hair_color: str = "", hair_desc: str = "", **kwargs) -> str:
+    pet_species = kwargs.get('pet_species', 'dog')
+    animal_word = "cat" if pet_species == "cat" else "dog"
     prompt = scene.get('prompt', '')
     prompt = prompt.replace('{human_desc}', human_desc)
     prompt = prompt.replace('{pet_name}', pet_name)
@@ -214,6 +234,8 @@ def build_scene_prompt(scene: dict, human_desc: str, pet_name: str, pet_desc: st
     prompt = prompt.replace('{hair_desc}', hair_desc if hair_desc else hair_color_label)
     if gender_word and '{gender_word}' in scene.get('prompt', ''):
         prompt += f" The character is a {gender_word}."
+    # Explicitly name the animal type in STRICT so FLUX doesn't default to dog
+    prompt = prompt.replace('ONE pet', f'ONE {animal_word}')
     return prompt
 
 
