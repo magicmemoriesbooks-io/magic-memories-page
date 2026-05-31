@@ -31,7 +31,8 @@ PULID_VERSION = "8baa7ef2255075b46f4d91cd238c21d31181b3e6a864463f967960bb0112525
 def generate_with_flux_kontext(prompt: str, photo_path: str, aspect_ratio: str = "3:4") -> str:
     """Generate a character preview using FLUX Kontext Pro.
     Kontext edits/stylizes the entire photo preserving ALL features (face + hair + skin).
-    Better than PuLID for children because it doesn't rely on adult face landmark extraction."""
+    Better than PuLID for children because it doesn't rely on adult face landmark extraction.
+    Returns a local file path (Kontext outputs binary FileOutput, not a URL)."""
     last_error = None
     for attempt in range(1, MAX_RETRIES + 1):
         try:
@@ -48,21 +49,39 @@ def generate_with_flux_kontext(prompt: str, photo_path: str, aspect_ratio: str =
                 )
             print(f"[KONTEXT] flux-kontext-pro returned successfully on attempt {attempt}")
 
-            if isinstance(output, list) and len(output) > 0:
-                image_url = str(output[0])
-            elif hasattr(output, 'url'):
-                image_url = str(output.url())
+            image_bytes = None
+            if isinstance(output, bytes):
+                image_bytes = output
+            elif hasattr(output, 'read'):
+                image_bytes = output.read()
+            elif isinstance(output, list) and len(output) > 0:
+                item = output[0]
+                if isinstance(item, bytes):
+                    image_bytes = item
+                elif hasattr(item, 'read'):
+                    image_bytes = item.read()
+                else:
+                    image_bytes = str(item).encode()
             elif hasattr(output, '__iter__'):
-                items = list(output)
-                if items:
-                    image_url = str(items[0])
+                chunks = b""
+                for chunk in output:
+                    if isinstance(chunk, bytes):
+                        chunks += chunk
+                    else:
+                        chunks += str(chunk).encode()
+                if chunks:
+                    image_bytes = chunks
                 else:
                     raise Exception("Flux Kontext returned empty output")
             else:
-                image_url = str(output)
+                raise Exception(f"Unexpected Kontext output type: {type(output)}")
 
-            print(f"[KONTEXT] Generation complete: {image_url[:80]}")
-            return image_url
+            os.makedirs("generated/previews", exist_ok=True)
+            local_path = f"generated/previews/kontext_{uuid.uuid4().hex[:8]}.png"
+            with open(local_path, "wb") as f:
+                f.write(image_bytes)
+            print(f"[KONTEXT] Generation complete, saved locally: {local_path} ({len(image_bytes)} bytes)")
+            return local_path
 
         except Exception as e:
             error_msg = str(e)
@@ -513,30 +532,63 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                 hair_for_prompt = "hair and scalp naturally matching the reference photo"
             else:
                 hair_for_prompt = hair_desc
-            human_prompt = build_human_preview_prompt_with_photo(gender_word, age_display, eye_desc, hair_for_prompt, glasses=glasses_val, facial_hair=facial_hair_val)
+            # With photo: pass a SHORT skin tone hint only for darker tones where FLUX Pixar style
+            # tends to lighten the skin. Light/medium tones are reproduced well from the photo alone.
+            # Without photo: use the full verbose description so FLUX respects the form selection.
+            _skin_key = traits.get('skin_tone', 'light')
+            _short_tone_map = {
+                'dark': 'dark brown', 'brown': 'rich brown',
+                'medium_dark': 'warm brown', 'medium': 'warm caramel',
+                'tan': 'warm tan'
+            }
+            skin_tone_for_prompt = _short_tone_map.get(_skin_key, '') if human_photo_path else get_unified_skin_description(_skin_key)
+            human_prompt = build_human_preview_prompt_with_photo(gender_word, age_display, eye_desc, hair_for_prompt, glasses=glasses_val, facial_hair=facial_hair_val, skin_tone=skin_tone_for_prompt)
         else:
-            human_prompt = build_human_preview_prompt(human_desc)
+            _is_baby_no_photo = (story_id == 'furry_love_illustrated')
+            human_prompt = build_human_preview_prompt(human_desc, is_baby=_is_baby_no_photo)
         
+        print(f"[PREVIEW DEBUG] HUMAN PROMPT FULL ({len(human_prompt)} chars): {human_prompt}")
         if pet_photo_path:
-            pet_prompt = build_pet_preview_prompt_with_photo(pet_desc, pet_species)
+            pet_prompt = build_pet_preview_prompt_with_photo(pet_desc, pet_species, pet_size=traits.get('pet_size', 'medium'))
         else:
-            pet_prompt = build_pet_preview_prompt(pet_desc)
+            pet_prompt = build_pet_preview_prompt(pet_desc, pet_size=traits.get('pet_size', 'medium'))
         
-        use_pulid = story_id in ('furry_love_teen_illustrated', 'furry_love_adult_illustrated')
-        use_kontext = story_id == 'furry_love_adventure_illustrated'
+        use_pulid = story_id in ('furry_love_adult_illustrated',)
+        use_kontext = story_id in ('furry_love_adventure_illustrated', 'furry_love_teen_illustrated', 'furry_love_illustrated')
         
         if human_photo_path and use_kontext:
             print(f"[FURRY LOVE PREVIEW] Generating human preview WITH photo using FLUX Kontext Pro (full identity): {human_photo_path}")
             skin_tone_k = get_unified_skin_description(traits.get('skin_tone', 'light'))
-            kontext_prompt = (
-                f"Transform this child into a Disney Pixar 3D animated character. "
-                f"FULL BODY from head to toe, standing confidently, big joyful smile, arms relaxed at sides. "
-                f"{gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone_k} skin. "
-                f"Wearing a colorful adventure outfit with a small explorer backpack. "
-                f"NEUTRAL SOLID GRADIENT BACKGROUND, soft cream to warm beige, plain studio portrait. "
-                f"Disney Pixar 3D animation style, big expressive eyes, smooth skin, warm cinematic lighting. "
-                f"Clean professional illustration only. ABSOLUTELY NO text, no watermarks, no logos anywhere."
-            )
+            if story_id == 'furry_love_illustrated':
+                # Baby book — minimal prompt: just convert the baby from the photo, no characteristic descriptions
+                kontext_prompt = (
+                    f"Convert the {gender_word} in @image1 into a high-quality 3D animated children's book character. "
+                    f"Preserve the exact face, skin tone, and hair of the baby — identical likeness. "
+                    f"OUTFIT: soft sage-green baby romper with small leaf print, no text on clothing. "
+                    f"BACKGROUND: soft cream gradient, plain studio. "
+                    f"POSE: baby sitting on the floor, facing camera, warm happy smiling expression, full body visible from head to bare feet, natural baby proportions, face and body balanced."
+                )
+            elif story_id == 'furry_love_teen_illustrated':
+                # Teen — same minimal @image1 approach as baby and adventure: let Kontext read the photo directly
+                kontext_prompt = (
+                    f"Convert the {gender_word} in @image1 into a high-quality 3D animated children's book character. "
+                    f"Preserve the exact face, skin tone, and hair — identical likeness. "
+                    f"OUTFIT: casual hoodie and jeans, sneakers — modern teen style. "
+                    f"BACKGROUND: soft cream gradient, plain studio. "
+                    f"POSE: standing, full body visible from head to feet, confident friendly smile, arms relaxed at sides."
+                )
+            else:
+                # Kids (3-8 años) — minimal prompt like baby: convert from photo, no characteristic descriptions
+                kontext_prompt = (
+                    f"Convert the {gender_word} in @image1 into a high-quality 3D animated children's book character. "
+                    f"Preserve the exact face, skin tone, and hair — identical likeness. "
+                    f"OUTFIT: colorful t-shirt with shorts or pants, sneakers — fun casual children's style. "
+                    f"BACKGROUND: soft cream gradient, plain studio. "
+                    f"POSE: standing, full body visible from head to feet, big joyful smile, arms relaxed at sides."
+                )
+            print(f"[PREVIEW DEBUG] story_id={story_id} | gender={gender_word} | age={age_display}")
+            print(f"[PREVIEW DEBUG] skin_tone_key={traits.get('skin_tone','?')} | skin_tone_k={skin_tone_k}")
+            print(f"[PREVIEW DEBUG] KONTEXT PROMPT FULL: {kontext_prompt}")
             try:
                 human_url = generate_with_flux_kontext(kontext_prompt, human_photo_path, aspect_ratio="3:4")
             except Exception as kontext_err:
@@ -558,12 +610,15 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
             human_url = generate_with_flux2_dev(human_prompt, aspect_ratio="3:4", photo_ref_path=human_photo_path, image_prompt_strength=0.90)
         else:
             print(f"[FURRY LOVE PREVIEW] Generating human preview (no photo)...")
-            human_url = generate_with_flux2_dev(human_prompt, aspect_ratio="3:4", image_prompt_strength=0.75)
+            _hair_neg = "full hair, thick voluminous hair, hair covering entire head, dense hair" if traits.get('hair_length') == 'very_little' else None
+            human_url = generate_with_flux2_dev(human_prompt, aspect_ratio="3:4", image_prompt_strength=0.75, negative_prompt=_hair_neg)
         
         if pet_photo_path:
             print(f"[FURRY LOVE PREVIEW] Generating pet preview WITH photo reference: {pet_photo_path}")
         else:
             print(f"[FURRY LOVE PREVIEW] Generating pet preview (no photo)...")
+        print(f"[PREVIEW DEBUG] pet_species={traits.get('pet_species','?')} | pet_size={traits.get('pet_size','?')} | pet_desc_raw='{traits.get('pet_desc','')}'")
+        print(f"[PREVIEW DEBUG] PET PROMPT FULL: {pet_prompt}")
         pet_url = generate_with_flux2_dev(pet_prompt, aspect_ratio="3:4", photo_ref_path=pet_photo_path or None, image_prompt_strength=0.90)
         
         output_dir = 'generated/previews'
