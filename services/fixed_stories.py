@@ -1990,7 +1990,7 @@ def get_hair_description(traits: dict, gender: str = None) -> str:
     t = type_map.get(hair_type, hair_type)
     
     if length == 'bald':
-        return "completely smooth bald head, perfectly round hairless baby head, clean soft scalp"
+        return "bald"
 
     if length == 'very_little':
         sc_map = {
@@ -1999,37 +1999,7 @@ def get_hair_description(traits: dict, gender: str = None) -> str:
             'red': 'bright red', 'auburn': 'auburn',
         }
         sc = sc_map.get(color, c)
-        # child_age for baby stories is in MONTHS (3,6,9,15,21); for older stories it's in YEARS.
-        # is_baby_story flag distinguishes the two contexts.
-        child_age_vl = int(traits.get('child_age', 1) or 1)
-        is_baby_story_vl = traits.get('is_baby_story', False)
-        if not is_baby_story_vl and child_age_vl >= 2:
-            # Non-baby children 2+ years: real very-short haircut (NOT bald)
-            if gender == 'male':
-                if hair_type in ('afro', 'coily'):
-                    return f"{sc} extremely short tightly coiled afro buzz cut, coils barely visible close to scalp, very low fade"
-                elif hair_type == 'curly':
-                    return f"{sc} extremely short tight curly boys buzz cut, natural tight curls barely visible close to scalp, clean high fade on sides"
-                elif hair_type == 'wavy':
-                    return f"{sc} extremely short wavy boys crew cut, waves barely visible, clean high fade on sides and back"
-                else:
-                    return f"{sc} extremely short straight boys buzz cut, very tight high fade on sides, minimal hair on top"
-            else:
-                if hair_type in ('afro', 'coily'):
-                    return f"{sc} extremely short tightly coiled afro girls cut, coils very close to scalp, above the ears, closely cropped all around"
-                elif hair_type == 'curly':
-                    return f"{sc} extremely short curly girls pixie cut, natural tight curls, hair above the ears, closely cropped all around"
-                elif hair_type == 'wavy':
-                    return f"{sc} extremely short wavy girls pixie cut, barely visible waves, short all around above the ears"
-                else:
-                    return f"{sc} extremely short straight girls pixie cut, hair above the ears, very neatly cropped all around"
-        else:
-            # Baby stories (child_age in months) OR children 0-1 years: sparse baby wisps, visually distinct from bald
-            return (
-                f"sparse fine {sc} baby hair wisps barely covering the scalp, "
-                f"fine individual strands lying completely flat against the skin with no volume and no height, "
-                f"scalp clearly visible through the sparse wispy coverage"
-            )
+        return f"short fine baby hair, covering the scalp, {sc} color, {t} texture"
 
     if length == 'very_short':
         if gender == 'male':
