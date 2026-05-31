@@ -19,7 +19,7 @@
                 <span class="text-2xl">🐾</span>
                 <div>
                     <h3 class="font-bold text-amber-800">{% if lang == 'es' %}Tu Historia con tu Mascota{% else %}Your Story with Your Pet{% endif %}</h3>
-                    <p class="text-amber-700 text-sm">{% if lang == 'es' %}Este libro celebra el vínculo entre una persona y su perro. Describirás tanto al protagonista humano como a su mascota para crear ilustraciones personalizadas.{% else %}This book celebrates the bond between a person and their dog. You'll describe both the human protagonist and their pet to create personalized illustrations.{% endif %}</p>
+                    <p class="text-amber-700 text-sm">{% if lang == 'es' %}Este libro celebra el vínculo entre una persona y su mascota. Describirás tanto al protagonista humano como a su mascota para crear ilustraciones personalizadas.{% else %}This book celebrates the bond between a person and their pet. You'll describe both the human protagonist and their pet to create personalized illustrations.{% endif %}</p>
                 </div>
             </div>
 
@@ -131,10 +131,17 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">📷 {% if lang == 'es' %}Foto del protagonista{% else %}Protagonist photo{% endif %} <span class="text-xs text-gray-400">({% if lang == 'es' %}opcional{% else %}optional{% endif %})</span></label>
+                        <div class="mb-2 px-3 py-2 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-700 space-y-0.5">
+                            <p class="font-semibold">{% if lang == 'es' %}📸 Consejos para mejor resultado:{% else %}📸 Tips for best results:{% endif %}</p>
+                            <p>✅ {% if lang == 'es' %}Foto del rostro, de frente{% else %}Face photo, front-facing{% endif %}</p>
+                            <p>✅ {% if lang == 'es' %}Ojos abiertos y bien iluminados{% else %}Eyes open and well lit{% endif %}</p>
+                            <p>✅ {% if lang == 'es' %}Fondo neutro o simple{% else %}Plain or neutral background{% endif %}</p>
+                            <p>❌ {% if lang == 'es' %}Sin gafas de sol ni sombras en la cara{% else %}No sunglasses or shadows on the face{% endif %}</p>
+                        </div>
                         <label class="flex items-center gap-2 mb-2 cursor-pointer">
                             <input type="checkbox" id="humanPhotoConsentCheck" class="w-4 h-4 accent-amber-600" onchange="toggleHumanPhotoZone(this.checked)">
                             <span class="text-xs text-gray-600">
-                                {% if lang == 'es' %}Doy mi consentimiento para el procesamiento temporal de esta foto con fines de generación de ilustraciones (eliminada tras el proceso).{% else %}I consent to the temporary processing of this photo for illustration generation purposes (deleted after processing).{% endif %}
+                                {% if lang == 'es' %}Doy mi consentimiento para el procesamiento temporal de esta foto con fines de generación de ilustraciones (eliminada automáticamente en 72 horas).{% else %}I consent to the temporary processing of this photo for illustration generation purposes (automatically deleted within 72 hours).{% endif %}
                             </span>
                         </label>
                         <div id="humanPhotoDropZone" class="border-2 border-dashed border-amber-300 rounded-xl p-3 text-center transition-colors bg-amber-50/30 opacity-50 pointer-events-none select-none">
@@ -199,9 +206,7 @@
                                 <option value="7">7 {% if lang == 'es' %}años{% else %}years{% endif %}</option>
                                 <option value="8">8 {% if lang == 'es' %}años{% else %}years{% endif %}</option>
                                 {% else %}
-                                <option value="0">{% if lang == 'es' %}Bebé (0){% else %}Baby (0){% endif %}</option>
-                                <option value="1" selected>1 {% if lang == 'es' %}año{% else %}year{% endif %}</option>
-                                <option value="2">2 {% if lang == 'es' %}años{% else %}years{% endif %}</option>
+                                <option value="0" selected>{% if lang == 'es' %}Bebé{% else %}Baby{% endif %}</option>
                                 {% endif %}
                             </select>
                             {% if story_id in ('furry_love_teen_illustrated', 'furry_love_adult_illustrated') %}
@@ -219,8 +224,11 @@
                         </div>
                     </div>
 
-                    <div class="border-t border-amber-100 pt-4">
+                    <div id="childAppearanceSection" class="border-t border-amber-100 pt-4">
                         <h3 class="text-sm font-bold text-amber-700 mb-3">🎨 {% if lang == 'es' %}Apariencia{% else %}Appearance{% endif %}</h3>
+                        <div id="photoOverridesNote" class="hidden mb-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700">
+                            📷 {% if lang == 'es' %}La foto define la apariencia del bebé — estas opciones no se aplican.{% else %}The photo defines the baby's appearance — these options are not applied.{% endif %}
+                        </div>
 
                         <div class="space-y-3">
                             <div id="hair-color-section">
@@ -286,6 +294,7 @@
                             <div>
                                 <label class="block text-xs font-medium text-gray-700 mb-1.5">{% if lang == 'es' %}Longitud del cabello{% else %}Hair length{% endif %} *</label>
                                 <div class="flex gap-2">
+                                    {% if story_id in ('furry_love_illustrated', 'furry_love_adult_illustrated') %}
                                     <label class="cursor-pointer flex-1">
                                         <input type="radio" name="hair_length" value="bald" class="peer sr-only" onchange="toggleHairSections()">
                                         <div class="border-2 border-gray-200 rounded-xl py-1.5 px-2 text-center transition-all peer-checked:border-amber-500 peer-checked:bg-amber-50 hover:border-amber-300 text-sm">
@@ -298,6 +307,7 @@
                                             <span class="text-xs">{% if lang == 'es' %}Casi sin cabello{% else %}Very little{% endif %}</span>
                                         </div>
                                     </label>
+                                    {% endif %}
                                     <label class="cursor-pointer flex-1">
                                         <input type="radio" name="hair_length" value="short" class="peer sr-only" onchange="toggleHairSections()">
                                         <div class="border-2 border-gray-200 rounded-xl py-1.5 px-2 text-center transition-all peer-checked:border-amber-500 peer-checked:bg-amber-50 hover:border-amber-300 text-sm">
@@ -319,35 +329,6 @@
                                 </div>
                             </div>
 
-                            <div>
-                                <label class="block text-xs font-medium text-gray-700 mb-1.5">{% if lang == 'es' %}Color de ojos{% else %}Eye color{% endif %} *</label>
-                                <div class="flex flex-wrap gap-2">
-                                    <label class="cursor-pointer">
-                                        <input type="radio" name="eye_color" value="black" class="peer sr-only" checked>
-                                        <div class="w-9 h-9 rounded-full border-2 border-gray-700 peer-checked:border-amber-500 peer-checked:ring-2 peer-checked:ring-amber-300 transition-all hover:scale-110" style="background-color: #1a1a1a;" title="{% if lang == 'es' %}Negro{% else %}Black{% endif %}"></div>
-                                    </label>
-                                    <label class="cursor-pointer">
-                                        <input type="radio" name="eye_color" value="brown" class="peer sr-only">
-                                        <div class="w-9 h-9 rounded-full border-2 border-gray-700 peer-checked:border-amber-500 peer-checked:ring-2 peer-checked:ring-amber-300 transition-all hover:scale-110" style="background-color: #8B4513;" title="{% if lang == 'es' %}Marrón{% else %}Brown{% endif %}"></div>
-                                    </label>
-                                    <label class="cursor-pointer">
-                                        <input type="radio" name="eye_color" value="hazel" class="peer sr-only">
-                                        <div class="w-9 h-9 rounded-full border-2 border-gray-700 peer-checked:border-amber-500 peer-checked:ring-2 peer-checked:ring-amber-300 transition-all hover:scale-110" style="background-color: #A67B5B;" title="{% if lang == 'es' %}Avellana{% else %}Hazel{% endif %}"></div>
-                                    </label>
-                                    <label class="cursor-pointer">
-                                        <input type="radio" name="eye_color" value="green" class="peer sr-only">
-                                        <div class="w-9 h-9 rounded-full border-2 border-gray-700 peer-checked:border-amber-500 peer-checked:ring-2 peer-checked:ring-amber-300 transition-all bg-green-600 hover:scale-110" title="{% if lang == 'es' %}Verde{% else %}Green{% endif %}"></div>
-                                    </label>
-                                    <label class="cursor-pointer">
-                                        <input type="radio" name="eye_color" value="blue" class="peer sr-only">
-                                        <div class="w-9 h-9 rounded-full border-2 border-gray-700 peer-checked:border-amber-500 peer-checked:ring-2 peer-checked:ring-amber-300 transition-all bg-blue-500 hover:scale-110" title="{% if lang == 'es' %}Azul{% else %}Blue{% endif %}"></div>
-                                    </label>
-                                    <label class="cursor-pointer">
-                                        <input type="radio" name="eye_color" value="gray" class="peer sr-only">
-                                        <div class="w-9 h-9 rounded-full border-2 border-gray-700 peer-checked:border-amber-500 peer-checked:ring-2 peer-checked:ring-amber-300 transition-all bg-gray-500 hover:scale-110" title="{% if lang == 'es' %}Gris{% else %}Gray{% endif %}"></div>
-                                    </label>
-                                </div>
-                            </div>
 
                             <div>
                                 <label class="block text-xs font-medium text-gray-700 mb-1.5">{% if lang == 'es' %}Tono de piel{% else %}Skin tone{% endif %} *</label>
@@ -440,6 +421,39 @@
                             {% endif %}
                         </div>
                     </div>
+
+                    <div id="eyeColorSection" class="border-t border-amber-100 pt-4">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">{% if lang == 'es' %}Color de ojos{% else %}Eye color{% endif %} *</label>
+                        <p id="eyeColorNote" class="hidden text-xs text-amber-600 mb-2">👁 {% if lang == 'es' %}Necesario para reproducir el color de ojos en las ilustraciones{% else %}Needed to reproduce eye color in illustrations{% endif %}</p>
+                        <div class="flex flex-wrap gap-2">
+                                <div class="flex flex-wrap gap-2">
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="eye_color" value="black" class="peer sr-only" checked>
+                                        <div class="w-9 h-9 rounded-full border-2 border-gray-700 peer-checked:border-amber-500 peer-checked:ring-2 peer-checked:ring-amber-300 transition-all hover:scale-110" style="background-color: #1a1a1a;" title="{% if lang == 'es' %}Negro{% else %}Black{% endif %}"></div>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="eye_color" value="brown" class="peer sr-only">
+                                        <div class="w-9 h-9 rounded-full border-2 border-gray-700 peer-checked:border-amber-500 peer-checked:ring-2 peer-checked:ring-amber-300 transition-all hover:scale-110" style="background-color: #8B4513;" title="{% if lang == 'es' %}Marrón{% else %}Brown{% endif %}"></div>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="eye_color" value="hazel" class="peer sr-only">
+                                        <div class="w-9 h-9 rounded-full border-2 border-gray-700 peer-checked:border-amber-500 peer-checked:ring-2 peer-checked:ring-amber-300 transition-all hover:scale-110" style="background-color: #A67B5B;" title="{% if lang == 'es' %}Avellana{% else %}Hazel{% endif %}"></div>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="eye_color" value="green" class="peer sr-only">
+                                        <div class="w-9 h-9 rounded-full border-2 border-gray-700 peer-checked:border-amber-500 peer-checked:ring-2 peer-checked:ring-amber-300 transition-all bg-green-600 hover:scale-110" title="{% if lang == 'es' %}Verde{% else %}Green{% endif %}"></div>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="eye_color" value="blue" class="peer sr-only">
+                                        <div class="w-9 h-9 rounded-full border-2 border-gray-700 peer-checked:border-amber-500 peer-checked:ring-2 peer-checked:ring-amber-300 transition-all bg-blue-500 hover:scale-110" title="{% if lang == 'es' %}Azul{% else %}Blue{% endif %}"></div>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="eye_color" value="gray" class="peer sr-only">
+                                        <div class="w-9 h-9 rounded-full border-2 border-gray-700 peer-checked:border-amber-500 peer-checked:ring-2 peer-checked:ring-amber-300 transition-all bg-gray-500 hover:scale-110" title="{% if lang == 'es' %}Gris{% else %}Gray{% endif %}"></div>
+                                    </label>
+                                </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -476,6 +490,13 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">📷 {% if lang == 'es' %}Foto de tu mascota{% else %}Your pet's photo{% endif %} <span class="text-xs text-gray-400">({% if lang == 'es' %}opcional{% else %}optional{% endif %})</span></label>
+                        <div class="mb-2 px-3 py-2 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-700 space-y-0.5">
+                            <p class="font-semibold">{% if lang == 'es' %}📸 Consejos para mejor resultado:{% else %}📸 Tips for best results:{% endif %}</p>
+                            <p>✅ {% if lang == 'es' %}Foto de cuerpo completo — evita que FLUX invente partes{% else %}Full body photo — prevents FLUX from inventing body parts{% endif %}</p>
+                            <p>✅ {% if lang == 'es' %}Mascota de frente o en ángulo de 3/4{% else %}Pet facing front or at 3/4 angle{% endif %}</p>
+                            <p>✅ {% if lang == 'es' %}Buena iluminación, colores visibles{% else %}Good lighting, colors clearly visible{% endif %}</p>
+                            <p>❌ {% if lang == 'es' %}Sin primer plano solo de cara{% else %}No close-up of just the face{% endif %}</p>
+                        </div>
                         <div id="petPhotoDropZone" class="border-2 border-dashed border-amber-300 rounded-xl p-3 text-center hover:border-amber-500 transition-colors cursor-pointer bg-amber-50/30">
                             <input type="file" id="petPhotoInput" accept="image/*" class="hidden">
                             <div id="petPhotoPlaceholderArea">
@@ -763,6 +784,22 @@ function toggleAdultExtraFields() {
     }
 }
 
+function toggleBabyAppearanceFields() {
+    const section = document.getElementById('childAppearanceSection');
+    const note = document.getElementById('photoOverridesNote');
+    const eyeNote = document.getElementById('eyeColorNote');
+    if (!section) return;
+    if (humanPhotoUploaded) {
+        section.classList.add('opacity-50', 'pointer-events-none', 'select-none');
+        if (note) note.classList.remove('hidden');
+        if (eyeNote) eyeNote.classList.remove('hidden');
+    } else {
+        section.classList.remove('opacity-50', 'pointer-events-none', 'select-none');
+        if (note) note.classList.add('hidden');
+        if (eyeNote) eyeNote.classList.add('hidden');
+    }
+}
+
 function toggleHumanPhotoZone(checked) {
     const zone = document.getElementById('humanPhotoDropZone');
     if (checked) {
@@ -824,6 +861,7 @@ function setupPhotoUpload(dropZoneId, inputId, placeholderId, previewId, thumbId
         if (type === 'human') {
             humanPhotoUploaded = false;
             toggleAdultExtraFields();
+            toggleBabyAppearanceFields();
         }
         else petPhotoUploaded = false;
     });
@@ -860,6 +898,7 @@ function setupPhotoUpload(dropZoneId, inputId, placeholderId, previewId, thumbId
                 if (type === 'human') {
                     humanPhotoUploaded = true;
                     toggleAdultExtraFields();
+                    toggleBabyAppearanceFields();
                 }
                 else petPhotoUploaded = true;
             } else {
@@ -875,6 +914,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setupPhotoUpload('humanPhotoDropZone', 'humanPhotoInput', 'humanPhotoPlaceholderArea', 'humanPhotoPreviewArea', 'humanPhotoThumb', 'removeHumanPhoto', 'humanPhotoName', 'humanPhotoPath', 'human');
     setupPhotoUpload('petPhotoDropZone', 'petPhotoInput', 'petPhotoPlaceholderArea', 'petPhotoPreviewArea', 'petPhotoThumb', 'removePetPhoto', 'petPhotoName', 'petPhotoPath', 'pet');
     toggleAdultExtraFields();
+    toggleBabyAppearanceFields();
+    toggleHairSections();
 });
 
 const DOG_BREED_NAMES = {
@@ -1081,8 +1122,10 @@ async function generatePreviews() {
         const hairLength = document.querySelector('input[name="hair_length"]:checked').value;
         const eyeColor = document.querySelector('input[name="eye_color"]:checked').value;
         const skinTone = document.querySelector('input[name="skin_tone"]:checked').value;
+        const isBald = hairLength === 'bald';
 
         const petDesc = buildPetDescription();
+        const petSize = document.querySelector('input[name="pet_size"]:checked')?.value || 'medium';
 
         const humanPhotoPath = document.getElementById('humanPhotoPath').value;
         const petPhotoPath = document.getElementById('petPhotoPath').value;
@@ -1095,14 +1138,15 @@ async function generatePreviews() {
                 child_name: childName,
                 gender: childGender,
                 child_age: childAge,
-                hair_color: hairColor,
-                hair_type: hairType,
+                hair_color: isBald ? '' : hairColor,
+                hair_type: isBald ? '' : hairType,
                 hair_length: hairLength,
                 eye_color: eyeColor,
                 skin_tone: skinTone,
                 pet_name: petName,
                 pet_desc: petDesc,
                 pet_species: getSelectedSpecies(),
+                pet_size: petSize,
                 human_photo_path: humanPhotoPath || '',
                 pet_photo_path: petPhotoPath || '',
                 facial_hair: document.querySelector('input[name="facial_hair"]:checked')?.value || 'none',
@@ -1204,7 +1248,9 @@ async function regenerateSinglePreview(which) {
         const hairLength = document.querySelector('input[name="hair_length"]:checked').value;
         const eyeColor = document.querySelector('input[name="eye_color"]:checked').value;
         const skinTone = document.querySelector('input[name="skin_tone"]:checked').value;
+        const isBaldRegen = hairLength === 'bald';
         const petDesc = buildPetDescription();
+        const petSize = document.querySelector('input[name="pet_size"]:checked')?.value || 'medium';
         const humanPhotoPath = document.getElementById('humanPhotoPath').value;
         const petPhotoPath = document.getElementById('petPhotoPath').value;
 
@@ -1216,14 +1262,15 @@ async function regenerateSinglePreview(which) {
                 child_name: childName,
                 gender: childGender,
                 child_age: childAge,
-                hair_color: hairColor,
-                hair_type: hairType,
+                hair_color: isBaldRegen ? '' : hairColor,
+                hair_type: isBaldRegen ? '' : hairType,
                 hair_length: hairLength,
                 eye_color: eyeColor,
                 skin_tone: skinTone,
                 pet_name: petName,
                 pet_desc: petDesc,
                 pet_species: getSelectedSpecies(),
+                pet_size: petSize,
                 human_photo_path: humanPhotoPath || '',
                 pet_photo_path: petPhotoPath || '',
                 facial_hair: document.querySelector('input[name="facial_hair"]:checked')?.value || 'none',
