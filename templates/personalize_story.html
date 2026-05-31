@@ -111,9 +111,14 @@
                     {% if lang == 'es' %}📸 Foto del Protagonista{% else %}📸 Protagonist Photo{% endif %}
                     <span class="text-sm font-normal text-gray-400 ml-2">({% if lang == 'es' %}opcional{% else %}optional{% endif %})</span>
                 </h2>
-                <p class="text-gray-500 text-sm mb-4">
-                    {% if lang == 'es' %}Sube una foto del niño/a para que el preview y las ilustraciones se parezcan más a él/ella. La foto se elimina automáticamente tras generar el libro.{% else %}Upload a photo of the child so the preview and illustrations resemble them. The photo is automatically deleted after the book is generated.{% endif %}
-                </p>
+                <div class="mb-4 px-3 py-2 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-700 space-y-0.5">
+                    <p class="font-semibold">{% if lang == 'es' %}📸 Consejos para mejor resultado:{% else %}📸 Tips for best results:{% endif %}</p>
+                    <p>✅ {% if lang == 'es' %}Foto del rostro, de frente{% else %}Face photo, front-facing{% endif %}</p>
+                    <p>✅ {% if lang == 'es' %}Ojos abiertos y bien iluminados{% else %}Eyes open and well lit{% endif %}</p>
+                    <p>✅ {% if lang == 'es' %}Fondo neutro o simple{% else %}Plain or neutral background{% endif %}</p>
+                    <p>❌ {% if lang == 'es' %}Sin gafas de sol ni sombras en la cara{% else %}No sunglasses or shadows on the face{% endif %}</p>
+                    <p class="text-blue-500 mt-1">🔒 {% if lang == 'es' %}La foto se elimina automáticamente en 72 horas{% else %}Photo is automatically deleted within 72 hours{% endif %}</p>
+                </div>
                 <div id="photoUploadStatus" class="hidden mb-3 p-3 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3">
                     <img id="photoThumb" src="" alt="Photo" class="w-14 h-14 object-cover rounded-lg border border-green-300">
                     <div>
@@ -125,7 +130,7 @@
                     <label class="flex items-center gap-2 mb-3 cursor-pointer">
                         <input type="checkbox" id="photoConsentCheck" class="w-4 h-4 accent-purple-600">
                         <span class="text-xs text-gray-600">
-                            {% if lang == 'es' %}Doy mi consentimiento para el procesamiento temporal de esta foto con fines de generación de ilustraciones (eliminada tras el proceso).{% else %}I consent to the temporary processing of this photo for illustration generation purposes (deleted after processing).{% endif %}
+                            {% if lang == 'es' %}Doy mi consentimiento para el procesamiento temporal de esta foto con fines de generación de ilustraciones (eliminada automáticamente en 72 horas).{% else %}I consent to the temporary processing of this photo for illustration generation purposes (automatically deleted within 72 hours).{% endif %}
                         </span>
                     </label>
                     <label id="photoUploadLabel" class="block w-full py-3 px-4 bg-purple-50 border-2 border-dashed border-purple-200 rounded-xl text-center text-purple-600 text-sm font-medium cursor-not-allowed opacity-50 transition-all">
@@ -200,6 +205,11 @@
                                 <option value="en" {% if lang == 'en' %}selected{% endif %}>🇬🇧 EN</option>
                             </select>
                         </div>
+                    </div>
+
+                    <div id="characterAppearanceSection">
+                    <div id="photoOverridesNoteStory" class="hidden mb-3 px-3 py-2 bg-purple-50 border border-purple-200 rounded-xl text-xs text-purple-700">
+                        📷 {% if lang == 'es' %}La foto define la apariencia del personaje — estas opciones no se aplican.{% else %}The photo defines character appearance — these options are not applied.{% endif %}
                     </div>
 
                     <div>
@@ -309,7 +319,36 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ translations.form_eye_color }} *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ translations.form_skin_tone }} *</label>
+                        <div class="flex flex-wrap gap-3">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="skin_tone" value="light" class="peer sr-only" checked>
+                                <div class="w-12 h-12 rounded-full border-2 border-gray-700 peer-checked:border-purple-500 peer-checked:ring-2 peer-checked:ring-purple-300 transition-all hover:scale-110" style="background-color: #FFCDB2;" title="{% if lang == 'es' %}Claro{% else %}Light{% endif %}"></div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="skin_tone" value="medium" class="peer sr-only">
+                                <div class="w-12 h-12 rounded-full border-2 border-gray-700 peer-checked:border-purple-500 peer-checked:ring-2 peer-checked:ring-purple-300 transition-all hover:scale-110" style="background-color: #C19A6B;" title="{% if lang == 'es' %}Medio{% else %}Medium{% endif %}"></div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="skin_tone" value="dark" class="peer sr-only">
+                                <div class="w-12 h-12 rounded-full border-2 border-gray-700 peer-checked:border-purple-500 peer-checked:ring-2 peer-checked:ring-purple-300 transition-all hover:scale-110" style="background-color: #6B4423;" title="{% if lang == 'es' %}Oscuro{% else %}Dark{% endif %}"></div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">{% if lang == 'es' %}¿Lleva gafas de ver?{% else %}Does the child wear glasses?{% endif %}</label>
+                        <label class="inline-flex items-center gap-3 cursor-pointer select-none">
+                            <input type="checkbox" name="glasses" id="glasses_check" value="yes" class="w-5 h-5 accent-purple-600 rounded">
+                            <span class="text-sm text-gray-700">{% if lang == 'es' %}Sí, lleva gafas graduadas{% else %}Yes, wears prescription glasses{% endif %}</span>
+                        </label>
+                    </div>
+
+                    </div><!-- end characterAppearanceSection -->
+
+                    <div id="eyeColorSection">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">{{ translations.form_eye_color }} *</label>
+                        <p id="eyeColorNote" class="hidden text-xs text-purple-600 mb-2">👁 {% if lang == 'es' %}Indica el color de ojos para reproducirlo en las ilustraciones{% else %}Select eye color so it appears correctly in illustrations{% endif %}</p>
                         <div class="flex flex-wrap gap-2">
                             <label class="cursor-pointer">
                                 <input type="radio" name="eye_color" value="black" class="peer sr-only" checked>
@@ -338,31 +377,6 @@
                         </div>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ translations.form_skin_tone }} *</label>
-                        <div class="flex flex-wrap gap-3">
-                            <label class="cursor-pointer">
-                                <input type="radio" name="skin_tone" value="light" class="peer sr-only" checked>
-                                <div class="w-12 h-12 rounded-full border-2 border-gray-700 peer-checked:border-purple-500 peer-checked:ring-2 peer-checked:ring-purple-300 transition-all hover:scale-110" style="background-color: #FFCDB2;" title="{% if lang == 'es' %}Claro{% else %}Light{% endif %}"></div>
-                            </label>
-                            <label class="cursor-pointer">
-                                <input type="radio" name="skin_tone" value="medium" class="peer sr-only">
-                                <div class="w-12 h-12 rounded-full border-2 border-gray-700 peer-checked:border-purple-500 peer-checked:ring-2 peer-checked:ring-purple-300 transition-all hover:scale-110" style="background-color: #C19A6B;" title="{% if lang == 'es' %}Medio{% else %}Medium{% endif %}"></div>
-                            </label>
-                            <label class="cursor-pointer">
-                                <input type="radio" name="skin_tone" value="dark" class="peer sr-only">
-                                <div class="w-12 h-12 rounded-full border-2 border-gray-700 peer-checked:border-purple-500 peer-checked:ring-2 peer-checked:ring-purple-300 transition-all hover:scale-110" style="background-color: #6B4423;" title="{% if lang == 'es' %}Oscuro{% else %}Dark{% endif %}"></div>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">{% if lang == 'es' %}¿Lleva gafas de ver?{% else %}Does the child wear glasses?{% endif %}</label>
-                        <label class="inline-flex items-center gap-3 cursor-pointer select-none">
-                            <input type="checkbox" name="glasses" id="glasses_check" value="yes" class="w-5 h-5 accent-purple-600 rounded">
-                            <span class="text-sm text-gray-700">{% if lang == 'es' %}Sí, lleva gafas graduadas{% else %}Yes, wears prescription glasses{% endif %}</span>
-                        </label>
-                    </div>
 
                     <div class="flex gap-3">
                         <button type="button" id="viewStoryTextBtn" class="flex-1 inline-flex items-center justify-center px-4 py-3 bg-white text-purple-600 font-semibold rounded-full hover:bg-purple-50 transition-all border-2 border-purple-300">
@@ -706,6 +720,22 @@ function showError(message) {
 {% if is_illustrated_book %}
 let childPhotoPath = null;
 
+function toggleAppearanceFields() {
+    const section = document.getElementById('characterAppearanceSection');
+    const note = document.getElementById('photoOverridesNoteStory');
+    const eyeNote = document.getElementById('eyeColorNote');
+    if (!section) return;
+    if (childPhotoPath) {
+        section.classList.add('opacity-50', 'pointer-events-none', 'select-none');
+        if (note) note.classList.remove('hidden');
+        if (eyeNote) eyeNote.classList.remove('hidden');
+    } else {
+        section.classList.remove('opacity-50', 'pointer-events-none', 'select-none');
+        if (note) note.classList.add('hidden');
+        if (eyeNote) eyeNote.classList.add('hidden');
+    }
+}
+
 document.getElementById('photoConsentCheck').addEventListener('change', function() {
     const fileInput = document.getElementById('photoFileInput');
     const label = document.getElementById('photoUploadLabel');
@@ -740,6 +770,7 @@ async function handleChildPhotoUpload(input) {
             thumb.src = URL.createObjectURL(file);
             document.getElementById('photoUploadStatus').classList.remove('hidden');
             document.getElementById('photoUploadForm').classList.add('hidden');
+            toggleAppearanceFields();
         } else {
             document.getElementById('photoUploadError').textContent = data.error || '{% if lang == "es" %}Error al subir la foto{% else %}Error uploading photo{% endif %}';
             document.getElementById('photoUploadError').classList.remove('hidden');
@@ -757,6 +788,7 @@ function removeChildPhoto() {
     document.getElementById('photoUploadStatus').classList.add('hidden');
     document.getElementById('photoUploadForm').classList.remove('hidden');
     document.getElementById('photoThumb').src = '';
+    toggleAppearanceFields();
 }
 {% endif %}
 
