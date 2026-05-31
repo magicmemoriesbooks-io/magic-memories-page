@@ -2001,7 +2001,12 @@ def generate_baby_preview_api():
             traits['pet_name'] = data.get('pet_name', 'Buddy')
             traits['pet_desc'] = data.get('pet_desc', '')
             traits['pet_species'] = data.get('pet_species', 'dog')
-            human_desc = f"a {gender_word} ({child_age} year old), {hair_desc}, {eye_desc}, {skin_desc}"
+            traits['pet_size'] = data.get('pet_size', 'medium')
+            if story_id == 'furry_love_illustrated':
+                _age_str = f"{child_age} month old" if child_age == 1 else f"{child_age} months old"
+                human_desc = f"a {gender_word}, {_age_str}, {hair_desc}, {eye_desc}, {skin_desc}"
+            else:
+                human_desc = f"a {gender_word} ({child_age} year old), {hair_desc}, {eye_desc}, {skin_desc}"
             traits['facial_hair'] = data.get('facial_hair', 'none')
             traits['glasses'] = data.get('glasses', 'none')
             traits['body_build'] = data.get('body_build', 'average')
@@ -2383,10 +2388,12 @@ def regenerate_furry_preview():
                 bb_r = data.get('body_build', 'average')
                 if bb_r and bb_r != 'average':
                     human_desc += f", {bb_r} build"
-                prompt = build_human_preview_prompt(human_desc)
+                _is_baby_regen = (story_id_regen == 'furry_love_illustrated')
+                prompt = build_human_preview_prompt(human_desc, is_baby=_is_baby_regen)
                 photo_ref = None
             
             print(f"[REGEN FURRY] Regenerating HUMAN preview (photo={bool(photo_ref)})")
+            print(f"[REGEN FURRY DEBUG] HUMAN PROMPT FULL ({len(prompt)} chars): {prompt}")
             if photo_ref:
                 use_pulid = story_id_regen in ('furry_love_teen_illustrated', 'furry_love_adult_illustrated')
                 use_kontext = story_id_regen == 'furry_love_adventure_illustrated'
@@ -2422,7 +2429,8 @@ def regenerate_furry_preview():
                     print(f"[REGEN FURRY] Using FLUX 2 Dev for {story_id_regen}")
                     image_url = generate_with_flux2_dev(prompt, aspect_ratio="3:4", photo_ref_path=photo_ref, image_prompt_strength=0.90)
             else:
-                image_url = generate_with_flux2_dev(prompt, aspect_ratio="3:4", image_prompt_strength=0.75)
+                _hair_neg_regen = "full hair, thick voluminous hair, hair covering entire head, dense hair" if data.get('hair_length') == 'very_little' else None
+                image_url = generate_with_flux2_dev(prompt, aspect_ratio="3:4", image_prompt_strength=0.75, negative_prompt=_hair_neg_regen)
             local_path = save_image_locally(image_url, f'{output_dir}/preview_human_{uuid.uuid4().hex[:8]}.png')
         else:
             pet_desc = data.get('pet_desc', '')
@@ -2430,7 +2438,8 @@ def regenerate_furry_preview():
             pet_photo_path = data.get('pet_photo_path', '')
             upload_prefix = 'generated/uploads/furry_photos/'
             if pet_photo_path and pet_photo_path.startswith(upload_prefix) and os.path.exists(pet_photo_path):
-                prompt = build_pet_preview_prompt_with_photo(pet_desc, pet_species)
+                pet_size_regen = data.get('pet_size', 'medium')
+                prompt = build_pet_preview_prompt_with_photo(pet_desc, pet_species, pet_size=pet_size_regen)
                 photo_ref = pet_photo_path
             else:
                 prompt = build_pet_preview_prompt(pet_desc)
@@ -2954,7 +2963,6 @@ def generate_fixed_story_api():
             preview_data['generation_complete'] = True
             preview_data['scenes_pending'] = True
             preview_data['want_print'] = True
-            # For admin gifts, we skip the shipping/payment form by marking it as if it was already processed
             preview_data['shipping_address'] = {
                 'name': data.get('child_name', 'Admin Gift'),
                 'street1': 'Admin Office',
@@ -2965,11 +2973,10 @@ def generate_fixed_story_api():
             }
             preview_data['shipping_method'] = 'MAIL'
             preview_data['customer_email'] = data.get('admin_gift_email', 'admin@magicmemoriesbooks.com')
-            
-            # Use the existing admin_generate_free logic directly to skip the limited preview
             preview_data['admin_gift_email'] = preview_data['customer_email']
-            
-            preview_url = f'/order-complete/{preview_id}'
+            # Show cover+text preview first — admin enters email and clicks "Generar Libro Gratis"
+            # which calls /admin/generate-free/ to trigger scene generation
+            preview_url = f'/story-preview-limited/{preview_id}'
         else:
             preview_url = f'/story-preview-limited/{preview_id}'
         
@@ -2989,10 +2996,6 @@ def generate_fixed_story_api():
                 'preview_id': preview_id
             })
         
-        if data.get('admin_gift'):
-            print(f"[ADMIN-GIFT-AUTO] Triggering free generation for {preview_id}")
-            _trigger_background_generation(preview_id)
-            
         return jsonify({
             'success': True,
             'preview_url': preview_url,
@@ -5168,6 +5171,11 @@ def api_generation_status(preview_id):
                 story_data = json.load(f)
             scene_paths = story_data.get('scene_paths', [])
             if story_data.get('pages_composed', False):
+                # Clear the composing flag so the template stops polling on reload
+                if story_data.get('book_composing', False):
+                    story_data['book_composing'] = False
+                    with open(preview_file, 'w', encoding='utf-8') as f:
+                        json.dump(story_data, f, ensure_ascii=False, indent=2)
                 lulu_status = story_data.get('lulu_status', '')
                 lulu_error = story_data.get('lulu_error', '')
                 return jsonify({
@@ -6011,6 +6019,18 @@ def confirm_and_send(preview_id):
             return jsonify({'success': True, 'already_sent': True, 'print_launched': True, 'message': 'Print job launched'})
     elif _is_pb_confirm:
         if story_data.get('email_sent'):
+            # Ebook email was sent but check if printable PDF is still pending
+            _want_pdf_e = story_data.get('want_pdf') or story_data.get('pdf_paid') or story_data.get('pdf_order')
+            if _want_pdf_e and not (story_data.get('pdf_email_sent') or story_data.get('printable_pdf_sent')):
+                _lang_e = story_data.get('lang', 'es')
+                _email_e = story_data.get('customer_email', '')
+                print(f"[CONFIRM-SEND] PB ebook sent but PDF pending — dispatching PDF email for {preview_id}")
+                t_pdf_e = threading.Thread(
+                    target=_dispatch_printable_pdf_email,
+                    args=(preview_id, _email_e, _lang_e),
+                    daemon=True
+                )
+                t_pdf_e.start()
             return jsonify({'success': True, 'message': 'Email already sent'})
         _pb_want_pdf   = story_data.get('want_pdf') or story_data.get('pdf_paid') or story_data.get('pdf_order')
         _pb_want_ebook = story_data.get('want_ebook')
@@ -6139,7 +6159,20 @@ def confirm_and_send(preview_id):
         story_data['email_sent_date'] = datetime.now().isoformat()
         with open(preview_file, 'w', encoding='utf-8') as f:
             json.dump(story_data, f, ensure_ascii=False, indent=2)
-        
+
+        # For personalized books: if customer purchased printable PDF, dispatch it now
+        if is_personalized_book:
+            _want_pdf_pb = story_data.get('want_pdf') or story_data.get('pdf_paid') or story_data.get('pdf_order')
+            if _want_pdf_pb and not story_data.get('pdf_email_sent') and not story_data.get('printable_pdf_sent'):
+                print(f"[CONFIRM-SEND] PB want_pdf=True — launching PDF dispatch for {preview_id}")
+                _lang_pb = story_data.get('lang', 'es')
+                t_pdf_pb = threading.Thread(
+                    target=_dispatch_printable_pdf_email,
+                    args=(preview_id, email, _lang_pb),
+                    daemon=True
+                )
+                t_pdf_pb.start()
+
         lulu_result = None
         is_quick_story = not is_personalized_book
         if want_print and is_quick_story:
@@ -6394,7 +6427,9 @@ def generate_pdf(preview_id):
         # Use original images (without watermark) - check multiple possible keys
         all_pages = story_data.get('original_images', story_data.get('all_pages_original', story_data.get('original_scene_paths', [])))
         # Use original cover (without watermark)
-        front_cover = story_data.get('original_cover', story_data.get('front_cover_path'))
+        front_cover = story_data.get('original_cover', story_data.get('front_cover_path', story_data.get('cover_preview', story_data.get('cover_image'))))
+        if front_cover and front_cover.startswith('/'):
+            front_cover = front_cover[1:]
         back_cover = story_data.get('back_cover_path')
         if back_cover and back_cover.startswith('/'):
             back_cover = back_cover[1:]
@@ -6406,13 +6441,14 @@ def generate_pdf(preview_id):
                 "magic_inventor": "static/images/fixed_pages/magic_inventor_back_cover.png",
                 "star_keeper": "static/images/fixed_pages/_backup/star_keeper_back_cover.png",
                 "furry_love": "static/images/fixed_pages/_backup/furry_love_baby_back_cover.png",
+                "furry_love_illustrated": "static/images/fixed_pages/_backup/furry_love_baby_back_cover.png",
                 "furry_love_adventure": "static/images/fixed_pages/_backup/furry_love_adventure_back_cover.png",
                 "furry_love_teen": "static/images/fixed_pages/_backup/furry_love_teen_back_cover.png",
                 "furry_love_adult": "static/images/fixed_pages/_backup/furry_love_adult_back_cover.png",
                 "centinela_aurora_illustrated": "static/images/fixed_pages/_backup/centinela_aurora_back_cover.png",
                 "centinela_aurora": "static/images/fixed_pages/_backup/centinela_aurora_back_cover.png"
             }
-            back_cover = _fixed_backs.get(_bid, 'static/images/fixed_pages/back_cover.png')
+            back_cover = _fixed_backs.get(_bid, '')
         
         if all_pages:
             pdf_pages = []
