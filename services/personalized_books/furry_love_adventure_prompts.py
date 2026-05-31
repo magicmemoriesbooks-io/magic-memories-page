@@ -26,7 +26,7 @@
 STYLE_BASE = "Disney Pixar 3D style, soft warm golden lighting, adventurous atmosphere, WIDE SHOT full body from head to feet, characters occupy 40% of frame, outdoor park and nature environment visible, clean illustration only. STRICT: Children wear appropriate outdoor clothes, fully clothed always."
 
 ADVENTURE_OUTFIT_BOY = "light green t-shirt, khaki cargo shorts, white sneakers, small brown backpack"
-ADVENTURE_OUTFIT_GIRL = "light green t-shirt, denim shorts, white sneakers, small brown backpack"
+ADVENTURE_OUTFIT_GIRL = "colorful short-sleeve t-shirt with a bright playful print, denim shorts, white sneakers, small adventure backpack"
 PAJAMA_DESC = "cozy soft pajamas"
 CLEAN_PAJAMA_DESC = "fresh clean pajamas"
 
@@ -49,14 +49,14 @@ FURRY_LOVE_ADVENTURE_SCENES = [
         "id": 3,
         "text_es": "{pet_name} iba adelante, olisqueando cada rincón del camino. De pronto, se detuvo en seco. Su nariz apuntaba hacia el suelo, donde unas huellas extrañas marcaban el camino de tierra. Eran grandes, redondas y brillaban con un polvo dorado.",
         "text_en": "{pet_name} went ahead, sniffing every corner of the path. Suddenly, they stopped dead. Their nose pointed at the ground, where strange tracks marked the dirt path. They were big, round, and sparkled with golden dust.",
-        "prompt": "Disney Pixar 3D style illustration. HUMAN: A {gender_word} ({age_display}) with {eye_desc} eyes{glasses_desc} crouching down on a dirt path, wearing {adventure_outfit}, looking at mysterious golden glowing footprints on the ground with wide curious eyes, one hand reaching toward the tracks. PET: {pet_desc}, nose pressed to the ground next to the golden tracks, alert posture, ears perked forward, following the scent intensely. ACTION: Child and pet discover mysterious golden glowing footprints on a park path, both investigating the tracks with curiosity. SETTING: Park dirt path WIDE VIEW, tall trees on both sides, dappled sunlight, mysterious golden glowing paw prints trailing into the distance, fallen leaves around. ATMOSPHERE: Mystery and discovery, magical golden glow from tracks, curious adventurous feeling. STRICT: Only ONE child crouching, ONE pet sniffing tracks, mysterious park path scene. {style}",
+        "prompt": "Disney Pixar 3D style illustration. HUMAN: A {gender_word} ({age_display}) with {eye_desc} eyes{glasses_desc} crouching down on a dirt path, wearing {adventure_outfit}, looking at mysterious golden glowing footprints on the ground with wide curious eyes, one hand reaching toward the tracks. PET: {pet_desc}, nose pressed to the ground next to the golden tracks, alert posture, focused expression, following the scent intensely. ACTION: Child and pet discover mysterious golden glowing footprints on a park path, both investigating the tracks with curiosity. SETTING: Park dirt path WIDE VIEW, tall trees on both sides, dappled sunlight, mysterious golden glowing paw prints trailing into the distance, fallen leaves around. ATMOSPHERE: Mystery and discovery, magical golden glow from tracks, curious adventurous feeling. STRICT: Only ONE child crouching, ONE pet sniffing tracks, mysterious park path scene. {style}",
         "text_position": "split"
     },
     {
         "id": 4,
         "text_es": "\"¿Qué será eso?\", susurró {name}, agachándose para ver más de cerca. {pet_name} olfateó las huellas con cuidado y luego miró a {name}, como diciendo: \"¿Las seguimos?\" Las huellas doradas los llevaron hasta un arbusto enorme que temblaba.",
         "text_en": "\"What could that be?\" whispered {name}, bending down for a closer look. {pet_name} sniffed the tracks carefully and then looked at {name}, as if saying: \"Should we follow them?\" The golden tracks led them to a huge bush that was trembling.",
-        "prompt": "Disney Pixar 3D style illustration. HUMAN: A {gender_word} ({age_display}) with {eye_desc} eyes{glasses_desc} standing cautiously in front of a large trembling bush, wearing {adventure_outfit}, one hand reaching to part the branches, face showing excitement mixed with nervousness. PET: {pet_desc}, in alert posture beside the child, ears fully erect, body tense and ready, looking at the shaking bush with intense focus. ACTION: Child and pet approach a mysterious trembling bush, golden tracks leading right to it, both cautious but brave. SETTING: Park clearing WIDE VIEW, one enormous dense bush shaking and rustling, golden footprints ending at the bush, dappled forest light, leaves falling from movement. ATMOSPHERE: Suspense and excitement, dramatic lighting through trees, mysterious rustling. STRICT: Only ONE child, ONE alert pet, one trembling bush, suspenseful moment. {style}",
+        "prompt": "Disney Pixar 3D style illustration. HUMAN: A {gender_word} ({age_display}) with {eye_desc} eyes{glasses_desc} standing cautiously in front of a large trembling bush, wearing {adventure_outfit}, one hand reaching to part the branches, face showing excitement mixed with nervousness. PET: {pet_desc}, in alert posture beside the child, body tense and ready, looking at the shaking bush with intense focus. ACTION: Child and pet approach a mysterious trembling bush, golden tracks leading right to it, both cautious but brave. SETTING: Park clearing WIDE VIEW, one enormous dense bush shaking and rustling, golden footprints ending at the bush, dappled forest light, leaves falling from movement. ATMOSPHERE: Suspense and excitement, dramatic lighting through trees, mysterious rustling. STRICT: Only ONE child, ONE alert pet, one trembling bush, suspenseful moment. {style}",
         "text_position": "split"
     },
     {
@@ -117,9 +117,11 @@ FURRY_LOVE_ADVENTURE_SCENES = [
     },
     {
         "id": 13,
-        "text_es": "{name} acarició la cabeza de {pet_name} con suavidad. \"No tengas miedo, yo estoy contigo\", le susurró. Entonces tomó a {pet_name} en brazos con cuidado y empezó a cruzar el puente paso a paso. {pet_name} se acurrucó contra su pecho, cerrando los ojos con confianza.",
-        "text_en": "{name} gently stroked {pet_name}'s head. \"Don't be afraid, I'm with you,\" they whispered. Then {name} carefully picked up {pet_name} and started crossing the bridge step by step. {pet_name} nestled against their chest, closing their eyes with trust.",
-        "prompt": "Disney Pixar 3D style illustration. HUMAN: A {gender_word} ({age_display}) with {eye_desc} eyes{glasses_desc} carefully walking across a wooden bridge over a stream, wearing {adventure_outfit}, carrying the pet in their arms, protective loving expression, stepping carefully on the wooden planks. PET: {pet_desc}, being carried in the child's arms, nestled against the child's chest with eyes closed, trusting and calm, paws tucked in. ACTION: Child carries the pet across the bridge, the pet trusts the child completely with eyes closed, a beautiful moment of friendship and courage. SETTING: Middle of wooden bridge WIDE VIEW, crystal stream below with sunlight sparkling on water, green banks on both sides, forest canopy above, golden light rays. ATMOSPHERE: Trust and courage, warm protective love, golden light streaming through trees, emotional bonding moment. STRICT: Only ONE child carrying ONE pet, crossing bridge together, tender brave scene. {style}",
+        "text_es": "{name} acarició el lomo de {pet_name} con suavidad. \"No tengas miedo, yo camino contigo\", le susurró. {pet_name} cerró los ojos un momento… y cuando los abrió, dio el primer paso. Juntos cruzaron el puente corriendo, lado a lado, la mano de {name} sobre el lomo de {pet_name} a cada paso.",
+        "text_en": "{name} gently stroked {pet_name}'s back. \"Don't be afraid, I'll walk with you,\" they whispered. {pet_name} closed their eyes for a moment... and when they opened them, took the first step. Together they ran across the bridge side by side, {name}'s hand on {pet_name}'s back every step of the way.",
+        "text_es_large": "{name} se arrodilló junto a {pet_name} y lo acarició despacito, una y otra vez. \"No tengas miedo, yo camino contigo\", le susurró. {pet_name} cerró los ojos un momento… y cuando los abrió, dio el primer paso. Juntos cruzaron el puente, la mano de {name} acariciando el lomo de {pet_name} a cada paso.",
+        "text_en_large": "{name} knelt beside {pet_name} and stroked them gently, over and over. \"Don't be afraid, I'll walk with you,\" they whispered. {pet_name} closed their eyes for a moment... and when they opened them, took the first step. Together they crossed the bridge, {name}'s hand stroking {pet_name}'s back with every step.",
+        "prompt": "Disney Pixar 3D style illustration. HUMAN: A {gender_word} ({age_display}) with {eye_desc} eyes{glasses_desc} running across a wooden bridge over a stream, wearing {adventure_outfit}, beaming with joy and pride, one hand resting on the pet's back as they run together. PET: {pet_desc}, running alongside the child on the bridge, tail held high and wagging, brave and confident, matching the child's pace perfectly. ACTION: Child and pet run across the wooden bridge together side by side, both brave and happy, the child's hand on the pet's back for encouragement. SETTING: Wooden bridge WIDE VIEW, crystal stream below with sunlight sparkling on water, green banks on both sides, forest canopy above, golden light rays. ATMOSPHERE: Trust and shared courage, warm joyful energy, golden light streaming through trees, bonding moment of bravery. STRICT: Only ONE child running, ONE full-size pet running beside them on the bridge, both characters side by side crossing the bridge — the pet walks and runs on its own four paws. {style}",
         "text_position": "split"
     },
     {
@@ -181,28 +183,57 @@ BACK_COVER = {
 }
 
 
-def build_human_preview_prompt(human_desc: str) -> str:
-    return f"Disney Pixar 3D style illustration. FULL BODY portrait of {human_desc}, wearing adventure clothes (t-shirt, shorts, sneakers, small backpack), standing naturally with one hand on hip, adventurous confident smile, centered in frame, occupying 60% of frame height. NEUTRAL SOLID GRADIENT BACKGROUND (soft cream to warm beige), plain studio background. Natural friendly expression, relaxed standing pose. Clean professional animation art, clean illustration only. STRICT: Character fully clothed."
+def build_human_preview_prompt(human_desc: str, **kwargs) -> str:
+    return (
+        f"High-quality 3D animated children's book illustration. "
+        f"CHARACTER: {human_desc}. "
+        f"OUTFIT: colorful t-shirt, shorts and sneakers — fun casual children's adventure style. "
+        f"FULL BODY portrait, standing naturally with adventurous confident smile, "
+        f"centered in frame, occupying 60% of frame height. "
+        f"NEUTRAL SOLID GRADIENT BACKGROUND (soft cream to warm beige), plain studio. "
+        f"Warm lighting. Clean illustration only."
+    )
 
 
-def build_human_preview_prompt_with_photo(gender_word: str, age_display: str, eye_desc: str = "", hair_desc: str = "", glasses: str = "", facial_hair: str = "") -> str:
-    glasses_desc = " MUST be wearing glasses" if glasses == "glasses" else " MUST be wearing sunglasses" if glasses == "sunglasses" else ""
-    facial_hair_map = {'stubble': 'light stubble', 'short_beard': 'short beard', 'full_beard': 'full thick beard', 'mustache': 'mustache'}
-    facial_hair_desc = f" MUST have {facial_hair_map[facial_hair]}" if facial_hair and facial_hair != 'none' and facial_hair in facial_hair_map else ""
-    accessories = (glasses_desc + facial_hair_desc).strip()
-    return f"Disney Pixar 3D style illustration. 3D animated character of the {gender_word} from @image1, {eye_desc} eyes, full appearance matching @image1 exactly.{(' ' + accessories + '.') if accessories else ''} FULL BODY portrait, centered, adventurous confident expression. NEUTRAL SOLID GRADIENT BACKGROUND (soft cream to warm beige). Clean illustration only."
+def build_human_preview_prompt_with_photo(gender_word: str, age_display: str, eye_desc: str = "", hair_desc: str = "", glasses: str = "", facial_hair: str = "", skin_tone: str = "") -> str:
+    skin_strict = f"Maintain {skin_tone} complexion — do not lighten the skin tone. " if skin_tone else ""
+    eye_part = f"{eye_desc} eyes, " if eye_desc else ""
+    return (
+        f"Disney Pixar 3D style illustration. 3D animated {gender_word} with face shape, skin complexion, hair amount and color, "
+        f"and {eye_part}all matching @image1 exactly — do not invent or change any physical feature. "
+        f"FULL BODY portrait, centered, adventurous confident expression. "
+        f"NEUTRAL SOLID GRADIENT BACKGROUND (soft cream to warm beige). "
+        f"{skin_strict}"
+        f"Clean illustration only."
+    )
 
 
-def build_pet_preview_prompt(pet_desc: str) -> str:
-    return f"Disney Pixar 3D style illustration. FULL BODY portrait of {pet_desc}, sitting or standing naturally, friendly expression, centered in frame, occupying 50% of frame height. NEUTRAL SOLID GRADIENT BACKGROUND (soft cream to warm beige), plain studio background. Warm lighting, expressive eyes. Clean professional animation art, clean illustration only."
+def build_pet_preview_prompt(pet_desc: str, pet_size: str = "medium") -> str:
+    size_desc_map = {
+        "small":  "compact small body, fits fully in frame with space around it",
+        "medium": "full body fits naturally and comfortably in frame",
+        "large":  "big imposing body fills the frame, broad and tall",
+    }
+    size_desc = size_desc_map.get(pet_size, size_desc_map["medium"])
+    return f"Disney Pixar 3D style illustration. FULL BODY portrait of {pet_desc}, sitting or standing naturally, friendly expression, centered in frame, occupying 50% of frame height, {size_desc}. NEUTRAL SOLID GRADIENT BACKGROUND (soft cream to warm beige), plain studio background. Warm lighting, expressive eyes. Clean professional animation art, clean illustration only."
 
 
-def build_pet_preview_prompt_with_photo(pet_desc: str = "", pet_species: str = "dog") -> str:
+def build_pet_preview_prompt_with_photo(pet_desc: str = "", pet_species: str = "dog", pet_size: str = "medium") -> str:
     animal = "cat" if pet_species == "cat" else "dog"
-    return f"Disney Pixar 3D style. 3D animated character of the {animal} from @image1. FULL BODY portrait, sitting or standing naturally, friendly expression, centered, occupying 50% of frame height. NEUTRAL SOLID GRADIENT BACKGROUND (soft cream to warm beige). Warm lighting. Clean animation art, clean illustration only."
+    size_desc_map = {
+        "small":  "a small-sized animal — compact body, fits fully in frame with space around it",
+        "medium": "a medium-sized animal — full body fits naturally and comfortably in frame",
+        "large":  "a large-sized animal — big imposing body fills the frame, broad and tall",
+    }
+    size_desc = size_desc_map.get(pet_size, size_desc_map["medium"])
+    desc_hint = f" ({pet_desc})" if pet_desc else ""
+    return f"High-quality 3D animated children's book illustration. 3D animated character of the {animal} from @image1{desc_hint}. FULL BODY portrait, sitting or standing naturally, friendly expression, centered. {size_desc}. NEUTRAL SOLID GRADIENT BACKGROUND (soft cream to warm beige). Warm lighting. Clean animation art, clean illustration only."
 
 
 def build_scene_prompt(scene: dict, human_desc: str, pet_name: str, pet_desc: str, age_display: str = "3-8 years old", eye_desc: str = "", gender_word: str = "child", glasses: str = "", hair_desc: str = "", **kwargs) -> str:
+    scene_id = scene.get('id', 0)
+    pet_species = kwargs.get('pet_species', 'dog')
+    animal_word = "cat" if pet_species == "cat" else "dog"
     adventure_outfit = ADVENTURE_OUTFIT_BOY if gender_word == "boy" else ADVENTURE_OUTFIT_GIRL
     prompt = scene.get('prompt', '')
     prompt = prompt.replace('{human_desc}', human_desc)
@@ -220,6 +251,10 @@ def build_scene_prompt(scene: dict, human_desc: str, pet_name: str, pet_desc: st
     prompt = prompt.replace('{style}', STYLE_BASE)
     if gender_word and '{gender_word}' in scene.get('prompt', ''):
         prompt += f" The character is a {gender_word}."
+
+    # Explicitly name the animal type in STRICT so FLUX doesn't default to dog
+    prompt = prompt.replace('ONE pet', f'ONE {animal_word}')
+
     return prompt
 
 
