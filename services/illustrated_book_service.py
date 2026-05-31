@@ -208,7 +208,7 @@ def get_hair_description(traits: dict, gender: str = None) -> str:
                   'blonde': 'dark dirty blonde', 'very_light_blonde': 'pale platinum blonde',
                   'red': 'bright red', 'auburn': 'auburn'}
         sc = sc_map.get(color, c)
-        return f"nearly bald smooth round head, smooth scalp clearly visible, only the faintest sparse {sc} baby down, barely-there peach fuzz almost invisible, almost no hair"
+        return f"short fine baby hair, covering the scalp, {sc} color, {t} texture"
 
     if length == 'short':
         if gender == 'male':
@@ -448,12 +448,34 @@ def generate_scene_complete(
         pet_name = traits.get('pet_name', 'Buddy')
         pet_desc = traits.get('pet_desc', '')
         eye_desc = get_eye_description(traits) if traits.get('eye_color') else ''
-        gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "person"
         glasses_val = traits.get('glasses', 'none')
         facial_hair_val = traits.get('facial_hair', 'none')
         hair_desc = get_hair_description(traits) if book_id == 'furry_love_adventure' else ''
         hair_color = traits.get('hair_color', '') if book_id == 'furry_love' else ''
-        prompt = furry_build_prompt(scene_config, human_desc, pet_name, pet_desc, eye_desc=eye_desc, gender_word=gender_word, glasses=glasses_val, facial_hair=facial_hair_val, hair_desc=hair_desc, hair_color=hair_color)
+        _pd_lower = pet_desc.lower()
+        if 'medium-sized' in _pd_lower:
+            pet_size = 'medium'
+        elif _pd_lower.startswith('a large ') or ' large ' in _pd_lower[:20]:
+            pet_size = 'large'
+        elif _pd_lower.startswith('a small ') or ' small ' in _pd_lower[:20]:
+            pet_size = 'small'
+        else:
+            pet_size = traits.get('pet_size', 'medium')
+        pet_species = traits.get('pet_species', 'dog')
+        skin_tone_val = get_skin_tone(traits.get('skin_tone', ''))
+        if book_id == 'furry_love_teen':
+            gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "teenager"
+            teen_age = child_age_int if child_age_int > 0 else 14
+            if teen_age <= 12:
+                age_display = f"{teen_age} year old preteen, early adolescent proportions"
+            elif teen_age <= 15:
+                age_display = f"{teen_age} year old, adolescent proportions, tall slender frame"
+            else:
+                age_display = f"{teen_age} year old, tall adolescent physique, slim young adult build, defined jaw"
+        else:
+            gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "person"
+            age_display = f"{child_age_int} year old" if child_age_int > 0 else "child"
+        prompt = furry_build_prompt(scene_config, human_desc, pet_name, pet_desc, age_display=age_display, eye_desc=eye_desc, gender_word=gender_word, glasses=glasses_val, facial_hair=facial_hair_val, hair_desc=hair_desc, hair_color=hair_color, pet_size=pet_size, pet_species=pet_species, skin_tone=skin_tone_val)
     else:
         book_cfg = BOOK_CONFIGS.get(book_id)
         if book_cfg and 'build_scene_prompt' in book_cfg and book_cfg['build_scene_prompt']:
@@ -485,13 +507,38 @@ def generate_scene_complete(
     MAX_RETRIES = 4
     target_size = (1024, 1365)
 
+    # Scenes 14-19 (toddler/growth phase) use 0.8 so the prompt can show age progression
+    # while still keeping strong character fidelity. Earlier scenes use 0.9.
+    is_toddler_scene = (book_id == 'furry_love' and scene_id >= 14)
+    scene_strength = 0.8 if is_toddler_scene else 0.9
+
+    # Reinforce eye color explicitly in reference note (eye_desc from traits)
+    _eye_color_raw = traits.get('eye_color', '') if traits else ''
+    _eye_color_map = {
+        'blue': 'bright blue', 'green': 'green', 'brown': 'brown',
+        'hazel': 'hazel', 'gray': 'gray', 'dark_brown': 'dark brown',
+    }
+    _eye_note = ''
+    if _eye_color_raw:
+        _eye_label = _eye_color_map.get(_eye_color_raw, _eye_color_raw)
+        _eye_note = f" The human has {_eye_label} eyes — preserve this exactly."
+
     if is_furry and reference_image_path_2 and os.path.exists(reference_image_path_2):
-        reference_note = "@image1=HUMAN character, @image2=PET animal. Human has smooth skin, human face, human hands. Pet has fur, animal face, four paws. Two distinct separate characters side by side."
+        reference_note = (
+            "@image1=HUMAN character (approved avatar), @image2=PET animal. "
+            "Copy the EXACT skin complexion, eye color, and hair appearance from @image1 — "
+            f"replicate the avatar faithfully.{_eye_note} "
+            "Human has human face and human hands. Pet has fur, animal face, four paws. "
+            "Two distinct separate characters side by side."
+        )
         enhanced_prompt = f"{reference_note}\n{prompt}"
+
+        from services.replicate_service import get_gender_negative_prompt
+        neg_prompt_furry = get_gender_negative_prompt(gender)
 
         for attempt in range(MAX_RETRIES + 1):
             try:
-                print(f"[SCENE {scene_id}] FLUX 2 Dev + 2 refs attempt {attempt + 1}/{MAX_RETRIES + 1}...")
+                print(f"[SCENE {scene_id}] FLUX 2 Dev + 2 refs attempt {attempt + 1}/{MAX_RETRIES + 1} (strength={scene_strength})...")
                 with open(reference_image_path, "rb") as ref1, open(reference_image_path_2, "rb") as ref2:
                     output = replicate.run(
                         "black-forest-labs/flux-2-dev",
@@ -501,7 +548,8 @@ def generate_scene_complete(
                             "aspect_ratio": "3:4",
                             "output_format": "png",
                             "go_fast": False,
-                            "image_prompt_strength": 0.9
+                            "image_prompt_strength": scene_strength,
+                            "negative_prompt": neg_prompt_furry
                         }
                     )
 
@@ -528,7 +576,11 @@ def generate_scene_complete(
                     raise RuntimeError(f"FLUX 2 Dev failed for scene {scene_id} after {MAX_RETRIES + 1} attempts: {e}")
 
     gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
-    reference_note = f"@image1=the {gender_word} character. Same face, skin tone, and hair as the reference."
+    reference_note = (
+        f"@image1=the {gender_word} character (approved avatar). "
+        "Copy the EXACT skin complexion, eye color, and hair appearance from @image1 — "
+        f"replicate the avatar faithfully.{_eye_note}"
+    )
     enhanced_prompt = f"{reference_note}\n{prompt}"
 
     from services.replicate_service import get_gender_negative_prompt
@@ -536,7 +588,7 @@ def generate_scene_complete(
 
     for attempt in range(MAX_RETRIES + 1):
         try:
-            print(f"[SCENE {scene_id}] FLUX 2 Dev + 1 ref attempt {attempt + 1}/{MAX_RETRIES + 1}...")
+            print(f"[SCENE {scene_id}] FLUX 2 Dev + 1 ref attempt {attempt + 1}/{MAX_RETRIES + 1} (strength={scene_strength})...")
             with open(reference_image_path, "rb") as ref_file:
                 output = replicate.run(
                     "black-forest-labs/flux-2-dev",
@@ -547,7 +599,7 @@ def generate_scene_complete(
                         "output_format": "png",
                         "go_fast": False,
                         "negative_prompt": neg_prompt,
-                        "image_prompt_strength": 0.9
+                        "image_prompt_strength": scene_strength
                     }
                 )
 
@@ -933,12 +985,34 @@ def generate_closing_page(
         pet_name = traits.get('pet_name', 'Buddy')
         pet_desc = traits.get('pet_desc', '')
         eye_desc = get_eye_description(traits) if traits.get('eye_color') else ''
-        gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "person"
         glasses_val = traits.get('glasses', 'none')
         facial_hair_val = traits.get('facial_hair', 'none')
         hair_desc = get_hair_description(traits) if book_id == 'furry_love_adventure' else ''
         hair_color = traits.get('hair_color', '') if book_id == 'furry_love' else ''
-        prompt = furry_build_prompt(closing_scene, human_desc, pet_name, pet_desc, eye_desc=eye_desc, gender_word=gender_word, glasses=glasses_val, facial_hair=facial_hair_val, hair_desc=hair_desc, hair_color=hair_color)
+        _pd_lower = pet_desc.lower()
+        if 'medium-sized' in _pd_lower:
+            pet_size = 'medium'
+        elif _pd_lower.startswith('a large ') or ' large ' in _pd_lower[:20]:
+            pet_size = 'large'
+        elif _pd_lower.startswith('a small ') or ' small ' in _pd_lower[:20]:
+            pet_size = 'small'
+        else:
+            pet_size = traits.get('pet_size', 'medium')
+        pet_species = traits.get('pet_species', 'dog')
+        skin_tone_val = get_skin_tone(traits.get('skin_tone', ''))
+        if book_id == 'furry_love_teen':
+            gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "teenager"
+            teen_age = child_age_int if child_age_int > 0 else 14
+            if teen_age <= 12:
+                age_display = f"{teen_age} year old preteen, early adolescent proportions"
+            elif teen_age <= 15:
+                age_display = f"{teen_age} year old, adolescent proportions, tall slender frame"
+            else:
+                age_display = f"{teen_age} year old, tall adolescent physique, slim young adult build, defined jaw"
+        else:
+            gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "person"
+            age_display = f"{child_age_int} year old" if child_age_int > 0 else "child"
+        prompt = furry_build_prompt(closing_scene, human_desc, pet_name, pet_desc, age_display=age_display, eye_desc=eye_desc, gender_word=gender_word, glasses=glasses_val, facial_hair=facial_hair_val, hair_desc=hair_desc, hair_color=hair_color, pet_size=pet_size, pet_species=pet_species, skin_tone=skin_tone_val)
     elif BOOK_CONFIGS.get(book_id, {}).get('build_scene_prompt'):
         book_cfg = BOOK_CONFIGS.get(book_id)
         prompt = book_cfg['build_scene_prompt'](closing_scene, child_name, gender, child_age_int, traits)
@@ -1168,13 +1242,35 @@ def generate_cover_spread(
         pet_name = traits.get('pet_name', 'Buddy')
         pet_desc = traits.get('pet_desc', '')
         eye_desc = get_eye_description(traits) if traits.get('eye_color') else ''
-        gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "person"
         glasses_val = traits.get('glasses', 'none')
         facial_hair_val = traits.get('facial_hair', 'none')
         hair_desc = get_hair_description(traits) if book_id == 'furry_love_adventure' else ''
         hair_color = traits.get('hair_color', '') if book_id == 'furry_love' else ''
+        _pd_lower = pet_desc.lower()
+        if 'medium-sized' in _pd_lower:
+            pet_size = 'medium'
+        elif _pd_lower.startswith('a large ') or ' large ' in _pd_lower[:20]:
+            pet_size = 'large'
+        elif _pd_lower.startswith('a small ') or ' small ' in _pd_lower[:20]:
+            pet_size = 'small'
+        else:
+            pet_size = traits.get('pet_size', 'medium')
+        pet_species = traits.get('pet_species', 'dog')
+        skin_tone_val = get_skin_tone(traits.get('skin_tone', ''))
+        if book_id == 'furry_love_teen':
+            gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "teenager"
+            teen_age = child_age_int if child_age_int > 0 else 14
+            if teen_age <= 12:
+                age_display = f"{teen_age} year old preteen, early adolescent proportions"
+            elif teen_age <= 15:
+                age_display = f"{teen_age} year old, adolescent proportions, tall slender frame"
+            else:
+                age_display = f"{teen_age} year old, tall adolescent physique, slim young adult build, defined jaw"
+        else:
+            gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "person"
+            age_display = f"{child_age_int} year old" if child_age_int > 0 else "child"
         front_cover_cfg = book_cfg.get('front_cover', {})
-        front_prompt = furry_build_prompt(front_cover_cfg, human_desc, pet_name, pet_desc, eye_desc=eye_desc, gender_word=gender_word, glasses=glasses_val, facial_hair=facial_hair_val, hair_desc=hair_desc, hair_color=hair_color)
+        front_prompt = furry_build_prompt(front_cover_cfg, human_desc, pet_name, pet_desc, age_display=age_display, eye_desc=eye_desc, gender_word=gender_word, glasses=glasses_val, facial_hair=facial_hair_val, hair_desc=hair_desc, hair_color=hair_color, pet_size=pet_size, pet_species=pet_species, skin_tone=skin_tone_val)
     elif book_cfg and book_cfg.get('build_scene_prompt'):
         front_cover_cfg = book_cfg.get('front_cover', {})
         front_prompt = book_cfg['build_scene_prompt'](front_cover_cfg, child_name, gender, child_age_int, traits)
@@ -1248,17 +1344,17 @@ def generate_cover_spread(
     # Author name will be added AFTER fitting into spread to avoid being cropped by fit_cover_to_area
     
     fixed_back_covers = {
-        "dragon_garden": "static/images/fixed_pages/dragon_garden_back_cover.png",
+        "dragon_garden": "static/images/fixed_pages/_backup/dragon_garden_back_cover.png",
         "magic_chef": "static/images/fixed_pages/magic_chef_back_cover.png",
         "magic_inventor": "static/images/fixed_pages/magic_inventor_back_cover.png",
-        "star_keeper": "static/images/fixed_pages/star_keeper_back_cover.png",
-        "furry_love": "static/images/fixed_pages/furry_love_baby_back_cover.png",
-        "furry_love_adventure": "static/images/fixed_pages/furry_love_adventure_back_cover.png",
-        "furry_love_teen": "static/images/fixed_pages/furry_love_teen_back_cover.png",
-        "furry_love_adult": "static/images/fixed_pages/furry_love_adult_back_cover.png",
-        "centinela_aurora": "static/images/fixed_pages/centinela_aurora_back_cover.png"
+        "star_keeper": "static/images/fixed_pages/_backup/star_keeper_back_cover.png",
+        "furry_love": "static/images/fixed_pages/_backup/furry_love_baby_back_cover.png",
+        "furry_love_adventure": "static/images/fixed_pages/_backup/furry_love_adventure_back_cover.png",
+        "furry_love_teen": "static/images/fixed_pages/_backup/furry_love_teen_back_cover.png",
+        "furry_love_adult": "static/images/fixed_pages/_backup/furry_love_adult_back_cover.png",
+        "centinela_aurora": "static/images/fixed_pages/_backup/centinela_aurora_back_cover.png"
     }
-    MMB_GENERIC_BACK_COVER = "static/images/fixed_pages/back_cover.png"
+    MMB_GENERIC_BACK_COVER = "static/images/fixed_pages/_backup/furry_love_baby_back_cover.png"
     back_cover_path = fixed_back_covers.get(book_id, None)
     if back_cover_path:
         print(f"[COVER] Using fixed back cover for {book_id}: {back_cover_path}")
@@ -1762,7 +1858,12 @@ def generate_full_book(
             clean_scenes_collector.append((i, scene_image.copy()))
 
         text_key = f"text_{language}"
-        text = scene_config.get(text_key, scene_config.get("text_es", ""))
+        _pet_size_val = traits.get('pet_size', 'medium')
+        if _pet_size_val == 'large':
+            _large_key = f"text_{language}_large"
+            text = scene_config.get(_large_key, scene_config.get(text_key, scene_config.get("text_es", "")))
+        else:
+            text = scene_config.get(text_key, scene_config.get("text_es", ""))
         text = text.replace("{name}", child_name)
         pet_name = traits.get('pet_name', '')
         if pet_name:
