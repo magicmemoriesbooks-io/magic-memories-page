@@ -581,7 +581,7 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                 # Adult — mountain adventure story, hiking outfit, adult proportions
                 kontext_prompt = (
                     f"Convert the {gender_word} in @image1 into a high-quality 3D animated children's book character. "
-                    f"Preserve the exact face, skin tone, and hair — identical likeness. "
+                    f"Preserve the exact face, skin tone, hair and AGE — identical likeness, the character is an adult ({age_display}), maintain mature adult face proportions, do not make them look younger. "
                     f"OUTFIT: casual outdoor hiking clothes (flannel shirt or fleece, cargo pants, hiking boots) — adult mountain adventure style. "
                     f"BACKGROUND: soft cream gradient, plain studio. "
                     f"POSE: standing, full body visible from head to feet, relaxed confident smile, arms naturally at sides."
