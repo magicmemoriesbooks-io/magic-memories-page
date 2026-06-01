@@ -578,12 +578,11 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                     f"POSE: standing, full body visible from head to feet, confident friendly smile, arms relaxed at sides."
                 )
             elif story_id == 'furry_love_adult_illustrated':
-                # Adult — mountain adventure story, hiking outfit, adult proportions
+                # Adult — mountain adventure story. Minimalist: let Kontext read @image1 directly.
                 kontext_prompt = (
                     f"Convert the {gender_word} in @image1 into a Disney Pixar 3D animated adult character. "
-                    f"IDENTITY: preserve the exact face shape, skin tone, and EXACT hair color from the photo — if the hair is dark brown, keep it dark brown; if light, keep it light. Do not brighten or lighten the hair color. "
-                    f"AGE: this is a {age_display} adult. Preserve all age-appropriate features visible in the photo — facial structure, maturity, any lines or mature proportions. The result must look the same age as the person in the photo. "
-                    f"OUTFIT: casual outdoor hiking clothes (flannel shirt or fleece, cargo pants, hiking boots) — adult mountain adventure style. "
+                    f"Preserve the exact face, hair color, skin tone, and age from the photo — identical adult likeness. "
+                    f"OUTFIT: casual outdoor hiking clothes (flannel shirt or fleece, cargo pants, hiking boots). "
                     f"BACKGROUND: soft cream gradient, plain studio. "
                     f"POSE: standing, full body visible from head to feet, relaxed confident smile, arms naturally at sides."
                 )
