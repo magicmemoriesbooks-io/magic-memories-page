@@ -2458,7 +2458,7 @@ def regenerate_furry_preview():
                     print(f"[REGEN FURRY] Using Kontext Pro for {story_id_regen}")
                     if story_id_regen == 'furry_love_adult_illustrated':
                         kontext_prompt = (
-                            f"Convert the {gender_word} in @image1 into a Disney Pixar 3D animated adult character. "
+                            f"Convert the adult {gender_word} in @image1 into a high-quality 3D animated storybook character. "
                             f"Preserve the exact face, hair color, skin tone, and age from the photo — identical adult likeness. "
                             f"OUTFIT: casual outdoor hiking clothes (flannel shirt or fleece, cargo pants, hiking boots). "
                             f"BACKGROUND: soft cream gradient, plain studio. "
