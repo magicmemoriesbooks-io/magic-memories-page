@@ -656,7 +656,8 @@ def sitemap():
         (f'{domain}/personalized-books',        '0.9',  'weekly'),
         (f'{domain}/personalized-books?lang=en','0.9',  'weekly'),
         (f'{domain}/furry-love',                '0.8',  'weekly'),
-        (f'{domain}/stories-birthday',          '0.8',  'weekly'),
+        (f'{domain}/birthday-stories',           '0.9',  'weekly'),
+        (f'{domain}/birthday-stories?lang=en',  '0.9',  'weekly'),
         (f'{domain}/stories-0-1',               '0.8',  'weekly'),
         (f'{domain}/stories-3-5',               '0.8',  'weekly'),
         (f'{domain}/stories-3-8',               '0.8',  'weekly'),
@@ -809,13 +810,19 @@ def personalized_books():
                           is_change_mode=is_change_mode,
                           original_preview_id=original_preview_id)
 
+@app.route('/birthday-stories')
+def birthday_stories():
+    lang = get_lang()
+    return render_template('birthday_stories.html', lang=lang,
+                           translations=TRANSLATIONS.get(lang, TRANSLATIONS['es']))
+
 @app.route('/stories-birthday')
 def stories_birthday():
-    return redirect(url_for('express_catalog'))
+    return redirect('/birthday-stories', code=301)
 
 @app.route('/birthday')
 def birthday_selection():
-    return redirect(url_for('express_catalog'))
+    return redirect('/birthday-stories', code=301)
 
 @app.route('/birthday-1-3')
 def birthday_1_3():
