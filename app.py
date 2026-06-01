@@ -697,6 +697,49 @@ def pricing():
     return render_template('pricing.html')
 
 
+# ── Redirecciones 301 desde URLs antiguas (WordPress) ──────────────────────
+@app.route('/comprar/')
+@app.route('/comprar')
+def redirect_comprar():
+    return redirect('/pricing', code=301)
+
+@app.route('/en/comprar/')
+@app.route('/en/comprar')
+def redirect_comprar_en():
+    return redirect('/pricing', code=301)
+
+@app.route('/producto/cuento-personalizado/')
+@app.route('/producto/cuento-personalizado')
+def redirect_producto():
+    return redirect('/personalized-books', code=301)
+
+@app.route('/en/producto/cuento-personalizado/')
+@app.route('/en/producto/cuento-personalizado')
+def redirect_producto_en():
+    return redirect('/personalized-books', code=301)
+
+@app.route('/en/')
+@app.route('/en')
+def redirect_en():
+    return redirect('/', code=301)
+
+@app.route('/author/grupodotcom/')
+@app.route('/author/grupodotcom')
+@app.route('/author/<string:name>/')
+@app.route('/author/<string:name>')
+def redirect_author(name=None):
+    return redirect('/', code=301)
+
+@app.route('/wp-content/<path:subpath>')
+def redirect_wp_content(subpath):
+    return redirect('/', code=301)
+
+@app.route('/wp-admin/<path:subpath>')
+def redirect_wp_admin(subpath):
+    return redirect('/', code=301)
+# ── Fin redirecciones 301 ───────────────────────────────────────────────────
+
+
 @app.route('/terms')
 def terms():
     return render_template('terms.html')
