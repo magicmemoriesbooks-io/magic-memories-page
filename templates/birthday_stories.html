@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'es' %}Cuentos de Cumpleaños Personalizados para Niños — Magic Memories Books{% else %}Personalized Birthday Stories for Kids — Magic Memories Books{% endif %}{% endblock %}
+{% block meta_description %}{% if lang == 'es' %}Crea un cuento de cumpleaños personalizado con el nombre e ilustración de tu hijo. Para bebés, niños y mayores de 7 años. 16 páginas, entrega digital inmediata.{% else %}Create a personalized birthday story with your child's name and illustration. For babies, kids and older children. 16 pages, instant digital delivery.{% endif %}{% endblock %}
+
+{% block content %}
+<style>
+.bday-hero {
+    background: linear-gradient(135deg, #db2777 0%, #f472b6 50%, #fbbf24 100%);
+    padding: 52px 20px 40px;
+    text-align: center;
+    color: #fff;
+    position: relative;
+}
+.bday-hero .back-link {
+    position: absolute;
+    top: 16px;
+    left: 20px;
+    color: rgba(255,255,255,0.85);
+    text-decoration: none;
+    font-size: .9rem;
+    font-weight: 600;
+}
+.bday-hero .back-link:hover { color: #fff; }
+.bday-hero h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; margin: 0 0 10px; }
+.bday-hero p  { font-size: 1.05rem; opacity: .9; margin: 0; max-width: 540px; margin: 0 auto; }
+
+.bday-page-section { padding: 44px 20px 16px; max-width: 900px; margin: 0 auto; }
+.bday-page-section h2 { font-size: 1.4rem; font-weight: 800; text-align: center; margin: 0 0 6px; color: #be185d; }
+.bday-page-section .sub { text-align: center; color: #9d174d; font-size: .9rem; margin: 0 0 28px; }
+
+.bday-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+
+.bday-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.09);
+    overflow: hidden;
+    display: flex;
+    cursor: pointer;
+    transition: transform .16s, box-shadow .16s;
+    position: relative;
+}
+.bday-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.14); }
+.bday-card-img { width: 90px; flex-shrink: 0; }
+.bday-card-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bday-card-body {
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex: 1;
+}
+.bday-card-body h3 { font-size: .95rem; font-weight: 700; margin: 0 0 4px; line-height: 1.3; }
+.bday-card-body p  { font-size: .78rem; color: #666; margin: 0 0 10px; }
+
+.bday-badge {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: #db2777;
+    color: #fff;
+    font-size: .65rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+.popular-badge {
+    position: absolute;
+    top: 28px; right: 8px;
+    background: #fbbf24;
+    color: #78350f;
+    font-size: .65rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+}
+.btn-create {
+    display: inline-block;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: .8rem;
+    font-weight: 700;
+    text-decoration: none;
+    text-align: center;
+    background: linear-gradient(135deg, #db2777, #f472b6);
+    color: #fff;
+    transition: opacity .15s;
+}
+.btn-create:hover { opacity: .88; }
+
+.bday-trust {
+    background: #fff7ed;
+    border-top: 1px solid #fed7aa;
+    padding: 36px 20px;
+    text-align: center;
+    margin-top: 20px;
+}
+.bday-trust h3 { font-size: 1.1rem; font-weight: 700; color: #92400e; margin: 0 0 16px; }
+.bday-trust-items { display: flex; flex-wrap: wrap; justify-content: center; gap: 24px; max-width: 700px; margin: 0 auto; }
+.bday-trust-item { font-size: .88rem; color: #78350f; display: flex; align-items: center; gap: 6px; }
+
+.bday-back-bar {
+    text-align: center;
+    padding: 28px 20px 36px;
+}
+.bday-back-bar a {
+    color: #9d174d;
+    text-decoration: none;
+    font-size: .9rem;
+    font-weight: 600;
+}
+.bday-back-bar a:hover { text-decoration: underline; }
+</style>
+
+<!-- HERO -->
+<div class="bday-hero">
+    <a href="{{ url_for('story_selection') }}" class="back-link">
+        ← {% if lang == 'es' %}Volver{% else %}Back{% endif %}
+    </a>
+    <h1>🎂 {% if lang == 'es' %}Cuentos de Cumpleaños Personalizados{% else %}Personalized Birthday Stories{% endif %}</h1>
+    <p>{% if lang == 'es' %}El regalo más especial para el día más importante — con el nombre e ilustración de tu hijo{% else %}The most special gift for the most important day — with your child's name and illustration{% endif %}</p>
+</div>
+
+<!-- CARDS -->
+<div class="bday-page-section">
+    <h2>{% if lang == 'es' %}Elige la edad de tu protagonista{% else %}Choose your hero's age{% endif %}</h2>
+    <p class="sub">{% if lang == 'es' %}Cada cuento tiene ilustraciones únicas adaptadas a la edad · 16 páginas{% else %}Each story has unique age-appropriate illustrations · 16 pages{% endif %}</p>
+
+    <div class="bday-grid">
+
+        <!-- 1-3 años -->
+        <div class="bday-card" onclick="window.location.href='/personalize-story?story=birthday_celebration_1_3'">
+            <div class="bday-badge">1–3 {% if lang == 'es' %}años{% else %}years{% endif %}</div>
+            <div class="bday-card-img">
+                <img src="{{ url_for('static', filename='images/cover_birthday_celebration_0_2.jpg') }}" alt="{% if lang == 'es' %}Cuento de cumpleaños 1 a 3 años{% else %}Birthday story 1 to 3 years{% endif %}"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#fff7ed;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>🎂</div>'">
+            </div>
+            <div class="bday-card-body">
+                <div>
+                    <h3 style="color:#b45309;">{% if lang == 'es' %}Pequeñitos{% else %}Little Ones{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Tierno y emotivo · 16 páginas{% else %}Tender and heartfelt · 16 pages{% endif %}</p>
+                </div>
+                <a href="/personalize-story?story=birthday_celebration_1_3" class="btn-create" onclick="event.stopPropagation()">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+        <!-- 4-6 años -->
+        <div class="bday-card" onclick="window.location.href='/personalize-story?story=birthday_celebration_4_6'">
+            <div class="bday-badge">4–6 {% if lang == 'es' %}años{% else %}years{% endif %}</div>
+            <div class="popular-badge">⭐ Popular</div>
+            <div class="bday-card-img">
+                <img src="{{ url_for('static', filename='images/cover_birthday_celebration_4_6.jpg') }}" alt="{% if lang == 'es' %}Cuento de cumpleaños 4 a 6 años{% else %}Birthday story 4 to 6 years{% endif %}"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#f5f3ff;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>🎉</div>'">
+            </div>
+            <div class="bday-card-body">
+                <div>
+                    <h3 style="color:#7c3aed;">{% if lang == 'es' %}Niños{% else %}Kids{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Mágico y divertido · 16 páginas{% else %}Magical and fun · 16 pages{% endif %}</p>
+                </div>
+                <a href="/personalize-story?story=birthday_celebration_4_6" class="btn-create" onclick="event.stopPropagation()">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+        <!-- 7-9 años -->
+        <div class="bday-card" onclick="window.location.href='/personalize-story?story=birthday_celebration_7_9'">
+            <div class="bday-badge">7–9 {% if lang == 'es' %}años{% else %}years{% endif %}</div>
+            <div class="bday-card-img">
+                <img src="{{ url_for('static', filename='images/cover_birthday_celebration_7_9.jpg') }}" alt="{% if lang == 'es' %}Cuento de cumpleaños 7 a 9 años{% else %}Birthday story 7 to 9 years{% endif %}"
+                     onerror="this.parentElement.innerHTML='<div style=\'background:#eff6ff;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem\'>🎈</div>'">
+            </div>
+            <div class="bday-card-body">
+                <div>
+                    <h3 style="color:#1d4ed8;">{% if lang == 'es' %}Niños Mayores{% else %}Older Kids{% endif %}</h3>
+                    <p>{% if lang == 'es' %}Emotivo y especial · 16 páginas{% else %}Heartfelt and special · 16 pages{% endif %}</p>
+                </div>
+                <a href="/personalize-story?story=birthday_celebration_7_9" class="btn-create" onclick="event.stopPropagation()">
+                    {% if lang == 'es' %}Crear este cuento →{% else %}Create this story →{% endif %}
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- TRUST STRIP -->
+<div class="bday-trust">
+    <h3>{% if lang == 'es' %}¿Por qué elegir Magic Memories Books?{% else %}Why choose Magic Memories Books?{% endif %}</h3>
+    <div class="bday-trust-items">
+        <div class="bday-trust-item">✨ {% if lang == 'es' %}Ilustraciones únicas con IA{% else %}Unique AI illustrations{% endif %}</div>
+        <div class="bday-trust-item">⚡ {% if lang == 'es' %}Entrega digital inmediata{% else %}Instant digital delivery{% endif %}</div>
+        <div class="bday-trust-item">📖 {% if lang == 'es' %}16 páginas personalizadas{% else %}16 personalised pages{% endif %}</div>
+        <div class="bday-trust-item">🖨️ {% if lang == 'es' %}Versión impresa disponible{% else %}Printed version available{% endif %}</div>
+        <div class="bday-trust-item">🌍 {% if lang == 'es' %}Español e inglés{% else %}Spanish and English{% endif %}</div>
+    </div>
+</div>
+
+<!-- BACK LINK -->
+<div class="bday-back-bar">
+    <a href="{{ url_for('express_catalog') }}">{% if lang == 'es' %}← Ver todos los cuentos Express{% else %}← See all Express stories{% endif %}</a>
+</div>
+
+{% endblock %}
