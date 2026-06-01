@@ -2452,29 +2452,33 @@ def regenerate_furry_preview():
             print(f"[REGEN FURRY] Regenerating HUMAN preview (photo={bool(photo_ref)})")
             print(f"[REGEN FURRY DEBUG] HUMAN PROMPT FULL ({len(prompt)} chars): {prompt}")
             if photo_ref:
-                use_pulid = story_id_regen in ('furry_love_teen_illustrated', 'furry_love_adult_illustrated')
-                use_kontext = story_id_regen == 'furry_love_adventure_illustrated'
+                use_pulid = story_id_regen in ('furry_love_teen_illustrated',)
+                use_kontext = story_id_regen in ('furry_love_adventure_illustrated', 'furry_love_adult_illustrated')
                 if use_kontext:
                     print(f"[REGEN FURRY] Using Kontext Pro for {story_id_regen}")
-                    skin_tone_k = get_unified_skin_description(data.get('skin_tone', 'light'))
-                    kontext_prompt = (
-                        f"Transform this child into a Disney Pixar 3D animated character. "
-                        f"FULL BODY from head to toe, standing confidently, big joyful smile, arms relaxed at sides. "
-                        f"{gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone_k} skin. "
-                        f"Wearing a colorful adventure outfit with a small explorer backpack. "
-                        f"NEUTRAL SOLID GRADIENT BACKGROUND, soft cream to warm beige, plain studio portrait. "
-                        f"Disney Pixar 3D animation style, big expressive eyes, smooth skin, warm cinematic lighting. "
-                        f"Clean professional illustration only. ABSOLUTELY NO text, no watermarks, no logos anywhere."
-                    )
+                    if story_id_regen == 'furry_love_adult_illustrated':
+                        kontext_prompt = (
+                            f"Convert the {gender_word} in @image1 into a high-quality 3D animated children's book character. "
+                            f"Preserve the exact face, skin tone, and hair — identical likeness. "
+                            f"OUTFIT: casual outdoor hiking clothes (flannel shirt or fleece, cargo pants, hiking boots) — adult mountain adventure style. "
+                            f"BACKGROUND: soft cream gradient, plain studio. "
+                            f"POSE: standing, full body visible from head to feet, relaxed confident smile, arms naturally at sides."
+                        )
+                    else:
+                        kontext_prompt = (
+                            f"Transform this child into a Disney Pixar 3D animated character. "
+                            f"FULL BODY from head to toe, standing confidently, big joyful smile, arms relaxed at sides. "
+                            f"{gender_word} ({age_display}), {hair_desc}, {eye_desc}. "
+                            f"Wearing a colorful adventure outfit with a small explorer backpack. "
+                            f"NEUTRAL SOLID GRADIENT BACKGROUND, soft cream to warm beige, plain studio portrait. "
+                            f"Disney Pixar 3D animation style, big expressive eyes, smooth skin, warm cinematic lighting. "
+                            f"Clean professional illustration only. ABSOLUTELY NO text, no watermarks, no logos anywhere."
+                        )
                     try:
                         image_url = generate_with_flux_kontext(kontext_prompt, photo_ref, aspect_ratio="3:4")
                     except Exception as kontext_err:
-                        print(f"[REGEN FURRY] Kontext failed ({str(kontext_err)[:150]}), falling back to PuLID...")
-                        try:
-                            image_url = generate_with_flux_pulid(prompt, photo_ref, width=768, height=1024)
-                        except Exception as pulid_err2:
-                            print(f"[REGEN FURRY] PuLID also failed, falling back to FLUX 2 Dev...")
-                            image_url = generate_with_flux2_dev(prompt, aspect_ratio="3:4", photo_ref_path=photo_ref, image_prompt_strength=0.90)
+                        print(f"[REGEN FURRY] Kontext failed ({str(kontext_err)[:150]}), falling back to FLUX 2 Dev...")
+                        image_url = generate_with_flux2_dev(prompt, aspect_ratio="3:4", photo_ref_path=photo_ref, image_prompt_strength=0.90)
                 elif use_pulid:
                     print(f"[REGEN FURRY] Using PuLID for {story_id_regen}")
                     try:
