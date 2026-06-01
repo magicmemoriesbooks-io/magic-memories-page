@@ -739,6 +739,13 @@ def redirect_wp_admin(subpath):
     return redirect('/', code=301)
 # ── Fin redirecciones 301 ───────────────────────────────────────────────────
 
+# Redirect WordPress ?page_id= and ?p= query params at root
+@app.before_request
+def redirect_wp_query_params():
+    from flask import request as req
+    if req.path == '/' and (req.args.get('page_id') or req.args.get('p')):
+        return redirect('/', code=301)
+
 
 @app.route('/terms')
 def terms():
