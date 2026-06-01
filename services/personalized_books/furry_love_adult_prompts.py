@@ -166,7 +166,7 @@ CLOSING_SCENE = {
 }
 
 FRONT_COVER = {
-    "prompt": "Disney Pixar 3D style illustration. HUMAN: A {gender_word} with {eye_desc} eyes, full appearance matching @image1 exactly. Standing at the beginning of a mountain trail, wearing hiking gear and backpack, excited adventurous expression, looking ahead at the mountains, confident posture. PET: {pet_desc} exactly as in reference image @image2, standing beside the human at the trailhead, alert, tail up. ACTION: Human and pet stand together ready for adventure, both facing the mountains ahead. SETTING: Mountain trailhead WIDE VIEW, epic mountain peaks, golden morning light, lush forest. STRICT: Only ONE {gender_word} and ONE pet, centered composition for book cover. The character is a {gender_word}. Pure illustration only, zero text or lettering. {style}"
+    "prompt": "Disney Pixar 3D style illustration. HUMAN: A {gender_word} with {eye_desc} eyes{glasses_desc}{facial_hair_desc}, full appearance matching @image1 exactly, sitting by a glowing campfire, wearing outdoor hiking clothes, warm happy smile, relaxed and enjoying the moment. PET: {pet_desc} exactly as in @image2, sitting beside the human at the campfire, happy and content, looking at the human with adoring eyes. ACTION: Human and pet share a cozy fun moment together around a crackling campfire in the mountains at golden hour, both relaxed and bonded, laughing and enjoying the adventure. SETTING: Mountain campsite WIDE VIEW with epic peaks in the background, pine trees around, warm twilight sky, glowing campfire light illuminating both characters warmly, tent visible in background. ATMOSPHERE: Warm cozy bonding, adventure and joy, golden fire light, magical mountain evening, deep friendship. STRICT: Only ONE {gender_word} and ONE pet, centered composition for book cover. Pure illustration only, zero text or lettering. {style}"
 }
 
 BACK_COVER = {
@@ -203,14 +203,27 @@ def build_pet_preview_prompt(pet_desc: str, pet_size: str = "medium") -> str:
 
 def build_pet_preview_prompt_with_photo(pet_desc: str = "", pet_species: str = "dog", pet_size: str = "medium") -> str:
     animal = "cat" if pet_species == "cat" else "dog"
-    size_desc_map = {
-        "small":  "a small-sized animal — compact body, fits fully in frame with space around it",
-        "medium": "a medium-sized animal — full body fits naturally and comfortably in frame",
-        "large":  "a large-sized animal — big imposing body fills the frame, broad and tall",
+    size_label_map = {
+        "small":  "small and compact (puppy or small breed proportions — short legs, rounded face, small body)",
+        "medium": "medium-sized adult (standard proportions — balanced body, not too big not too small)",
+        "large":  "large and imposing (big adult proportions — tall, broad, long legs, big head)",
     }
-    size_desc = size_desc_map.get(pet_size, size_desc_map["medium"])
+    frame_map = {
+        "small":  "compact small body, fits fully in frame with space around it",
+        "medium": "full body fits naturally and comfortably in frame",
+        "large":  "big imposing body fills the frame, broad and tall",
+    }
+    size_label = size_label_map.get(pet_size, size_label_map["medium"])
+    frame_desc = frame_map.get(pet_size, frame_map["medium"])
     desc_hint = f" ({pet_desc})" if pet_desc else ""
-    return f"High-quality 3D animated children's book illustration. 3D animated character of the {animal} from @image1{desc_hint}. FULL BODY portrait, sitting or standing naturally, friendly expression, centered. {size_desc}. NEUTRAL SOLID GRADIENT BACKGROUND (soft cream to warm beige). Warm lighting. Clean animation art, clean illustration only."
+    return (
+        f"High-quality Disney Pixar 3D animated illustration. "
+        f"Convert the {animal} from @image1 into a 3D animated children's book character.{desc_hint} "
+        f"Preserve the exact breed, coat color, markings and body proportions from @image1 — body size: {size_label}. "
+        f"FULL BODY portrait, sitting or standing naturally, friendly expression, centered, {frame_desc}. "
+        f"NEUTRAL SOLID GRADIENT BACKGROUND (soft cream to warm beige). "
+        f"Warm lighting, expressive eyes. Clean animation art, clean illustration only."
+    )
 
 
 def build_scene_prompt(scene: dict, human_desc: str, pet_name: str, pet_desc: str, age_display: str = "30 year old adult", eye_desc: str = "", gender_word: str = "person", glasses: str = "", facial_hair: str = "", hair_color: str = "", hair_desc: str = "", **kwargs) -> str:
