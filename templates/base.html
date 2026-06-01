@@ -8,6 +8,7 @@
     <script>
         function mmLoadGA() {
             if (window._mmGALoaded) return;
+            if (window.location.pathname.startsWith('/admin')) return;
             window._mmGALoaded = true;
             var s = document.createElement('script');
             s.async = true;
