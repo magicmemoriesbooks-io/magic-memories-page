@@ -188,6 +188,29 @@
     </div>
 </div>
 
+<!-- CÓMO FUNCIONA -->
+<div class="bday-page-section" style="padding-top:36px;">
+    <h2 style="color:#be185d;">{% if lang == 'es' %}Cómo crear tu cuento de cumpleaños personalizado{% else %}How to create your personalized birthday story{% endif %}</h2>
+    <p class="sub">{% if lang == 'es' %}En 3 pasos, listo en minutos{% else %}3 steps, ready in minutes{% endif %}</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:20px;max-width:900px;margin:0 auto;">
+        <div style="background:#fff;border-radius:14px;padding:20px 18px;box-shadow:0 2px 10px rgba(0,0,0,.07);text-align:center;">
+            <div style="font-size:2rem;margin-bottom:8px;">✏️</div>
+            <h3 style="font-size:.95rem;font-weight:700;margin:0 0 6px;color:#be185d;">{% if lang == 'es' %}1. Personaliza al protagonista{% else %}1. Customise the hero{% endif %}</h3>
+            <p style="font-size:.82rem;color:#555;margin:0;">{% if lang == 'es' %}Elige el nombre, la edad y las características físicas de tu hijo. El cuento girará en torno a él.{% else %}Enter your child's name, age and physical features. The birthday story will be all about them.{% endif %}</p>
+        </div>
+        <div style="background:#fff;border-radius:14px;padding:20px 18px;box-shadow:0 2px 10px rgba(0,0,0,.07);text-align:center;">
+            <div style="font-size:2rem;margin-bottom:8px;">🤖</div>
+            <h3 style="font-size:.95rem;font-weight:700;margin:0 0 6px;color:#be185d;">{% if lang == 'es' %}2. La IA genera historia e ilustraciones{% else %}2. AI generates story and illustrations{% endif %}</h3>
+            <p style="font-size:.82rem;color:#555;margin:0;">{% if lang == 'es' %}Nuestra inteligencia artificial crea una historia única con texto e ilustraciones personalizadas adaptadas a la edad del niño.{% else %}Our AI creates a unique personalized birthday book with custom text and age-appropriate illustrations.{% endif %}</p>
+        </div>
+        <div style="background:#fff;border-radius:14px;padding:20px 18px;box-shadow:0 2px 10px rgba(0,0,0,.07);text-align:center;">
+            <div style="font-size:2rem;margin-bottom:8px;">🎁</div>
+            <h3 style="font-size:.95rem;font-weight:700;margin:0 0 6px;color:#be185d;">{% if lang == 'es' %}3. Descarga y regala{% else %}3. Download and gift{% endif %}</h3>
+            <p style="font-size:.82rem;color:#555;margin:0;">{% if lang == 'es' %}Recibes el PDF al instante por correo. También puedes pedir una versión impresa con tapa dura, entregada en 10–15 días.{% else %}Your PDF arrives instantly by email. You can also order a printed hardcover birthday book, delivered in 10–15 days.{% endif %}</p>
+        </div>
+    </div>
+</div>
+
 <!-- TRUST STRIP -->
 <div class="bday-trust">
     <h3>{% if lang == 'es' %}¿Por qué elegir Magic Memories Books?{% else %}Why choose Magic Memories Books?{% endif %}</h3>
@@ -198,6 +221,38 @@
         <div class="bday-trust-item">🖨️ {% if lang == 'es' %}Versión impresa disponible{% else %}Printed version available{% endif %}</div>
         <div class="bday-trust-item">🌍 {% if lang == 'es' %}Español e inglés{% else %}Spanish and English{% endif %}</div>
     </div>
+</div>
+
+<!-- FAQ -->
+<div style="max-width:760px;margin:0 auto;padding:36px 20px 16px;">
+    <h2 style="font-size:1.3rem;font-weight:800;color:#be185d;text-align:center;margin:0 0 24px;">{% if lang == 'es' %}Preguntas frecuentes{% else %}Frequently asked questions{% endif %}</h2>
+
+    <details style="border:1px solid #fce7f3;border-radius:12px;margin-bottom:10px;background:#fff;">
+        <summary style="padding:14px 18px;font-size:.92rem;font-weight:700;color:#9d174d;cursor:pointer;list-style:none;">
+            {% if lang == 'es' %}¿Realmente parece personalizado o solo le añaden el nombre?{% else %}Is it really personalised or do they just add the name?{% endif %}
+        </summary>
+        <p style="padding:0 18px 16px;margin:0;font-size:.85rem;color:#555;line-height:1.6;">
+            {% if lang == 'es' %}Es completamente distinto a poner un nombre en una plantilla. Cuando introduces los datos de tu hijo — su nombre, su edad, el color de su pelo y sus ojos — la IA genera una historia nueva y unas ilustraciones donde el protagonista se parece a él. No hay dos cuentos iguales. Puedes ver una vista previa antes de pagar, así sabes exactamente lo que recibes.{% else %}It's nothing like putting a name on a template. When you enter your child's details — their name, age, hair colour and eye colour — the AI generates a brand new story and illustrations where the hero looks like them. No two books are the same. You can preview the story before paying, so you know exactly what you're getting.{% endif %}
+        </p>
+    </details>
+
+    <details style="border:1px solid #fce7f3;border-radius:12px;margin-bottom:10px;background:#fff;">
+        <summary style="padding:14px 18px;font-size:.92rem;font-weight:700;color:#9d174d;cursor:pointer;list-style:none;">
+            {% if lang == 'es' %}¿Los cuentos están disponibles en español e inglés?{% else %}Are the stories available in Spanish and English?{% endif %}
+        </summary>
+        <p style="padding:0 18px 16px;margin:0;font-size:.85rem;color:#555;line-height:1.6;">
+            {% if lang == 'es' %}Sí. Todos nuestros cuentos de cumpleaños personalizados están disponibles en español e inglés. Puedes cambiar el idioma en cualquier momento desde la página.{% else %}Yes. All our personalized birthday stories are available in Spanish and English. You can switch language at any time from the page.{% endif %}
+        </p>
+    </details>
+
+    <details style="border:1px solid #fce7f3;border-radius:12px;margin-bottom:10px;background:#fff;">
+        <summary style="padding:14px 18px;font-size:.92rem;font-weight:700;color:#9d174d;cursor:pointer;list-style:none;">
+            {% if lang == 'es' %}¿Puedo pedir el cuento como libro impreso?{% else %}Can I order a printed copy?{% endif %}
+        </summary>
+        <p style="padding:0 18px 16px;margin:0;font-size:.85rem;color:#555;line-height:1.6;">
+            {% if lang == 'es' %}Sí. Tras recibir el libro digital, puedes solicitar una versión física en tapa dura o blanda enviada a cualquier dirección en 10–15 días.{% else %}Yes. After receiving your digital birthday book, you can order a printed hardcover or softcover version delivered anywhere in 10–15 days.{% endif %}
+        </p>
+    </details>
 </div>
 
 <!-- BACK LINK -->
