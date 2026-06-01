@@ -553,8 +553,8 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
         else:
             pet_prompt = build_pet_preview_prompt(pet_desc, pet_size=traits.get('pet_size', 'medium'))
         
-        use_pulid = story_id in ('furry_love_adult_illustrated',)
-        use_kontext = story_id in ('furry_love_adventure_illustrated', 'furry_love_teen_illustrated', 'furry_love_illustrated')
+        use_pulid = False
+        use_kontext = story_id in ('furry_love_adventure_illustrated', 'furry_love_teen_illustrated', 'furry_love_illustrated', 'furry_love_adult_illustrated')
         
         if human_photo_path and use_kontext:
             print(f"[FURRY LOVE PREVIEW] Generating human preview WITH photo using FLUX Kontext Pro (full identity): {human_photo_path}")
@@ -576,6 +576,15 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                     f"OUTFIT: casual hoodie and jeans, sneakers — modern teen style. "
                     f"BACKGROUND: soft cream gradient, plain studio. "
                     f"POSE: standing, full body visible from head to feet, confident friendly smile, arms relaxed at sides."
+                )
+            elif story_id == 'furry_love_adult_illustrated':
+                # Adult — mountain adventure story, hiking outfit, adult proportions
+                kontext_prompt = (
+                    f"Convert the {gender_word} in @image1 into a high-quality 3D animated children's book character. "
+                    f"Preserve the exact face, skin tone, and hair — identical likeness. "
+                    f"OUTFIT: casual outdoor hiking clothes (flannel shirt or fleece, cargo pants, hiking boots) — adult mountain adventure style. "
+                    f"BACKGROUND: soft cream gradient, plain studio. "
+                    f"POSE: standing, full body visible from head to feet, relaxed confident smile, arms naturally at sides."
                 )
             else:
                 # Kids (3-8 años) — minimal prompt like baby: convert from photo, no characteristic descriptions
