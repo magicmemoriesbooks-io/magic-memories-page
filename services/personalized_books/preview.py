@@ -278,6 +278,37 @@ def _ensure_luna_reference() -> str:
     return ''
 
 
+def _ensure_spark_reference() -> str:
+    """Generate SPARK dragon companion reference image once and cache it as a static asset.
+    Returns the file path, or empty string if generation fails.
+    SPARK: adorable baby dragon, emerald green scales, golden eyes, tiny iridescent wings.
+    """
+    spark_path = 'static/assets/spark_reference.png'
+    if os.path.exists(spark_path):
+        return spark_path
+    print("[DRAGON GARDEN] Generating SPARK reference image (first time only)...")
+    try:
+        spark_prompt = (
+            "Disney Pixar 3D style illustration. A single adorable baby dragon named SPARK, "
+            "small chubby round body covered in shimmering emerald green scales, large expressive "
+            "golden eyes, tiny translucent iridescent wings on the sides, short stubby tail, "
+            "small rounded snout with a sweet gentle smile, two tiny curved horns on head, "
+            "soft cream-colored belly. Floating in midair, centered in frame, full body visible. "
+            "Plain soft green magical background with golden sparkles. "
+            "Full character visible, clean studio lighting, pure illustration only, NO text, NO watermarks."
+        )
+        image_url = generate_with_flux2_dev(spark_prompt, aspect_ratio="1:1")
+        from services.replicate_service import save_image_locally as _sil
+        os.makedirs('static/assets', exist_ok=True)
+        result_path = _sil(image_url, spark_path)
+        if result_path and os.path.exists(spark_path):
+            print(f"[DRAGON GARDEN] SPARK reference saved: {spark_path}")
+            return spark_path
+    except Exception as e:
+        print(f"[DRAGON GARDEN] SPARK reference generation failed: {e}")
+    return ''
+
+
 def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                                    child_age: int, traits: dict,
                                    child_photo_path: str = '') -> dict:
@@ -297,34 +328,100 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
 
     if story_id == 'dragon_garden_illustrated':
         from services.personalized_books.dragon_garden_prompts import (
-            get_outfit_desc, STYLE_BASE, SPARK_INLINE, get_hair_action
+            get_outfit_desc as dg_get_outfit_desc,
+            STYLE_BASE as DG_STYLE_BASE,
+            FRONT_COVER as DG_FRONT_COVER,
+            get_hair_action as dg_get_hair_action
         )
         from services.fixed_stories import get_hair_strict
-        
-        outfit_desc = get_outfit_desc(gender)
-        hair_action = get_hair_action(traits)
-        if has_photo:
-            hair_desc = "hair as in the reference photo"
-            actual_eye = get_eye_description(traits)
-            eye_desc = f"{actual_eye}, face exactly as in the reference photo{glasses_desc}"
-            skin_tone = "as in the reference photo"
-            char_physical = f"{hair_desc}, {eye_desc}"
-            hair_strict_text = "PHOTO REFERENCE: Match the child's exact face, skin, eye color and hair from the reference photo."
+        from services.replicate_service import get_gender_negative_prompt as _dg_neg_fn
+
+        gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
+        age_display = f"{child_age} year old" if child_age and child_age > 0 else "6 year old"
+        human_photo_path = traits.get('human_photo_path', child_photo_path or '')
+        outfit_desc = dg_get_outfit_desc(gender)
+
+        spark_path = _ensure_spark_reference()
+        spark_ok = spark_path and os.path.exists(spark_path)
+
+        output_dir = 'generated/previews'
+        os.makedirs(output_dir, exist_ok=True)
+
+        dg_scene = DG_FRONT_COVER.get('prompt', '').replace('{style}', DG_STYLE_BASE)
+        dg_neg = _dg_neg_fn(gender)
+
+        if human_photo_path and os.path.exists(human_photo_path):
+            kontext_prompt = (
+                f"The child in @image1 is {child_age} years old. "
+                f"Convert @image1 into a Disney Pixar 3D animated children's book character. "
+                f"Copy the face, hair colour, skin tone, and eye colour from @image1 exactly — identical likeness. "
+                f"Replace all clothing with: {outfit_desc}. "
+                f"Full body visible from head to feet, standing pose, joyful adventurous smile. "
+                f"Background: soft green magical garden atmosphere with golden sparkles, plain studio — "
+                f"no dragon, no detailed scenery."
+            )
+            print(f"[DRAGON GARDEN PREVIEW] Step 1 — Kontext portrait | photo={human_photo_path} | age={child_age}")
+            portrait_url = generate_with_flux_kontext(kontext_prompt, human_photo_path, aspect_ratio="3:4")
+            portrait_path = save_image_locally(portrait_url, f'{output_dir}/dg_portrait_{uuid.uuid4().hex[:8]}.png')
+            print(f"[DRAGON GARDEN PREVIEW] Portrait saved: {portrait_path}")
+
+            dg_ref_note = (
+                f"The child in @image1 is {child_age} years old. "
+                f"@image1={gender_word} character — copy face, hair, skin, and outfit exactly. "
+                "@image2=small emerald dragon companion SPARK — copy appearance exactly. "
+                f"Two distinct characters: @image1 is a fully human {gender_word}, @image2 is a small baby dragon."
+            )
+            photo_refs = [portrait_path, spark_path] if spark_ok else [portrait_path]
+            print(f"[DRAGON GARDEN PREVIEW] Step 2 — FLUX 2 Dev cover scene | portrait={portrait_path} | spark={spark_ok}")
+            cov_url = generate_with_flux2_dev(
+                f"{dg_ref_note}\n{dg_scene}",
+                aspect_ratio="3:4",
+                photo_ref_paths=photo_refs,
+                image_prompt_strength=0.90,
+                negative_prompt=dg_neg
+            )
         else:
+            hair_action = dg_get_hair_action(traits)
             hair_desc = get_hair_description(traits)
             hair_strict_text = get_hair_strict(traits)
             eye_desc = get_eye_description(traits)
             skin_tone = get_unified_skin_description(traits.get('skin_tone', 'light'))
-            char_physical = f"{hair_desc}, {eye_desc}, {skin_tone} skin{glasses_desc}"
-        gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
-        age_display = f"{child_age} year old" if child_age and child_age > 0 else "6 year old"
-        
-        # Use FRONT_COVER schema, adapted for preview context
-        prompt = f"Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), {char_physical}, big joyful smile, {hair_action}. OUTFIT: {outfit_desc}. COMPANION: {SPARK_INLINE}. ACTION: {gender_word} sits happily on SPARK's back soaring through the clouds, arms gently holding the dragon, face glowing with joyful excitement. SPARK's wings spread wide and flapping, golden sparkles trailing. SETTING: Beautiful sky WIDE VIEW, fluffy pink and white cotton clouds, magnificent rainbow arching, golden sunlight, sparkles trailing. ATMOSPHERE: Adventure invitation, joyful flight, magical. STRICT: Only ONE {gender_word}, only ONE small dragon SPARK, the {gender_word} is a fully human child: no tail, no wings, no scales on the {gender_word}. {hair_strict_text} ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {STYLE_BASE}"
-        
-        print(f"[PERSONALIZED PREVIEW] {story_id}, age={child_age}, has_photo={has_photo}, glasses={bool(glasses)}")
-        print(f"[PERSONALIZED PREVIEW] Using FRONT_COVER schema + FLUX 2 Dev")
-        
+            dg_nophoto_prompt = (
+                f"@image1 = small emerald dragon companion SPARK — copy @image1 appearance exactly.\n"
+                f"Draw a single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, "
+                f"big joyful smile, {hair_action}. OUTFIT: {outfit_desc}.\n"
+                f"ACTION: The {gender_word} sits happily on @image1's back soaring through the sky, "
+                f"arms gently holding the dragon, @image1's wings spread wide and flapping. "
+                f"SETTING: Beautiful sky WIDE VIEW, fluffy pink and white cotton clouds, "
+                f"magnificent rainbow arching, golden sunlight, sparkles trailing. "
+                f"ATMOSPHERE: Adventure invitation, joyful flight, magical. "
+                f"STRICT: Only ONE {gender_word}, only ONE small dragon @image1, "
+                f"the {gender_word} is a fully human child: no tail, no wings, no scales. {hair_strict_text} "
+                f"ABSOLUTELY NO rendered text, no titles, no logos, no words, no letters, no captions, "
+                f"no watermarks, no signatures, pure illustration only. {DG_STYLE_BASE}"
+            )
+            photo_refs = [spark_path] if spark_ok else None
+            print(f"[DRAGON GARDEN PREVIEW] FLUX 2 Dev cover scene (no photo) | gender={gender_word} | age={age_display}")
+            cov_url = generate_with_flux2_dev(
+                dg_nophoto_prompt,
+                aspect_ratio="3:4",
+                photo_ref_paths=photo_refs,
+                image_prompt_strength=0.85,
+                negative_prompt=dg_neg
+            )
+
+        cover_path = save_image_locally(cov_url, f'{output_dir}/dg_cover_{uuid.uuid4().hex[:8]}.png')
+        print(f"[DRAGON GARDEN PREVIEW] Cover scene generated: {cover_path}")
+        result = {
+            'success': True,
+            'image_url': f'/{cover_path}',
+            'story_id': story_id,
+            'child_age': child_age
+        }
+        if human_photo_path and os.path.exists(human_photo_path) and 'portrait_path' in dir():
+            result['kontext_portrait'] = f'/{portrait_path}'
+        return result
+
     elif story_id == 'magic_chef_illustrated':
         from services.personalized_books.magic_chef_prompts import (
             get_outfit_desc as chef_get_outfit_desc,
