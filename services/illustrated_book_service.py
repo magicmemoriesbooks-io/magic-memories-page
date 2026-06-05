@@ -472,6 +472,9 @@ def generate_scene_complete(
                 age_display = f"{teen_age} year old, adolescent proportions, tall slender frame"
             else:
                 age_display = f"{teen_age} year old, tall adolescent physique, slim young adult build, defined jaw"
+        elif book_id == 'furry_love_adult':
+            gender_word = "man" if gender == "male" else "woman" if gender == "female" else "adult"
+            age_display = f"{child_age_int} year old adult" if child_age_int > 0 else "adult"
         else:
             gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "person"
             age_display = f"{child_age_int} year old" if child_age_int > 0 else "child"
@@ -523,14 +526,30 @@ def generate_scene_complete(
         _eye_label = _eye_color_map.get(_eye_color_raw, _eye_color_raw)
         _eye_note = f" The human has {_eye_label} eyes — preserve this exactly."
 
-    if is_furry and reference_image_path_2 and os.path.exists(reference_image_path_2):
-        reference_note = (
-            "@image1=HUMAN character (approved avatar), @image2=PET animal. "
-            "Copy the EXACT skin complexion, eye color, and hair appearance from @image1 — "
-            f"replicate the avatar faithfully.{_eye_note} "
-            "Human has human face and human hands. Pet has fur, animal face, four paws. "
-            "Two distinct separate characters side by side."
-        )
+    is_star_keeper = (book_id in ('star_keeper', 'dragon_garden'))
+    if (is_furry or is_star_keeper) and reference_image_path_2 and os.path.exists(reference_image_path_2):
+        if is_furry:
+            reference_note = (
+                "@image1=HUMAN character (approved avatar), @image2=PET animal. "
+                "Copy the EXACT skin complexion, eye color, and hair appearance from @image1 — "
+                f"replicate the avatar faithfully.{_eye_note} "
+                "Human has human face and human hands. Pet has fur, animal face, four paws. "
+                "Two distinct separate characters side by side."
+            )
+        elif book_id == 'dragon_garden':
+            reference_note = (
+                f"The child in @image1 is {child_age_int} years old. "
+                "@image1=child character — copy face, hair, skin, and outfit exactly. "
+                "@image2=small emerald dragon SPARK — copy appearance exactly. "
+                "Two distinct characters: @image1 is fully human, @image2 is a small baby dragon."
+            )
+        else:
+            reference_note = (
+                f"The child in @image1 is {child_age_int} years old. "
+                "@image1=child character — copy face, hair, skin, and outfit exactly. "
+                "@image2=small star companion — copy appearance exactly. "
+                "Two distinct characters: @image1 is fully human, @image2 is a small glowing star."
+            )
         enhanced_prompt = f"{reference_note}\n{prompt}"
 
         from services.replicate_service import get_gender_negative_prompt
@@ -1266,6 +1285,9 @@ def generate_cover_spread(
                 age_display = f"{teen_age} year old, adolescent proportions, tall slender frame"
             else:
                 age_display = f"{teen_age} year old, tall adolescent physique, slim young adult build, defined jaw"
+        elif book_id == 'furry_love_adult':
+            gender_word = "man" if gender == "male" else "woman" if gender == "female" else "adult"
+            age_display = f"{child_age_int} year old adult" if child_age_int > 0 else "adult"
         else:
             gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "person"
             age_display = f"{child_age_int} year old" if child_age_int > 0 else "child"
@@ -1283,7 +1305,12 @@ def generate_cover_spread(
     
     front_prompt += "\nClean illustration, space for title at top."
     
-    reuse_preview_as_cover = reference_image_path and os.path.exists(reference_image_path) and (not is_furry or (is_furry and not reference_image_path_2))
+    is_star_keeper_cover = (book_id in ('star_keeper', 'dragon_garden'))
+    reuse_preview_as_cover = (
+        reference_image_path and os.path.exists(reference_image_path)
+        and not is_furry
+        and not is_star_keeper_cover
+    )
     
     if reuse_preview_as_cover:
         print(f"[COVER] Using {'furry love pre-generated cover' if is_furry else 'character preview'} as front cover for {book_id}")
@@ -1295,14 +1322,31 @@ def generate_cover_spread(
             print(f"[COVER] Error loading cover image: {e}")
             front_cover = Image.new("RGB", (cover_width_px, cover_height_px), "#4A90A4")
     else:
-        has_refs = is_furry and reference_image_path and reference_image_path_2 and os.path.exists(reference_image_path) and os.path.exists(reference_image_path_2)
+        has_refs = (is_furry or is_star_keeper_cover) and reference_image_path and reference_image_path_2 and os.path.exists(reference_image_path) and os.path.exists(reference_image_path_2)
         print(f"[COVER] Generating front cover with FLUX 2 Dev{' + references' if has_refs else ''}...")
         ref_files = []
         from services.replicate_service import get_gender_negative_prompt as _cover_neg
         _cover_neg_prompt = _cover_neg(gender)
         try:
+            cover_prompt_final = front_prompt
+            if is_star_keeper_cover and has_refs:
+                if book_id == 'dragon_garden':
+                    sk_cover_ref_note = (
+                        f"The child in @image1 is {child_age_int} years old. "
+                        "@image1=child character — copy face, hair, skin, and outfit exactly. "
+                        "@image2=small emerald dragon SPARK — copy appearance exactly. "
+                        "Two distinct characters: @image1 is fully human, @image2 is a small baby dragon."
+                    )
+                else:
+                    sk_cover_ref_note = (
+                        f"The child in @image1 is {child_age_int} years old. "
+                        "@image1=child character — copy face, hair, skin, and outfit exactly. "
+                        "@image2=small star companion — copy appearance exactly. "
+                        "Two distinct characters: @image1 is fully human, @image2 is a small glowing star."
+                    )
+                cover_prompt_final = f"{sk_cover_ref_note}\n{front_prompt}"
             flux_input = {
-                "prompt": front_prompt,
+                "prompt": cover_prompt_final,
                 "aspect_ratio": "3:4",
                 "output_format": "png",
                 "go_fast": False,
