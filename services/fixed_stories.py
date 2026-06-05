@@ -1356,8 +1356,8 @@ STORIES = {
         "closing_message_en": "{name}, the best treasures are the ones discovered by trusting your own heart."
     },
     "star_guardian": {
-        "title_es": "{name} y el guardián de las estrellas",
-        "title_en": "{name} and the Guardian of the Stars",
+        "title_es": "{name} y el Secreto de las Estrellas",
+        "title_en": "{name} and the Secret of the Stars",
         "age_range": "5-7",
         "text_layout": "split",
         "use_preview_as_cover": True,
