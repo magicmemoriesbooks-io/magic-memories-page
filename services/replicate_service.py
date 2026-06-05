@@ -41,9 +41,19 @@ def get_traits_hash(traits: dict) -> str:
 
 
 def save_image_locally(image_url: str, local_path: str) -> str:
-    """Download and save image locally."""
+    """Download and save image locally. Handles both HTTP URLs and local file paths."""
+    import shutil
     os.makedirs(os.path.dirname(local_path), exist_ok=True)
-    
+
+    if image_url and not image_url.startswith('http'):
+        if os.path.exists(image_url):
+            shutil.copy2(image_url, local_path)
+            print(f"Saved (local copy): {local_path}")
+            return local_path
+        else:
+            print(f"Local path not found: {image_url}")
+            return None
+
     response = requests.get(image_url)
     if response.status_code == 200:
         with open(local_path, 'wb') as f:
