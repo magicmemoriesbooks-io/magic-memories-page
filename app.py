@@ -2092,7 +2092,30 @@ def generate_baby_preview_api():
                 traits=traits
             )
             return jsonify(result)
-        
+
+        if story_id == 'star_keeper_illustrated':
+            gender_word = "boy" if child_gender == "male" else "girl" if child_gender == "female" else "child"
+            human_desc = f"a {gender_word} ({child_age} year old), {hair_desc}, {eye_desc}, {skin_desc}"
+            traits['glasses'] = data.get('glasses', 'none')
+            gl = traits['glasses']
+            if gl and gl != 'none':
+                human_desc += f", wearing {gl}"
+            traits['human_desc'] = human_desc
+            traits['pet_desc'] = ''
+            traits['pet_photo_path'] = ''
+            human_photo = data.get('child_photo_path', '') or data.get('human_photo_path', '')
+            upload_prefix = 'generated/uploads/furry_photos/'
+            traits['human_photo_path'] = human_photo if human_photo and human_photo.startswith(upload_prefix) and os.path.exists(human_photo) else ''
+            from services.personalized_books.preview import generate_personalized_preview
+            result = generate_personalized_preview(
+                story_id=story_id,
+                child_name=child_name,
+                gender=child_gender,
+                child_age=child_age,
+                traits=traits
+            )
+            return jsonify(result)
+
         if is_baby:
             gender_word = "baby boy" if child_gender == "male" else "baby girl" if child_gender == "female" else "baby"
             _months = child_age
@@ -2576,15 +2599,18 @@ def regenerate_cover(preview_id):
             child_gender_regen = story_data.get('gender', 'neutral')
             child_age_regen = str(traits.get('child_age', '5'))
             eye_desc_regen = get_eye_description(traits) if traits.get('eye_color') else ''
-            gender_word_regen = "boy" if child_gender_regen == "male" else "girl" if child_gender_regen == "female" else "person"
             age_val_regen = int(child_age_regen) if child_age_regen.isdigit() else 5
-            if 'furry_love_adventure' in story_id:
-                age_display_regen = f"{age_val_regen} year old child"
-            elif 'furry_love_teen' in story_id:
-                age_display_regen = f"{age_val_regen} year old teenager"
-            elif 'furry_love_adult' in story_id:
+            if 'furry_love_adult' in story_id:
+                gender_word_regen = "man" if child_gender_regen == "male" else "woman" if child_gender_regen == "female" else "adult"
                 age_display_regen = f"{age_val_regen} year old adult"
+            elif 'furry_love_teen' in story_id:
+                gender_word_regen = "boy" if child_gender_regen == "male" else "girl" if child_gender_regen == "female" else "teenager"
+                age_display_regen = f"{age_val_regen} year old teenager"
+            elif 'furry_love_adventure' in story_id:
+                gender_word_regen = "boy" if child_gender_regen == "male" else "girl" if child_gender_regen == "female" else "person"
+                age_display_regen = f"{age_val_regen} year old child"
             else:
+                gender_word_regen = "baby boy" if child_gender_regen == "male" else "baby girl" if child_gender_regen == "female" else "baby"
                 age_display_regen = f"{age_val_regen} month old baby" if age_val_regen < 2 else f"{age_val_regen} year old toddler"
             _hair_color_map_regen = {'black': 'jet black', 'brown': 'medium brown', 'light_brown': 'warm light brown (caramel-honey tone)', 'blonde': 'dark dirty blonde', 'very_light_blonde': 'pale platinum blonde', 'red': 'bright red', 'auburn': 'auburn'}
             hair_color_regen = _hair_color_map_regen.get(traits.get('hair_color', 'brown'), traits.get('hair_color', 'brown'))
@@ -2626,8 +2652,139 @@ def regenerate_cover(preview_id):
                 'success': True,
                 'cover_image': f'/{cover_image_path}'
             })
+        elif story_id == 'star_keeper_illustrated':
+            from services.personalized_books.star_keeper_prompts import (
+                FRONT_COVER as SK_FRONT_COVER,
+                STYLE_BASE as SK_STYLE_BASE,
+                get_outfit_desc as sk_get_outfit_desc
+            )
+            from services.personalized_books.preview import generate_with_flux2_dev, generate_with_flux_kontext
+            from services.replicate_service import save_image_locally, create_cover_from_character, get_gender_negative_prompt
+            from services.personalized_books.preview import _ensure_luna_reference
+
+            gender_regen = story_data.get('gender', 'neutral')
+            child_name_regen = story_data.get('child_name', '')
+            child_age_regen = int(traits.get('child_age', 5))
+            gender_word_regen = "boy" if gender_regen == "male" else "girl" if gender_regen == "female" else "child"
+            outfit_desc_regen = sk_get_outfit_desc(gender_regen)
+            human_photo_path_regen = traits.get('human_photo_path', '')
+            luna_path_regen = _ensure_luna_reference()
+            luna_ok_regen = luna_path_regen and os.path.exists(luna_path_regen)
+            sk_neg_regen = get_gender_negative_prompt(gender_regen)
+            sk_scene_regen = SK_FRONT_COVER.get('prompt', '').replace('{style}', SK_STYLE_BASE)
+
+            if human_photo_path_regen and os.path.exists(human_photo_path_regen):
+                # Step 1: Reuse saved Kontext portrait if available, otherwise regenerate
+                portrait_path_regen = None
+                saved_portrait = story_data.get('character_preview', '')
+                if saved_portrait:
+                    saved_portrait_path = saved_portrait.lstrip('/')
+                    if os.path.exists(saved_portrait_path):
+                        portrait_path_regen = saved_portrait_path
+                        print(f"[REGEN COVER SK] Reusing saved Kontext portrait: {portrait_path_regen}")
+                if not portrait_path_regen:
+                    kontext_prompt_regen = (
+                        f"The child in @image1 is {child_age_regen} years old. "
+                        f"Convert @image1 into a Disney Pixar 3D animated children's book character. "
+                        f"Copy the face, hair colour, skin tone, and eye colour from @image1 exactly — identical likeness. "
+                        f"Replace all clothing with: {outfit_desc_regen}. "
+                        f"Full body visible from head to feet, standing pose, brave adventurous smile. "
+                        f"Background: deep midnight blue with subtle silver star sparkles, plain studio — "
+                        f"no lighthouse, no ocean, no scenery."
+                    )
+                    print(f"[REGEN COVER SK] Step 1 — Kontext portrait | photo={human_photo_path_regen} | age={child_age_regen}")
+                    portrait_url_regen = generate_with_flux_kontext(kontext_prompt_regen, human_photo_path_regen, aspect_ratio="3:4")
+                    portrait_path_regen = save_image_locally(portrait_url_regen, f'{output_dir}/sk_portrait_regen_{uuid.uuid4().hex[:8]}.png')
+
+                # Step 2: FLUX 2 Dev lighthouse scene with portrait + LUNA
+                sk_ref_note_regen = (
+                    f"The child in @image1 is {child_age_regen} years old. "
+                    f"@image1={gender_word_regen} character — copy face, hair, skin, and outfit exactly. "
+                    "@image2=small star companion LUNA — copy appearance exactly. "
+                    f"Two distinct characters: @image1 is a fully human {gender_word_regen}, @image2 is a small glowing star."
+                )
+                photo_refs_regen = [portrait_path_regen, luna_path_regen] if luna_ok_regen else [portrait_path_regen]
+                print(f"[REGEN COVER SK] Step 2 — FLUX 2 Dev scene | portrait={portrait_path_regen} | luna={luna_ok_regen}")
+                cover_url_regen = generate_with_flux2_dev(
+                    f"{sk_ref_note_regen}\n{sk_scene_regen}",
+                    aspect_ratio="3:4",
+                    photo_ref_paths=photo_refs_regen,
+                    image_prompt_strength=0.90,
+                    negative_prompt=sk_neg_regen
+                )
+            else:
+                # No-photo: scan for existing portrait or regenerate standalone
+                portrait_path_regen = None
+                for f_name in os.listdir(output_dir):
+                    if f_name.startswith('sk_portrait_') and f_name.endswith('.png'):
+                        portrait_path_regen = os.path.join(output_dir, f_name)
+                        break
+                if portrait_path_regen and os.path.exists(portrait_path_regen) and luna_ok_regen:
+                    sk_ref_note_regen = (
+                        f"The child in @image1 is {child_age_regen} years old. "
+                        f"@image1={gender_word_regen} character — copy face, hair, skin, and outfit exactly. "
+                        "@image2=small star companion LUNA — copy appearance exactly. "
+                        f"Two distinct characters: @image1 is a fully human {gender_word_regen}, @image2 is a small glowing star."
+                    )
+                    cover_url_regen = generate_with_flux2_dev(
+                        f"{sk_ref_note_regen}\n{sk_scene_regen}",
+                        aspect_ratio="3:4",
+                        photo_ref_paths=[portrait_path_regen, luna_path_regen],
+                        image_prompt_strength=0.90,
+                        negative_prompt=sk_neg_regen
+                    )
+                else:
+                    # Fallback: no references, text-only prompt
+                    from services.fixed_stories import get_hair_description, get_eye_description, get_unified_skin_description, get_hair_strict
+                    from services.personalized_books.star_keeper_prompts import get_hair_action as sk_get_hair_action
+                    hair_desc_regen = get_hair_description(traits)
+                    eye_desc_regen = get_eye_description(traits)
+                    skin_regen = get_unified_skin_description(traits.get('skin_tone', 'light'))
+                    hair_action_regen = sk_get_hair_action(traits)
+                    hair_strict_regen = get_hair_strict(traits)
+                    age_display_regen = f"{child_age_regen} year old"
+                    sk_nophoto_regen = (
+                        f"@image1 = small glowing star companion LUNA — copy @image1 appearance exactly.\n"
+                        f"Draw a single {gender_word_regen} ({age_display_regen}), {hair_desc_regen}, {eye_desc_regen}, {skin_regen} skin, "
+                        f"big joyful confident smile, {hair_action_regen}. OUTFIT: {outfit_desc_regen}.\n"
+                        f"ACTION: The {gender_word_regen} stands confidently at the lighthouse entrance with one hand "
+                        f"reaching upward toward the stars, @image1 hovers beside the {gender_word_regen}'s shoulder. "
+                        f"SETTING: Old stone lighthouse on a dramatic clifftop WIDE VIEW, magnificent starry sky "
+                        f"with bright constellations and shooting stars, ocean waves crashing below, warm golden-blue "
+                        f"light from the lighthouse door, centered composition for book cover. "
+                        f"ATMOSPHERE: Adventure invitation, celestial magic. "
+                        f"STRICT: Only ONE {gender_word_regen}, fully human child, no wings. {hair_strict_regen} "
+                        f"ABSOLUTELY NO rendered text, no titles, no logos, no words, no letters, no captions, "
+                        f"no watermarks, no signatures, pure illustration only. {SK_STYLE_BASE}"
+                    )
+                    photo_refs_regen = [luna_path_regen] if luna_ok_regen else None
+                    cover_url_regen = generate_with_flux2_dev(
+                        sk_nophoto_regen,
+                        aspect_ratio="3:4",
+                        photo_ref_paths=photo_refs_regen,
+                        image_prompt_strength=0.85,
+                        negative_prompt=sk_neg_regen
+                    )
+
+            cover_raw_path_regen = save_image_locally(cover_url_regen, f'{output_dir}/cover_raw.png')
+            story_lang_regen = story_data.get('story_lang', 'es')
+            from services.personalized_books.generation import get_print_title
+            story_title_regen = get_print_title('star_keeper', child_name_regen, story_lang_regen)
+            author_name_regen = story_data.get('author_name', '')
+            cover_image_path_regen = create_cover_from_character(
+                cover_raw_path_regen, output_dir,
+                title=story_title_regen,
+                author=author_name_regen if author_name_regen else ''
+            )
+            story_data['cover_image'] = f'/{cover_image_path_regen}'
+            story_data['cover_raw_path'] = cover_raw_path_regen
+            with open(preview_file, 'w', encoding='utf-8') as f:
+                json.dump(story_data, f, ensure_ascii=False, indent=2)
+            print(f"[REGEN COVER SK] Cover regenerated: {cover_image_path_regen}")
+            return jsonify({'success': True, 'cover_image': f'/{cover_image_path_regen}'})
+
         else:
-            return jsonify({'success': False, 'error': 'Cover regeneration only available for furry_love stories'}), 400
+            return jsonify({'success': False, 'error': 'Cover regeneration only available for furry_love and star_keeper stories'}), 400
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -2717,6 +2874,9 @@ def generate_fixed_story_api():
         character_image = data.get('character_image', '')
         if character_image and character_image.startswith('/'):
             character_image = character_image[1:]
+        kontext_portrait = data.get('kontext_portrait', '')
+        if kontext_portrait and kontext_portrait.startswith('/'):
+            kontext_portrait = kontext_portrait[1:]
         
         pet_image = data.get('pet_image', '') if is_furry_love else ''
         if pet_image and pet_image.startswith('/'):
@@ -2771,15 +2931,18 @@ def generate_fixed_story_api():
                 pet_desc_cover = traits.get('pet_desc', '')
                 pet_name_cover = traits.get('pet_name', 'Buddy')
                 eye_desc_cover = get_eye_description(traits) if traits.get('eye_color') else ''
-                gender_word_cover = "boy" if child_gender == "male" else "girl" if child_gender == "female" else "person"
                 age_val = int(child_age) if str(child_age).isdigit() else 5
                 if story_id == 'furry_love_illustrated':
+                    gender_word_cover = "baby boy" if child_gender == "male" else "baby girl" if child_gender == "female" else "baby"
                     age_display_cover = f"{age_val} month old baby" if age_val < 2 else f"{age_val} year old toddler"
                 elif story_id == 'furry_love_adventure_illustrated':
+                    gender_word_cover = "boy" if child_gender == "male" else "girl" if child_gender == "female" else "person"
                     age_display_cover = f"{age_val} year old child"
                 elif story_id == 'furry_love_teen_illustrated':
+                    gender_word_cover = "boy" if child_gender == "male" else "girl" if child_gender == "female" else "teenager"
                     age_display_cover = f"{age_val} year old teenager"
                 else:
+                    gender_word_cover = "man" if child_gender == "male" else "woman" if child_gender == "female" else "adult"
                     age_display_cover = f"{age_val} year old adult"
                 
                 glasses_cover = traits.get('glasses', 'none')
@@ -2963,7 +3126,7 @@ def generate_fixed_story_api():
             'scenes_pending': scenes_pending,
             'is_illustrated_book': is_illustrated_book_mode,
             'scenes_dir': story_config.get('scenes_dir', '') if is_illustrated_book_mode else '',
-            'character_preview': character_image if character_image else '',
+            'character_preview': (kontext_portrait if (story_id == 'star_keeper_illustrated' and kontext_portrait and os.path.exists(kontext_portrait)) else character_image) if (kontext_portrait or character_image) else '',
             'closing_image': (f'/{closing_image_path}' if closing_image_path and not closing_image_path.startswith('/') else closing_image_path) if 'closing_image_path' in dir() and closing_image_path else '',
             'text_layout': story_data.get('text_layout', 'single'),
             'closing_message': closing_message
@@ -2978,6 +3141,7 @@ def generate_fixed_story_api():
                 preview_data['cover_raw_path'] = cover_raw_path
             if human_preview_path:
                 preview_data['human_preview_path'] = human_preview_path
+        if is_furry_love:
             if pet_preview_path:
                 preview_data['pet_preview_path'] = pet_preview_path
             if pet_image:
@@ -5886,6 +6050,11 @@ def regenerate_page(preview_id, page_num):
                 if os.path.exists(ref_candidate):
                     ref_image_path = ref_candidate
                     print(f"[REGENERATE] Using FLUX 2 Dev reference for {book_id}: {ref_image_path}")
+            if book_id == 'star_keeper':
+                luna_static = 'static/assets/luna_reference.png'
+                if os.path.exists(luna_static):
+                    ref_image_path_2 = luna_static
+                    print(f"[REGENERATE] Star keeper LUNA reference: {ref_image_path_2}")
         
         if not ref_image_path:
             print(f"[REGENERATE] ERROR: No reference image found for {book_id}")
@@ -5923,16 +6092,12 @@ def regenerate_page(preview_id, page_num):
         output_dir = story_data.get('output_dir', f'generated/personalized_{preview_id[:8]}')
         os.makedirs(output_dir, exist_ok=True)
         
-        # Save original (clean) version
+        # Save clean image (no watermark — user has already paid)
         original_path = os.path.join(output_dir, f'page_{page_num:02d}.png')
         final_image.save(original_path, 'PNG')
+        preview_path = original_path
         
-        # Save preview (watermarked) version
-        preview_path = os.path.join(output_dir, f'page_{page_num:02d}_preview.png')
-        watermarked = add_watermark(final_image)
-        watermarked.save(preview_path, 'PNG')
-        
-        print(f"[REGENERATE] Saved: {original_path} and {preview_path}")
+        print(f"[REGENERATE] Saved: {original_path} (no watermark, post-payment)")
         
         # Update regeneration count
         regen_counts[page_key] = current_count + 1
@@ -7330,6 +7495,15 @@ def admin_regenerate_scene(preview_id, scene_num):
                     pr = pet_preview.lstrip('/')
                     if os.path.exists(pr):
                         ref_path_2 = pr
+            elif book_id == 'star_keeper':
+                character_preview = story_data.get('character_preview', '') or story_data.get('cover_image', '')
+                if character_preview:
+                    cp_ref = character_preview.lstrip('/')
+                    if os.path.exists(cp_ref):
+                        ref_path = cp_ref
+                luna_static = 'static/assets/luna_reference.png'
+                if os.path.exists(luna_static):
+                    ref_path_2 = luna_static
             else:
                 reference_image = story_data.get('character_preview', '') or story_data.get('cover_image', '')
                 if reference_image:
@@ -7589,6 +7763,15 @@ def admin_regenerate_page(preview_id, page_idx):
                 pr = pet_preview.lstrip('/')
                 if os.path.exists(pr):
                     ref_path_2 = pr
+        elif book_id == 'star_keeper':
+            character_preview = story_data.get('character_preview', '') or story_data.get('cover_image', '')
+            if character_preview:
+                cp_ref = character_preview.lstrip('/')
+                if os.path.exists(cp_ref):
+                    ref_path = cp_ref
+            luna_static = 'static/assets/luna_reference.png'
+            if os.path.exists(luna_static):
+                ref_path_2 = luna_static
         else:
             reference_image = story_data.get('character_preview', '') or story_data.get('cover_image', '')
             if reference_image:
@@ -9538,6 +9721,15 @@ def _generate_scenes_background(preview_id, **kwargs):
                     pet_ref = pet_preview.lstrip('/')
                     if os.path.exists(pet_ref):
                         ref_path_2 = pet_ref
+            elif book_id == 'star_keeper':
+                reference_image = story_data.get('character_preview', '') or story_data.get('cover_image', '')
+                if reference_image and reference_image.startswith('/'):
+                    reference_image = reference_image[1:]
+                ref_path = reference_image if reference_image and os.path.exists(reference_image) else None
+                luna_static = 'static/assets/luna_reference.png'
+                if os.path.exists(luna_static):
+                    ref_path_2 = luna_static
+                production_logger.info(f"[BG-GEN] Star keeper refs: character_preview={bool(ref_path)}, LUNA={bool(ref_path_2)}")
             else:
                 reference_image = story_data.get('character_preview', '') or story_data.get('cover_image', '')
                 if reference_image and reference_image.startswith('/'):
@@ -9589,7 +9781,7 @@ def _generate_scenes_background(preview_id, **kwargs):
                 except Exception as _cs_err:
                     print(f'[BG-GEN] WARNING: could not save clean_scene_{_cs_idx}: {_cs_err}')
 
-            saved = save_book_as_images(pages, composed_dir, prefix='page', with_watermark=True)
+            saved = save_book_as_images(pages, composed_dir, prefix='page', with_watermark=False)
             original_paths = saved.get('original', [])
             preview_paths = saved.get('preview', [])
             
@@ -10020,6 +10212,15 @@ def _retry_failed_scenes_background(preview_id):
             pet_ref = pet_preview.lstrip('/')
             if os.path.exists(pet_ref):
                 ref_path_2 = pet_ref
+    elif book_id == 'star_keeper':
+        character_preview = story_data.get('character_preview', '') or story_data.get('cover_image', '')
+        if character_preview:
+            cp_ref = character_preview.lstrip('/')
+            if os.path.exists(cp_ref):
+                ref_path = cp_ref
+        luna_static = 'static/assets/luna_reference.png'
+        if os.path.exists(luna_static):
+            ref_path_2 = luna_static
     else:
         reference_image = story_data.get('character_preview', '') or story_data.get('cover_image', '')
         if reference_image and reference_image.startswith('/'):
@@ -10079,11 +10280,8 @@ def _retry_failed_scenes_background(preview_id):
             page_index = scene_idx + 3
             original_path = os.path.join(composed_dir, f"page_{page_index:02d}.png")
             final_page.save(original_path, "PNG")
-            
-            preview_path = os.path.join(composed_dir, f"page_{page_index:02d}_preview.png")
-            watermarked = add_watermark(final_page)
-            watermarked.save(preview_path, "PNG")
-            
+            preview_path = original_path
+
             formatted_original = f'/{original_path}'
             formatted_preview = f'/{preview_path}'
             
@@ -10362,7 +10560,7 @@ def _compose_personalized_book_background(preview_id, **kwargs):
                 except Exception as _cs_err:
                     production_logger.warning(f'[BG-COMPOSE] Could not save clean_scene_{_cs_idx}: {_cs_err}')
 
-            saved_paths = save_book_as_images(pages, composed_dir, prefix='page', with_watermark=True)
+            saved_paths = save_book_as_images(pages, composed_dir, prefix='page', with_watermark=False)
             original_paths = saved_paths['original']
             preview_paths = saved_paths['preview']
             
