@@ -231,6 +231,13 @@ def build_scene_prompt(scene: dict, child_name: str, gender: str, age: int, trai
     return prompt
 
 
+def get_cover_prompts(child_name: str, gender: str, age: int, traits: dict) -> dict:
+    return {
+        'front': build_scene_prompt(FRONT_COVER, child_name, gender, age, traits),
+        'back': build_scene_prompt(BACK_COVER, child_name, gender, age, traits)
+    }
+
+
 def get_all_scene_prompts(child_name: str, gender: str, age: int, traits: dict) -> list:
     prompts = []
     for scene in DRAGON_GARDEN_SCENES:
