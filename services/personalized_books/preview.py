@@ -222,8 +222,9 @@ def generate_with_flux2_dev(prompt: str, aspect_ratio: str = "3:4", photo_ref_pa
             input_params["go_fast"] = False
             input_params["image_prompt_strength"] = image_prompt_strength
             if len(valid_paths) >= 2:
-                anti_blend = "\n@image1=HUMAN ref, @image2=PET ref. Keep each appearance exactly. Human=human only, pet=animal only, TWO separate beings."
-                input_params["prompt"] = prompt + anti_blend
+                if "PET" in prompt or "pet" in prompt.lower()[:300]:
+                    anti_blend = "\n@image1=HUMAN ref, @image2=PET ref. Keep each appearance exactly. Human=human only, pet=animal only, TWO separate beings."
+                    input_params["prompt"] = prompt + anti_blend
             output = _run_replicate_with_retry(input_params, ref_file_paths=valid_paths)
         else:
             print(f"[PREVIEW] Generating with FLUX 2 Dev (no valid photo references)...")
@@ -247,6 +248,34 @@ def generate_with_flux2_dev(prompt: str, aspect_ratio: str = "3:4", photo_ref_pa
         return image_url
     
     raise Exception("FLUX 2 Dev generation failed")
+
+
+def _ensure_luna_reference() -> str:
+    """Generate LUNA star companion reference image once and cache it as a static asset.
+    Returns the file path, or empty string if generation fails.
+    LUNA: small cute five-pointed star, silver-white, violet eyes, translucent wings.
+    """
+    luna_path = 'static/assets/luna_reference.png'
+    if os.path.exists(luna_path):
+        return luna_path
+    print("[STAR KEEPER] Generating LUNA reference image (first time only)...")
+    try:
+        luna_prompt = (
+            "Disney Pixar 3D style illustration. A single cute small five-pointed star shape, "
+            "solid shimmering silver-white body, two large expressive bright violet eyes on the star face, "
+            "tiny delicate translucent wings on the sides of the star, soft warm silver glow surrounding. "
+            "Floating in midair, centered in frame. Plain deep dark navy blue background. "
+            "Full character visible, clean studio lighting, pure illustration only, NO text, NO watermarks."
+        )
+        image_url = generate_with_flux2_dev(luna_prompt, aspect_ratio="1:1")
+        from services.replicate_service import save_image_locally as _sil
+        result_path = _sil(image_url, luna_path)
+        if result_path and os.path.exists(luna_path):
+            print(f"[STAR KEEPER] LUNA reference saved: {luna_path}")
+            return luna_path
+    except Exception as e:
+        print(f"[STAR KEEPER] LUNA reference generation failed: {e}")
+    return ''
 
 
 def generate_personalized_preview(story_id: str, child_name: str, gender: str,
@@ -362,35 +391,104 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
         from services.personalized_books.star_keeper_prompts import (
             get_outfit_desc as keeper_get_outfit_desc,
             STYLE_BASE as KEEPER_STYLE_BASE,
-            LUNA_INLINE as KEEPER_LUNA_INLINE,
+            FRONT_COVER as SK_FRONT_COVER,
             get_hair_action
         )
         from services.fixed_stories import get_hair_strict
-        
+        from services.replicate_service import get_gender_negative_prompt as _sk_neg_fn
+
+        gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
+        age_display = f"{child_age} year old" if child_age and child_age > 0 else "6 year old"
+        human_photo_path = traits.get('human_photo_path', '')
         outfit_desc = keeper_get_outfit_desc(gender)
-        hair_action = get_hair_action(traits)
-        if has_photo:
-            hair_desc = "hair as in the reference photo"
-            actual_eye = get_eye_description(traits)
-            eye_desc = f"{actual_eye}, face exactly as in the reference photo{glasses_desc}"
-            skin_tone = "as in the reference photo"
-            char_physical = f"{hair_desc}, {eye_desc}"
-            hair_strict_text = "PHOTO REFERENCE: Match the child's exact face, skin, eye color and hair from the reference photo."
+
+        luna_path = _ensure_luna_reference()
+        luna_ok = luna_path and os.path.exists(luna_path)
+
+        output_dir = 'generated/previews'
+        os.makedirs(output_dir, exist_ok=True)
+
+        sk_scene = SK_FRONT_COVER.get('prompt', '').replace('{style}', KEEPER_STYLE_BASE)
+        sk_neg = _sk_neg_fn(gender)
+
+        if human_photo_path and os.path.exists(human_photo_path):
+            # Step 1: Kontext — clean portrait (face preserved, Pixar style, plain bg)
+            kontext_prompt = (
+                f"The child in @image1 is {child_age} years old. "
+                f"Convert @image1 into a Disney Pixar 3D animated children's book character. "
+                f"Copy the face, hair colour, skin tone, and eye colour from @image1 exactly — identical likeness. "
+                f"Replace all clothing with: {outfit_desc}. "
+                f"Full body visible from head to feet, standing pose, brave adventurous smile. "
+                f"Background: deep midnight blue with subtle silver star sparkles, plain studio — "
+                f"no lighthouse, no ocean, no scenery."
+            )
+            print(f"[STAR KEEPER PREVIEW] Step 1 — Kontext portrait | photo={human_photo_path} | age={child_age}")
+            portrait_url = generate_with_flux_kontext(kontext_prompt, human_photo_path, aspect_ratio="3:4")
+            portrait_path = save_image_locally(portrait_url, f'{output_dir}/sk_portrait_{uuid.uuid4().hex[:8]}.png')
+            print(f"[STAR KEEPER PREVIEW] Portrait saved: {portrait_path}")
+
+            # Step 2: FLUX 2 Dev — cover scene (lighthouse + stars) using portrait as @image1 + LUNA as @image2
+            sk_ref_note = (
+                f"The child in @image1 is {child_age} years old. "
+                f"@image1={gender_word} character — copy face, hair, skin, and outfit exactly. "
+                "@image2=small star companion LUNA — copy appearance exactly. "
+                f"Two distinct characters: @image1 is a fully human {gender_word}, @image2 is a small glowing star."
+            )
+            photo_refs = [portrait_path, luna_path] if luna_ok else [portrait_path]
+            print(f"[STAR KEEPER PREVIEW] Step 2 — FLUX 2 Dev cover scene | portrait={portrait_path} | luna={luna_ok}")
+            cov_url = generate_with_flux2_dev(
+                f"{sk_ref_note}\n{sk_scene}",
+                aspect_ratio="3:4",
+                photo_ref_paths=photo_refs,
+                image_prompt_strength=0.90,
+                negative_prompt=sk_neg
+            )
         else:
+            hair_action = get_hair_action(traits)
             hair_desc = get_hair_description(traits)
             hair_strict_text = get_hair_strict(traits)
             eye_desc = get_eye_description(traits)
             skin_tone = get_unified_skin_description(traits.get('skin_tone', 'light'))
-            char_physical = f"{hair_desc}, {eye_desc}, {skin_tone} skin{glasses_desc}"
-        gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
-        age_display = f"{child_age} year old" if child_age and child_age > 0 else "6 year old"
-        
-        # Use FRONT_COVER schema, adapted for preview context
-        prompt = f"Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), {char_physical}, big joyful confident smile, one hand reaching toward the stars, {hair_action}. OUTFIT: {outfit_desc}. COMPANION: {KEEPER_LUNA_INLINE}. ACTION: {gender_word} stands confidently at the lighthouse entrance with one hand reaching upward. LUNA hovers beside the child's shoulder glowing brightly, violet eyes warm, wings spread wide, comet tail trailing silver sparkles. SETTING: Old stone lighthouse on dramatic clifftop WIDE VIEW, magnificent starry sky with bright constellations and shooting stars, ocean waves crashing below, warm golden-blue light from lighthouse door, centered composition for book cover. ATMOSPHERE: Adventure invitation, celestial magic. STRICT: Only ONE {gender_word}, only ONE small star LUNA, the {gender_word} is a fully human child: no wings, no star features, no glowing features on {gender_word}. {hair_strict_text} ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {KEEPER_STYLE_BASE}"
-        
-        print(f"[PERSONALIZED PREVIEW] {story_id}, age={child_age}, has_photo={has_photo}, glasses={bool(glasses)}")
-        print(f"[PERSONALIZED PREVIEW] Using FRONT_COVER schema + FLUX 2 Dev")
-        
+            # No-photo branch: only Luna is available as a reference image.
+            # sk_scene uses @image1=child / @image2=Luna — but here @image1 IS Luna.
+            # Build a standalone cover prompt: describe the child in text, use @image1 for Luna.
+            sk_nophoto_prompt = (
+                f"@image1 = small glowing star companion LUNA — copy @image1 appearance exactly.\n"
+                f"Draw a single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, "
+                f"big joyful confident smile, {hair_action}. OUTFIT: {outfit_desc}.\n"
+                f"ACTION: The {gender_word} stands confidently at the lighthouse entrance with one hand "
+                f"reaching upward toward the stars, @image1 hovers beside the {gender_word}'s shoulder. "
+                f"SETTING: Old stone lighthouse on a dramatic clifftop WIDE VIEW, magnificent starry sky "
+                f"with bright constellations and shooting stars, ocean waves crashing below, warm golden-blue "
+                f"light from the lighthouse door, centered composition for book cover. "
+                f"ATMOSPHERE: Adventure invitation, celestial magic. "
+                f"STRICT: Only ONE {gender_word}, fully human child, no wings. {hair_strict_text} "
+                f"ABSOLUTELY NO rendered text, no titles, no logos, no words, no letters, no captions, "
+                f"no watermarks, no signatures, pure illustration only. {KEEPER_STYLE_BASE}"
+            )
+            photo_refs = [luna_path] if luna_ok else None
+            print(f"[STAR KEEPER PREVIEW] FLUX 2 Dev cover scene (no photo) | gender={gender_word} | age={age_display}")
+            cov_url = generate_with_flux2_dev(
+                sk_nophoto_prompt,
+                aspect_ratio="3:4",
+                photo_ref_paths=photo_refs,
+                image_prompt_strength=0.85,
+                negative_prompt=sk_neg
+            )
+
+        cover_path = save_image_locally(cov_url, f'{output_dir}/sk_cover_{uuid.uuid4().hex[:8]}.png')
+        print(f"[STAR KEEPER PREVIEW] Cover scene generated: {cover_path}")
+        result = {
+            'success': True,
+            'image_url': f'/{cover_path}',
+            'story_id': story_id,
+            'child_age': child_age
+        }
+        if human_photo_path and os.path.exists(human_photo_path) and 'portrait_path' in dir():
+            result['kontext_portrait'] = f'/{portrait_path}'
+        return result
+
+
     elif story_id == 'centinela_aurora_illustrated':
         from services.personalized_books.centinela_aurora_prompts import (
             get_outfit_desc as aurora_get_outfit_desc,
