@@ -75,8 +75,8 @@ QUICK_STORIES = {
         "includes_print": False
     },
     "star_guardian": {
-        "title_es": "{name} Guardián de las Estrellas",
-        "title_en": "{name} Guardian of the Stars",
+        "title_es": "{name} y el Secreto de las Estrellas",
+        "title_en": "{name} and the Secret of the Stars",
         "age_range": "6-8",
         "category": "great_adventures",
         "price": 25,
