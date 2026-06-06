@@ -2935,9 +2935,11 @@ def regenerate_cover(preview_id):
 
                 ca_ref_note_regen = (
                     f"The child in @image1 is {child_age_regen} years old. "
-                    f"@image1={gender_word_regen} character — copy face, hair, skin, and outfit exactly. "
-                    "@image2=small electric-blue fox companion ASTRO — copy appearance exactly. "
-                    f"Two distinct characters: @image1 is a fully human {gender_word_regen}, @image2 is a small magical fox."
+                    f"@image1={gender_word_regen} character — copy face, hair, skin, and outfit exactly. ONE child only. "
+                    "@image2=small electric-blue fox ASTRO — copy appearance exactly. "
+                    f"CRITICAL: @image1 is the ONLY human. "
+                    "@image2 is a small four-legged animal fox, electric blue fur, NOT a person. "
+                    "Two separate characters: one human child, one tiny fox animal."
                 )
                 photo_refs_regen = [portrait_path_regen, astro_path_regen] if astro_ok_regen else [portrait_path_regen]
                 print(f"[REGEN COVER CA] Step 2 — FLUX 2 Dev scene | portrait={portrait_path_regen} | astro={astro_ok_regen}")
