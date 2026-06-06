@@ -526,7 +526,7 @@ def generate_scene_complete(
         _eye_label = _eye_color_map.get(_eye_color_raw, _eye_color_raw)
         _eye_note = f" The human has {_eye_label} eyes — preserve this exactly."
 
-    is_star_keeper = (book_id in ('star_keeper', 'dragon_garden'))
+    is_star_keeper = (book_id in ('star_keeper', 'dragon_garden', 'centinela_aurora'))
     if (is_furry or is_star_keeper) and reference_image_path_2 and os.path.exists(reference_image_path_2):
         if is_furry:
             reference_note = (
@@ -542,6 +542,13 @@ def generate_scene_complete(
                 "@image1=child character — copy face, hair, skin, and outfit exactly. "
                 "@image2=small emerald dragon SPARK — copy appearance exactly. "
                 "Two distinct characters: @image1 is fully human, @image2 is a small baby dragon."
+            )
+        elif book_id == 'centinela_aurora':
+            reference_note = (
+                f"The child in @image1 is {child_age_int} years old. "
+                "@image1=child character — copy face, hair, skin, and outfit exactly. "
+                "@image2=small electric-blue fox ASTRO — copy appearance exactly. "
+                "Two distinct characters: @image1 is fully human, @image2 is a small magical fox."
             )
         else:
             reference_note = (
@@ -1305,7 +1312,7 @@ def generate_cover_spread(
     
     front_prompt += "\nClean illustration, space for title at top."
     
-    is_star_keeper_cover = (book_id in ('star_keeper', 'dragon_garden'))
+    is_star_keeper_cover = (book_id in ('star_keeper', 'dragon_garden', 'centinela_aurora'))
     reuse_preview_as_cover = (
         reference_image_path and os.path.exists(reference_image_path)
         and not is_furry
@@ -1336,6 +1343,13 @@ def generate_cover_spread(
                         "@image1=child character — copy face, hair, skin, and outfit exactly. "
                         "@image2=small emerald dragon SPARK — copy appearance exactly. "
                         "Two distinct characters: @image1 is fully human, @image2 is a small baby dragon."
+                    )
+                elif book_id == 'centinela_aurora':
+                    sk_cover_ref_note = (
+                        f"The child in @image1 is {child_age_int} years old. "
+                        "@image1=child character — copy face, hair, skin, and outfit exactly. "
+                        "@image2=small electric-blue fox ASTRO — copy appearance exactly. "
+                        "Two distinct characters: @image1 is fully human, @image2 is a small magical fox."
                     )
                 else:
                     sk_cover_ref_note = (
