@@ -2890,6 +2890,114 @@ def regenerate_cover(preview_id):
             print(f"[REGEN COVER DG] Cover regenerated: {cover_image_path_regen}")
             return jsonify({'success': True, 'cover_image': f'/{cover_image_path_regen}'})
 
+        elif story_id == 'centinela_aurora_illustrated':
+            from services.personalized_books.centinela_aurora_prompts import (
+                FRONT_COVER as CA_FRONT_COVER,
+                STYLE_BASE as CA_STYLE_BASE,
+                get_outfit_desc as ca_get_outfit_desc
+            )
+            from services.personalized_books.preview import generate_with_flux2_dev, generate_with_flux_kontext
+            from services.replicate_service import save_image_locally, create_cover_from_character, get_gender_negative_prompt
+            from services.personalized_books.preview import _ensure_astro_reference
+
+            gender_regen = story_data.get('gender', 'neutral')
+            child_name_regen = story_data.get('child_name', '')
+            child_age_regen = int(traits.get('child_age', 5))
+            gender_word_regen = "boy" if gender_regen == "male" else "girl" if gender_regen == "female" else "child"
+            outfit_desc_regen = ca_get_outfit_desc(gender_regen)
+            human_photo_path_regen = traits.get('human_photo_path', '')
+            astro_path_regen = _ensure_astro_reference()
+            astro_ok_regen = astro_path_regen and os.path.exists(astro_path_regen)
+            ca_neg_regen = get_gender_negative_prompt(gender_regen)
+            ca_scene_regen = CA_FRONT_COVER.get('prompt', '').replace('{style}', CA_STYLE_BASE)
+
+            if human_photo_path_regen and os.path.exists(human_photo_path_regen):
+                portrait_path_regen = None
+                saved_portrait = story_data.get('character_preview', '')
+                if saved_portrait:
+                    saved_portrait_path = saved_portrait.lstrip('/')
+                    if os.path.exists(saved_portrait_path):
+                        portrait_path_regen = saved_portrait_path
+                        print(f"[REGEN COVER CA] Reusing saved Kontext portrait: {portrait_path_regen}")
+                if not portrait_path_regen:
+                    kontext_prompt_regen = (
+                        f"The child in @image1 is {child_age_regen} years old. "
+                        f"Convert @image1 into a Disney Pixar 3D animated children's book character. "
+                        f"Copy the face, hair colour, skin tone, and eye colour from @image1 exactly — identical likeness. "
+                        f"Replace all clothing with: {outfit_desc_regen}. "
+                        f"Full body visible from head to feet, standing pose, brave adventurous smile. "
+                        f"Background: deep midnight blue with subtle aurora colors, plain studio — "
+                        f"no fox, no compass, no detailed scenery."
+                    )
+                    print(f"[REGEN COVER CA] Step 1 — Kontext portrait | photo={human_photo_path_regen} | age={child_age_regen}")
+                    portrait_url_regen = generate_with_flux_kontext(kontext_prompt_regen, human_photo_path_regen, aspect_ratio="3:4")
+                    portrait_path_regen = save_image_locally(portrait_url_regen, f'{output_dir}/ca_portrait_regen_{uuid.uuid4().hex[:8]}.png')
+
+                ca_ref_note_regen = (
+                    f"The child in @image1 is {child_age_regen} years old. "
+                    f"@image1={gender_word_regen} character — copy face, hair, skin, and outfit exactly. "
+                    "@image2=small electric-blue fox companion ASTRO — copy appearance exactly. "
+                    f"Two distinct characters: @image1 is a fully human {gender_word_regen}, @image2 is a small magical fox."
+                )
+                photo_refs_regen = [portrait_path_regen, astro_path_regen] if astro_ok_regen else [portrait_path_regen]
+                print(f"[REGEN COVER CA] Step 2 — FLUX 2 Dev scene | portrait={portrait_path_regen} | astro={astro_ok_regen}")
+                cover_url_regen = generate_with_flux2_dev(
+                    f"{ca_ref_note_regen}\n{ca_scene_regen}",
+                    aspect_ratio="3:4",
+                    photo_ref_paths=photo_refs_regen,
+                    image_prompt_strength=0.90,
+                    negative_prompt=ca_neg_regen
+                )
+            else:
+                from services.fixed_stories import get_hair_description, get_eye_description, get_unified_skin_description, get_hair_strict
+                from services.personalized_books.centinela_aurora_prompts import get_hair_action as ca_get_hair_action
+                hair_desc_regen = get_hair_description(traits)
+                eye_desc_regen = get_eye_description(traits)
+                skin_regen = get_unified_skin_description(traits.get('skin_tone', 'light'))
+                hair_action_regen = ca_get_hair_action(traits)
+                hair_strict_regen = get_hair_strict(traits)
+                age_display_regen = f"{child_age_regen} year old"
+                ca_nophoto_regen = (
+                    f"@image1 = small magical electric-blue fox companion ASTRO — copy @image1 appearance exactly.\n"
+                    f"Draw a single {gender_word_regen} ({age_display_regen}), {hair_desc_regen}, {eye_desc_regen}, {skin_regen} skin, "
+                    f"big joyful brave smile, {hair_action_regen}. OUTFIT: {outfit_desc_regen}.\n"
+                    f"ACTION: The {gender_word_regen} stands confidently holding the golden compass high with one arm, "
+                    f"face lit with adventurous excitement. @image1 perches on the {gender_word_regen}'s shoulder, "
+                    f"glowing tail raised high, electric blue light blazing brilliantly against the aurora sky. "
+                    f"SETTING: Night sky and aurora WIDE VIEW, magnificent aurora borealis colors filling the sky, "
+                    f"stars everywhere, magical stardust floating around them, centered composition for book cover. "
+                    f"ATMOSPHERE: Epic adventure invitation, magical aurora colors, excitement and wonder. "
+                    f"STRICT: Only ONE {gender_word_regen}, only ONE small electric-blue fox @image1, "
+                    f"the {gender_word_regen} is a fully human child: no tail, no fox features. {hair_strict_regen} "
+                    f"ABSOLUTELY NO rendered text, no titles, no logos, no words, no letters, no captions, "
+                    f"no watermarks, no signatures, pure illustration only. {CA_STYLE_BASE}"
+                )
+                photo_refs_regen = [astro_path_regen] if astro_ok_regen else None
+                cover_url_regen = generate_with_flux2_dev(
+                    ca_nophoto_regen,
+                    aspect_ratio="3:4",
+                    photo_ref_paths=photo_refs_regen,
+                    image_prompt_strength=0.85,
+                    negative_prompt=ca_neg_regen
+                )
+
+            cover_raw_path_regen = save_image_locally(cover_url_regen, f'{output_dir}/cover_raw.png')
+            story_lang_regen = story_data.get('story_lang', 'es')
+            from services.personalized_books.generation import get_print_title
+            story_title_regen = get_print_title('centinela_aurora', child_name_regen, story_lang_regen)
+            author_name_regen = story_data.get('author_name', '')
+            cover_image_path_regen = create_cover_from_character(
+                cover_raw_path_regen, output_dir,
+                title=story_title_regen,
+                author=author_name_regen if author_name_regen else ''
+            )
+            story_data['cover_image'] = f'/{cover_image_path_regen}'
+            story_data['cover_raw_path'] = cover_raw_path_regen
+            with open(preview_file, 'w', encoding='utf-8') as f:
+                json.dump(story_data, f, ensure_ascii=False, indent=2)
+            print(f"[REGEN COVER CA] Cover regenerated: {cover_image_path_regen}")
+            return jsonify({'success': True, 'cover_image': f'/{cover_image_path_regen}'})
+
         else:
             return jsonify({'success': False, 'error': 'Cover regeneration only available for furry_love and star_keeper stories'}), 400
     except Exception as e:
@@ -3233,7 +3341,7 @@ def generate_fixed_story_api():
             'scenes_pending': scenes_pending,
             'is_illustrated_book': is_illustrated_book_mode,
             'scenes_dir': story_config.get('scenes_dir', '') if is_illustrated_book_mode else '',
-            'character_preview': (kontext_portrait if (story_id in ('star_keeper_illustrated', 'dragon_garden_illustrated') and kontext_portrait and os.path.exists(kontext_portrait)) else character_image) if (kontext_portrait or character_image) else '',
+            'character_preview': (kontext_portrait if (story_id in ('star_keeper_illustrated', 'dragon_garden_illustrated', 'centinela_aurora_illustrated') and kontext_portrait and os.path.exists(kontext_portrait)) else character_image) if (kontext_portrait or character_image) else '',
             'closing_image': (f'/{closing_image_path}' if closing_image_path and not closing_image_path.startswith('/') else closing_image_path) if 'closing_image_path' in dir() and closing_image_path else '',
             'text_layout': story_data.get('text_layout', 'single'),
             'closing_message': closing_message
@@ -6167,6 +6275,11 @@ def regenerate_page(preview_id, page_num):
                 if os.path.exists(spark_static):
                     ref_image_path_2 = spark_static
                     print(f"[REGENERATE] Dragon garden SPARK reference: {ref_image_path_2}")
+            elif book_id == 'centinela_aurora':
+                astro_static = 'static/assets/astro_reference.png'
+                if os.path.exists(astro_static):
+                    ref_image_path_2 = astro_static
+                    print(f"[REGENERATE] Centinela aurora ASTRO reference: {ref_image_path_2}")
         
         if not ref_image_path:
             print(f"[REGENERATE] ERROR: No reference image found for {book_id}")
@@ -9851,6 +9964,15 @@ def _generate_scenes_background(preview_id, **kwargs):
                 if os.path.exists(spark_static):
                     ref_path_2 = spark_static
                 production_logger.info(f"[BG-GEN] Dragon garden refs: character_preview={bool(ref_path)}, SPARK={bool(ref_path_2)}")
+            elif book_id == 'centinela_aurora':
+                reference_image = story_data.get('character_preview', '') or story_data.get('cover_image', '')
+                if reference_image and reference_image.startswith('/'):
+                    reference_image = reference_image[1:]
+                ref_path = reference_image if reference_image and os.path.exists(reference_image) else None
+                astro_static = 'static/assets/astro_reference.png'
+                if os.path.exists(astro_static):
+                    ref_path_2 = astro_static
+                production_logger.info(f"[BG-GEN] Centinela aurora refs: character_preview={bool(ref_path)}, ASTRO={bool(ref_path_2)}")
             else:
                 reference_image = story_data.get('character_preview', '') or story_data.get('cover_image', '')
                 if reference_image and reference_image.startswith('/'):
