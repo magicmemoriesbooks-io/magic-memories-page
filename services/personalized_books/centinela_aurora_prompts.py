@@ -183,7 +183,7 @@ CENTINELA_AURORA_SCENES = [
         "prompt": (
             "ACTION: @image1 stands inside the Crystal Library, gazing upward in reverence, one hand pointing "
             "toward the glowing glass vitrine at the center that holds the rolled magical Dream Map. "
-            "@image2 sits beside @image1, large amber eyes reflecting rainbow light from every surrounding crystal surface. "
+            "@image2 perches beside @image1 on four paws, electric-blue fox, large amber eyes reflecting rainbow light from every surrounding crystal surface. "
             "SETTING: Crystal Library interior WIDE VIEW, soaring crystal walls with glowing book shelves, "
             "central glass vitrine glowing blue with Dream Map inside, rainbow light reflections everywhere. "
             "ATMOSPHERE: Sacred wonder, crystalline magical light, mystery and reverence. {style}"
@@ -207,7 +207,7 @@ CENTINELA_AURORA_SCENES = [
             "ACTION: @image1 holds the golden compass aloft, brilliant rainbow light beams shooting from it "
             "to unlock the glowing glass vitrine, the Dream Map floating out and beginning to unroll "
             "with golden magical light. "
-            "@image2 sits a step behind, watching the whole scene with wide amber eyes, glowing tail raised with excitement. "
+            "@image2 crouches on four paws a step behind, electric-blue fox, wide amber eyes watching the whole scene, glowing star-tipped tail raised with excitement. "
             "SETTING: Crystal Library WIDE VIEW, rainbow compass light beams filling the space, "
             "vitrine opening magically, dream map unfurling in mid-air. "
             "ATMOSPHERE: Triumphant discovery, brilliant colorful light, joyful victory. {style}"
@@ -252,7 +252,7 @@ CENTINELA_AURORA_SCENES = [
         "prompt": (
             "ACTION: @image1 stands brave on the flying carpet, arms flung wide open, a burst of warm golden light "
             "radiating outward from @image1 and dissolving the menacing grey Nightmare clouds. "
-            "@image2 stands behind @image1, electric blue tail glowing brilliant, ears back, eyes fierce. "
+            "@image2 crouches on four paws behind @image1, electric-blue fox body alert, glowing star-tipped tail blazing, ears back, amber eyes fierce. "
             "SETTING: Night sky WIDE VIEW, grey Nightmare clouds dissolving under golden light burst from @image1, "
             "magic carpet visible, aurora colors returning. "
             "ATMOSPHERE: Courage and warmth triumphing over darkness, golden light vs. grey clouds, heroic. {style}"
@@ -297,7 +297,7 @@ CENTINELA_AURORA_SCENES = [
         "prompt": (
             "ACTION: @image1 stands at the lighthouse entrance, looking up with compassionate eyes "
             "at the weeping stone giant whose tears stream down rocky cheeks forming glowing liquid rock puddles. "
-            "@image2 stands close to @image1's side, watching the giant with tilted head and curious amber eyes. "
+            "@image2 sits on four paws close to @image1's side, electric-blue fox, head tilted with curious amber eyes watching the giant. "
             "SETTING: Lighthouse island entrance WIDE VIEW, large stone giant, lighthouse tower behind, "
             "liquid rock pools from tears, moonlit island. "
             "ATMOSPHERE: Empathy and compassion, sad but not threatening, emotional and heartfelt. {style}"
@@ -320,7 +320,7 @@ CENTINELA_AURORA_SCENES = [
         "prompt": (
             "ACTION: @image1 offers a colorful crayon drawing to the shrinking stone giant who smiles through tears, "
             "warm golden light spreading from the gift. "
-            "@image2 watches nearby, tail wagging with joy. "
+            "@image2 crouches on four paws nearby, electric-blue fox, star-tipped tail swishing with joy, amber eyes bright. "
             "SETTING: Lighthouse island entrance WIDE VIEW, giant now shorter as they shrink, "
             "lighthouse entrance opening behind, warm golden magical glow. "
             "ATMOSPHERE: Kindness and empathy triumphant, warm golden glow, heartwarming transformation. {style}"
@@ -366,7 +366,7 @@ CENTINELA_AURORA_SCENES = [
         "prompt": (
             "ACTION: @image1 stands before the enormous Aurora Clock, leaning in with focused eyes "
             "to examine the grey sand clogging its gears, one hand reaching carefully toward a stuck gear. "
-            "@image2 sits beside @image1, small nose sniffing the grey sand, large amber eyes puzzled by the silence. "
+            "@image2 sits on four paws beside @image1, electric-blue fox, small snout sniffing the grey sand, large amber eyes puzzled by the silence. "
             "SETTING: Lighthouse top room WIDE VIEW, enormous Aurora Clock with gears covered in grey sand, "
             "aurora glass windows dim, night sky outside, the room beautiful but broken. "
             "ATMOSPHERE: Concerned urgency, eerie silence, broken magic, dim light needing restoration. {style}"
@@ -436,7 +436,7 @@ CENTINELA_AURORA_SCENES = [
         "prompt": (
             "ACTION: @image1 kneels in the garden giving a warm farewell embrace to @image2, "
             "eyes glistening with happy tears, the iridescent portal slowly closing behind. "
-            "@image2 stands before @image1, glowing tail bright, amber eyes full of warmth and gratitude. "
+            "@image2 sits on four paws before @image1, electric-blue fox, glowing star-tipped tail bright, amber eyes full of warmth and gratitude. "
             "SETTING: Garden at night WIDE VIEW, moonlit flowers glowing softly, closing portal of iridescent "
             "clouds behind them, aurora sky above, magical and bittersweet beautiful. "
             "ATMOSPHERE: Emotional farewell, warm golden-blue glow, deep friendship and gratitude. {style}"
