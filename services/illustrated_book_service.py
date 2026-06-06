@@ -546,9 +546,11 @@ def generate_scene_complete(
         elif book_id == 'centinela_aurora':
             reference_note = (
                 f"The child in @image1 is {child_age_int} years old. "
-                "@image1=child character — copy face, hair, skin, and outfit exactly. "
+                "@image1=child character — copy face, hair, skin, and outfit exactly. ONE child only. "
                 "@image2=small electric-blue fox ASTRO — copy appearance exactly. "
-                "Two distinct characters: @image1 is fully human, @image2 is a small magical fox."
+                "CRITICAL: @image1 is the ONLY human in this scene. "
+                "@image2 is a small four-legged animal fox, electric blue fur, NOT a person. "
+                "Render exactly two separate characters: one human child, one tiny fox animal."
             )
         else:
             reference_note = (
@@ -1347,9 +1349,11 @@ def generate_cover_spread(
                 elif book_id == 'centinela_aurora':
                     sk_cover_ref_note = (
                         f"The child in @image1 is {child_age_int} years old. "
-                        "@image1=child character — copy face, hair, skin, and outfit exactly. "
+                        "@image1=child character — copy face, hair, skin, and outfit exactly. ONE child only. "
                         "@image2=small electric-blue fox ASTRO — copy appearance exactly. "
-                        "Two distinct characters: @image1 is fully human, @image2 is a small magical fox."
+                        "CRITICAL: @image1 is the ONLY human. "
+                        "@image2 is a small four-legged animal fox, electric blue fur, NOT a person. "
+                        "Two separate characters: one human child, one tiny fox animal."
                     )
                 else:
                     sk_cover_ref_note = (
