@@ -278,6 +278,37 @@ def _ensure_luna_reference() -> str:
     return ''
 
 
+def _ensure_astro_reference() -> str:
+    """Generate ASTRO fox companion reference image once and cache it as a static asset.
+    Returns the file path, or empty string if generation fails.
+    ASTRO: small magical fox, kitten-sized, electric blue fur, amber eyes, glowing star-tipped tail.
+    """
+    astro_path = 'static/assets/astro_reference.png'
+    if os.path.exists(astro_path):
+        return astro_path
+    print("[CENTINELA AURORA] Generating ASTRO reference image (first time only)...")
+    try:
+        astro_prompt = (
+            "Disney Pixar 3D style illustration. A single small magical fox named ASTRO, "
+            "kitten-sized, vibrant electric blue fur covering the entire body, white chest patch, "
+            "large expressive amber-golden eyes, a glowing star-tipped tail that emits soft electric blue light, "
+            "a star-gem rope collar around the neck. "
+            "Sitting pose, centered in frame, full body visible. "
+            "Plain deep midnight blue background with faint aurora colors. "
+            "Full character visible, clean studio lighting, pure illustration only, NO text, NO watermarks."
+        )
+        image_url = generate_with_flux2_dev(astro_prompt, aspect_ratio="1:1")
+        from services.replicate_service import save_image_locally as _sil
+        os.makedirs('static/assets', exist_ok=True)
+        result_path = _sil(image_url, astro_path)
+        if result_path and os.path.exists(astro_path):
+            print(f"[CENTINELA AURORA] ASTRO reference saved: {astro_path}")
+            return astro_path
+    except Exception as e:
+        print(f"[CENTINELA AURORA] ASTRO reference generation failed: {e}")
+    return ''
+
+
 def _ensure_spark_reference() -> str:
     """Generate SPARK dragon companion reference image once and cache it as a static asset.
     Returns the file path, or empty string if generation fails.
@@ -590,50 +621,98 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
         from services.personalized_books.centinela_aurora_prompts import (
             get_outfit_desc as aurora_get_outfit_desc,
             STYLE_BASE as AURORA_STYLE_BASE,
-            ASTRO_INLINE,
-            get_hair_action
+            FRONT_COVER as CA_FRONT_COVER,
+            get_hair_action as aurora_get_hair_action
         )
-        
         from services.fixed_stories import get_hair_strict
+        from services.replicate_service import get_gender_negative_prompt as _ca_neg_fn
+
+        gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
+        age_display = f"{child_age} year old" if child_age and child_age > 0 else "6 year old"
+        human_photo_path = traits.get('human_photo_path', child_photo_path or '')
         outfit_desc = aurora_get_outfit_desc(gender)
-        hair_action = get_hair_action(traits)
-        if has_photo:
-            hair_desc = "hair as in the reference photo"
-            actual_eye = get_eye_description(traits)
-            eye_desc = f"{actual_eye}, face exactly as in the reference photo{glasses_desc}"
-            skin_tone = "as in the reference photo"
-            char_physical = f"{hair_desc}, {eye_desc}"
-            hair_strict_text = "PHOTO REFERENCE: Match the child's exact face, skin, eye color and hair from the reference photo."
+
+        astro_path = _ensure_astro_reference()
+        astro_ok = astro_path and os.path.exists(astro_path)
+
+        output_dir = 'generated/previews'
+        os.makedirs(output_dir, exist_ok=True)
+
+        ca_scene = CA_FRONT_COVER.get('prompt', '').replace('{style}', AURORA_STYLE_BASE)
+        ca_neg = _ca_neg_fn(gender)
+
+        if human_photo_path and os.path.exists(human_photo_path):
+            kontext_prompt = (
+                f"The child in @image1 is {child_age} years old. "
+                f"Convert @image1 into a Disney Pixar 3D animated children's book character. "
+                f"Copy the face, hair colour, skin tone, and eye colour from @image1 exactly — identical likeness. "
+                f"Replace all clothing with: {outfit_desc}. "
+                f"Full body visible from head to feet, standing pose, brave adventurous smile. "
+                f"Background: deep midnight blue with subtle aurora colors, plain studio — "
+                f"no fox, no compass, no detailed scenery."
+            )
+            print(f"[CENTINELA AURORA PREVIEW] Step 1 — Kontext portrait | photo={human_photo_path} | age={child_age}")
+            portrait_url = generate_with_flux_kontext(kontext_prompt, human_photo_path, aspect_ratio="3:4")
+            portrait_path = save_image_locally(portrait_url, f'{output_dir}/ca_portrait_{uuid.uuid4().hex[:8]}.png')
+            print(f"[CENTINELA AURORA PREVIEW] Portrait saved: {portrait_path}")
+
+            ca_ref_note = (
+                f"The child in @image1 is {child_age} years old. "
+                f"@image1={gender_word} character — copy face, hair, skin, and outfit exactly. "
+                "@image2=small electric-blue fox companion ASTRO — copy appearance exactly. "
+                f"Two distinct characters: @image1 is a fully human {gender_word}, @image2 is a small magical fox."
+            )
+            photo_refs = [portrait_path, astro_path] if astro_ok else [portrait_path]
+            print(f"[CENTINELA AURORA PREVIEW] Step 2 — FLUX 2 Dev cover scene | portrait={portrait_path} | astro={astro_ok}")
+            cov_url = generate_with_flux2_dev(
+                f"{ca_ref_note}\n{ca_scene}",
+                aspect_ratio="3:4",
+                photo_ref_paths=photo_refs,
+                image_prompt_strength=0.90,
+                negative_prompt=ca_neg
+            )
         else:
+            hair_action = aurora_get_hair_action(traits)
             hair_desc = get_hair_description(traits)
             hair_strict_text = get_hair_strict(traits)
             eye_desc = get_eye_description(traits)
             skin_tone = get_unified_skin_description(traits.get('skin_tone', 'light'))
-            char_physical = f"{hair_desc}, {eye_desc}, {skin_tone} skin{glasses_desc}"
-        gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
-        age_display = f"{child_age} year old" if child_age and child_age > 0 else "6 year old"
-        
-        prompt = (
-            f"Disney Pixar 3D style illustration. "
-            f"CHARACTER: A single {gender_word} ({age_display}), {char_physical}, big joyful adventurous smile, {hair_action}. "
-            f"OUTFIT: {outfit_desc}. "
-            f"COMPANION: {ASTRO_INLINE}. "
-            f"ACTION: {gender_word} stands confidently holding the golden compass high in one hand, "
-            f"face glowing with adventurous excitement. ASTRO stands beside the child, "
-            f"glowing tail raised, lighting the aurora sky with electric blue brilliance. "
-            f"SETTING: Night sky and aurora WIDE VIEW, magnificent aurora borealis colors filling the sky, "
-            f"stars everywhere, magical stardust floating, centered composition for book cover. "
-            f"ATMOSPHERE: Epic adventure invitation, magical aurora colors, excitement and wonder. "
-            f"STRICT: Only ONE {gender_word}, only ONE small electric-blue fox ASTRO, "
-            f"the {gender_word} is a fully human child: no tail, no fox tail, no animal ears, no fur on the {gender_word}. "
-            f"{hair_strict_text} "
-            f"ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, "
-            f"no captions, no watermarks, no signatures, pure illustration only. "
-            f"{AURORA_STYLE_BASE}"
-        )
-        
-        print(f"[PERSONALIZED PREVIEW] {story_id}, age={child_age}, has_photo={has_photo}, glasses={bool(glasses)}")
-        print(f"[PERSONALIZED PREVIEW] Using FRONT_COVER schema + FLUX 2 Dev")
+            ca_nophoto_prompt = (
+                f"@image1 = small magical electric-blue fox companion ASTRO — copy @image1 appearance exactly.\n"
+                f"Draw a single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, "
+                f"big joyful brave smile, {hair_action}. OUTFIT: {outfit_desc}.\n"
+                f"ACTION: The {gender_word} stands confidently holding the golden compass high with one arm, "
+                f"face lit with adventurous excitement. @image1 perches on the {gender_word}'s shoulder, "
+                f"glowing tail raised high, electric blue light blazing brilliantly against the aurora sky. "
+                f"SETTING: Night sky and aurora WIDE VIEW, magnificent aurora borealis colors filling the sky, "
+                f"stars everywhere, magical stardust floating around them, centered composition for book cover. "
+                f"ATMOSPHERE: Epic adventure invitation, magical aurora colors, excitement and wonder. "
+                f"STRICT: Only ONE {gender_word}, only ONE small electric-blue fox @image1, "
+                f"the {gender_word} is a fully human child: no tail, no fox features. {hair_strict_text} "
+                f"ABSOLUTELY NO rendered text, no titles, no logos, no words, no letters, no captions, "
+                f"no watermarks, no signatures, pure illustration only. {AURORA_STYLE_BASE}"
+            )
+            photo_refs = [astro_path] if astro_ok else None
+            print(f"[CENTINELA AURORA PREVIEW] FLUX 2 Dev cover scene (no photo) | gender={gender_word} | age={age_display}")
+            cov_url = generate_with_flux2_dev(
+                ca_nophoto_prompt,
+                aspect_ratio="3:4",
+                photo_ref_paths=photo_refs,
+                image_prompt_strength=0.85,
+                negative_prompt=ca_neg
+            )
+
+        cover_path = save_image_locally(cov_url, f'{output_dir}/ca_cover_{uuid.uuid4().hex[:8]}.png')
+        print(f"[CENTINELA AURORA PREVIEW] Cover scene generated: {cover_path}")
+        result = {
+            'success': True,
+            'image_url': f'/{cover_path}',
+            'story_id': story_id,
+            'child_age': child_age
+        }
+        if human_photo_path and os.path.exists(human_photo_path) and 'portrait_path' in dir():
+            result['kontext_portrait'] = f'/{portrait_path}'
+        return result
 
     elif story_id in ('furry_love_illustrated', 'furry_love_adventure_illustrated', 'furry_love_teen_illustrated', 'furry_love_adult_illustrated'):
         if story_id == 'furry_love_adventure_illustrated':
