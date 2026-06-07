@@ -488,7 +488,7 @@ FRONT_COVER = {
     "prompt": (
         "ACTION: @image1 stands confidently holding the golden compass high with one arm, "
         "face lit with adventurous excitement. "
-        "ASTRO the small electric-blue fox perches on @image1's shoulder, glowing electric-blue tail raised high, "
+        "@image2 stands beside @image1, glowing electric-blue tail raised high, "
         "electric blue light blazing brilliantly against the aurora sky. "
         "SETTING: Night sky and aurora WIDE VIEW, magnificent aurora borealis colors filling the sky, "
         "stars everywhere, magical stardust floating around them, centered composition for book cover. "
