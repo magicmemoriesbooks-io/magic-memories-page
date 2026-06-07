@@ -395,8 +395,8 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
             print(f"[DRAGON GARDEN PREVIEW] Portrait saved: {portrait_path}")
 
             dg_ref_note = (
-                f"The child in @image1 is {child_age} years old. "
-                f"@image1={gender_word} character — copy face, hair, skin, and outfit exactly. "
+                f"The child in @image1 is {age_display}. "
+                f"@image1={gender_word} character — copy face, eye color, hair, skin, and outfit exactly. "
                 "@image2=small emerald dragon companion SPARK — copy appearance exactly. "
                 f"Two distinct characters: @image1 is a fully human {gender_word}, @image2 is a small baby dragon."
             )
@@ -553,8 +553,8 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
 
             # Step 2: FLUX 2 Dev — cover scene (lighthouse + stars) using portrait as @image1 + LUNA as @image2
             sk_ref_note = (
-                f"The child in @image1 is {child_age} years old. "
-                f"@image1={gender_word} character — copy face, hair, skin, and outfit exactly. "
+                f"The child in @image1 is {age_display}. "
+                f"@image1={gender_word} character — copy face, eye color, hair, skin, and outfit exactly. "
                 "@image2=small star companion LUNA — copy appearance exactly. "
                 f"Two distinct characters: @image1 is a fully human {gender_word}, @image2 is a small glowing star."
             )
@@ -651,8 +651,8 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
             print(f"[CENTINELA AURORA PREVIEW] Portrait saved: {portrait_path}")
 
             ca_ref_note = (
-                f"The child in @image1 is {child_age} years old. "
-                f"@image1={gender_word} character — copy face, hair, skin, and outfit exactly. ONE child only. "
+                f"The child in @image1 is {age_display}. "
+                f"@image1={gender_word} character — copy face, eye color, hair, skin, and outfit exactly. ONE child only. "
                 "@image2=small electric-blue fox ASTRO — copy appearance exactly. "
                 f"CRITICAL: @image1 is the ONLY human. "
                 "@image2 is a small four-legged animal fox, electric blue fur, NOT a person. "
