@@ -660,6 +660,8 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
             )
             photo_refs = [portrait_path, astro_path] if astro_ok else [portrait_path]
             print(f"[CENTINELA AURORA PREVIEW] Step 2 — FLUX 2 Dev cover scene | portrait={portrait_path} | astro={astro_ok}")
+            _ca_full_prompt = f"{ca_ref_note}\n{ca_scene}"
+            print(f"[CENTINELA AURORA PREVIEW] FULL PROMPT TO FLUX:\n{_ca_full_prompt}")
             cov_url = generate_with_flux2_dev(
                 f"{ca_ref_note}\n{ca_scene}",
                 aspect_ratio="3:4",
