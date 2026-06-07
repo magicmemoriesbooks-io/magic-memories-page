@@ -653,13 +653,12 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
             ca_ref_note = (
                 f"The child in @image1 is {age_display}. "
                 f"@image1={gender_word} character — copy face, eye color, hair, skin, and outfit exactly. ONE child only. "
-                "@image2=small electric-blue fox ASTRO — copy appearance exactly. "
-                f"CRITICAL: @image1 is the ONLY human. "
-                "@image2 is a small four-legged animal fox, electric blue fur, NOT a person. "
+                "COMPANION: a small electric-blue fox named ASTRO with glowing blue fur, bright blue eyes, fluffy tail. "
+                f"CRITICAL: @image1 is the ONLY human. ASTRO is a small four-legged animal fox, NOT a person. "
                 "Two separate characters: one human child, one tiny fox animal."
             )
-            photo_refs = [portrait_path, astro_path] if astro_ok else [portrait_path]
-            print(f"[CENTINELA AURORA PREVIEW] Step 2 — FLUX 2 Dev cover scene | portrait={portrait_path} | astro={astro_ok}")
+            photo_refs = [portrait_path]
+            print(f"[CENTINELA AURORA PREVIEW] Step 2 — FLUX 2 Dev cover scene | portrait={portrait_path} | astro=text-only")
             _ca_full_prompt = f"{ca_ref_note}\n{ca_scene}"
             print(f"[CENTINELA AURORA PREVIEW] FULL PROMPT TO FLUX:\n{_ca_full_prompt}")
             cov_url = generate_with_flux2_dev(
