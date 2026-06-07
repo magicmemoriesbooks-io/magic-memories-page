@@ -653,7 +653,7 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
             ca_ref_note = (
                 f"The child in @image1 is {age_display}. "
                 f"@image1={gender_word} character — copy face, eye color, hair, skin, and outfit exactly. ONE child only. "
-                "COMPANION: a small electric-blue fox named ASTRO with glowing blue fur, bright blue eyes, fluffy tail. "
+                "COMPANION: a small electric-blue fox named ASTRO with glowing blue fur, fluffy tail, fox ears. "
                 f"CRITICAL: @image1 is the ONLY human. ASTRO is a small four-legged animal fox, NOT a person. "
                 "Two separate characters: one human child, one tiny fox animal."
             )
