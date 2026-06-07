@@ -406,7 +406,7 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                 f"{dg_ref_note}\n{dg_scene}",
                 aspect_ratio="3:4",
                 photo_ref_paths=photo_refs,
-                image_prompt_strength=0.90,
+                image_prompt_strength=0.95,
                 negative_prompt=dg_neg
             )
         else:
@@ -564,7 +564,7 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                 f"{sk_ref_note}\n{sk_scene}",
                 aspect_ratio="3:4",
                 photo_ref_paths=photo_refs,
-                image_prompt_strength=0.90,
+                image_prompt_strength=0.95,
                 negative_prompt=sk_neg
             )
         else:
@@ -664,7 +664,7 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                 f"{ca_ref_note}\n{ca_scene}",
                 aspect_ratio="3:4",
                 photo_ref_paths=photo_refs,
-                image_prompt_strength=0.90,
+                image_prompt_strength=0.95,
                 negative_prompt=ca_neg
             )
         else:
