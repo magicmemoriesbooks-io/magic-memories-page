@@ -383,14 +383,11 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
 
         if human_photo_path and os.path.exists(human_photo_path):
             kontext_prompt = (
-                f"The child in @image1 is {child_age} years old. "
-                f"Convert @image1 into a Disney Pixar 3D animated children's book character. "
-                f"Copy EXACTLY from the photo: face structure, hair colour, hair style, eye colour, skin tone, freckles, and all facial features — identical likeness. "
-                f"Do NOT alter hair colour or eye colour during the style transformation. "
-                f"Replace all clothing with: {outfit_desc}. "
-                f"Full body visible from head to feet, standing pose, joyful adventurous smile. "
-                f"Background: soft green magical garden atmosphere with golden sparkles, plain studio — "
-                f"no dragon, no detailed scenery."
+                f"Convert the {gender_word} in @image1 into a high-quality 3D animated children's book character. "
+                f"Preserve the exact face, skin tone, and hair — identical likeness. "
+                f"OUTFIT: {outfit_desc}. "
+                f"BACKGROUND: soft magical garden atmosphere with golden sparkles, plain studio — no dragon, no scenery. "
+                f"POSE: standing, full body visible from head to feet, joyful adventurous smile, arms relaxed at sides."
             )
             print(f"[DRAGON GARDEN PREVIEW] Step 1 — Kontext portrait | photo={human_photo_path} | age={child_age}")
             portrait_url = generate_with_flux_kontext(kontext_prompt, human_photo_path, aspect_ratio="3:4")
@@ -543,14 +540,11 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
         if human_photo_path and os.path.exists(human_photo_path):
             # Step 1: Kontext — clean portrait (face preserved, Pixar style, plain bg)
             kontext_prompt = (
-                f"The child in @image1 is {child_age} years old. "
-                f"Convert @image1 into a Disney Pixar 3D animated children's book character. "
-                f"Copy EXACTLY from the photo: face structure, hair colour, hair style, eye colour, skin tone, freckles, and all facial features — identical likeness. "
-                f"Do NOT alter hair colour or eye colour during the style transformation. "
-                f"Replace all clothing with: {outfit_desc}. "
-                f"Full body visible from head to feet, standing pose, brave adventurous smile. "
-                f"Background: deep midnight blue with subtle silver star sparkles, plain studio — "
-                f"no lighthouse, no ocean, no scenery."
+                f"Convert the {gender_word} in @image1 into a high-quality 3D animated children's book character. "
+                f"Preserve the exact face, skin tone, and hair — identical likeness. "
+                f"OUTFIT: {outfit_desc}. "
+                f"BACKGROUND: deep midnight blue with subtle silver star sparkles, plain studio — no lighthouse, no ocean, no scenery. "
+                f"POSE: standing, full body visible from head to feet, brave adventurous smile, arms relaxed at sides."
             )
             print(f"[STAR KEEPER PREVIEW] Step 1 — Kontext portrait | photo={human_photo_path} | age={child_age}")
             portrait_url = generate_with_flux_kontext(kontext_prompt, human_photo_path, aspect_ratio="3:4")
@@ -645,14 +639,11 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
 
         if human_photo_path and os.path.exists(human_photo_path):
             kontext_prompt = (
-                f"The child in @image1 is {child_age} years old. "
-                f"Convert @image1 into a Disney Pixar 3D animated children's book character. "
-                f"Copy EXACTLY from the photo: face structure, hair colour, hair style, eye colour, skin tone, freckles, and all facial features — identical likeness. "
-                f"Do NOT alter hair colour or eye colour during the style transformation. "
-                f"Replace all clothing with: {outfit_desc}. "
-                f"Full body visible from head to feet, standing pose, brave adventurous smile. "
-                f"Background: deep midnight blue with subtle aurora colors, plain studio — "
-                f"no fox, no compass, no detailed scenery."
+                f"Convert the {gender_word} in @image1 into a high-quality 3D animated children's book character. "
+                f"Preserve the exact face, skin tone, and hair — identical likeness. "
+                f"OUTFIT: {outfit_desc}. "
+                f"BACKGROUND: deep midnight blue with subtle aurora colors, plain studio — no fox, no compass, no scenery. "
+                f"POSE: standing, full body visible from head to feet, brave adventurous smile, arms relaxed at sides."
             )
             print(f"[CENTINELA AURORA PREVIEW] Step 1 — Kontext portrait | photo={human_photo_path} | age={child_age}")
             portrait_url = generate_with_flux_kontext(kontext_prompt, human_photo_path, aspect_ratio="3:4")
