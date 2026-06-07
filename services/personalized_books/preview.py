@@ -383,7 +383,7 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
 
         if human_photo_path and os.path.exists(human_photo_path):
             kontext_prompt = (
-                f"Convert the {gender_word} in @image1 into a high-quality 3D animated children's book character. "
+                f"Convert the {age_display} {gender_word} in @image1 into a high-quality 3D animated children's book character. "
                 f"Preserve the exact face, skin tone, and hair — identical likeness. "
                 f"OUTFIT: {outfit_desc}. "
                 f"BACKGROUND: soft magical garden atmosphere with golden sparkles, plain studio — no dragon, no scenery. "
@@ -540,7 +540,7 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
         if human_photo_path and os.path.exists(human_photo_path):
             # Step 1: Kontext — clean portrait (face preserved, Pixar style, plain bg)
             kontext_prompt = (
-                f"Convert the {gender_word} in @image1 into a high-quality 3D animated children's book character. "
+                f"Convert the {age_display} {gender_word} in @image1 into a high-quality 3D animated children's book character. "
                 f"Preserve the exact face, skin tone, and hair — identical likeness. "
                 f"OUTFIT: {outfit_desc}. "
                 f"BACKGROUND: deep midnight blue with subtle silver star sparkles, plain studio — no lighthouse, no ocean, no scenery. "
@@ -639,7 +639,7 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
 
         if human_photo_path and os.path.exists(human_photo_path):
             kontext_prompt = (
-                f"Convert the {gender_word} in @image1 into a high-quality 3D animated children's book character. "
+                f"Convert the {age_display} {gender_word} in @image1 into a high-quality 3D animated children's book character. "
                 f"Preserve the exact face, skin tone, and hair — identical likeness. "
                 f"OUTFIT: {outfit_desc}. "
                 f"BACKGROUND: deep midnight blue with subtle aurora colors, plain studio — no fox, no compass, no scenery. "
