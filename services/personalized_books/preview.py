@@ -386,10 +386,10 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
 
         if human_photo_path and os.path.exists(human_photo_path):
             kontext_prompt = (
-                f"The child in @image1 is {child_age} years old. "
+                f"The child in @image1 is {child_age} years old with {hair_desc} and {eye_desc}. "
                 f"Convert @image1 into a Disney Pixar 3D animated children's book character. "
-                f"Copy the face, hair colour, skin tone, and eye colour from @image1 exactly — identical likeness. "
-                f"Hair must be {hair_desc}. Eyes must be {eye_desc} — preserve both EXACTLY in the illustration. "
+                f"Preserve EXACTLY from the photo: face likeness, hair colour and style, eye colour, skin tone, freckles, any facial features. "
+                f"Do NOT change hair colour or eye colour during the artistic transformation. "
                 f"Replace all clothing with: {outfit_desc}. "
                 f"Full body visible from head to feet, standing pose, joyful adventurous smile. "
                 f"Background: soft green magical garden atmosphere with golden sparkles, plain studio — "
@@ -549,10 +549,10 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
         if human_photo_path and os.path.exists(human_photo_path):
             # Step 1: Kontext — clean portrait (face preserved, Pixar style, plain bg)
             kontext_prompt = (
-                f"The child in @image1 is {child_age} years old. "
+                f"The child in @image1 is {child_age} years old with {hair_desc} and {eye_desc}. "
                 f"Convert @image1 into a Disney Pixar 3D animated children's book character. "
-                f"Copy the face, hair colour, skin tone, and eye colour from @image1 exactly — identical likeness. "
-                f"Hair must be {hair_desc}. Eyes must be {eye_desc} — preserve both EXACTLY in the illustration. "
+                f"Preserve EXACTLY from the photo: face likeness, hair colour and style, eye colour, skin tone, freckles, any facial features. "
+                f"Do NOT change hair colour or eye colour during the artistic transformation. "
                 f"Replace all clothing with: {outfit_desc}. "
                 f"Full body visible from head to feet, standing pose, brave adventurous smile. "
                 f"Background: deep midnight blue with subtle silver star sparkles, plain studio — "
@@ -654,10 +654,10 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
 
         if human_photo_path and os.path.exists(human_photo_path):
             kontext_prompt = (
-                f"The child in @image1 is {child_age} years old. "
+                f"The child in @image1 is {child_age} years old with {hair_desc} and {eye_desc}. "
                 f"Convert @image1 into a Disney Pixar 3D animated children's book character. "
-                f"Copy the face, hair colour, skin tone, and eye colour from @image1 exactly — identical likeness. "
-                f"Hair must be {hair_desc}. Eyes must be {eye_desc} — preserve both EXACTLY in the illustration. "
+                f"Preserve EXACTLY from the photo: face likeness, hair colour and style, eye colour, skin tone, freckles, any facial features. "
+                f"Do NOT change hair colour or eye colour during the artistic transformation. "
                 f"Replace all clothing with: {outfit_desc}. "
                 f"Full body visible from head to feet, standing pose, brave adventurous smile. "
                 f"Background: deep midnight blue with subtle aurora colors, plain studio — "
