@@ -625,13 +625,13 @@ def generate_scene_with_flux2dev(scene_prompt: str, reference_image_path: str, s
         gender_word = "little boy" if gender == "male" else "little girl" if gender == "female" else "child"
 
     if is_baby:
-        reference_note = f"CRITICAL: Same {gender_word} as reference — same hair color and style, same face, same skin tone."
+        reference_note = f"REFERENCE: Reproduce EXACTLY the {gender_word} from the reference image — identical hair color and style, same face, same skin tone."
     else:
-        reference_note = f"CRITICAL: Same {gender_word} as reference photo — match face, hair color, skin tone exactly."
+        reference_note = f"REFERENCE: Reproduce EXACTLY the {gender_word} from the reference image — identical hair color, same face, same eye color, same skin tone."
 
-    enhanced_prompt = f"""{scene_prompt}
+    enhanced_prompt = f"""{reference_note}
 
-{reference_note}"""
+{scene_prompt}"""
 
     print(f"Scene prompt (first 300 chars): {scene_prompt[:300]}...")
     print(f"Gender: {gender_word}, Child Age: {child_age}, Hair Length: {hair_length}")
