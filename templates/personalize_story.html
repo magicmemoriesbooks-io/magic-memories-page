@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 
 {% block title %}✨ {{ story_name }} - {{ translations.site_title }}{% endblock %}
+{% block og_title %}{{ og_title }} | Magic Memories Books{% endblock %}
+{% block og_description %}{{ og_description }}{% endblock %}
+{% block og_image %}{{ og_image_url }}{% endblock %}
+{% block twitter_image %}{{ og_image_url }}{% endblock %}
 
 {% block content %}
 <div id="infoModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
@@ -623,6 +627,7 @@ async function generateCharacterPreview(referenceImage) {
                 story_template: '{{ story_id }}',
                 story_name: '{{ story_name }}',
                 character_image: data.image_url,
+                kontext_portrait: data.kontext_portrait || '',
                 admin_gift: isAdminGift ? 1 : 0,
                 admin_gift_email: requestBody.admin_gift_email || '',
                 glasses: glasses
@@ -676,6 +681,7 @@ document.getElementById('generateStoryBtn').addEventListener('click', async func
             author_name: authorName,
             dedication: dedication,
             character_image: currentCharacterData.character_image,
+            kontext_portrait: currentCharacterData.kontext_portrait || '',
             story_lang: storyLang,
             admin_gift: currentCharacterData.admin_gift ? 1 : 0,
             admin_gift_email: currentCharacterData.admin_gift_email || '',
