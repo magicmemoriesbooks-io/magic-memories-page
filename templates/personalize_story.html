@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 
 {% block title %}✨ {{ story_name }} - {{ translations.site_title }}{% endblock %}
-{% block og_title %}{{ og_title }} | Magic Memories Books{% endblock %}
+{% block og_title %}{{ og_title }}{% endblock %}
 {% block og_description %}{{ og_description }}{% endblock %}
 {% block og_image %}{{ og_image_url }}{% endblock %}
 {% block twitter_image %}{{ og_image_url }}{% endblock %}
+{% block meta_description %}{{ og_description }}{% endblock %}
 
 {% block content %}
 <div id="infoModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
