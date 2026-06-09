@@ -2,6 +2,10 @@
 
 {% block title %}{% if lang == 'es' %}Cuentos Express — Elige tu historia{% else %}Express Stories — Choose your story{% endif %} - {{ translations.site_title }}{% endblock %}
 {% block meta_description %}{% if lang == 'es' %}Catálogo completo de cuentos mágicos personalizados: cumpleaños, bebé y grandes aventuras. 16 páginas, entrega digital inmediata.{% else %}Full catalog of personalized magic stories: birthday, baby, and adventures. 16 pages, instant digital delivery.{% endif %}{% endblock %}
+{% block og_title %}{% if lang == 'es' %}Cuentos Mágicos Express | Magic Memories Books{% else %}Express Magic Stories | Magic Memories Books{% endif %}{% endblock %}
+{% block og_description %}{% if lang == 'es' %}16 páginas personalizadas con el nombre y descripción de tu hijo. Entrega digital inmediata desde $6. Elige entre 12 historias mágicas.{% else %}16 pages personalized with your child's name and description. Instant digital delivery from $6. Choose from 12 magical stories.{% endif %}{% endblock %}
+{% block og_image %}{{ url_for('static', filename='images/og/og_express_catalog.jpg', _external=True) }}{% endblock %}
+{% block twitter_image %}{{ url_for('static', filename='images/og/og_express_catalog.jpg', _external=True) }}{% endblock %}
 
 {% block content %}
 <style>
