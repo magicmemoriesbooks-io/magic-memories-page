@@ -921,6 +921,177 @@ def upload_furry_photo():
     
     return jsonify({'success': True, 'path': filepath})
 
+STORY_OG_META = {
+    "baby_soft_world": {
+        "title_es": "Cuento Bebé Personalizado — El Mundo Suave",
+        "title_en": "Personalized Baby Book — The Soft World",
+        "desc_es": "Un cuento mágico y personalizado para bebés de 0 a 2 años, donde tu pequeño/a es el protagonista de un mundo de colores suaves y amor.",
+        "desc_en": "A magical personalized story for babies 0-2, where your little one is the star of a world filled with soft colors and love.",
+        "image": "cover_baby_soft_world.jpg",
+    },
+    "baby_puppy_love": {
+        "title_es": "Cuento Bebé Personalizado — ¿Sabes cuánto te quiero?",
+        "title_en": "Personalized Baby Book — Do You Know How Much I Love You?",
+        "desc_es": "Un cuento personalizado lleno de amor para bebés de 0 a 2 años. Ideal como regalo de nacimiento o primer cumpleaños.",
+        "desc_en": "A personalized story full of love for babies 0-2. Perfect as a newborn or first birthday gift.",
+        "image": "cover_baby_puppy_love.jpg",
+    },
+    "baby_first_pet": {
+        "title_es": "Cuento Bebé Personalizado — La Primera Mascota",
+        "title_en": "Personalized Baby Book — Their First Pet",
+        "desc_es": "El cuento personalizado donde tu bebé conoce a su primera mascota. Una historia tierna para los más pequeños de la casa.",
+        "desc_en": "A personalized story where your baby meets their first pet. A tender tale for the littlest ones.",
+        "image": "cover_baby_first_pet.jpg",
+    },
+    "baby_guardian_light": {
+        "title_es": "Cuento Bebé Personalizado — La Luz Guardiana",
+        "title_en": "Personalized Baby Book — The Guardian Light",
+        "desc_es": "Un cuento mágico personalizado donde la luz guarda los sueños de tu bebé. Ilustraciones suaves e historia única.",
+        "desc_en": "A magical personalized story where a guardian light watches over your baby's dreams. Soft illustrations and a unique story.",
+        "image": "cover_baby_guardian_light.jpg",
+    },
+    "dragon_friend": {
+        "title_es": "Cuento Personalizado — El Amigo Dragón",
+        "title_en": "Personalized Children's Book — The Dragon Friend",
+        "desc_es": "Tu hijo/a se convierte en el héroe de una aventura mágica junto a su amigo dragón. Cuento personalizado con IA para niños de 3 a 5 años.",
+        "desc_en": "Your child becomes the hero of a magical adventure alongside their dragon friend. AI-personalized book for kids 3-5.",
+        "image": "cover_dragon_friend.jpg",
+    },
+    "zebra_stripes": {
+        "title_es": "Cuento Personalizado — Aventura en la Sabana",
+        "title_en": "Personalized Children's Book — Savanna Adventure",
+        "desc_es": "Tu pequeño/a explora la sabana africana en esta aventura personalizada. Cuento con IA para niños de 3 a 8 años.",
+        "desc_en": "Your little one explores the African savanna in this personalized adventure. AI story for kids 3-8.",
+        "image": "cover_zebra_stripes.jpg",
+    },
+    "space_astronaut": {
+        "title_es": "Cuento Personalizado — El Astronauta",
+        "title_en": "Personalized Children's Book — The Astronaut",
+        "desc_es": "Tu hijo/a viaja al espacio como astronauta en este cuento personalizado con IA. Una aventura galáctica única para niños de 3 a 8 años.",
+        "desc_en": "Your child travels to space as an astronaut in this AI-personalized book. A unique galactic adventure for kids 3-8.",
+        "image": "cover_space_astronaut.jpg",
+    },
+    "superhero_light": {
+        "title_es": "Cuento Personalizado — El Superhéroe de la Luz",
+        "title_en": "Personalized Children's Book — The Superhero of Light",
+        "desc_es": "Tu hijo/a descubre sus superpoderes en este cuento personalizado. Una historia de valentía y magia para niños de 6 a 8 años.",
+        "desc_en": "Your child discovers their superpowers in this personalized story. A tale of bravery and magic for kids 6-8.",
+        "image": "cover_superhero_light.jpg",
+    },
+    "star_guardian": {
+        "title_es": "Cuento Personalizado — El Secreto de las Estrellas",
+        "title_en": "Personalized Children's Book — The Secret of the Stars",
+        "desc_es": "Tu hijo/a guarda el secreto de las estrellas en esta aventura nocturna personalizada con IA. Para niños de 6 a 8 años.",
+        "desc_en": "Your child holds the secret of the stars in this AI-personalized nighttime adventure. For kids 6-8.",
+        "image": "cover_star_guardian.jpg",
+    },
+    "chronicles_valley": {
+        "title_es": "Cuento Personalizado — El Mundo Secreto",
+        "title_en": "Personalized Children's Book — The Secret World",
+        "desc_es": "Tu hijo/a descubre un mundo secreto lleno de magia en este cuento personalizado con inteligencia artificial. Para niños de 5 a 7 años.",
+        "desc_en": "Your child discovers a secret world full of magic in this AI-personalized story. For kids 5-7.",
+        "image": "cover_chronicles_valley.jpg",
+    },
+    "sunset_map": {
+        "title_es": "Cuento Personalizado — El Mapa del Atardecer",
+        "title_en": "Personalized Children's Book — The Sunset Map",
+        "desc_es": "Un mapa misterioso lleva a tu hijo/a en una aventura al atardecer. Cuento personalizado con IA para niños de 5 a 7 años.",
+        "desc_en": "A mysterious map takes your child on a sunset adventure. AI-personalized story for kids 5-7.",
+        "image": "cover_sunset_map.jpg",
+    },
+    "dog_forever": {
+        "title_es": "Cuento Personalizado — Su Perro para Siempre",
+        "title_en": "Personalized Children's Book — Their Dog Forever",
+        "desc_es": "La historia de amor entre tu hijo/a y su fiel compañero perro. Cuento personalizado con IA para niños de 6 a 8 años.",
+        "desc_en": "The love story between your child and their loyal dog companion. AI-personalized book for kids 6-8.",
+        "image": "cover_dog_forever.jpg",
+    },
+    "birthday_celebration_1_3": {
+        "title_es": "Cuento de Cumpleaños Personalizado — 1 a 3 Años",
+        "title_en": "Personalized Birthday Book — Ages 1-3",
+        "desc_es": "Celebra el cumpleaños de tu bebé con un cuento mágico personalizado. Ilustraciones únicas generadas con IA para los primeros años.",
+        "desc_en": "Celebrate your baby's birthday with a magical personalized story. Unique AI-generated illustrations for the early years.",
+        "image": "cover_birthday_celebration_0_2.jpg",
+    },
+    "birthday_celebration_4_6": {
+        "title_es": "Cuento de Cumpleaños Personalizado — 4 a 6 Años",
+        "title_en": "Personalized Birthday Book — Ages 4-6",
+        "desc_es": "El regalo de cumpleaños más especial: un cuento donde tu hijo/a es el protagonista de su propia celebración mágica.",
+        "desc_en": "The most special birthday gift: a story where your child is the star of their own magical celebration.",
+        "image": "cover_birthday_celebration_4_6.jpg",
+    },
+    "birthday_celebration_7_9": {
+        "title_es": "Cuento de Cumpleaños Personalizado — 7 a 9 Años",
+        "title_en": "Personalized Birthday Book — Ages 7-9",
+        "desc_es": "Un cuento de cumpleaños único y personalizado para niños de 7 a 9 años. La aventura de su día especial contada con magia e IA.",
+        "desc_en": "A unique personalized birthday story for kids 7-9. The adventure of their special day told with magic and AI.",
+        "image": "cover_birthday_celebration_7_9.jpg",
+    },
+    "dragon_garden_illustrated": {
+        "title_es": "Libro Ilustrado Personalizado — El Dragón del Jardín Mágico",
+        "title_en": "Personalized Illustrated Book — The Magic Garden Dragon",
+        "desc_es": "Libro ilustrado personalizado hardcover con fotos reales de tu hijo/a. 22 ilustraciones únicas generadas con IA. Para niños de 3 a 8 años.",
+        "desc_en": "Personalized hardcover illustrated book with real photos of your child. 22 unique AI-generated illustrations. For kids 3-8.",
+        "image": "cover_dragon_garden.jpg",
+    },
+    "magic_chef_illustrated": {
+        "title_es": "Libro Ilustrado Personalizado — El Chef Mágico",
+        "title_en": "Personalized Illustrated Book — The Magic Chef",
+        "desc_es": "Tu hijo/a como chef mágico en un libro ilustrado personalizado con fotos reales. 22 ilustraciones únicas con IA. Para niños de 3 a 8 años.",
+        "desc_en": "Your child as a magic chef in a personalized illustrated book with real photos. 22 unique AI illustrations. For kids 3-8.",
+        "image": "cover_magic_chef.jpg",
+    },
+    "magic_inventor_illustrated": {
+        "title_es": "Libro Ilustrado Personalizado — El Taller de los Inventos Mágicos",
+        "title_en": "Personalized Illustrated Book — The Magic Inventor Workshop",
+        "desc_es": "Tu hijo/a como inventor genial en un libro ilustrado personalizado con fotos reales. 22 ilustraciones con IA. Para niños de 6 a 8 años.",
+        "desc_en": "Your child as a brilliant inventor in a personalized illustrated book with real photos. 22 AI illustrations. For kids 6-8.",
+        "image": "cover_magic_inventor.jpg",
+    },
+    "star_keeper_illustrated": {
+        "title_es": "Libro Ilustrado Personalizado — El Guardián de Estrellas",
+        "title_en": "Personalized Illustrated Book — The Star Keeper",
+        "desc_es": "Tu hijo/a como guardián de las estrellas en un libro hardcover personalizado con fotos reales. 22 ilustraciones mágicas con IA.",
+        "desc_en": "Your child as the keeper of the stars in a personalized hardcover book with real photos. 22 magical AI illustrations.",
+        "image": "cover_star_keeper.jpg",
+    },
+    "furry_love_illustrated": {
+        "title_es": "Tú y tu Amor Peludo — Libro Ilustrado Personalizado",
+        "title_en": "You and Your Furry Love — Personalized Illustrated Book",
+        "desc_es": "Un libro ilustrado personalizado sobre el amor incondicional entre tú y tu mascota. Con tu foto real integrada en cada escena con IA.",
+        "desc_en": "A personalized illustrated book about the unconditional love between you and your pet. Your real photo integrated into every scene with AI.",
+        "image": "cover_furry_love.jpg",
+    },
+    "furry_love_adventure_illustrated": {
+        "title_es": "Tú y tu Amor Peludo: La Gran Aventura — Libro Personalizado",
+        "title_en": "You and Your Furry Love: The Big Adventure — Personalized Book",
+        "desc_es": "Vive una gran aventura junto a tu mascota en este libro ilustrado personalizado con tu foto real. Generado con IA, impreso en hardcover.",
+        "desc_en": "Live a big adventure with your pet in this personalized illustrated book with your real photo. AI-generated, printed in hardcover.",
+        "image": "cover_furry_love_adventure.jpg",
+    },
+    "furry_love_teen_illustrated": {
+        "title_es": "Tú y tu Amor Peludo: Aventura Teen — Libro Personalizado",
+        "title_en": "You and Your Furry Love: Teen Adventure — Personalized Book",
+        "desc_es": "El regalo perfecto para adolescentes que aman a su mascota. Libro ilustrado personalizado con foto real, generado con IA.",
+        "desc_en": "The perfect gift for teens who love their pet. Personalized illustrated book with real photo, AI-generated.",
+        "image": "cover_furry_love_teen.jpg",
+    },
+    "centinela_aurora_illustrated": {
+        "title_es": "Libro Ilustrado Personalizado — El Centinela de la Aurora",
+        "title_en": "Personalized Illustrated Book — The Aurora Sentinel",
+        "desc_es": "Tu hijo/a como centinela guardián en un mundo de auroras mágicas. Libro ilustrado personalizado con fotos reales y 19 ilustraciones con IA.",
+        "desc_en": "Your child as a guardian sentinel in a world of magical auroras. Personalized illustrated book with real photos and 19 AI illustrations.",
+        "image": "cover_centinela_aurora.jpg",
+    },
+    "furry_love_adult_illustrated": {
+        "title_es": "Tú y tu Amor Peludo: Edición Adultos — Libro Personalizado",
+        "title_en": "You and Your Furry Love: Adult Edition — Personalized Book",
+        "desc_es": "Un libro ilustrado personalizado para adultos que aman a su mascota. Tu foto real protagoniza cada ilustración generada con IA.",
+        "desc_en": "A personalized illustrated book for adults who love their pet. Your real photo stars in every AI-generated illustration.",
+        "image": "cover_furry_love_adult.jpg",
+    },
+}
+
 @app.route('/personalize-story')
 def personalize_story():
     story_id = request.args.get('story', '')
@@ -974,6 +1145,13 @@ def personalize_story():
     illustration_count = scene_count + (1 if has_closing else 0)
     
     admin_gift = request.args.get('admin_gift', '')
+
+    og_meta = STORY_OG_META.get(story_id, {})
+    og_title = og_meta.get('title_es' if lang == 'es' else 'title_en', story_name)
+    og_description = og_meta.get('desc_es' if lang == 'es' else 'desc_en', '')
+    og_image_file = og_meta.get('image', 'logo_main.jpg')
+    og_image_url = f'https://magicmemoriesbooks.com/static/images/{og_image_file}'
+
     return render_template('personalize_story.html',
                           story_id=story_id,
                           story_name=story_name,
@@ -986,7 +1164,10 @@ def personalize_story():
                           is_birthday=is_birthday,
                           age_range=age_range,
                           illustration_count=illustration_count,
-                          admin_gift=admin_gift)
+                          admin_gift=admin_gift,
+                          og_title=og_title,
+                          og_description=og_description,
+                          og_image_url=og_image_url)
 
 @app.route('/story-preview/<preview_id>')
 def story_preview(preview_id):
