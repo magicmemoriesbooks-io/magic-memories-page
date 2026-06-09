@@ -871,6 +871,13 @@ def personalize_furry_love():
     prefill_pet = request.args.get('pet_name', '')
     prefill_gender = request.args.get('gender', '')
     admin_gift = request.args.get('admin_gift', '')
+
+    og_meta = STORY_OG_META.get(story_id, {})
+    og_title = og_meta.get('title_es' if lang == 'es' else 'title_en', 'Magic Memories Books')
+    og_description = og_meta.get('desc_es' if lang == 'es' else 'desc_en', '')
+    og_image_file = og_meta.get('image', 'og/og_universos_catalog.jpg')
+    og_image_url = f'https://magicmemoriesbooks.com/static/images/{og_image_file}'
+
     return render_template('personalize_furry_love.html',
         lang=lang,
         translations=TRANSLATIONS.get(lang, TRANSLATIONS['es']),
@@ -880,7 +887,10 @@ def personalize_furry_love():
         prefill_name=prefill_name,
         prefill_pet=prefill_pet,
         prefill_gender=prefill_gender,
-        admin_gift=admin_gift
+        admin_gift=admin_gift,
+        og_title=og_title,
+        og_description=og_description,
+        og_image_url=og_image_url
     )
 
 @app.route('/api/upload-furry-photo', methods=['POST'])
