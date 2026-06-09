@@ -103,9 +103,9 @@
     </script>
 
     <!-- Open Graph (Facebook, WhatsApp, LinkedIn) -->
-    <meta property="og:title" content="{% block og_title %}Magic Memories Books — Cuentos Personalizados con Fotos Reales{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}{% if lang == 'es' %}Magic Memories Books — Cuentos Personalizados{% else %}Magic Memories Books — Personalized Story Books{% endif %}{% endblock %}">
     <meta property="og:description" content="{% block og_description %}{% if lang == 'es' %}Crea cuentos infantiles personalizados con fotos reales de tu hijo/a. Diseños únicos con inteligencia artificial.{% else %}Create personalized children's books with real photos of your child. Unique AI-generated designs.{% endif %}{% endblock %}">
-    <meta property="og:image" content="{% block og_image %}{{ url_for('static', filename='images/logo_main.jpg', _external=True) }}{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{{ url_for('static', filename='images/og/og_site_hero.jpg', _external=True) }}{% endblock %}">
     <meta property="og:url" content="https://magicmemoriesbooks.com{{ request.path }}{% if request.query_string %}?{{ request.query_string.decode() }}{% endif %}">
     <meta property="og:type" content="website">
     <meta property="og:locale" content="{{ 'es_ES' if lang == 'es' else 'en_US' }}">
@@ -113,9 +113,9 @@
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{% block twitter_title %}Magic Memories Books — Cuentos Personalizados con Fotos Reales{% endblock %}">
+    <meta name="twitter:title" content="{% block twitter_title %}{% if lang == 'es' %}Magic Memories Books — Cuentos Personalizados{% else %}Magic Memories Books — Personalized Story Books{% endif %}{% endblock %}">
     <meta name="twitter:description" content="{% block twitter_description %}{% if lang == 'es' %}Crea cuentos infantiles personalizados con fotos reales de tu hijo/a. Diseños únicos con inteligencia artificial.{% else %}Create personalized children's books with real photos of your child. Unique AI-generated designs.{% endif %}{% endblock %}">
-    <meta name="twitter:image" content="{% block twitter_image %}{{ url_for('static', filename='images/logo_main.jpg', _external=True) }}{% endblock %}">
+    <meta name="twitter:image" content="{% block twitter_image %}{{ url_for('static', filename='images/og/og_site_hero.jpg', _external=True) }}{% endblock %}">
 
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.png') }}">
