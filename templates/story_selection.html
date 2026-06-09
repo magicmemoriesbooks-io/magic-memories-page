@@ -2,8 +2,10 @@
 
 {% block title %}{% if lang == 'es' %}Elige tu Cuento{% else %}Choose Your Story{% endif %} - {{ translations.site_title }}{% endblock %}
 {% block meta_description %}{% if lang == 'es' %}Cuentos personalizados únicos para niños. Grandes Aventuras, Cumpleaños, Aventuras a tu Medida y Tú y tu Amor Peludo. Desde $6.{% else %}Unique personalized children's books. Great Adventures, Birthday, Adventures Your Way, and You & Your Furry Love. From $6.{% endif %}{% endblock %}
-{% block og_title %}{% if lang == 'es' %}Elige tu Cuento Personalizado — Magic Memories Books{% else %}Choose Your Personalized Story — Magic Memories Books{% endif %}{% endblock %}
-{% block og_image %}{{ url_for('static', filename='images/personalize_form.jpg', _external=True) }}{% endblock %}
+{% block og_title %}{% if lang == 'es' %}Elige tu Cuento Personalizado | Magic Memories Books{% else %}Choose Your Personalized Story | Magic Memories Books{% endif %}{% endblock %}
+{% block og_description %}{% if lang == 'es' %}Cuentos y libros personalizados con IA: con foto, con nombre, de cumpleaños y con mascota. Desde $6. Entrega digital inmediata.{% else %}AI-personalized stories and books: with photo, with name, birthday and pet stories. From $6. Instant digital delivery.{% endif %}{% endblock %}
+{% block og_image %}{{ url_for('static', filename='images/og/og_story_selection.jpg', _external=True) }}{% endblock %}
+{% block twitter_image %}{{ url_for('static', filename='images/og/og_story_selection.jpg', _external=True) }}{% endblock %}
 
 {% block content %}
 
