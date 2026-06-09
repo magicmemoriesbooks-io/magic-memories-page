@@ -2,6 +2,10 @@
 
 {% block title %}{% if lang == 'es' %}Cuentos FotoMágicos — Elige tu historia{% else %}Photo Magic Stories — Choose your story{% endif %} - {{ translations.site_title }}{% endblock %}
 {% block meta_description %}{% if lang == 'es' %}Libros personalizados de 26 páginas: tu hijo como protagonista o tú con tu mascota. Ilustraciones únicas generadas con IA.{% else %}26-page personalized books: your child as the hero or you with your pet. Unique AI-generated illustrations.{% endif %}{% endblock %}
+{% block og_title %}{% if lang == 'es' %}Cuentos FotoMágicos | Magic Memories Books{% else %}Photo Magic Stories | Magic Memories Books{% endif %}{% endblock %}
+{% block og_description %}{% if lang == 'es' %}Libros personalizados con tu foto real. Tu hijo o tú con tu mascota como protagonista en 22 ilustraciones únicas generadas con IA.{% else %}Personalized books with your real photo. Your child or you with your pet as the hero in 22 unique AI-generated illustrations.{% endif %}{% endblock %}
+{% block og_image %}{{ url_for('static', filename='images/og/og_universos_catalog.jpg', _external=True) }}{% endblock %}
+{% block twitter_image %}{{ url_for('static', filename='images/og/og_universos_catalog.jpg', _external=True) }}{% endblock %}
 
 {% block content %}
 <style>
