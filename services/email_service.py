@@ -3336,48 +3336,35 @@ def register_purchase_for_follow_up(preview_id: str, email: str, child_name: str
 
 def send_feedback_email_24h(to_email: str, child_name: str = '', lang: str = 'es') -> bool:
     """Send the 24h post-purchase feedback / thank-you email from Isabel."""
-    subject = "¿Qué te pareció tu cuento? 💜"
+    subject = "Tu cuento de ayer - Magic Memories Books"
 
-    html_body = f"""<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:0;background-color:#f8f5ff;">
-<div style="max-width:600px;margin:0 auto;padding:20px;">
-  <div style="background:#ffffff;padding:36px 40px;border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,0.08);">
-    <p style="font-size:16px;color:#374151;line-height:1.75;margin-top:0;">Hola,</p>
-    <p style="font-size:16px;color:#374151;line-height:1.75;">
-      Ayer creaste un cuento personalizado en Magic Memories Books y quer&iacute;amos darte las gracias por probar nuestra plataforma.
-    </p>
-    <p style="font-size:16px;color:#374151;line-height:1.75;">
-      Estamos empezando y cada opini&oacute;n cuenta much&iacute;simo para nosotros.
-    </p>
-    <p style="font-size:18px;color:#7c3aed;font-weight:bold;line-height:1.75;">
-      &iquest;Te gust&oacute; el resultado?
-    </p>
-    <p style="font-size:16px;color:#374151;line-height:1.75;">
-      Si tienes un minuto, simplemente responde a este correo y cu&eacute;ntanos qu&eacute; te pareci&oacute; la experiencia.
-    </p>
-    <p style="font-size:16px;color:#374151;line-height:1.75;">
-      Nos encantar&aacute; leer tu opini&oacute;n y seguir mejorando para las familias que conf&iacute;an en nosotros.
-    </p>
-    <p style="font-size:16px;color:#374151;line-height:1.75;margin-bottom:4px;">Muchas gracias,</p>
-    <div style="margin-top:20px;padding-top:18px;border-top:1px solid #ede9f5;">
-      <img src="{FIRMA_URL}" alt="Isabel Ojeda – Founder &amp; Author, Magic Memories Books"
-           style="max-width:420px;width:100%;height:auto;display:block;" />
-    </div>
-  </div>
-  <div style="text-align:center;padding:16px;color:#9ca3af;font-size:11px;">
-    <p style="margin:0;">Magic Memories Books &middot;
-      <a href="https://magicmemoriesbooks.com" style="color:#9ca3af;text-decoration:none;">magicmemoriesbooks.com</a>
-    </p>
-  </div>
-</div>
-</body>
-</html>"""
+    content = """
+        <p style="font-size:16px;color:#374151;line-height:1.8;margin-top:0;">Hola,</p>
+        <p style="font-size:16px;color:#374151;line-height:1.8;">
+            Ayer creaste un cuento personalizado en Magic Memories Books y
+            quer&iacute;amos darte las gracias por probar nuestra plataforma.
+        </p>
+        <p style="font-size:16px;color:#374151;line-height:1.8;">
+            Estamos empezando y cada opini&oacute;n cuenta much&iacute;simo para nosotros.
+        </p>
+        <p style="font-size:18px;color:#7c3aed;font-weight:bold;line-height:1.8;">
+            &iquest;Te gust&oacute; el resultado?
+        </p>
+        <p style="font-size:16px;color:#374151;line-height:1.8;">
+            Si tienes un minuto, simplemente responde a este correo y
+            cu&eacute;ntanos qu&eacute; te pareci&oacute; la experiencia.
+        </p>
+        <p style="font-size:16px;color:#374151;line-height:1.8;">
+            Nos encantar&aacute; leer tu opini&oacute;n y seguir mejorando
+            para las familias que conf&iacute;an en nosotros.
+        </p>
+        <p style="font-size:16px;color:#374151;line-height:1.8;margin-bottom:0;">Muchas gracias,</p>"""
+
+    html_body = _email_wrapper("Magic Memories Books", content, to_email)
 
     msg = MIMEMultipart('alternative')
     msg['Subject'] = subject
-    msg['From'] = f"Isabel Ojeda - Magic Memories Books <{FROM_EMAIL}>"
+    msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
     msg['To'] = to_email
     msg['Reply-To'] = FROM_EMAIL
     msg.attach(MIMEText(html_body, 'html', 'utf-8'))
