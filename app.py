@@ -12622,5 +12622,195 @@ def admin_resend_printable_pdf(preview_id):
     })
 
 
+@app.route('/formats/<preview_id>')
+def formats_page(preview_id):
+    lang = session.get('lang', 'es')
+    preview_file = f'story_previews/{preview_id}.json'
+    child_name = 'tu hijo/a'
+    email = ''
+    generation_complete = False
+    if os.path.exists(preview_file):
+        with open(preview_file, 'r', encoding='utf-8') as f:
+            story_data = json.load(f)
+        child_name = story_data.get('child_name', child_name)
+        email = story_data.get('customer_email', '')
+        generation_complete = story_data.get('pages_composed', False) or story_data.get('generation_complete', False)
+    from config import Config as C
+    pdf_price = round(C.PERSONALIZED_PDF_PRICE / 100.0, 2)
+    print_price = round(C.CP_PB_BASE_PRICE / 100.0, 2)
+    return render_template('formats.html',
+        lang=lang,
+        preview_id=preview_id,
+        child_name=child_name,
+        email=email,
+        generation_complete=generation_complete,
+        pdf_price=pdf_price,
+        print_price=print_price,
+        paypal_client_id=Config.PAYPAL_CLIENT_ID,
+    )
+
+
+@app.route('/formats-success')
+def formats_success():
+    lang = session.get('lang', 'es')
+    email = request.args.get('email', '')
+    want_pdf = request.args.get('want_pdf', 'false') == 'true'
+    want_print = request.args.get('want_print', 'false') == 'true'
+    pdf_format = request.args.get('pdf_format', 'carta')
+    return render_template('formats_success.html',
+        lang=lang,
+        email=email,
+        want_pdf=want_pdf,
+        want_print=want_print,
+        pdf_format=pdf_format,
+    )
+
+
+@app.route('/api/paypal/create-formats-order', methods=['POST'])
+def paypal_create_formats_order():
+    try:
+        data = request.get_json()
+        amount = round(float(data.get('amount_usd', 0)), 2)
+        if amount <= 0:
+            return jsonify({'error': 'Invalid amount'}), 400
+        token = _get_paypal_access_token()
+        import requests as req_lib
+        order_payload = {
+            'intent': 'CAPTURE',
+            'purchase_units': [{'amount': {'currency_code': 'USD', 'value': f'{amount:.2f}'}, 'description': 'Formatos adicionales — Magic Memories Books'}],
+            'application_context': {
+                'brand_name': 'Magic Memories Books',
+                'shipping_preference': 'NO_SHIPPING'
+            }
+        }
+        resp = req_lib.post(
+            f"{Config.PAYPAL_API_BASE}/v2/checkout/orders",
+            headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
+            json=order_payload,
+            timeout=15
+        )
+        order = resp.json()
+        if 'id' not in order:
+            return jsonify({'error': order.get('message', 'PayPal error')}), 400
+        return jsonify({'id': order['id']})
+    except Exception as e:
+        print(f"[PAYPAL] create-formats-order error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/paypal/capture-formats-order', methods=['POST'])
+def paypal_capture_formats_order():
+    try:
+        data = request.get_json()
+        order_id = data.get('orderID')
+        if not order_id:
+            return jsonify({'error': 'Missing orderID'}), 400
+        token = _get_paypal_access_token()
+        import requests as req_lib
+        resp = req_lib.post(
+            f"{Config.PAYPAL_API_BASE}/v2/checkout/orders/{order_id}/capture",
+            headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
+            timeout=15
+        )
+        result = resp.json()
+        status = result.get('status', '')
+        if status != 'COMPLETED':
+            return jsonify({'error': f'Payment not completed: {status}'}), 400
+        capture = result.get('purchase_units', [{}])[0].get('payments', {}).get('captures', [{}])[0]
+        amount_paid = float(capture.get('amount', {}).get('value', 0))
+        payer_email = result.get('payer', {}).get('email_address', data.get('email', ''))
+
+        preview_id = data.get('preview_id', '')
+        buyer_email = data.get('email', payer_email)
+        want_pdf = bool(data.get('want_pdf', False))
+        want_print = bool(data.get('want_print', False))
+        pdf_format = data.get('pdf_format', 'carta')
+
+        if not _PREVIEW_ID_RE.match(preview_id):
+            return jsonify({'error': 'Invalid preview_id'}), 400
+        preview_file = f'story_previews/{preview_id}.json'
+        if not os.path.exists(preview_file):
+            return jsonify({'error': 'Order not found'}), 404
+        with open(preview_file, 'r', encoding='utf-8') as f:
+            story_data = json.load(f)
+        lang = story_data.get('lang', 'es')
+        child_name = story_data.get('child_name', '')
+
+        if want_pdf:
+            story_data['pdf_paid'] = True
+            story_data['pdf_order'] = True
+            story_data['print_format'] = pdf_format
+            story_data['customer_email'] = buyer_email
+            with open(preview_file, 'w', encoding='utf-8') as f:
+                json.dump(story_data, f, ensure_ascii=False, indent=2)
+            t_pdf = threading.Thread(target=_dispatch_printable_pdf_email, args=(preview_id, buyer_email, lang), daemon=True)
+            t_pdf.start()
+
+        if want_print:
+            pr = PrintOrderRequest(
+                preview_id=preview_id,
+                child_name=child_name,
+                customer_email=buyer_email,
+                paypal_order_id=order_id,
+                amount_paid=amount_paid,
+                shipping_name=data.get('shipping_name', ''),
+                shipping_street=data.get('shipping_street', ''),
+                shipping_city=data.get('shipping_city', ''),
+                shipping_state=data.get('shipping_state', ''),
+                shipping_postal=data.get('shipping_postal', ''),
+                shipping_country=data.get('shipping_country', 'ES'),
+                shipping_phone=data.get('shipping_phone', ''),
+                shipping_method=data.get('shipping_method', 'MAIL'),
+                shipping_cost=round(float(data.get('shipping_cost', 0)), 2),
+                status='payment_confirmed'
+            )
+            db.session.add(pr)
+            db.session.commit()
+            try:
+                from services.email_service import send_admin_notification_email
+                send_admin_notification_email(
+                    subject=f'[NUEVO PEDIDO IMPRESO via /formats] {child_name} — {buyer_email}',
+                    body=f'Pedido de libro impreso desde /formats.\nPedido ID: {pr.id}\nCliente: {buyer_email}\nNi\u00f1o/a: {child_name}\nImporte: ${pr.amount_paid}\nDirecci\u00f3n: {pr.shipping_street}, {pr.shipping_city}, {pr.shipping_country}\nPreview ID: {preview_id}\nM\u00e9todo env\u00edo: {pr.shipping_method}'
+                )
+            except Exception:
+                pass
+
+        what_pdf = 'true' if want_pdf else 'false'
+        what_print = 'true' if want_print else 'false'
+        redirect_url = f'/formats-success?email={payer_email}&want_pdf={what_pdf}&want_print={what_print}&pdf_format={pdf_format}'
+        return jsonify({'success': True, 'redirect': redirect_url})
+    except Exception as e:
+        print(f"[PAYPAL] capture-formats-order error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/send-test-lead-email', methods=['POST'])
+def admin_send_test_lead_email():
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    data = request.get_json()
+    email = data.get('email', '')
+    preview_id = data.get('preview_id', '')
+    sequence = int(data.get('sequence', 1))
+    child_name = data.get('child_name', 'Test')
+    lang = data.get('lang', 'es')
+    if not email or '@' not in email:
+        return jsonify({'error': 'Missing or invalid email'}), 400
+    try:
+        from services.email_service import send_feedback_email_24h, send_upsell_print_email
+        if sequence == 1:
+            ok = send_feedback_email_24h(email, child_name, lang)
+        elif sequence == 2:
+            if not preview_id:
+                return jsonify({'error': 'Missing preview_id for sequence 2'}), 400
+            ok = send_upsell_print_email(preview_id, email, child_name, lang)
+        else:
+            return jsonify({'error': f'Unknown sequence: {sequence}'}), 400
+        return jsonify({'success': ok, 'sequence': sequence, 'email': email})
+    except Exception as e:
+        print(f"[ADMIN] send-test-lead-email error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
