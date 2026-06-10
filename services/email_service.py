@@ -1767,9 +1767,11 @@ def send_ebook_admin_notification(
 
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     product_label = {
-        'ebook': 'eBook Quick Story ($7)',
+        'ebook': 'eBook Cuento Express ($7)',
         'universo_ebook': 'eBook Universos Ilustrados ($9)',
-        'qs_digital': 'eBook Quick Story — digital ($20)',
+        'qs_digital': 'eBook Quick Story — digital ($9)',
+        'personalized_ebook': 'eBook Libro Personalizado ($9)',
+        'illustrated_ebook': 'eBook Libro Ilustrado ($9)',
     }.get(product_type, product_type or 'eBook')
 
     has_pdf = bool(pdf_path and os.path.exists(pdf_path))
