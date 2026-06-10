@@ -3381,8 +3381,72 @@ def send_feedback_email_24h(to_email: str, child_name: str = '', lang: str = 'es
         return False
 
 
+def send_upsell_print_email(preview_id: str, to_email: str, child_name: str = '', lang: str = 'es') -> bool:
+    """Send the 48h post-purchase upsell email offering PDF + printed book formats."""
+    formats_url = f"https://magicmemoriesbooks.com/formats/{preview_id}"
+    name_str = child_name.strip() if child_name.strip() else ''
+    subject = f"El cuento de {name_str} — ¿quieres tenerlo en papel?" if name_str else "Tu cuento de Magic Memories Books — ¿quieres tenerlo en papel?"
+
+    btn_label = "Ver opciones para mi cuento"
+    if name_str:
+        intro_line = f"Hace d&iacute;as creaste el cuento de <strong>{name_str}</strong> en Magic Memories Books y saber que qued&oacute; muy bonito nos llena de alegr&iacute;a."
+    else:
+        intro_line = "Hace d&iacute;as creaste un cuento personalizado en Magic Memories Books y saber que qued&oacute; muy bonito nos llena de alegr&iacute;a."
+
+    content = f"""
+        <p style="font-size:16px;color:#374151;line-height:1.8;margin-top:0;">Hola,</p>
+        <p style="font-size:16px;color:#374151;line-height:1.8;">
+            {intro_line}
+        </p>
+        <p style="font-size:16px;color:#374151;line-height:1.8;">
+            Quer&iacute;a contarte que puedes tener el cuento tambi&eacute;n en formato f&iacute;sico —
+            ya sea como <strong>PDF imprimible</strong> para imprimir en casa o en cualquier copister&iacute;a,
+            o como un <strong>libro impreso de verdad</strong>, con tapa dura, que puedas sostener en tus manos
+            y regalar.
+        </p>
+        <p style="font-size:16px;color:#374151;line-height:1.8;">
+            El cuento ya est&aacute; generado, as&iacute; que no hay espera. Solo elige el formato
+            que prefieras y nosotros nos encargamos del resto.
+        </p>
+        <div style="text-align:center;margin:32px 0;">
+            <a href="{formats_url}"
+               style="display:inline-block;background:linear-gradient(135deg,#7c3aed,#ec4899);color:#ffffff;
+                      font-family:sans-serif;font-size:16px;font-weight:bold;padding:14px 32px;
+                      border-radius:12px;text-decoration:none;">
+                {btn_label} &rarr;
+            </a>
+        </div>
+        <p style="font-size:14px;color:#9ca3af;line-height:1.8;text-align:center;">
+            O copia este enlace en tu navegador:<br>
+            <a href="{formats_url}" style="color:#7c3aed;word-break:break-all;">{formats_url}</a>
+        </p>
+        <p style="font-size:16px;color:#374151;line-height:1.8;margin-bottom:0;">Un abrazo,</p>"""
+
+    html_body = _email_wrapper("Magic Memories Books", content, to_email)
+
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = subject
+    msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
+    msg['To'] = to_email
+    msg['Reply-To'] = FROM_EMAIL
+    msg.attach(MIMEText(html_body, 'html', 'utf-8'))
+
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.sendmail(FROM_EMAIL, to_email, msg.as_string())
+        print(f"[LEAD] 48h upsell email sent to {to_email} (preview: {preview_id})")
+        return True
+    except Exception as e:
+        print(f"[LEAD] Failed to send 48h upsell email to {to_email}: {e}")
+        return False
+
+
 def process_pending_follow_up_emails():
-    """Check the follow-ups file and send emails that are due (22–30h after purchase).
+    """Check the follow-ups file and send emails that are due.
+    - Email 1: 22–30h after purchase (feedback / thank-you)
+    - Email 2: 46–54h after purchase (upsell: PDF imprimible + libro impreso)
     Called by the hourly APScheduler job in app.py.
     """
     try:
@@ -3396,23 +3460,38 @@ def process_pending_follow_up_emails():
         changed = False
 
         for preview_id, entry in data.items():
-            if entry.get('email_1_sent'):
-                continue
             try:
                 purchased_at = _dt.fromisoformat(entry.get('purchased_at', ''))
             except ValueError:
                 continue
             elapsed_hours = (now - purchased_at).total_seconds() / 3600
-            if 22 <= elapsed_hours <= 30:
-                ok = send_feedback_email_24h(
-                    entry.get('email', ''),
-                    entry.get('child_name', ''),
-                    entry.get('lang', 'es'),
-                )
-                if ok:
-                    entry['email_1_sent'] = True
-                    entry['email_1_sent_at'] = now.isoformat()
-                    changed = True
+
+            # --- Email 1: 24h feedback (22–30h window) ---
+            if not entry.get('email_1_sent'):
+                if 22 <= elapsed_hours <= 30:
+                    ok = send_feedback_email_24h(
+                        entry.get('email', ''),
+                        entry.get('child_name', ''),
+                        entry.get('lang', 'es'),
+                    )
+                    if ok:
+                        entry['email_1_sent'] = True
+                        entry['email_1_sent_at'] = now.isoformat()
+                        changed = True
+
+            # --- Email 2: 48h upsell (46–54h window, only after email 1 sent) ---
+            elif entry.get('email_1_sent') and not entry.get('email_2_sent'):
+                if 46 <= elapsed_hours <= 54:
+                    ok = send_upsell_print_email(
+                        preview_id,
+                        entry.get('email', ''),
+                        entry.get('child_name', ''),
+                        entry.get('lang', 'es'),
+                    )
+                    if ok:
+                        entry['email_2_sent'] = True
+                        entry['email_2_sent_at'] = now.isoformat()
+                        changed = True
 
         if changed:
             with open(FOLLOW_UPS_FILE, 'w', encoding='utf-8') as f:
