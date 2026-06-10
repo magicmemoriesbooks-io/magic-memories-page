@@ -12639,15 +12639,19 @@ def admin_resend_printable_pdf(preview_id):
 def formats_page(preview_id):
     lang = session.get('lang', 'es')
     preview_file = f'story_previews/{preview_id}.json'
-    child_name = 'tu hijo/a'
+    child_name = ''
     email = ''
     generation_complete = False
     if os.path.exists(preview_file):
         with open(preview_file, 'r', encoding='utf-8') as f:
             story_data = json.load(f)
-        child_name = story_data.get('child_name', child_name)
+        child_name = story_data.get('child_name', '')
         email = story_data.get('customer_email', '')
-        generation_complete = story_data.get('pages_composed', False) or story_data.get('generation_complete', False)
+        generation_complete = bool(
+            story_data.get('pages_composed') or
+            story_data.get('generation_complete') or
+            story_data.get('qs_text_composed')
+        )
     from config import Config as C
     pdf_price = round(C.PERSONALIZED_PDF_PRICE / 100.0, 2)
     print_price = round(C.CP_PB_BASE_PRICE / 100.0, 2)
