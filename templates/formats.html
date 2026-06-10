@@ -410,7 +410,9 @@ function renderPayPalButtons() {
                     preview_id: PREVIEW_ID,
                     want_pdf: wantPdf,
                     want_print: wantPrint,
-                    shipping_cost: wantPrint ? selectedShippingCost : 0
+                    shipping_method: wantPrint ? selectedShippingMethod : '',
+                    shipping_country: wantPrint ? (document.getElementById('shippingCountry')?.value || '') : '',
+                    shipping_state: wantPrint ? (document.getElementById('shippingState')?.value || '') : ''
                 })
             });
             const order = await resp.json();
