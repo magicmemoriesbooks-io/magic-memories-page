@@ -3377,7 +3377,7 @@ def send_feedback_email_24h(to_email: str, child_name: str = '', lang: str = 'es
 
     msg = MIMEMultipart('alternative')
     msg['Subject'] = subject
-    msg['From'] = f"Isabel Ojeda · Magic Memories Books <{FROM_EMAIL}>"
+    msg['From'] = f"Isabel Ojeda - Magic Memories Books <{FROM_EMAIL}>"
     msg['To'] = to_email
     msg['Reply-To'] = FROM_EMAIL
     msg.attach(MIMEText(html_body, 'html', 'utf-8'))
