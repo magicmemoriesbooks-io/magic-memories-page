@@ -12666,14 +12666,40 @@ def formats_success():
     )
 
 
-def _compute_formats_order_total(want_pdf: bool, want_print: bool, shipping_cost: float) -> float:
-    """Compute expected order total server-side from authoritative Config prices."""
+def _quote_pb_shipping_for_method(country: str, state: str, shipping_method: str):
+    """
+    Re-quote Cloudprinter shipping server-side for a specific method.
+    Returns (authoritative_ship_cost_usd, error_str).
+    error_str is None on success, or a human-readable message on failure.
+    """
+    from services.cloudprinter_api_service import get_pb_shipping_quote
+    cc = (country or '').strip().upper()
+    sc = (state or '').strip().upper()
+    if not cc:
+        return 0.0, 'Missing shipping country'
+    options = get_pb_shipping_quote(cc, state_code=sc)
+    if not options:
+        return 0.0, 'No shipping options available for this country'
+    if shipping_method not in options:
+        # Fallback: pick the cheapest available option if method no longer exists
+        ship_usd = min(
+            float(o.get('cp_cost_usd', o.get('cp_cost_eur', 999))) for o in options.values()
+        )
+        print(f"[FORMATS] shipping_method {shipping_method!r} not in quote; using cheapest ${ship_usd:.2f}")
+    else:
+        opt = options[shipping_method]
+        ship_usd = round(float(opt.get('cp_cost_usd', opt.get('cp_cost_eur', 0))), 2)
+    return ship_usd, None
+
+
+def _compute_formats_order_total(want_pdf: bool, want_print: bool, verified_ship_usd: float) -> float:
+    """Compute expected order total from authoritative Config prices + verified shipping."""
     total = 0.0
     if want_pdf:
         total += Config.PERSONALIZED_PDF_PRICE / 100.0
     if want_print:
         total += Config.CP_PB_BASE_PRICE / 100.0
-        total += shipping_cost
+        total += verified_ship_usd
     return round(total, 2)
 
 
@@ -12686,18 +12712,23 @@ def paypal_create_formats_order():
         if not want_pdf and not want_print:
             return jsonify({'error': 'Select at least one format'}), 400
 
-        # Validate shipping_cost when physical book is requested
-        shipping_cost = 0.0
+        # Re-quote shipping server-side — never trust client shipping_cost
+        verified_ship_usd = 0.0
         if want_print:
-            try:
-                shipping_cost = float(data.get('shipping_cost', 0))
-            except (TypeError, ValueError):
-                shipping_cost = 0.0
-            if shipping_cost <= 0:
-                return jsonify({'error': 'Invalid shipping cost for physical book'}), 400
+            shipping_method = str(data.get('shipping_method', '')).strip()
+            if not shipping_method:
+                return jsonify({'error': 'Missing shipping method for physical book'}), 400
+            ship_usd, err = _quote_pb_shipping_for_method(
+                data.get('shipping_country', ''),
+                data.get('shipping_state', ''),
+                shipping_method,
+            )
+            if err:
+                return jsonify({'error': err}), 400
+            verified_ship_usd = ship_usd
 
-        # Server-side authoritative total — never trust client amount_usd
-        amount = _compute_formats_order_total(want_pdf, want_print, shipping_cost)
+        # Server-side authoritative total
+        amount = _compute_formats_order_total(want_pdf, want_print, verified_ship_usd)
         if amount <= 0:
             return jsonify({'error': 'Invalid computed amount'}), 400
 
@@ -12720,7 +12751,7 @@ def paypal_create_formats_order():
         order = resp.json()
         if 'id' not in order:
             return jsonify({'error': order.get('message', 'PayPal error')}), 400
-        return jsonify({'id': order['id'], 'expected_total': amount})
+        return jsonify({'id': order['id'], 'expected_total': amount, 'verified_ship_usd': verified_ship_usd})
     except Exception as e:
         print(f"[PAYPAL] create-formats-order error: {e}")
         return jsonify({'error': str(e)}), 500
@@ -12742,10 +12773,9 @@ def paypal_capture_formats_order():
         if not want_pdf and not want_print:
             return jsonify({'error': 'No products selected'}), 400
 
-        shipping_cost = 0.0
         shipping_method = ''
+        verified_ship_usd = 0.0
         if want_print:
-            # Validate required shipping fields
             required_ship = ['shipping_name', 'shipping_street', 'shipping_city', 'shipping_postal', 'shipping_country']
             for field in required_ship:
                 if not str(data.get(field, '')).strip():
@@ -12753,15 +12783,18 @@ def paypal_capture_formats_order():
             shipping_method = str(data.get('shipping_method', '')).strip()
             if not shipping_method:
                 return jsonify({'error': 'Missing shipping method'}), 400
-            try:
-                shipping_cost = float(data.get('shipping_cost', 0))
-            except (TypeError, ValueError):
-                shipping_cost = 0.0
-            if shipping_cost <= 0:
-                return jsonify({'error': 'Invalid shipping cost'}), 400
+            # Re-quote shipping from Cloudprinter — authoritative, not from client
+            ship_usd, err = _quote_pb_shipping_for_method(
+                data.get('shipping_country', ''),
+                data.get('shipping_state', ''),
+                shipping_method,
+            )
+            if err:
+                return jsonify({'error': err}), 400
+            verified_ship_usd = ship_usd
 
-        # --- Recompute expected total server-side ---
-        expected_total = _compute_formats_order_total(want_pdf, want_print, shipping_cost)
+        # --- Server-side expected total (authoritative) ---
+        expected_total = _compute_formats_order_total(want_pdf, want_print, verified_ship_usd)
 
         preview_id = data.get('preview_id', '')
         if not _PREVIEW_ID_RE.match(preview_id):
@@ -12790,7 +12823,7 @@ def paypal_capture_formats_order():
         payer_email = result.get('payer', {}).get('email_address', data.get('email', ''))
         buyer_email = data.get('email', payer_email) or payer_email
 
-        # --- Verify captured amount matches server-computed total (tolerance $0.05) ---
+        # --- Verify captured amount matches authoritative server total (tolerance $0.05) ---
         if abs(amount_paid - expected_total) > 0.05:
             print(f"[FORMATS] PAYMENT MISMATCH for {preview_id}: expected ${expected_total:.2f}, paid ${amount_paid:.2f}")
             return jsonify({'error': 'Payment amount mismatch. Please contact support.'}), 400
@@ -12827,7 +12860,7 @@ def paypal_capture_formats_order():
                 shipping_country=data.get('shipping_country', 'ES').strip().upper(),
                 shipping_phone=data.get('shipping_phone', '').strip(),
                 shipping_method=shipping_method,
-                shipping_cost=round(shipping_cost, 2),
+                shipping_cost=round(verified_ship_usd, 2),
                 status='payment_confirmed'
             )
             db.session.add(pr)
