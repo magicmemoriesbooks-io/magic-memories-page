@@ -12923,25 +12923,42 @@ def admin_send_test_lead_email():
 
 @app.route('/admin/self-update', methods=['POST'])
 def admin_self_update():
-    """Pull latest code from GitHub and restart. Only callable by logged-in admin."""
-    if not session.get('admin_logged_in'):
+    """Download updated files from GitHub and restart. Auth: session OR deploy token."""
+    _DEPLOY_TOKEN = os.environ.get('DEPLOY_TOKEN', 'mmb-deploy-2026-xK9p')
+    provided = request.headers.get('X-Deploy-Token', '') or request.form.get('deploy_token', '')
+    if not session.get('admin_logged_in') and provided != _DEPLOY_TOKEN:
         return jsonify({'error': 'Unauthorized'}), 401
-    import subprocess, threading
+
+    import subprocess, threading, urllib.request
+
+    GH_RAW = "https://raw.githubusercontent.com/magicmemoriesbooks-io/magic-memories-page/main"
+    APP = "/home/magicbooks/app"
+    FILES = [
+        "app.py",
+        "services/email_service.py",
+        "templates/formats.html",
+        "templates/formats_success.html",
+        "static/images/firma_isabel.jpg",
+    ]
+
     def _do_update():
-        import time, subprocess
-        try:
-            result = subprocess.run(
-                ['git', 'pull', 'origin', 'main'],
-                cwd='/home/magicbooks/app',
-                capture_output=True, text=True, timeout=60
-            )
-            print(f"[SELF-UPDATE] git pull: {result.stdout} {result.stderr}")
-        except Exception as e:
-            print(f"[SELF-UPDATE] error: {e}")
+        import time
+        errors = []
+        for rel in FILES:
+            url = f"{GH_RAW}/{rel}"
+            dest = f"{APP}/{rel}"
+            try:
+                urllib.request.urlretrieve(url, dest)
+                print(f"[SELF-UPDATE] ✅ {rel}")
+            except Exception as e:
+                errors.append(rel)
+                print(f"[SELF-UPDATE] ❌ {rel}: {e}")
         time.sleep(1)
         subprocess.Popen(['systemctl', 'restart', 'magicbooks'])
+        print(f"[SELF-UPDATE] Restart triggered. Errors: {errors or 'none'}")
+
     threading.Thread(target=_do_update, daemon=True).start()
-    return jsonify({'ok': True, 'msg': 'Update iniciado, el servidor se reiniciará en ~5 segundos'})
+    return jsonify({'ok': True, 'msg': 'Descargando archivos de GitHub y reiniciando en ~10s'})
 
 
 if __name__ == '__main__':
