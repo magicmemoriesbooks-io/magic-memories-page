@@ -3350,7 +3350,8 @@ def send_feedback_email_24h(to_email: str, child_name: str = '', lang: str = 'es
             Estamos empezando y cada opini&oacute;n cuenta much&iacute;simo para nosotros.
         </p>
         <p style="font-size:18px;color:#7c3aed;font-weight:bold;line-height:1.8;">
-            &iquest;Te gust&oacute; el resultado?
+            &iquest;Te gust&oacute; el resultado?<br>
+            &iquest;D&oacute;nde nos conociste?
         </p>
         <p style="font-size:16px;color:#374151;line-height:1.8;">
             Si tienes un minuto, simplemente responde a este correo y
@@ -3484,16 +3485,35 @@ def process_pending_follow_up_emails():
             # --- Email 2: 48h upsell (46–50h window, only after email 1 sent) ---
             elif entry.get('email_1_sent') and not entry.get('email_2_sent'):
                 if 46 <= elapsed_hours <= 50:
-                    ok = send_upsell_print_email(
-                        preview_id,
-                        entry.get('email', ''),
-                        entry.get('child_name', ''),
-                        entry.get('lang', 'es'),
-                    )
-                    if ok:
+                    # Skip if customer already bought PDF or print
+                    _already_upgraded = False
+                    try:
+                        import os as _os
+                        _pf = _os.path.join(_os.path.dirname(_os.path.dirname(__file__)),
+                                            'story_previews', f'{preview_id}.json')
+                        if _os.path.exists(_pf):
+                            with open(_pf, 'r', encoding='utf-8') as _f:
+                                _sd = _json.load(_f)
+                            _already_upgraded = bool(_sd.get('want_print') or _sd.get('want_pdf') or _sd.get('pdf_email_sent'))
+                    except Exception:
+                        pass
+                    if _already_upgraded:
                         entry['email_2_sent'] = True
                         entry['email_2_sent_at'] = now.isoformat()
+                        entry['email_2_skipped'] = 'already_upgraded'
                         changed = True
+                        print(f"[LEAD] Skipped 48h upsell for {preview_id} — customer already upgraded")
+                    else:
+                        ok = send_upsell_print_email(
+                            preview_id,
+                            entry.get('email', ''),
+                            entry.get('child_name', ''),
+                            entry.get('lang', 'es'),
+                        )
+                        if ok:
+                            entry['email_2_sent'] = True
+                            entry['email_2_sent_at'] = now.isoformat()
+                            changed = True
 
         if changed:
             with open(FOLLOW_UPS_FILE, 'w', encoding='utf-8') as f:

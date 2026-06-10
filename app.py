@@ -4993,8 +4993,12 @@ def save_checkout_data(preview_id):
     if buyer_country:
         story_data['buyer_country'] = buyer_country
 
-    print_format = data.get('print_format', '').strip().upper()
-    if print_format in ('A4', 'LETTER'):
+    print_format = (data.get('print_format') or data.get('pdf_format') or '').strip().upper()
+    if print_format in ('CARTA', 'LETTER'):
+        print_format = 'LETTER'
+    elif print_format != 'A4':
+        print_format = ''
+    if print_format:
         story_data['print_format'] = print_format
     
     shipping_method = data.get('shipping_method')
@@ -6845,14 +6849,26 @@ def confirm_and_send(preview_id):
                     os.makedirs(output_dir, exist_ok=True)
                     from services.quick_stories.pdf_service import generate_quick_story_pdf
                     _qs_fmt = story_data.get('print_format', 'A4')
+                    if _qs_fmt and _qs_fmt.upper() in ('CARTA', 'LETTER'):
+                        _qs_fmt = 'LETTER'
+                    elif _qs_fmt:
+                        _qs_fmt = 'A4'
+                    else:
+                        _qs_fmt = 'A4'
                     _fmt_sfx = 'LETTER' if _qs_fmt == 'LETTER' else 'A4'
                     pdf_printable_path = f'{output_dir}/{safe_name}_imprimible_{_fmt_sfx}.pdf'
-                    generate_quick_story_pdf(story_data, pdf_printable_path, print_format=_qs_fmt)
+                    if os.path.exists(pdf_printable_path):
+                        print(f"[CONFIRM-SEND] Reusing existing printable PDF: {pdf_printable_path}")
+                    else:
+                        generate_quick_story_pdf(story_data, pdf_printable_path, print_format=_qs_fmt, format_type='digital')
+                        print(f"[CONFIRM-SEND] Printable PDF generated ({_qs_fmt})")
+                    story_data['pdf_printable_path'] = pdf_printable_path
                     from services.pdf_service import generate_print_instructions_pdf
                     qs_lang = story_data.get('lang', 'es')
                     instructions_path_email = f'{output_dir}/instrucciones_impresion.pdf'
-                    generate_print_instructions_pdf(instructions_path_email, language=qs_lang, print_format=_qs_fmt)
-                    print(f"[CONFIRM-SEND] PDFs generated: printable + instructions")
+                    if not os.path.exists(instructions_path_email):
+                        generate_print_instructions_pdf(instructions_path_email, language=qs_lang, print_format=_qs_fmt)
+                    print(f"[CONFIRM-SEND] PDFs ready: printable + instructions")
             except Exception as pdf_err:
                 print(f"[CONFIRM-SEND] PDF generation failed: {pdf_err}")
         
@@ -8773,6 +8789,42 @@ def admin_test_pdf_delivery(preview_id):
         'customer_email': customer_email,
         'lang': lang,
         'tip': 'Pass ?to=pay@magicmemoriesbooks.com to override recipient for QA testing.',
+    })
+
+
+@app.route('/admin/resend-qs-pdf/<preview_id>', methods=['POST'])
+def admin_resend_qs_pdf(preview_id):
+    """Re-trigger PDF email for a Quick Story (want_pdf=True path via _process_ebook_generation)."""
+    if not check_admin_auth():
+        return jsonify({'success': False, 'error': 'No autorizado'}), 401
+    import re as _re
+    if not _re.match(r'^[a-zA-Z0-9_\-]{4,64}$', preview_id):
+        return jsonify({'success': False, 'error': 'Invalid preview_id'}), 400
+    preview_file = f'story_previews/{preview_id}.json'
+    if not os.path.exists(preview_file):
+        return jsonify({'success': False, 'error': f'Preview not found: {preview_id}'}), 404
+    with open(preview_file, 'r', encoding='utf-8') as f:
+        story_data = json.load(f)
+    customer_email = request.args.get('to') or story_data.get('customer_email', '')
+    # Ensure want_pdf=True and pdf_email_sent=False so the function proceeds
+    story_data['want_pdf'] = True
+    story_data['pdf_email_sent'] = False
+    with open(preview_file, 'w', encoding='utf-8') as f:
+        json.dump(story_data, f, ensure_ascii=False, indent=2)
+    # Clear the in-flight lock if it's stuck
+    with _ebook_processing_lock:
+        _ebook_processing_locks.discard(preview_id)
+    t = threading.Thread(
+        target=_process_ebook_generation,
+        args=(preview_id, customer_email, True),
+        daemon=True
+    )
+    t.start()
+    return jsonify({
+        'success': True,
+        'message': f'QS PDF email re-triggered for {preview_id} → {customer_email}',
+        'preview_id': preview_id,
+        'customer_email': customer_email,
     })
 
 
@@ -12102,15 +12154,29 @@ def _process_ebook_generation(preview_id, customer_email, send_email=True):
             if _want_pdf and _email:
                 try:
                     _qs_fmt = story_data.get('print_format', 'A4')
+                    if _qs_fmt and _qs_fmt.upper() in ('CARTA', 'LETTER'):
+                        _qs_fmt = 'LETTER'
+                    else:
+                        _qs_fmt = 'A4'
                     _fmt_sfx = 'LETTER' if _qs_fmt == 'LETTER' else 'A4'
                     _output_dir = f'generations/email/{preview_id}'
                     os.makedirs(_output_dir, exist_ok=True)
                     _pdf_path = f'{_output_dir}/{_safe_name}_imprimible_{_fmt_sfx}.pdf'
-                    from services.quick_stories.pdf_service import generate_quick_story_pdf
-                    generate_quick_story_pdf(story_data, _pdf_path, print_format=_qs_fmt)
+                    # Reuse existing PDF rather than regenerating from FLUX
+                    _existing = story_data.get('pdf_printable_path', '')
+                    if _existing and os.path.exists(_existing):
+                        _pdf_path = _existing
+                        print(f"[EBOOK] Reusing existing PDF: {_pdf_path}")
+                    elif os.path.exists(_pdf_path):
+                        print(f"[EBOOK] Reusing existing PDF at expected path: {_pdf_path}")
+                    else:
+                        from services.quick_stories.pdf_service import generate_quick_story_pdf
+                        generate_quick_story_pdf(story_data, _pdf_path, print_format=_qs_fmt, format_type='digital')
+                        print(f"[EBOOK] Printable PDF generated ({_qs_fmt})")
                     from services.pdf_service import generate_print_instructions_pdf
                     _instr_path = f'{_output_dir}/instrucciones_impresion.pdf'
-                    generate_print_instructions_pdf(_instr_path, language=_lang, print_format=_qs_fmt)
+                    if not os.path.exists(_instr_path):
+                        generate_print_instructions_pdf(_instr_path, language=_lang, print_format=_qs_fmt)
                     print(f"[EBOOK] Printable PDF generated ({_qs_fmt}): {_pdf_path}")
                     from services.email_service import send_story_email_with_attachments
                     send_story_email_with_attachments(
@@ -12147,7 +12213,7 @@ def _process_ebook_generation(preview_id, customer_email, send_email=True):
                     import traceback
                     traceback.print_exc()
 
-            if _want_ebook and visor_url and _email:
+            if _want_ebook and visor_url and _email and not story_data.get('ebook_email_sent'):
                 try:
                     from services.email_service import send_ebook_email
                     send_ebook_email(
@@ -12166,7 +12232,7 @@ def _process_ebook_generation(preview_id, customer_email, send_email=True):
                 except Exception as _ebook_err:
                     print(f"[EBOOK] Permanent eBook email failed (non-fatal): {_ebook_err}")
 
-            if (_want_pdf or _want_print) and visor_url and _email and not story_data.get('gift_ebook_sent'):
+            if (_want_pdf or _want_print) and visor_url and _email and not story_data.get('gift_ebook_sent') and not story_data.get('ebook_email_sent'):
                 try:
                     from services.email_service import send_ebook_email
                     send_ebook_email(
@@ -12538,6 +12604,16 @@ def paypal_capture_print_order():
         )
         db.session.add(pr)
         db.session.commit()
+        try:
+            from services.email_service import register_purchase_for_follow_up as _reg_fu
+            _prf_lang = 'es'
+            _prf_file = f'story_previews/{pr.preview_id}.json'
+            if os.path.exists(_prf_file):
+                with open(_prf_file, 'r', encoding='utf-8') as _f:
+                    _prf_lang = json.load(_f).get('lang', 'es')
+            _reg_fu(pr.preview_id, pr.customer_email, pr.child_name, _prf_lang)
+        except Exception as _fu_err:
+            print(f"[LEAD] register_purchase_for_follow_up error: {_fu_err}")
         _po_is_qs = data.get('is_qs', False)
         _po_type_label = 'Cuento Mágico Express (16p, magazine A4)' if _po_is_qs else 'Cuento FotoMágico (26p, tapa dura A4)'
         try:
@@ -12660,8 +12736,12 @@ def formats_page(preview_id):
             story_data.get('qs_text_composed')
         )
     from config import Config as C
-    pdf_price = round(C.PERSONALIZED_PDF_PRICE / 100.0, 2)
-    print_price = round(C.CP_PB_BASE_PRICE / 100.0, 2)
+    disc = 1.0 - (C.LAUNCH_DISCOUNT_PCT / 100.0)
+    pdf_price_orig = round(C.PERSONALIZED_PDF_PRICE / 100.0, 2)
+    print_price_orig = round(C.CP_PB_BASE_PRICE / 100.0, 2)
+    pdf_price = round(pdf_price_orig * disc, 2)
+    print_price = round(print_price_orig * disc, 2)
+    discount_pct = C.LAUNCH_DISCOUNT_PCT
     return render_template('formats.html',
         lang=lang,
         preview_id=preview_id,
@@ -12669,7 +12749,10 @@ def formats_page(preview_id):
         email=email,
         generation_complete=generation_complete,
         pdf_price=pdf_price,
+        pdf_price_orig=pdf_price_orig,
         print_price=print_price,
+        print_price_orig=print_price_orig,
+        discount_pct=discount_pct,
         paypal_client_id=Config.PAYPAL_CLIENT_ID,
     )
 
@@ -12717,12 +12800,14 @@ def _quote_pb_shipping_for_method(country: str, state: str, shipping_method: str
 
 
 def _compute_formats_order_total(want_pdf: bool, want_print: bool, verified_ship_usd: float) -> float:
-    """Compute expected order total from authoritative Config prices + verified shipping."""
+    """Compute expected order total from authoritative Config prices + verified shipping.
+    Launch discount applies to product prices only; shipping is never discounted."""
+    disc = 1.0 - (Config.LAUNCH_DISCOUNT_PCT / 100.0)
     total = 0.0
     if want_pdf:
-        total += Config.PERSONALIZED_PDF_PRICE / 100.0
+        total += round(Config.PERSONALIZED_PDF_PRICE / 100.0 * disc, 2)
     if want_print:
-        total += Config.CP_PB_BASE_PRICE / 100.0
+        total += round(Config.CP_PB_BASE_PRICE / 100.0 * disc, 2)
         total += verified_ship_usd
     return round(total, 2)
 
@@ -12857,6 +12942,12 @@ def paypal_capture_formats_order():
         lang = story_data.get('lang', 'es')
         child_name = story_data.get('child_name', '')
 
+        try:
+            from services.email_service import register_purchase_for_follow_up as _reg_fu
+            _reg_fu(preview_id, buyer_email, child_name, lang)
+        except Exception as _fu_err:
+            print(f"[LEAD] register_purchase_for_follow_up error: {_fu_err}")
+
         # --- Dispatch PDF via _dispatch_cart_item for consistent handling ---
         if want_pdf:
             story_data['print_format'] = pdf_format
@@ -12870,6 +12961,10 @@ def paypal_capture_formats_order():
 
         # --- Create PrintOrderRequest for physical book ---
         if want_print:
+            # Reload from disk to preserve any flags written by _dispatch_cart_item
+            # (e.g. want_pdf=True, pdf_paid=True) — avoids race condition overwrite
+            with open(preview_file, 'r', encoding='utf-8') as f:
+                story_data = json.load(f)
             _ship_addr_canonical = {
                 'name': data.get('shipping_name', '').strip(),
                 'street1': data.get('shipping_street', '').strip(),
