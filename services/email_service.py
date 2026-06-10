@@ -20,6 +20,16 @@ FROM_EMAIL = os.environ.get('SENDER_EMAIL', 'info@magicmemoriesbooks.com')
 FROM_NAME = os.environ.get('FROM_NAME', 'Magic Memories Books')
 
 LOGO_URL = "https://magicmemoriesbooks.com/static/images/logo.png"
+FIRMA_URL = "https://magicmemoriesbooks.com/static/images/firma_isabel.jpg"
+
+
+def _isabel_signature_html() -> str:
+    """Returns Isabel Ojeda's signature block for user-facing emails."""
+    return f"""
+    <div style="margin-top:28px;padding-top:20px;border-top:1px solid #ede9f5;">
+        <img src="{FIRMA_URL}" alt="Isabel Ojeda – Founder &amp; Author, Magic Memories Books"
+             style="max-width:420px;width:100%;height:auto;display:block;" />
+    </div>"""
 
 
 def _email_wrapper(title: str, content_html: str, to_email: str = '') -> str:
@@ -35,6 +45,7 @@ def _email_wrapper(title: str, content_html: str, to_email: str = '') -> str:
     </div>
     <div style="background:#ffffff;padding:30px;border-radius:0 0 20px 20px;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
         {content_html}
+        {_isabel_signature_html()}
     </div>
     <div style="text-align:center;padding:20px;color:#6b7280;font-size:12px;">
         <p style="margin:4px 0;">Magic Memories Books - Cuentos personalizados con IA</p>
@@ -3286,3 +3297,138 @@ Ver pedido: https://app.cloudprinter.com/orders
     except Exception as e:
         print(f"[CP PB ADMIN] Error: {e}")
         return {'success': False, 'message': str(e)}
+
+
+# ---------------------------------------------------------------------------
+# Lead follow-up email sequence
+# ---------------------------------------------------------------------------
+
+import json as _json
+
+FOLLOW_UPS_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'lead_follow_ups.json')
+
+
+def register_purchase_for_follow_up(preview_id: str, email: str, child_name: str, lang: str = 'es'):
+    """Record a real purchase so the 24h follow-up email can be scheduled."""
+    if not email or '@' not in email:
+        return
+    try:
+        os.makedirs(os.path.dirname(FOLLOW_UPS_FILE), exist_ok=True)
+        data = {}
+        if os.path.exists(FOLLOW_UPS_FILE):
+            with open(FOLLOW_UPS_FILE, 'r', encoding='utf-8') as f:
+                data = _json.load(f)
+        if preview_id in data and data[preview_id].get('email_1_sent'):
+            return
+        data[preview_id] = {
+            'email': email,
+            'child_name': child_name or '',
+            'lang': lang or 'es',
+            'purchased_at': __import__('datetime').datetime.now().isoformat(),
+            'email_1_sent': False,
+        }
+        with open(FOLLOW_UPS_FILE, 'w', encoding='utf-8') as f:
+            _json.dump(data, f, ensure_ascii=False, indent=2)
+        print(f"[LEAD] Registered 24h follow-up for {email} (preview: {preview_id})")
+    except Exception as e:
+        print(f"[LEAD] Error registering follow-up: {e}")
+
+
+def send_feedback_email_24h(to_email: str, child_name: str = '', lang: str = 'es') -> bool:
+    """Send the 24h post-purchase feedback / thank-you email from Isabel."""
+    subject = "¿Qué te pareció tu cuento? 💜"
+
+    html_body = f"""<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:0;background-color:#f8f5ff;">
+<div style="max-width:600px;margin:0 auto;padding:20px;">
+  <div style="background:#ffffff;padding:36px 40px;border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,0.08);">
+    <p style="font-size:16px;color:#374151;line-height:1.75;margin-top:0;">Hola,</p>
+    <p style="font-size:16px;color:#374151;line-height:1.75;">
+      Ayer creaste un cuento personalizado en Magic Memories Books y quer&iacute;amos darte las gracias por probar nuestra plataforma.
+    </p>
+    <p style="font-size:16px;color:#374151;line-height:1.75;">
+      Estamos empezando y cada opini&oacute;n cuenta much&iacute;simo para nosotros.
+    </p>
+    <p style="font-size:18px;color:#7c3aed;font-weight:bold;line-height:1.75;">
+      &iquest;Te gust&oacute; el resultado?
+    </p>
+    <p style="font-size:16px;color:#374151;line-height:1.75;">
+      Si tienes un minuto, simplemente responde a este correo y cu&eacute;ntanos qu&eacute; te pareci&oacute; la experiencia.
+    </p>
+    <p style="font-size:16px;color:#374151;line-height:1.75;">
+      Nos encantar&aacute; leer tu opini&oacute;n y seguir mejorando para las familias que conf&iacute;an en nosotros.
+    </p>
+    <p style="font-size:16px;color:#374151;line-height:1.75;margin-bottom:4px;">Muchas gracias,</p>
+    <div style="margin-top:20px;padding-top:18px;border-top:1px solid #ede9f5;">
+      <img src="{FIRMA_URL}" alt="Isabel Ojeda – Founder &amp; Author, Magic Memories Books"
+           style="max-width:420px;width:100%;height:auto;display:block;" />
+    </div>
+  </div>
+  <div style="text-align:center;padding:16px;color:#9ca3af;font-size:11px;">
+    <p style="margin:0;">Magic Memories Books &middot;
+      <a href="https://magicmemoriesbooks.com" style="color:#9ca3af;text-decoration:none;">magicmemoriesbooks.com</a>
+    </p>
+  </div>
+</div>
+</body>
+</html>"""
+
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = subject
+    msg['From'] = f"Isabel Ojeda · Magic Memories Books <{FROM_EMAIL}>"
+    msg['To'] = to_email
+    msg['Reply-To'] = FROM_EMAIL
+    msg.attach(MIMEText(html_body, 'html', 'utf-8'))
+
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.sendmail(FROM_EMAIL, to_email, msg.as_string())
+        print(f"[LEAD] 24h feedback email sent to {to_email}")
+        return True
+    except Exception as e:
+        print(f"[LEAD] Failed to send 24h feedback email to {to_email}: {e}")
+        return False
+
+
+def process_pending_follow_up_emails():
+    """Check the follow-ups file and send emails that are due (22–30h after purchase).
+    Called by the hourly APScheduler job in app.py.
+    """
+    try:
+        if not os.path.exists(FOLLOW_UPS_FILE):
+            return
+        with open(FOLLOW_UPS_FILE, 'r', encoding='utf-8') as f:
+            data = _json.load(f)
+
+        from datetime import datetime as _dt
+        now = _dt.now()
+        changed = False
+
+        for preview_id, entry in data.items():
+            if entry.get('email_1_sent'):
+                continue
+            try:
+                purchased_at = _dt.fromisoformat(entry.get('purchased_at', ''))
+            except ValueError:
+                continue
+            elapsed_hours = (now - purchased_at).total_seconds() / 3600
+            if 22 <= elapsed_hours <= 30:
+                ok = send_feedback_email_24h(
+                    entry.get('email', ''),
+                    entry.get('child_name', ''),
+                    entry.get('lang', 'es'),
+                )
+                if ok:
+                    entry['email_1_sent'] = True
+                    entry['email_1_sent_at'] = now.isoformat()
+                    changed = True
+
+        if changed:
+            with open(FOLLOW_UPS_FILE, 'w', encoding='utf-8') as f:
+                _json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"[LEAD] Error in process_pending_follow_up_emails: {e}")
