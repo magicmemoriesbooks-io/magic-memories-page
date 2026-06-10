@@ -3410,18 +3410,18 @@ def send_upsell_print_email(preview_id: str, to_email: str, child_name: str = ''
             El cuento ya est&aacute; generado, as&iacute; que no hay espera. Solo elige el formato
             que prefieras y nosotros nos encargamos del resto.
         </p>
-        <div style="text-align:center;margin:32px 0;">
-            <a href="{formats_url}"
-               style="display:inline-block;background:linear-gradient(135deg,#7c3aed,#ec4899);color:#ffffff;
-                      font-family:sans-serif;font-size:16px;font-weight:bold;padding:14px 32px;
-                      border-radius:12px;text-decoration:none;">
-                {btn_label} &rarr;
-            </a>
-        </div>
-        <p style="font-size:14px;color:#9ca3af;line-height:1.8;text-align:center;">
-            O copia este enlace en tu navegador:<br>
-            <a href="{formats_url}" style="color:#7c3aed;word-break:break-all;">{formats_url}</a>
-        </p>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:32px auto;">
+            <tr>
+                <td align="center" bgcolor="#7c3aed" style="border-radius:12px;background-color:#7c3aed;">
+                    <a href="{formats_url}" target="_blank"
+                       style="display:inline-block;padding:14px 32px;font-family:sans-serif;font-size:16px;
+                              font-weight:bold;color:#ffffff;text-decoration:none;border-radius:12px;
+                              mso-padding-alt:14px 32px;">
+                        {btn_label} &#8594;
+                    </a>
+                </td>
+            </tr>
+        </table>
         <p style="font-size:16px;color:#374151;line-height:1.8;margin-bottom:0;">Un abrazo,</p>"""
 
     html_body = _email_wrapper("Magic Memories Books", content, to_email)
