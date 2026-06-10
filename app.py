@@ -11376,17 +11376,6 @@ def _compose_personalized_book_background(preview_id, **kwargs):
                             with open(preview_file, 'w', encoding='utf-8') as _f:
                                 json.dump(story_data, _f, ensure_ascii=False, indent=2)
                             production_logger.info(f"[BG-COMPOSE] Admin PDF generado: {admin_pdf_path}")
-                        _admin_ip = ''
-                        try:
-                            import sqlite3 as _sq3
-                            if os.path.exists('data/magicbooks.db'):
-                                _sq = _sq3.connect('data/magicbooks.db')
-                                _ip_row = _sq.execute("SELECT ip_address FROM preview_leads WHERE email=? ORDER BY created_at DESC LIMIT 1", (customer_email,)).fetchone()
-                                _sq.close()
-                                if _ip_row:
-                                    _admin_ip = _ip_row[0] or ''
-                        except Exception:
-                            pass
                         from services.email_service import send_ebook_admin_notification
                         send_ebook_admin_notification(
                             preview_id=preview_id,
@@ -11396,7 +11385,7 @@ def _compose_personalized_book_background(preview_id, **kwargs):
                             product_type=story_data.get('product_type', 'universo_ebook'),
                             pdf_path=admin_pdf_path,
                             visor_url=visor_url or '',
-                            ip_address=_admin_ip,
+                            buyer_country=story_data.get('buyer_country', ''),
                         )
                         story_data['admin_pdf_sent'] = True
                         production_logger.info(f"[BG-COMPOSE] Admin PDF email sent")
@@ -12030,17 +12019,6 @@ def _process_ebook_generation(preview_id, customer_email, send_email=True):
                     )
                     print(f"[EBOOK] PDF imprimible email sent to {_email}")
                     try:
-                        _qs_admin_ip = ''
-                        try:
-                            import sqlite3 as _sq3b
-                            if os.path.exists('data/magicbooks.db'):
-                                _sqb = _sq3b.connect('data/magicbooks.db')
-                                _ip_rowb = _sqb.execute("SELECT ip_address FROM preview_leads WHERE email=? ORDER BY created_at DESC LIMIT 1", (_email,)).fetchone()
-                                _sqb.close()
-                                if _ip_rowb:
-                                    _qs_admin_ip = _ip_rowb[0] or ''
-                        except Exception:
-                            pass
                         from services.email_service import send_ebook_admin_notification
                         send_ebook_admin_notification(
                             preview_id=preview_id,
@@ -12050,7 +12028,7 @@ def _process_ebook_generation(preview_id, customer_email, send_email=True):
                             product_type=product_type or 'qs_digital',
                             pdf_path=_pdf_path,
                             visor_url=visor_url,
-                            ip_address=_qs_admin_ip,
+                            buyer_country=story_data.get('buyer_country', ''),
                         )
                     except Exception as _adm_err:
                         print(f"[EBOOK] Admin notification failed (non-fatal): {_adm_err}")
