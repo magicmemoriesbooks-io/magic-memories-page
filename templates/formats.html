@@ -403,11 +403,15 @@ function renderPayPalButtons() {
             return validateForm() ? actions.resolve() : actions.reject();
         },
         createOrder: async function() {
-            const total = getTotal();
             const resp = await fetch('/api/paypal/create-formats-order', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({amount_usd: total, preview_id: PREVIEW_ID})
+                body: JSON.stringify({
+                    preview_id: PREVIEW_ID,
+                    want_pdf: wantPdf,
+                    want_print: wantPrint,
+                    shipping_cost: wantPrint ? selectedShippingCost : 0
+                })
             });
             const order = await resp.json();
             if (order.error) throw new Error(order.error);
