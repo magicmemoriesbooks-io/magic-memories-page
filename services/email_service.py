@@ -27,8 +27,10 @@ def _isabel_signature_html() -> str:
     """Returns Isabel Ojeda's signature block for user-facing emails."""
     return f"""
     <div style="margin-top:28px;padding-top:20px;border-top:1px solid #ede9f5;">
-        <img src="{FIRMA_URL}" alt="Isabel Ojeda – Founder &amp; Author, Magic Memories Books"
-             style="max-width:420px;width:100%;height:auto;display:block;" />
+        <a href="https://magicmemoriesbooks.com/" target="_blank" style="display:block;">
+            <img src="{FIRMA_URL}" alt="Isabel Ojeda – Fundadora de Magic Memories Books"
+                 style="max-width:420px;width:100%;height:auto;display:block;border:0;" />
+        </a>
     </div>"""
 
 
