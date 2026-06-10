@@ -761,7 +761,7 @@
 
 <div id="errorModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
     <div class="bg-white rounded-2xl p-6 max-w-md w-full">
-        <h3 class="font-bold text-red-600 text-lg mb-2">{% if lang == 'es' %}Error{% else %}Error{% endif %}</h3>
+        <h3 id="errorModalTitle" class="font-bold text-red-600 text-lg mb-2">{% if lang == 'es' %}Error{% else %}Error{% endif %}</h3>
         <p id="errorMessage" class="text-gray-700 mb-4"></p>
         <button onclick="document.getElementById('errorModal').classList.add('hidden')" class="w-full py-2 bg-amber-500 text-white rounded-full hover:bg-amber-600">OK</button>
     </div>
@@ -1215,7 +1215,7 @@ async function generatePreviews() {
             storyBtn.classList.add('bg-gradient-to-r', 'from-amber-500', 'to-orange-500', 'text-white', 'hover:shadow-lg');
             document.getElementById('storyBtnText').textContent = '{% if lang == "es" %}🐾 Ver Preview del Cuento{% else %}🐾 View Story Preview{% endif %}';
         } else {
-            showError(data.error || '{% if lang == "es" %}Error al generar las imágenes{% else %}Error generating images{% endif %}');
+            showError(data.error || '{% if lang == "es" %}Error al generar las imágenes{% else %}Error generating images{% endif %}', !!data.rate_limited);
         }
     } catch (error) {
         showError('{% if lang == "es" %}Error de conexión{% else %}Connection error{% endif %}');
@@ -1299,7 +1299,7 @@ async function regenerateSinglePreview(which) {
                 currentCharacterData.pet_preview_path = data.preview_path || '';
             }
         } else {
-            showError(data.error || '{% if lang == "es" %}Error al regenerar{% else %}Error regenerating{% endif %}');
+            showError(data.error || '{% if lang == "es" %}Error al regenerar{% else %}Error regenerating{% endif %}', !!data.rate_limited);
         }
     } catch (error) {
         showError('{% if lang == "es" %}Error de conexión{% else %}Connection error{% endif %}');
@@ -1367,7 +1367,7 @@ document.getElementById('generateStoryBtn').addEventListener('click', async func
         if (data.success) {
             window.location.href = data.preview_url;
         } else {
-            showError(data.error || '{% if lang == "es" %}Error al generar el cuento{% else %}Error generating story{% endif %}');
+            showError(data.error || '{% if lang == "es" %}Error al generar el cuento{% else %}Error generating story{% endif %}', !!data.rate_limited);
             document.getElementById('summaryContent').classList.remove('hidden');
             document.getElementById('generatingContent').classList.add('hidden');
         }
@@ -1378,7 +1378,17 @@ document.getElementById('generateStoryBtn').addEventListener('click', async func
     }
 });
 
-function showError(message) {
+function showError(message, isRateLimit = false) {
+    const titleEl = document.getElementById('errorModalTitle');
+    if (titleEl) {
+        if (isRateLimit) {
+            titleEl.textContent = '{% if lang == "es" %}Límite de previsualizaciones{% else %}Preview limit reached{% endif %}';
+            titleEl.className = 'font-bold text-amber-600 text-lg mb-2';
+        } else {
+            titleEl.textContent = '{% if lang == "es" %}Error{% else %}Error{% endif %}';
+            titleEl.className = 'font-bold text-red-600 text-lg mb-2';
+        }
+    }
     document.getElementById('errorMessage').textContent = message;
     document.getElementById('errorModal').classList.remove('hidden');
 }
