@@ -500,9 +500,22 @@ def scheduled_lead_follow_up_emails():
 
 
 scheduler.add_job(func=scheduled_lead_follow_up_emails, trigger="interval", hours=1, id='lead_follow_up_emails')
-scheduler.start()
 
-atexit.register(lambda: scheduler.shutdown())
+# Only start the scheduler in ONE Gunicorn worker using an exclusive file lock.
+# Without this, each of the N workers starts its own scheduler → N duplicate emails/jobs.
+import fcntl as _fcntl
+_SCHEDULER_LOCK_PATH = '/tmp/mmb_scheduler.lock'
+_scheduler_lock_fd = None
+try:
+    _scheduler_lock_fd = open(_SCHEDULER_LOCK_PATH, 'w')
+    _fcntl.flock(_scheduler_lock_fd, _fcntl.LOCK_EX | _fcntl.LOCK_NB)
+    scheduler.start()
+    print(f"[SCHEDULER] Started in worker PID {os.getpid()}")
+    atexit.register(lambda: scheduler.shutdown())
+except IOError:
+    print(f"[SCHEDULER] Skipped in worker PID {os.getpid()} (another worker owns the lock)")
+except Exception as _sched_err:
+    print(f"[SCHEDULER] Could not start: {_sched_err}")
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['GENERATED_FOLDER'], exist_ok=True)
