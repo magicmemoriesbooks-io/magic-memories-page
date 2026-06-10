@@ -12921,5 +12921,28 @@ def admin_send_test_lead_email():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/admin/self-update', methods=['POST'])
+def admin_self_update():
+    """Pull latest code from GitHub and restart. Only callable by logged-in admin."""
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    import subprocess, threading
+    def _do_update():
+        import time, subprocess
+        try:
+            result = subprocess.run(
+                ['git', 'pull', 'origin', 'main'],
+                cwd='/home/magicbooks/app',
+                capture_output=True, text=True, timeout=60
+            )
+            print(f"[SELF-UPDATE] git pull: {result.stdout} {result.stderr}")
+        except Exception as e:
+            print(f"[SELF-UPDATE] error: {e}")
+        time.sleep(1)
+        subprocess.Popen(['systemctl', 'restart', 'magicbooks'])
+    threading.Thread(target=_do_update, daemon=True).start()
+    return jsonify({'ok': True, 'msg': 'Update iniciado, el servidor se reiniciará en ~5 segundos'})
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
