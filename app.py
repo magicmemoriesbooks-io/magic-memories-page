@@ -488,6 +488,18 @@ scheduler.add_job(func=scheduled_log_rotation, trigger="interval", hours=6, id='
 scheduler.add_job(func=scheduled_ebook_expiry_check, trigger="interval", hours=24, id='ebook_expiry_check')
 scheduler.add_job(func=scheduled_story_backup, trigger="interval", minutes=5, id='story_backup')
 scheduler.add_job(func=auto_purge_old_stories, trigger="interval", hours=1, id='auto_purge_stories')
+
+
+def scheduled_lead_follow_up_emails():
+    """Hourly job: send 24h post-purchase feedback emails that are due."""
+    try:
+        from services.email_service import process_pending_follow_up_emails
+        process_pending_follow_up_emails()
+    except Exception as e:
+        print(f"[LEAD] Scheduler error: {e}")
+
+
+scheduler.add_job(func=scheduled_lead_follow_up_emails, trigger="interval", hours=1, id='lead_follow_up_emails')
 scheduler.start()
 
 atexit.register(lambda: scheduler.shutdown())
@@ -4860,6 +4872,11 @@ def _dispatch_cart_item(item: dict, buyer_email: str, paypal_order_id: str, ship
         story_data['ebook_expires_at'] = (datetime.utcnow() + timedelta(days=Config.EBOOK_EXPIRY_DAYS)).isoformat()
     with open(preview_file, 'w', encoding='utf-8') as f:
         json.dump(story_data, f, ensure_ascii=False, indent=2)
+    try:
+        from services.email_service import register_purchase_for_follow_up as _reg_fu
+        _reg_fu(preview_id, buyer_email, story_data.get('child_name', ''), story_data.get('lang', 'es'))
+    except Exception as _fu_err:
+        print(f"[LEAD] register_purchase_for_follow_up error: {_fu_err}")
     print(f"[CART-DISPATCH] Processing cart item: {product_type} for {preview_id}")
     from services.personalized_books.generation import is_personalized_book as _check_pb
     from services.quick_stories.checkout import is_quick_story as _check_qs
@@ -5100,7 +5117,13 @@ def process_payment(preview_id):
     
     email = story_data.get('customer_email', '')
     story_id = story_data.get('story_id', '')
-    
+
+    try:
+        from services.email_service import register_purchase_for_follow_up as _reg_fu
+        _reg_fu(preview_id, email, story_data.get('child_name', ''), story_data.get('lang', 'es'))
+    except Exception as _fu_err:
+        print(f"[LEAD] register_purchase_for_follow_up error: {_fu_err}")
+
     print(f"[PAYMENT] PayPal order: {paypal_order_id}")
     print(f"[PAYMENT] Story ID: {story_id}")
     print(f"[PAYMENT] Email: {email}")
@@ -7849,6 +7872,25 @@ def admin_reset_rate_limits():
     preview_rate_limits.clear()
     email_rate_limits.clear()
     return jsonify({'success': True, 'message': 'Rate limits cleared (IP + email)'})
+
+
+@app.route('/admin/send-test-feedback-email', methods=['POST'])
+def admin_send_test_feedback_email():
+    """Send the 24h feedback email to a specific address for testing."""
+    if not check_admin_auth():
+        return jsonify({'error': 'Not authorized'}), 403
+    data = request.get_json() or {}
+    to_email = data.get('email', '')
+    child_name = data.get('child_name', '')
+    lang = data.get('lang', 'es')
+    if not to_email or '@' not in to_email:
+        return jsonify({'error': 'Valid email required'}), 400
+    from services.email_service import send_feedback_email_24h
+    ok = send_feedback_email_24h(to_email, child_name, lang)
+    if ok:
+        return jsonify({'success': True, 'message': f'Test feedback email sent to {to_email}'})
+    return jsonify({'success': False, 'error': 'Failed to send email'}), 500
+
 
 @app.route('/cp-files/<preview_id>/<filename>')
 def serve_cp_file_public(preview_id, filename):
