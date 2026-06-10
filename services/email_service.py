@@ -3446,7 +3446,7 @@ def send_upsell_print_email(preview_id: str, to_email: str, child_name: str = ''
 def process_pending_follow_up_emails():
     """Check the follow-ups file and send emails that are due.
     - Email 1: 22–30h after purchase (feedback / thank-you)
-    - Email 2: 46–54h after purchase (upsell: PDF imprimible + libro impreso)
+    - Email 2: 46–50h after purchase (upsell: PDF imprimible + libro impreso)
     Called by the hourly APScheduler job in app.py.
     """
     try:
@@ -3479,9 +3479,9 @@ def process_pending_follow_up_emails():
                         entry['email_1_sent_at'] = now.isoformat()
                         changed = True
 
-            # --- Email 2: 48h upsell (46–54h window, only after email 1 sent) ---
+            # --- Email 2: 48h upsell (46–50h window, only after email 1 sent) ---
             elif entry.get('email_1_sent') and not entry.get('email_2_sent'):
-                if 46 <= elapsed_hours <= 54:
+                if 46 <= elapsed_hours <= 50:
                     ok = send_upsell_print_email(
                         preview_id,
                         entry.get('email', ''),
