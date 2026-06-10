@@ -4874,6 +4874,7 @@ def _dispatch_cart_item(item: dict, buyer_email: str, paypal_order_id: str, ship
     if product_type == 'personalized_pdf':
         story_data['pdf_paid'] = True
         story_data['pdf_order'] = True
+        story_data['want_pdf'] = True
         story_data['want_print'] = False
     elif product_type == 'cp_personalized':
         story_data['want_print'] = True
@@ -4918,9 +4919,15 @@ def _dispatch_cart_item(item: dict, buyer_email: str, paypal_order_id: str, ship
             print(f"[CART-DISPATCH] qs_print — starting Cloudprinter print for {preview_id}")
             t = threading.Thread(target=_process_quick_story_print, args=(preview_id, buyer_email), daemon=True)
             t.start()
+        # /formats PDF purchase uses product_type='personalized_pdf' → send email immediately
+        _send_ebook_email = (product_type == 'personalized_pdf')
         if not story_data.get('visor_uploaded', False):
-            print(f"[CART-DISPATCH] Quick Story — generating visor/ebook (no email yet) for {preview_id}")
-            t = threading.Thread(target=_process_ebook_generation, args=(preview_id, buyer_email, False), daemon=True)
+            print(f"[CART-DISPATCH] Quick Story — generating visor/ebook ({'with' if _send_ebook_email else 'no'} email) for {preview_id}")
+            t = threading.Thread(target=_process_ebook_generation, args=(preview_id, buyer_email, _send_ebook_email), daemon=True)
+            t.start()
+        elif _send_ebook_email:
+            print(f"[CART-DISPATCH] Quick Story visor ready — dispatching PDF email for {preview_id}")
+            t = threading.Thread(target=_process_ebook_generation, args=(preview_id, buyer_email, True), daemon=True)
             t.start()
     else:
         t = threading.Thread(target=_process_ebook_generation, args=(preview_id, buyer_email), daemon=True)
@@ -12863,6 +12870,26 @@ def paypal_capture_formats_order():
 
         # --- Create PrintOrderRequest for physical book ---
         if want_print:
+            _ship_addr_canonical = {
+                'name': data.get('shipping_name', '').strip(),
+                'street1': data.get('shipping_street', '').strip(),
+                'city': data.get('shipping_city', '').strip(),
+                'state_code': data.get('shipping_state', '').strip(),
+                'postcode': data.get('shipping_postal', '').strip(),
+                'country_code': data.get('shipping_country', 'ES').strip().upper(),
+                'phone_number': data.get('shipping_phone', '').strip(),
+            }
+            story_data['shipping_address'] = _ship_addr_canonical
+            story_data['want_print'] = True
+            story_data['shipping_method'] = shipping_method
+            story_data['paid'] = True
+            story_data['paypal_order_id'] = order_id
+            story_data['payment_date'] = datetime.now().isoformat()
+            story_data['payment_status'] = 'completed'
+            story_data['customer_email'] = buyer_email
+            with open(preview_file, 'w', encoding='utf-8') as f:
+                json.dump(story_data, f, ensure_ascii=False, indent=2)
+
             pr = PrintOrderRequest(
                 preview_id=preview_id,
                 child_name=child_name,
@@ -12896,6 +12923,18 @@ def paypal_capture_formats_order():
                 )
             except Exception:
                 pass
+            # --- Dispatch to Cloudprinter ---
+            from services.quick_stories.checkout import is_quick_story as _check_qs_print
+            from services.personalized_books.generation import is_personalized_book as _check_pb_print
+            _print_story_id = story_data.get('story_id', '')
+            if _check_qs_print(_print_story_id):
+                print(f"[FORMATS] Dispatching QS Cloudprinter for {preview_id}")
+                _t_cp = threading.Thread(target=_process_quick_story_print, args=(preview_id, buyer_email), daemon=True)
+                _t_cp.start()
+            elif _check_pb_print(_print_story_id):
+                print(f"[FORMATS] Dispatching PB post-payment for {preview_id}")
+                _t_cp = threading.Thread(target=_process_personalized_book_post_payment, args=(preview_id, buyer_email), daemon=True)
+                _t_cp.start()
 
         what_pdf = 'true' if want_pdf else 'false'
         what_print = 'true' if want_print else 'false'
