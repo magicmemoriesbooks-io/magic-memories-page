@@ -12666,13 +12666,41 @@ def formats_success():
     )
 
 
+def _compute_formats_order_total(want_pdf: bool, want_print: bool, shipping_cost: float) -> float:
+    """Compute expected order total server-side from authoritative Config prices."""
+    total = 0.0
+    if want_pdf:
+        total += Config.PERSONALIZED_PDF_PRICE / 100.0
+    if want_print:
+        total += Config.CP_PB_BASE_PRICE / 100.0
+        total += shipping_cost
+    return round(total, 2)
+
+
 @app.route('/api/paypal/create-formats-order', methods=['POST'])
 def paypal_create_formats_order():
     try:
         data = request.get_json()
-        amount = round(float(data.get('amount_usd', 0)), 2)
+        want_pdf = bool(data.get('want_pdf', False))
+        want_print = bool(data.get('want_print', False))
+        if not want_pdf and not want_print:
+            return jsonify({'error': 'Select at least one format'}), 400
+
+        # Validate shipping_cost when physical book is requested
+        shipping_cost = 0.0
+        if want_print:
+            try:
+                shipping_cost = float(data.get('shipping_cost', 0))
+            except (TypeError, ValueError):
+                shipping_cost = 0.0
+            if shipping_cost <= 0:
+                return jsonify({'error': 'Invalid shipping cost for physical book'}), 400
+
+        # Server-side authoritative total — never trust client amount_usd
+        amount = _compute_formats_order_total(want_pdf, want_print, shipping_cost)
         if amount <= 0:
-            return jsonify({'error': 'Invalid amount'}), 400
+            return jsonify({'error': 'Invalid computed amount'}), 400
+
         token = _get_paypal_access_token()
         import requests as req_lib
         order_payload = {
@@ -12692,7 +12720,7 @@ def paypal_create_formats_order():
         order = resp.json()
         if 'id' not in order:
             return jsonify({'error': order.get('message', 'PayPal error')}), 400
-        return jsonify({'id': order['id']})
+        return jsonify({'id': order['id'], 'expected_total': amount})
     except Exception as e:
         print(f"[PAYPAL] create-formats-order error: {e}")
         return jsonify({'error': str(e)}), 500
@@ -12705,6 +12733,47 @@ def paypal_capture_formats_order():
         order_id = data.get('orderID')
         if not order_id:
             return jsonify({'error': 'Missing orderID'}), 400
+
+        want_pdf = bool(data.get('want_pdf', False))
+        want_print = bool(data.get('want_print', False))
+        pdf_format = data.get('pdf_format', 'carta') if want_pdf else None
+
+        # --- Server-side product validation ---
+        if not want_pdf and not want_print:
+            return jsonify({'error': 'No products selected'}), 400
+
+        shipping_cost = 0.0
+        shipping_method = ''
+        if want_print:
+            # Validate required shipping fields
+            required_ship = ['shipping_name', 'shipping_street', 'shipping_city', 'shipping_postal', 'shipping_country']
+            for field in required_ship:
+                if not str(data.get(field, '')).strip():
+                    return jsonify({'error': f'Missing required shipping field: {field}'}), 400
+            shipping_method = str(data.get('shipping_method', '')).strip()
+            if not shipping_method:
+                return jsonify({'error': 'Missing shipping method'}), 400
+            try:
+                shipping_cost = float(data.get('shipping_cost', 0))
+            except (TypeError, ValueError):
+                shipping_cost = 0.0
+            if shipping_cost <= 0:
+                return jsonify({'error': 'Invalid shipping cost'}), 400
+
+        # --- Recompute expected total server-side ---
+        expected_total = _compute_formats_order_total(want_pdf, want_print, shipping_cost)
+
+        preview_id = data.get('preview_id', '')
+        if not _PREVIEW_ID_RE.match(preview_id):
+            return jsonify({'error': 'Invalid preview_id'}), 400
+        preview_file = f'story_previews/{preview_id}.json'
+        abs_previews = os.path.abspath('story_previews')
+        if not os.path.abspath(preview_file).startswith(abs_previews + os.sep):
+            return jsonify({'error': 'Invalid preview_id'}), 400
+        if not os.path.exists(preview_file):
+            return jsonify({'error': 'Order not found'}), 404
+
+        # --- Capture PayPal payment ---
         token = _get_paypal_access_token()
         import requests as req_lib
         resp = req_lib.post(
@@ -12719,33 +12788,30 @@ def paypal_capture_formats_order():
         capture = result.get('purchase_units', [{}])[0].get('payments', {}).get('captures', [{}])[0]
         amount_paid = float(capture.get('amount', {}).get('value', 0))
         payer_email = result.get('payer', {}).get('email_address', data.get('email', ''))
+        buyer_email = data.get('email', payer_email) or payer_email
 
-        preview_id = data.get('preview_id', '')
-        buyer_email = data.get('email', payer_email)
-        want_pdf = bool(data.get('want_pdf', False))
-        want_print = bool(data.get('want_print', False))
-        pdf_format = data.get('pdf_format', 'carta')
+        # --- Verify captured amount matches server-computed total (tolerance $0.05) ---
+        if abs(amount_paid - expected_total) > 0.05:
+            print(f"[FORMATS] PAYMENT MISMATCH for {preview_id}: expected ${expected_total:.2f}, paid ${amount_paid:.2f}")
+            return jsonify({'error': 'Payment amount mismatch. Please contact support.'}), 400
 
-        if not _PREVIEW_ID_RE.match(preview_id):
-            return jsonify({'error': 'Invalid preview_id'}), 400
-        preview_file = f'story_previews/{preview_id}.json'
-        if not os.path.exists(preview_file):
-            return jsonify({'error': 'Order not found'}), 404
         with open(preview_file, 'r', encoding='utf-8') as f:
             story_data = json.load(f)
         lang = story_data.get('lang', 'es')
         child_name = story_data.get('child_name', '')
 
+        # --- Dispatch PDF via _dispatch_cart_item for consistent handling ---
         if want_pdf:
-            story_data['pdf_paid'] = True
-            story_data['pdf_order'] = True
             story_data['print_format'] = pdf_format
-            story_data['customer_email'] = buyer_email
             with open(preview_file, 'w', encoding='utf-8') as f:
                 json.dump(story_data, f, ensure_ascii=False, indent=2)
-            t_pdf = threading.Thread(target=_dispatch_printable_pdf_email, args=(preview_id, buyer_email, lang), daemon=True)
-            t_pdf.start()
+            _dispatch_cart_item(
+                {'preview_id': preview_id, 'product_type': 'personalized_pdf', 'lang': lang},
+                buyer_email,
+                order_id,
+            )
 
+        # --- Create PrintOrderRequest for physical book ---
         if want_print:
             pr = PrintOrderRequest(
                 preview_id=preview_id,
@@ -12753,15 +12819,15 @@ def paypal_capture_formats_order():
                 customer_email=buyer_email,
                 paypal_order_id=order_id,
                 amount_paid=amount_paid,
-                shipping_name=data.get('shipping_name', ''),
-                shipping_street=data.get('shipping_street', ''),
-                shipping_city=data.get('shipping_city', ''),
-                shipping_state=data.get('shipping_state', ''),
-                shipping_postal=data.get('shipping_postal', ''),
-                shipping_country=data.get('shipping_country', 'ES'),
-                shipping_phone=data.get('shipping_phone', ''),
-                shipping_method=data.get('shipping_method', 'MAIL'),
-                shipping_cost=round(float(data.get('shipping_cost', 0)), 2),
+                shipping_name=data.get('shipping_name', '').strip(),
+                shipping_street=data.get('shipping_street', '').strip(),
+                shipping_city=data.get('shipping_city', '').strip(),
+                shipping_state=data.get('shipping_state', '').strip(),
+                shipping_postal=data.get('shipping_postal', '').strip(),
+                shipping_country=data.get('shipping_country', 'ES').strip().upper(),
+                shipping_phone=data.get('shipping_phone', '').strip(),
+                shipping_method=shipping_method,
+                shipping_cost=round(shipping_cost, 2),
                 status='payment_confirmed'
             )
             db.session.add(pr)
@@ -12770,14 +12836,24 @@ def paypal_capture_formats_order():
                 from services.email_service import send_admin_notification_email
                 send_admin_notification_email(
                     subject=f'[NUEVO PEDIDO IMPRESO via /formats] {child_name} — {buyer_email}',
-                    body=f'Pedido de libro impreso desde /formats.\nPedido ID: {pr.id}\nCliente: {buyer_email}\nNi\u00f1o/a: {child_name}\nImporte: ${pr.amount_paid}\nDirecci\u00f3n: {pr.shipping_street}, {pr.shipping_city}, {pr.shipping_country}\nPreview ID: {preview_id}\nM\u00e9todo env\u00edo: {pr.shipping_method}'
+                    body=(
+                        f'Pedido de libro impreso desde /formats.\n'
+                        f'Pedido ID: {pr.id}\nCliente: {buyer_email}\nNi\u00f1o/a: {child_name}\n'
+                        f'Importe: ${pr.amount_paid}\n'
+                        f'Direcci\u00f3n: {pr.shipping_street}, {pr.shipping_city}, {pr.shipping_country}\n'
+                        f'Preview ID: {preview_id}\nM\u00e9todo env\u00edo: {pr.shipping_method}'
+                    )
                 )
             except Exception:
                 pass
 
         what_pdf = 'true' if want_pdf else 'false'
         what_print = 'true' if want_print else 'false'
-        redirect_url = f'/formats-success?email={payer_email}&want_pdf={what_pdf}&want_print={what_print}&pdf_format={pdf_format}'
+        redirect_url = (
+            f'/formats-success?email={payer_email}'
+            f'&want_pdf={what_pdf}&want_print={what_print}'
+            f'&pdf_format={pdf_format or ""}'
+        )
         return jsonify({'success': True, 'redirect': redirect_url})
     except Exception as e:
         print(f"[PAYPAL] capture-formats-order error: {e}")
