@@ -766,9 +766,9 @@ def send_admin_purchase_notification(
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
     type_labels = {
-        'ebook': '📱 eBook Digital',
-        'qs_digital': '📱 Quick Story Digital',
-        'qs_print': '📦 Quick Story Print',
+        'ebook': '📱 Cuento Express Digital',
+        'qs_digital': '📱 Cuento Express Digital',
+        'qs_print': '📦 Cuento Express Impreso',
         'personalized': '📖 Libro Personalizado',
         'personalized_digital': '📱 Libro Personalizado Digital',
     }
@@ -1759,7 +1759,8 @@ def send_ebook_admin_notification(
     customer_email: str,
     product_type: str,
     pdf_path: Optional[str] = None,
-    visor_url: str = ''
+    visor_url: str = '',
+    ip_address: str = ''
 ) -> dict:
     """Notify admin (pay@) with printable PDF when an eBook purchase completes."""
     admin_email = 'pay@magicmemoriesbooks.com'
@@ -1767,12 +1768,32 @@ def send_ebook_admin_notification(
 
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     product_label = {
-        'ebook': 'eBook Cuento Express ($7)',
+        'ebook': 'eBook Cuento Express ($6)',
+        'qs_digital': 'eBook Cuento Express ($6)',
         'universo_ebook': 'eBook Universos Ilustrados ($9)',
-        'qs_digital': 'eBook Quick Story — digital ($9)',
         'personalized_ebook': 'eBook Libro Personalizado ($9)',
         'illustrated_ebook': 'eBook Libro Ilustrado ($9)',
     }.get(product_type, product_type or 'eBook')
+
+    location_html = ''
+    location_text = ''
+    if ip_address and ip_address not in ('0.0.0.0', '127.0.0.1', '::1', ''):
+        try:
+            import urllib.request as _ureq, json as _jgeo
+            with _ureq.urlopen(
+                f'http://ip-api.com/json/{ip_address}?fields=country,city,countryCode',
+                timeout=3
+            ) as _r:
+                _geo = _jgeo.loads(_r.read())
+            if _geo.get('country'):
+                _loc = f"{_geo.get('city', '')}, {_geo['country']}".lstrip(', ')
+                location_html = (
+                    f'<tr><td style="padding:8px 12px;color:#6b7280;">País / Ciudad</td>'
+                    f'<td style="padding:8px 12px;color:#1f2937;font-weight:600;">🌍 {_loc}</td></tr>'
+                )
+                location_text = f'País / Ciudad: {_loc}\n'
+        except Exception:
+            pass
 
     has_pdf = bool(pdf_path and os.path.exists(pdf_path))
     pdf_status_html = (
@@ -1801,6 +1822,7 @@ def send_ebook_admin_notification(
                 <td style="padding:8px 12px;color:#1f2937;font-family:monospace;font-size:12px;">{preview_id}</td></tr>
             <tr style="background:#f9fafb;"><td style="padding:8px 12px;color:#6b7280;">Fecha</td>
                 <td style="padding:8px 12px;color:#1f2937;">{timestamp}</td></tr>
+            {location_html}
         </table>
         {visor_html}
         {pdf_status_html}
@@ -1823,7 +1845,7 @@ Cuento: {story_name}
 Cliente: {customer_email or '—'}
 Referencia: {preview_id}
 Fecha: {timestamp}
-Visor: {visor_url or 'pendiente'}
+{location_text}Visor: {visor_url or 'pendiente'}
 PDF: {"adjunto" if has_pdf else "no disponible"}
 Upgrade link: https://magicmemoriesbooks.com/story-checkout/{preview_id}
     """
