@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'es' %}¡Pedido confirmado! — Magic Memories Books{% else %}Order confirmed! — Magic Memories Books{% endif %}{% endblock %}
+
+{% block content %}
+<section class="py-12 px-4 max-w-lg mx-auto text-center">
+
+    <div class="mb-6">
+        <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+        </div>
+        <h1 class="font-display text-3xl font-bold text-gray-800 mb-2">
+            {% if lang == 'es' %}¡Pedido confirmado!{% else %}Order confirmed!{% endif %}
+        </h1>
+        <p class="text-gray-500 text-lg">
+            {% if email %}{{ email }}{% endif %}
+        </p>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 text-left mb-6">
+        {% if want_pdf %}
+        <div class="flex items-start gap-3 mb-4">
+            <span class="text-2xl">📄</span>
+            <div>
+                <p class="font-medium text-gray-800">
+                    {% if lang == 'es' %}PDF Imprimible — formato {{ pdf_format|upper }}{% else %}Printable PDF — {{ pdf_format|upper }} format{% endif %}
+                </p>
+                <p class="text-sm text-gray-500">
+                    {% if lang == 'es' %}Te lo enviamos por email en los próximos minutos.{% else %}We'll email it to you in the next few minutes.{% endif %}
+                </p>
+            </div>
+        </div>
+        {% endif %}
+        {% if want_print %}
+        <div class="flex items-start gap-3 {{ 'border-t pt-4' if want_pdf else '' }}">
+            <span class="text-2xl">📚</span>
+            <div>
+                <p class="font-medium text-gray-800">
+                    {% if lang == 'es' %}Libro Impreso Físico{% else %}Physical Printed Book{% endif %}
+                </p>
+                <p class="text-sm text-gray-500">
+                    {% if lang == 'es' %}Hemos recibido tu pedido de impresión. Recibirás el libro en 7–15 días en tu dirección.{% else %}We've received your print order. You'll receive the book in 7–15 days at your address.{% endif %}
+                </p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <p class="text-sm text-gray-500 mb-6">
+        {% if lang == 'es' %}¿Tienes alguna pregunta? Escríbenos a <a href="mailto:info@magicmemoriesbooks.com" class="text-purple-600 underline">info@magicmemoriesbooks.com</a>{% else %}Questions? Email us at <a href="mailto:info@magicmemoriesbooks.com" class="text-purple-600 underline">info@magicmemoriesbooks.com</a>{% endif %}
+    </p>
+
+    <a href="/" class="inline-block px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold rounded-xl hover:opacity-90 transition-opacity">
+        {% if lang == 'es' %}Volver al inicio{% else %}Back to home{% endif %}
+    </a>
+
+</section>
+{% endblock %}
