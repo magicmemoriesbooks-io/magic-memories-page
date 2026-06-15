@@ -28,6 +28,8 @@ FLUX_2_PRO_MODEL = "black-forest-labs/flux-2-pro:285631b5656a1839331cd9af0d82da8
 IDEOGRAM_CHARACTER_MODEL = "ideogram-ai/ideogram-character:1f8e198263a0d8171b76c55907c294e933e1e7d55e2d0c54f319c0e4a42c723d"
 
 BABY_STORY_IDS = ['baby_soft_world', 'baby_puppy_love', 'baby_first_pet', 'baby_guardian_light']
+# Stories that use FLUX Kontext Pro for scene generation (real Kontext, not FLUX 2 Pro Redux)
+KONTEXT_STORY_IDS = ['baby_soft_world']
 
 # Reference images for consistency (static assets)
 PUPPY_PLUSH_REFERENCE = "static/assets/puppy_plush_reference.png"
@@ -562,6 +564,89 @@ No text, no watermarks, no signatures, no logo."""
         raise
 
 
+def generate_scene_with_real_kontext(scene_prompt: str, reference_image_path: str, scene_num: int,
+                                      aspect_ratio: str = "3:4", output_dir: str = "generated",
+                                      gender: str = "neutral", age_range: str = "0-1",
+                                      hair_length: str = "medium", child_age: int = None,
+                                      story_id: str = "") -> str:
+    """
+    Generate a scene using the real FLUX Kontext Pro model.
+    Kontext preserves character identity (face, hair, skin, outfit) from the reference image
+    automatically — no need to describe the character in the prompt.
+    The prompt should describe ONLY what changes: action, environment, mood.
+    Reference image for baby_soft_world is the preview portrait (baby + NUBE bunny).
+    """
+    import re as _re_k
+
+    is_baby = age_range in ['0-1', '0-2']
+    if is_baby:
+        gender_word = "baby boy" if gender == "male" else "baby girl" if gender == "female" else "baby"
+    else:
+        gender_word = "little boy" if gender == "male" else "little girl" if gender == "female" else "child"
+
+    # Strip CAST: @image1 = ... declaration — Kontext doesn't use @image1 token syntax.
+    # Keep everything from WEARING: onward (or from ACTION: if no WEARING).
+    clean_prompt = _re_k.sub(
+        r'CAST:\s*@image1\s*=.*?(?=\bWEARING\b|\bACTION\b|\bSETTING\b)',
+        '',
+        scene_prompt,
+        flags=_re_k.DOTALL
+    ).strip()
+
+    # Age/pose constraint for very young babies
+    pose_note = ""
+    if is_baby and child_age is not None and child_age <= 12:
+        pose_note = f" This {child_age}-month-old infant cannot stand or walk."
+
+    # Hair note for bald/sparse hair (Kontext reads from reference but this reinforces)
+    hair_note = ""
+    if hair_length == 'very_little':
+        pronoun = "His" if gender == "male" else "Her" if gender == "female" else "Their"
+        hair_note = f" {pronoun} head is nearly bald with only a fine peach fuzz dusting."
+
+    enhanced_prompt = (
+        f"Keep the {gender_word} from the reference image exactly as is — "
+        f"same face, same hair, same skin tone, same outfit.{pose_note}{hair_note} "
+        f"{clean_prompt} "
+        f"Soft luxury digital illustration, fine art children's book style, "
+        f"premium baby memory book aesthetic. No text, no watermarks."
+    )
+
+    print(f"\n--- Generating Scene {scene_num} with FLUX Kontext Pro ---")
+    print(f"Prompt (first 300 chars): {enhanced_prompt[:300]}...")
+
+    for attempt in range(4):
+        try:
+            with open(reference_image_path, "rb") as ref_file:
+                output = replicate.run(
+                    FLUX_KONTEXT_MODEL,
+                    input={
+                        "prompt": enhanced_prompt,
+                        "input_image": ref_file,
+                        "aspect_ratio": aspect_ratio,
+                        "output_format": "png",
+                        "safety_tolerance": 5
+                    }
+                )
+
+            if isinstance(output, str):
+                image_url = output
+            elif isinstance(output, list) and len(output) > 0:
+                image_url = str(output[0])
+            else:
+                image_url = str(output)
+
+            local_path = f"{output_dir}/scene_{scene_num}.png"
+            save_image_locally(image_url, local_path)
+            print(f"Scene {scene_num}: Complete with FLUX Kontext Pro!")
+            return local_path
+
+        except Exception as e:
+            print(f"Kontext attempt {attempt + 1} failed for scene {scene_num}: {e}")
+            if attempt == 3:
+                print(f"Falling back to FLUX Dev for scene {scene_num}")
+                return generate_scene_fallback_flux_dev(scene_prompt, scene_num, output_dir, gender, age_range)
+            time.sleep(3 + attempt * 2)
 
 
 
@@ -1081,9 +1166,13 @@ def generate_scenes_only(story_id: str, gender: str, traits: dict,
     child_age = int(traits.get('child_age', '1'))
     
     use_ideogram = story_config.get('use_ideogram_scenes', False) and is_baby
-    
+    use_kontext_real = story_id in KONTEXT_STORY_IDS and not use_ideogram
+    additional_refs = None  # placeholder; real Kontext and FLUX 2 Dev don't need multi-ref here
+
     if use_ideogram:
         model_name = "Ideogram Character"
+    elif use_kontext_real:
+        model_name = "FLUX Kontext Pro"
     elif use_flux_dev:
         model_name = "FLUX 2 Dev"
     else:
@@ -1096,11 +1185,14 @@ def generate_scenes_only(story_id: str, gender: str, traits: dict,
     print(f"Using cover as reference: {cover_path}")
     if use_ideogram:
         print("MODE: Ideogram Character (auto-detects face from reference)")
+    elif use_kontext_real:
+        print("MODE: FLUX Kontext Pro (real Kontext — character identity from reference image)")
     print("=" * 60)
     
     from services.quick_stories.checkout import is_quick_story as check_qs
     is_qs = check_qs(story_id)
-    scene_prompts = get_scene_prompts(story_id, child_name, gender, traits, use_reference_image=bool(cover_path and use_flux_dev))
+    # Kontext strips CAST: at runtime; FLUX 2 Dev needs use_reference_image=True for @image1 tokens
+    scene_prompts = get_scene_prompts(story_id, child_name, gender, traits, use_reference_image=bool(cover_path and use_flux_dev and not use_kontext_real))
     scene_aspect = "3:4"
     total = len(scene_prompts)
     scene_paths = [None] * total
@@ -1127,6 +1219,8 @@ def generate_scenes_only(story_id: str, gender: str, traits: dict,
         try:
             if use_ideogram:
                 _path = generate_scene_with_ideogram(_prompt, cover_path, _i, scene_aspect, output_dir)
+            elif use_kontext_real:
+                _path = generate_scene_with_real_kontext(_prompt, cover_path, _i, scene_aspect, output_dir, gender=gender, age_range=age_range, hair_length=hair_length, child_age=child_age, story_id=story_id)
             elif use_flux_dev:
                 _path = generate_scene_with_flux2dev(_prompt, cover_path, _i, scene_aspect, output_dir, gender=gender, age_range=age_range, hair_length=hair_length, child_age=child_age, hair_color=hair_color)
             else:
@@ -1150,13 +1244,15 @@ def generate_scenes_only(story_id: str, gender: str, traits: dict,
                     pass
     
     closing_path = None
-    closing_prompt = get_closing_prompt(story_id, child_name, gender, traits, use_reference_image=bool(cover_path and use_flux_dev))
+    closing_prompt = get_closing_prompt(story_id, child_name, gender, traits, use_reference_image=bool(cover_path and use_flux_dev and not use_kontext_real))
     if closing_prompt:
         print(f"\n[CLOSING] Generating closing illustration with {model_name}...")
         try:
             closing_num = total + 1
             if use_ideogram:
                 closing_path = generate_scene_with_ideogram(closing_prompt, cover_path, closing_num, scene_aspect, output_dir)
+            elif use_kontext_real:
+                closing_path = generate_scene_with_real_kontext(closing_prompt, cover_path, closing_num, scene_aspect, output_dir, gender=gender, age_range=age_range, hair_length=hair_length, child_age=child_age, story_id=story_id)
             elif use_flux_dev:
                 closing_path = generate_scene_with_flux2dev(closing_prompt, cover_path, closing_num, scene_aspect, output_dir, gender=gender, age_range=age_range, hair_length=hair_length, child_age=child_age, hair_color=hair_color)
             else:
