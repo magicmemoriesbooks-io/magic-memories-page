@@ -55,50 +55,50 @@ STORIES = {
             {
                 "text_es": "Hola, {name}.\nEl mundo te espera.\nTodo es nuevo.\nTodo es suave.",
                 "text_en": "Hello, {name}.\nThe world awaits you.\nEverything is new.\nEverything is soft.",
-                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME baby from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate infant features, natural infant proportions, large smooth forehead, small delicate ears, tiny rounded nose, tiny hands. WEARING: Plain soft white onesie with diaper visible. ACTION: Baby lying flat on back on a soft fluffy white blanket, tiny legs relaxed, tiny arms resting at sides, looking up with calm curious wonder. SETTING: Cozy nursery WIDE VIEW, cream crib in background, fluffy pillows and gentle floating feathers in soft pastel colors around baby, warm golden morning light through white curtains, pastel pink walls, soft plush toys on cream shelves, magical sparkles in the air. ATMOSPHERE: Warm cozy magical morning light, innocence and discovery. STRICT: Maintain same face and features as reference. Only ONE baby, baby is fully human.",
-                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME toddler from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate toddler features, natural proportions, large smooth forehead, small delicate ears, tiny rounded nose, small hands. WEARING: Plain soft white onesie. ACTION: Toddler standing on tiny feet on a soft fluffy white blanket in the nursery, looking around with calm curious wonder, small hands at sides. SETTING: Cozy nursery WIDE VIEW, cream crib in background, fluffy pillows and gentle floating feathers in soft pastel colors around child, warm golden morning light through white curtains, pastel pink walls, soft plush toys on cream shelves, magical sparkles in the air. ATMOSPHERE: Warm cozy magical morning light, innocence and discovery. STRICT: Maintain same face and features as reference. Only ONE toddler, child is fully human."
+                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: Reproduce EXACTLY the {gender_word} ({age_display}) from @image1 — same face, same skin tone, same hair color, same eye color. WEARING: Plain soft white onesie with diaper visible. ACTION: Baby lying flat on back on a soft fluffy white blanket, tiny legs relaxed, tiny arms resting at sides, looking up with calm curious wonder. SETTING: Cozy nursery WIDE VIEW, cream crib in background, fluffy pillows and gentle floating feathers in soft pastel colors around baby, warm golden morning light through white curtains, pastel pink walls, soft plush toys on cream shelves, magical sparkles in the air. ATMOSPHERE: Warm cozy magical morning light, innocence and discovery. STRICT: Only ONE baby. Baby is fully human.",
+                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: Reproduce EXACTLY the {gender_word} ({age_display}) from @image1 — same face, same skin tone, same hair color, same eye color. WEARING: Plain soft white onesie. ACTION: Toddler standing on tiny feet on a soft fluffy white blanket in the nursery, looking around with calm curious wonder, small hands at sides. SETTING: Cozy nursery WIDE VIEW, cream crib in background, fluffy pillows and gentle floating feathers in soft pastel colors around child, warm golden morning light through white curtains, pastel pink walls, soft plush toys on cream shelves, magical sparkles in the air. ATMOSPHERE: Warm cozy magical morning light, innocence and discovery. STRICT: Only ONE toddler. Child is fully human."
             },
             {
                 "text_es": "La luz brilla despacio.\nLos colores sonríen.\nEl aire es tranquilo.\nTú estás a salvo.",
                 "text_en": "The light shines softly.\nColors are smiling.\nThe air is calm.\nYou are safe.",
-                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME baby from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate infant features, natural infant proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Baby sitting on a soft fluffy white blanket on the floor, serene joyful expression with gentle smile, tiny hands reaching gently toward gentle pastel ribbons in pink, lavender, mint and peach that float and dance softly in the air. SETTING: Magical nursery WIDE VIEW, cream furniture, mobile hanging from ceiling, soft morning light streaming in. ATMOSPHERE: Serene calm safety, soft floating colors, magical warmth. STRICT: Maintain same face and features as reference. Only ONE baby, baby is fully human.",
-                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME toddler from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate toddler features, natural proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Toddler standing on the nursery floor, serene joyful expression with gentle smile, small hands reaching up gently toward gentle pastel ribbons in pink, lavender, mint and peach that float and dance softly in the air. SETTING: Magical nursery WIDE VIEW, cream furniture, mobile hanging from ceiling, soft morning light streaming in. ATMOSPHERE: Serene calm safety, soft floating colors, magical warmth. STRICT: Maintain same face and features as reference. Only ONE toddler, child is fully human."
+                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: Reproduce EXACTLY the {gender_word} ({age_display}) from @image1 — same face, same skin tone, same hair color, same eye color. WEARING: Plain soft white onesie. ACTION: Baby sitting on a soft fluffy white blanket on the floor, serene joyful expression with gentle smile, tiny hands reaching gently toward gentle pastel ribbons in pink, lavender, mint and peach that float and dance softly in the air. SETTING: Magical nursery WIDE VIEW, cream furniture, mobile hanging from ceiling, soft morning light streaming in. ATMOSPHERE: Serene calm safety, soft floating colors, magical warmth. STRICT: Only ONE baby. Baby is fully human.",
+                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: Reproduce EXACTLY the {gender_word} ({age_display}) from @image1 — same face, same skin tone, same hair color, same eye color. WEARING: Plain soft white onesie. ACTION: Toddler standing on the nursery floor, serene joyful expression with gentle smile, small hands reaching up gently toward gentle pastel ribbons in pink, lavender, mint and peach that float and dance softly in the air. SETTING: Magical nursery WIDE VIEW, cream furniture, mobile hanging from ceiling, soft morning light streaming in. ATMOSPHERE: Serene calm safety, soft floating colors, magical warmth. STRICT: Only ONE toddler. Child is fully human."
             },
             {
                 "text_es": "Escuchas voces dulces.\nSientes un abrazo.\nUn corazón cerca.\nLate contigo.",
                 "text_en": "You hear sweet voices.\nYou feel a hug.\nA heart nearby.\nBeats with you.",
-                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME baby from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate infant features, natural infant proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Baby sitting on a soft fluffy white blanket, peaceful happy expression, holding NUBE (white bunny plush toy, long floppy ears with soft pink inner lining, tiny pink nose, black button eyes) in lap. Soft glowing pink hearts and gentle golden musical notes float in the air around them. SETTING: Loving nursery WIDE VIEW, warm golden light through white curtains, soft pink and gold tones, cream crib in background. ATMOSPHERE: Pure love, warm heartbeats, gentle musical magic. STRICT: Maintain same face and features as reference. Only ONE baby, only ONE plush bunny toy, baby is fully human.",
-                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME toddler from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate toddler features, natural proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Toddler standing in the nursery, peaceful happy expression, hugging NUBE (white bunny plush toy, long floppy ears with soft pink inner lining, tiny pink nose, black button eyes) against chest with both arms. Soft glowing pink hearts and gentle golden musical notes float in the air around them. SETTING: Loving nursery WIDE VIEW, warm golden light through white curtains, soft pink and gold tones, cream crib in background. ATMOSPHERE: Pure love, warm heartbeats, gentle musical magic. STRICT: Maintain same face and features as reference. Only ONE toddler, only ONE plush bunny toy, child is fully human."
+                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: Reproduce EXACTLY the {gender_word} ({age_display}) from @image1 — same face, same skin tone, same hair color, same eye color. WEARING: Plain soft white onesie. ACTION: Baby sitting on a soft fluffy white blanket, peaceful happy expression, holding NUBE (white bunny plush toy, long floppy ears with soft pink inner lining, tiny pink nose, black button eyes) in lap. Soft glowing pink hearts and gentle golden musical notes float in the air around them. SETTING: Loving nursery WIDE VIEW, warm golden light through white curtains, soft pink and gold tones, cream crib in background. ATMOSPHERE: Pure love, warm heartbeats, gentle musical magic. STRICT: Only ONE baby, only ONE NUBE plush bunny. Baby is fully human.",
+                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: Reproduce EXACTLY the {gender_word} ({age_display}) from @image1 — same face, same skin tone, same hair color, same eye color. WEARING: Plain soft white onesie. ACTION: Toddler standing in the nursery, peaceful happy expression, hugging NUBE (white bunny plush toy, long floppy ears with soft pink inner lining, tiny pink nose, black button eyes) against chest with both arms. Soft glowing pink hearts and gentle golden musical notes float in the air around them. SETTING: Loving nursery WIDE VIEW, warm golden light through white curtains, soft pink and gold tones, cream crib in background. ATMOSPHERE: Pure love, warm heartbeats, gentle musical magic. STRICT: Only ONE toddler, only ONE NUBE plush bunny. Child is fully human."
             },
             {
                 "text_es": "Tus manos descubren.\nTus ojos miran.\nPoco a poco,\naprendes el mundo.",
                 "text_en": "Your hands discover.\nYour eyes look.\nLittle by little,\nyou learn the world.",
-                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME baby from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate infant features, natural infant proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Baby sitting on a soft fluffy white blanket, curious wonder-filled expression, gently reaching out tiny hands toward NUBE (white bunny plush toy, long floppy ears with soft pink inner lining, tiny pink nose, black button eyes) sitting on the blanket in front of baby. Magical golden sparkles appear where baby's fingers reach. SETTING: Cozy nursery WIDE VIEW, bright cheerful pastel colors, cream crib in background, soft morning light, pastel pink walls. ATMOSPHERE: Discovery and wonder, magical sparkles of first touch. STRICT: Maintain same face and features as reference. Only ONE baby, only ONE plush bunny toy, baby is fully human.",
-                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME toddler from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate toddler features, natural proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Toddler walking across the nursery floor toward NUBE (white bunny plush toy, long floppy ears with soft pink inner lining, tiny pink nose, black button eyes) sitting on the floor, small hands reaching out toward the bunny toy. Magical golden sparkles appear where the child's fingers reach. SETTING: Cozy nursery WIDE VIEW, bright cheerful pastel colors, cream crib in background, soft morning light, pastel pink walls. ATMOSPHERE: Discovery and wonder, magical sparkles of first touch. STRICT: Maintain same face and features as reference. Only ONE toddler, only ONE plush bunny toy, child is fully human."
+                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: Reproduce EXACTLY the {gender_word} ({age_display}) from @image1 — same face, same skin tone, same hair color, same eye color. WEARING: Plain soft white onesie. ACTION: Baby sitting on a soft fluffy white blanket, curious wonder-filled expression, gently reaching out tiny hands toward NUBE (white bunny plush toy, long floppy ears with soft pink inner lining, tiny pink nose, black button eyes) sitting on the blanket in front of baby. Magical golden sparkles appear where baby's fingers reach. SETTING: Cozy nursery WIDE VIEW, bright cheerful pastel colors, cream crib in background, soft morning light, pastel pink walls. ATMOSPHERE: Discovery and wonder, magical sparkles of first touch. STRICT: Only ONE baby, only ONE NUBE plush bunny. Baby is fully human.",
+                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: Reproduce EXACTLY the {gender_word} ({age_display}) from @image1 — same face, same skin tone, same hair color, same eye color. WEARING: Plain soft white onesie. ACTION: Toddler walking across the nursery floor toward NUBE (white bunny plush toy, long floppy ears with soft pink inner lining, tiny pink nose, black button eyes) sitting on the floor, small hands reaching out toward the bunny toy. Magical golden sparkles appear where the child's fingers reach. SETTING: Cozy nursery WIDE VIEW, bright cheerful pastel colors, cream crib in background, soft morning light, pastel pink walls. ATMOSPHERE: Discovery and wonder, magical sparkles of first touch. STRICT: Only ONE toddler, only ONE NUBE plush bunny. Child is fully human."
             },
             {
                 "text_es": "Cada día es mágico.\nCada risa es música.\nCada abrazo es amor.\nCrecerás feliz.",
                 "text_en": "Every day is magical.\nEvery laugh is music.\nEvery hug is love.\nYou will grow happy.",
-                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME baby from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate infant features, natural infant proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Baby sitting on a soft fluffy white blanket, gentle warm natural closed-mouth smile, lips softly together, happy content expression, holding NUBE (white bunny plush toy, long floppy ears with soft pink inner lining, tiny pink nose, black button eyes) in arms. Colorful soap bubbles and magical sparkles float all around them. SETTING: Joyful nursery WIDE VIEW, warm golden sunlight through window, pastel pink walls with soft cloud decorations, cream furniture, floating hearts and stars. ATMOSPHERE: Pure joy and magic, celebration of life, warm golden glow. STRICT: Maintain same face and features as reference. Only ONE baby, only ONE plush bunny toy, baby is fully human, baby has a gentle natural closed-mouth smile.",
-                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME toddler from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate toddler features, natural proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Toddler standing in the nursery, gentle warm natural closed-mouth smile, lips softly together, happy content expression, holding NUBE (white bunny plush toy, long floppy ears with soft pink inner lining, tiny pink nose, black button eyes) in arms against chest. Colorful soap bubbles and magical sparkles float all around them. SETTING: Joyful nursery WIDE VIEW, warm golden sunlight through window, pastel pink walls with soft cloud decorations, cream furniture, floating hearts and stars. ATMOSPHERE: Pure joy and magic, celebration of life, warm golden glow. STRICT: Maintain same face and features as reference. Only ONE toddler, only ONE plush bunny toy, child is fully human, child has a gentle natural closed-mouth smile."
+                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: Reproduce EXACTLY the {gender_word} ({age_display}) from @image1 — same face, same skin tone, same hair color, same eye color. WEARING: Plain soft white onesie. ACTION: Baby sitting on a soft fluffy white blanket, gentle warm natural closed-mouth smile, lips softly together, happy content expression, holding NUBE (white bunny plush toy, long floppy ears with soft pink inner lining, tiny pink nose, black button eyes) in arms. Colorful soap bubbles and magical sparkles float all around them. SETTING: Joyful nursery WIDE VIEW, warm golden sunlight through window, pastel pink walls with soft cloud decorations, cream furniture, floating hearts and stars. ATMOSPHERE: Pure joy and magic, celebration of life, warm golden glow. STRICT: Only ONE baby, only ONE NUBE plush bunny. Baby is fully human, baby has a gentle natural closed-mouth smile.",
+                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: Reproduce EXACTLY the {gender_word} ({age_display}) from @image1 — same face, same skin tone, same hair color, same eye color. WEARING: Plain soft white onesie. ACTION: Toddler standing in the nursery, gentle warm natural closed-mouth smile, lips softly together, happy content expression, holding NUBE (white bunny plush toy, long floppy ears with soft pink inner lining, tiny pink nose, black button eyes) in arms against chest. Colorful soap bubbles and magical sparkles float all around them. SETTING: Joyful nursery WIDE VIEW, warm golden sunlight through window, pastel pink walls with soft cloud decorations, cream furniture, floating hearts and stars. ATMOSPHERE: Pure joy and magic, celebration of life, warm golden glow. STRICT: Only ONE toddler, only ONE NUBE plush bunny. Child is fully human, child has a gentle natural closed-mouth smile."
             },
             {
                 "text_es": "Mira cómo brillas.\nCon cada sonrisa.\nCon cada mirada.\nEres pura magia.",
                 "text_en": "Look how you shine.\nWith every smile.\nWith every glance.\nYou are pure magic.",
-                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME baby from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate infant features, natural infant proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Baby sitting on a soft fluffy white blanket, wonder-filled eyes, gentle amazed expression, tiny hands reaching toward floating magical butterflies made of soft light. A small soft fluffy white bunny plush toy with long floppy ears sits on the blanket beside baby. SETTING: Enchanted nursery WIDE VIEW, rainbow light through window creating soft prisms, pastel pink walls, magical butterflies and sparkles in the air, cream furniture. ATMOSPHERE: Pure magic and wonder, rainbow prisms, ethereal butterflies. STRICT: Maintain same face and features as reference. Only ONE baby, only ONE plush bunny toy, baby is fully human.",
-                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME toddler from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate toddler features, natural proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Toddler standing in the nursery, wonder-filled eyes, gentle amazed expression, small hands reaching up toward floating magical butterflies made of soft light. A small soft fluffy white bunny plush toy with long floppy ears sits on the floor beside the child. SETTING: Enchanted nursery WIDE VIEW, rainbow light through window creating soft prisms, pastel pink walls, magical butterflies and sparkles in the air, cream furniture. ATMOSPHERE: Pure magic and wonder, rainbow prisms, ethereal butterflies. STRICT: Maintain same face and features as reference. Only ONE toddler, only ONE plush bunny toy, child is fully human."
+                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: Reproduce EXACTLY the {gender_word} ({age_display}) from @image1 — same face, same skin tone, same hair color, same eye color. WEARING: Plain soft white onesie. ACTION: Baby sitting on a soft fluffy white blanket, wonder-filled eyes, gentle amazed expression, tiny hands reaching toward floating magical butterflies made of soft light. A small soft fluffy white bunny plush toy with long floppy ears sits on the blanket beside baby. SETTING: Enchanted nursery WIDE VIEW, rainbow light through window creating soft prisms, pastel pink walls, magical butterflies and sparkles in the air, cream furniture. ATMOSPHERE: Pure magic and wonder, rainbow prisms, ethereal butterflies. STRICT: Only ONE baby, only ONE NUBE plush bunny. Baby is fully human.",
+                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: Reproduce EXACTLY the {gender_word} ({age_display}) from @image1 — same face, same skin tone, same hair color, same eye color. WEARING: Plain soft white onesie. ACTION: Toddler standing in the nursery, wonder-filled eyes, gentle amazed expression, small hands reaching up toward floating magical butterflies made of soft light. A small soft fluffy white bunny plush toy with long floppy ears sits on the floor beside the child. SETTING: Enchanted nursery WIDE VIEW, rainbow light through window creating soft prisms, pastel pink walls, magical butterflies and sparkles in the air, cream furniture. ATMOSPHERE: Pure magic and wonder, rainbow prisms, ethereal butterflies. STRICT: Only ONE toddler, only ONE NUBE plush bunny. Child is fully human."
             },
             {
                 "text_es": "Sales al jardín.\nTocas una flor.\nHueles la brisa.\nEl mundo es enorme.",
                 "text_en": "You go to the garden.\nYou touch a flower.\nYou smell the breeze.\nThe world is enormous.",
-                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME baby from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate infant features, natural infant proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Baby sitting on soft green grass in a sunny garden, gentle curious smile, tiny hands reaching toward a bright pink flower. A small soft fluffy white bunny plush toy with long floppy ears sits on the grass beside baby. SETTING: Lush garden WIDE VIEW, colorful flowers blooming around, butterflies gently floating, blue sky with fluffy white clouds, warm golden sunlight, green leaves and soft petals in the air. ATMOSPHERE: Discovery of nature, wonder and innocence, warm outdoor light. STRICT: Maintain same face and features as reference. Only ONE baby, only ONE plush bunny toy, baby is fully human.",
-                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME toddler from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate toddler features, natural proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Toddler standing on soft green grass in a sunny garden, gentle curious smile, bending down slightly to touch a bright pink flower with small hands. A small soft fluffy white bunny plush toy with long floppy ears sits on the grass beside the child. SETTING: Lush garden WIDE VIEW, colorful flowers blooming around, butterflies gently floating, blue sky with fluffy white clouds, warm golden sunlight, green leaves and soft petals in the air. ATMOSPHERE: Discovery of nature, wonder and innocence, warm outdoor light. STRICT: Maintain same face and features as reference. Only ONE toddler, only ONE plush bunny toy, child is fully human."
+                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: Reproduce EXACTLY the {gender_word} ({age_display}) from @image1 — same face, same skin tone, same hair color, same eye color. WEARING: Plain soft white onesie. ACTION: Baby sitting on soft green grass in a sunny garden, gentle curious smile, tiny hands reaching toward a bright pink flower. A small soft fluffy white bunny plush toy with long floppy ears sits on the grass beside baby. SETTING: Lush garden WIDE VIEW, colorful flowers blooming around, butterflies gently floating, blue sky with fluffy white clouds, warm golden sunlight, green leaves and soft petals in the air. ATMOSPHERE: Discovery of nature, wonder and innocence, warm outdoor light. STRICT: Only ONE baby, only ONE NUBE plush bunny. Baby is fully human.",
+                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: Reproduce EXACTLY the {gender_word} ({age_display}) from @image1 — same face, same skin tone, same hair color, same eye color. WEARING: Plain soft white onesie. ACTION: Toddler standing on soft green grass in a sunny garden, gentle curious smile, bending down slightly to touch a bright pink flower with small hands. A small soft fluffy white bunny plush toy with long floppy ears sits on the grass beside the child. SETTING: Lush garden WIDE VIEW, colorful flowers blooming around, butterflies gently floating, blue sky with fluffy white clouds, warm golden sunlight, green leaves and soft petals in the air. ATMOSPHERE: Discovery of nature, wonder and innocence, warm outdoor light. STRICT: Only ONE toddler, only ONE NUBE plush bunny. Child is fully human."
             },
             {
                 "text_es": "Es hora de descansar.\nEl día fue bonito.\nCierra los ojos, {name}.\nTe queremos.",
                 "text_en": "Time to rest now.\nThe day was beautiful.\nClose your eyes, {name}.\nWe love you.",
-                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME baby from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate infant features, natural infant proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Baby lying in a classic white wooden crib, eyes completely closed in deep peaceful sleep, covered with cream-colored soft blankets. NUBE, a white bunny plush toy with long floppy ears and soft pink inner lining, tiny pink nose and black button eyes, rests beside baby in the crib. SETTING: Peaceful bedtime nursery WIDE VIEW, gentle silver moonlight through white curtains, soft lavender and cream tones, tiny stars twinkling outside window, soft night light glowing, mobile with stars above crib. ATMOSPHERE: Serene peaceful moonlit calm, dreamy bedtime. STRICT: Maintain same face and features as reference. Only ONE baby, only ONE plush bunny toy, baby is fully human.",
-                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME toddler from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate toddler features, natural proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Toddler lying in a cozy toddler bed, eyes completely closed in deep peaceful sleep, covered with cream-colored soft blankets. NUBE, a white bunny plush toy with long floppy ears and soft pink inner lining, tiny pink nose and black button eyes, rests beside the child in bed. SETTING: Peaceful bedtime nursery WIDE VIEW, gentle silver moonlight through white curtains, soft lavender and cream tones, tiny stars twinkling outside window, soft night light glowing. ATMOSPHERE: Serene peaceful moonlit calm, dreamy bedtime. STRICT: Maintain same face and features as reference. Only ONE toddler, only ONE plush bunny toy, child is fully human."
+                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: Reproduce EXACTLY the {gender_word} ({age_display}) from @image1 — same face, same skin tone, same hair color, same eye color. WEARING: Plain soft white onesie. ACTION: Baby lying in a classic white wooden crib, eyes completely closed in deep peaceful sleep, covered with cream-colored soft blankets. NUBE, a white bunny plush toy with long floppy ears and soft pink inner lining, tiny pink nose and black button eyes, rests beside baby in the crib. SETTING: Peaceful bedtime nursery WIDE VIEW, gentle silver moonlight through white curtains, soft lavender and cream tones, tiny stars twinkling outside window, soft night light glowing, mobile with stars above crib. ATMOSPHERE: Serene peaceful moonlit calm, dreamy bedtime. STRICT: Only ONE baby, only ONE NUBE plush bunny. Baby is fully human.",
+                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: Reproduce EXACTLY the {gender_word} ({age_display}) from @image1 — same face, same skin tone, same hair color, same eye color. WEARING: Plain soft white onesie. ACTION: Toddler lying in a cozy toddler bed, eyes completely closed in deep peaceful sleep, covered with cream-colored soft blankets. NUBE, a white bunny plush toy with long floppy ears and soft pink inner lining, tiny pink nose and black button eyes, rests beside the child in bed. SETTING: Peaceful bedtime nursery WIDE VIEW, gentle silver moonlight through white curtains, soft lavender and cream tones, tiny stars twinkling outside window, soft night light glowing. ATMOSPHERE: Serene peaceful moonlit calm, dreamy bedtime. STRICT: Only ONE toddler, only ONE NUBE plush bunny. Child is fully human."
             }
         ],
     },
@@ -239,50 +239,50 @@ STORIES = {
             {
                 "text_es": "Una pequeña luz aparece.\nViene para cuidarte, mi tesoro.\nBrilla suave.",
                 "text_en": "A small light appears.\nIt comes to watch over you, my treasure.\nIt glows softly.",
-                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME baby from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate infant features, natural infant proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie with diaper visible. ACTION: Baby sitting on a soft pastel nursery floor, looking up with wonder as a round warm glowing golden orb appears floating gently in the room, casting a warm soft glow. Soft plush toys scattered nearby. SETTING: Cozy nursery WIDE VIEW, soft evening light, lavender and cream walls, cream-colored furniture, gentle sparkles emanating from the glowing orb. ATMOSPHERE: Warm magical love and protection, soft golden glow. STRICT: Maintain same face and features as reference. Only ONE baby, baby is fully human, glowing orb is a featureless plain sphere of warm light only.",
-                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME toddler from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate toddler features, natural proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Toddler standing on the soft pastel nursery floor, looking up with wonder as a round warm glowing golden orb appears floating gently in the room, casting a warm soft glow. Soft plush toys scattered nearby. SETTING: Cozy nursery WIDE VIEW, soft evening light, lavender and cream walls, cream-colored furniture, gentle sparkles emanating from the glowing orb. ATMOSPHERE: Warm magical love and protection, soft golden glow. STRICT: Maintain same face and features as reference. Only ONE toddler, child is fully human, glowing orb is a featureless plain sphere of warm light only."
+                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME baby from the reference — {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate infant features. WEARING: Plain soft white onesie. ACTION: Baby lying flat on back on a fluffy white blanket on the nursery floor, tiny arms raised up toward {guardian_light_desc} that hovers gently above, eyes wide with wonder, tiny fingers reaching upward. SETTING: Cozy nursery WIDE VIEW, soft evening light, lavender and cream walls, cream crib visible in background, gentle golden sparkles raining softly from the glowing orb. ATMOSPHERE: First magical moment of wonder and protection, warm golden light. STRICT: Maintain same face and features as reference. Only ONE baby, baby is fully human, glowing orb is a featureless plain sphere of warm light only.",
+                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME toddler from the reference — {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate toddler features. WEARING: Plain soft white romper. ACTION: Toddler standing in the nursery, both arms raised high and wide, looking up with big wonder-filled eyes at {guardian_light_desc} that floats just above reach, mouth open in delighted surprise. SETTING: Cozy nursery WIDE VIEW, soft evening light, lavender and cream walls, cream crib visible in background, gentle golden sparkles raining softly from the glowing orb. ATMOSPHERE: First magical moment of wonder and protection, warm golden light. STRICT: Maintain same face and features as reference. Only ONE toddler, child is fully human, glowing orb is a featureless plain sphere of warm light only."
             },
             {
                 "text_es": "La luz se mueve despacio.\nNo hace ruido.\nTodo es calma.",
                 "text_en": "The light moves slowly.\nIt makes no sound.\nAll is calm.",
-                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME baby from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate infant features, natural infant proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Baby sitting on a soft blanket, watching peacefully as a round warm glowing golden orb floats slowly and gracefully through the room, leaving a soft trail of golden sparkles behind. SETTING: Peaceful nursery WIDE VIEW, serene atmosphere, soft lavender and cream tones, plush toys on floor, everything bathed in gentle warm glow. ATMOSPHERE: Tranquil magical calm, serene golden warmth. STRICT: Maintain same face and features as reference. Only ONE baby, baby is fully human, glowing orb is a plain smooth sphere of light.",
-                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME toddler from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate toddler features, natural proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Toddler standing in the nursery, watching peacefully as a round warm glowing golden orb floats slowly and gracefully through the room, leaving a soft trail of golden sparkles behind. SETTING: Peaceful nursery WIDE VIEW, serene atmosphere, soft lavender and cream tones, plush toys on floor, everything bathed in gentle warm glow. ATMOSPHERE: Tranquil magical calm, serene golden warmth. STRICT: Maintain same face and features as reference. Only ONE toddler, child is fully human, glowing orb is a plain smooth sphere of light."
+                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME baby from the reference — {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate infant features. WEARING: Soft pale yellow cotton onesie. ACTION: Baby lying on tummy on a soft blanket (tummy time), head lifted with calm fascinated expression, watching {guardian_light_desc} drift slowly and gracefully across the room, leaving a trail of soft golden sparkles. Tiny fists pressed on blanket. SETTING: Peaceful nursery WIDE VIEW, serene soft lavender and cream tones, plush toys at baby's side, golden sparkle trail looping across the air. ATMOSPHERE: Tranquil magical calm, serene golden warmth. STRICT: Maintain same face and features as reference. Only ONE baby, baby is fully human, glowing orb is a plain smooth sphere of light.",
+                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME toddler from the reference — {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate toddler features. WEARING: Soft pale yellow cotton romper. ACTION: Toddler toddling slowly across the nursery floor, arms slightly out for balance, following {guardian_light_desc} that drifts gracefully ahead leaving a trail of golden sparkles, mouth curved in a calm peaceful smile. SETTING: Peaceful nursery WIDE VIEW, serene soft lavender and cream tones, plush toys scattered, golden sparkle trail ahead. ATMOSPHERE: Tranquil magical calm, serene golden warmth. STRICT: Maintain same face and features as reference. Only ONE toddler, child is fully human, glowing orb is a plain smooth sphere of light."
             },
             {
                 "text_es": "A la luz le encanta verte reír.\nTe observa con ternura.\nTodo es amor.",
                 "text_en": "The light loves to see you laugh.\nIt watches you tenderly.\nAll is love.",
-                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME baby from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate infant features, natural infant proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Baby sitting on a soft blanket, joyful happy expression, while a round warm glowing golden orb floats nearby, glowing brighter with warmth, pulsing gently as if responding to baby's joy. SETTING: Joyful nursery WIDE VIEW, warm golden light filling the room, soft toys around, floating hearts and sparkles. ATMOSPHERE: Pure love and happiness, responsive magical glow. STRICT: Maintain same face and features as reference. Only ONE baby, baby is fully human, glowing orb is a plain smooth sphere of light.",
-                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME toddler from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate toddler features, natural proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Toddler standing in the nursery, joyful happy expression, while a round warm glowing golden orb floats nearby, glowing brighter with warmth, pulsing gently as if responding to child's joy. SETTING: Joyful nursery WIDE VIEW, warm golden light filling the room, soft toys around, floating hearts and sparkles. ATMOSPHERE: Pure love and happiness, responsive magical glow. STRICT: Maintain same face and features as reference. Only ONE toddler, child is fully human, glowing orb is a plain smooth sphere of light."
+                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME baby from the reference — {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate infant features. WEARING: Soft lavender long-sleeve onesie. ACTION: Baby sitting upright on a soft blanket, laughing with pure joy, both tiny arms clapping together, head tilted back in delight, while {guardian_light_desc} hovers close and pulses brighter with each laugh, sending tiny golden hearts floating upward. SETTING: Joyful nursery WIDE VIEW, warm golden light filling the room, soft plush toys around, floating sparkles and tiny pink hearts drifting in the air. ATMOSPHERE: Pure love and happiness, light responding to baby's joy. STRICT: Maintain same face and features as reference. Only ONE baby, baby is fully human, glowing orb is a plain smooth sphere of light.",
+                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME toddler from the reference — {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate toddler features. WEARING: Soft lavender playsuit. ACTION: Toddler jumping with both feet off the ground, arms spread wide, laughing with pure joy, while {guardian_light_desc} hovers nearby and pulses brighter, sending tiny golden hearts floating upward. SETTING: Joyful nursery WIDE VIEW, warm golden light filling the room, soft plush toys around, floating sparkles and tiny pink hearts drifting in the air. ATMOSPHERE: Pure love and happiness, light responding to child's joy. STRICT: Maintain same face and features as reference. Only ONE toddler, child is fully human, glowing orb is a plain smooth sphere of light."
             },
             {
                 "text_es": "La luz mira a {name}.\nTe cuida mientras juegas.\nSiempre está cerca.",
                 "text_en": "The light watches {name}.\nIt cares for you while you play.\nIt's always near.",
-                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME baby from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate infant features, natural infant proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Baby sitting on soft nursery floor, playful expression, playing with soft colorful toys, while a round warm glowing golden orb floats protectively nearby, casting a warm protective glow over baby. SETTING: Playful nursery WIDE VIEW, cheerful afternoon light, pastel colors, various plush toys scattered, magical sparkles around the glowing orb, warm golden sunlight through window. ATMOSPHERE: Sweet protective warmth, playful guardian energy. STRICT: Maintain same face and features as reference. Only ONE baby, baby is fully human, glowing orb is a plain smooth sphere of warm light.",
-                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME toddler from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate toddler features, natural proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Toddler standing in the nursery, playful expression, reaching toward soft colorful toys, while a round warm glowing golden orb floats protectively nearby, casting a warm protective glow over child. SETTING: Playful nursery WIDE VIEW, cheerful afternoon light, pastel colors, various plush toys scattered, magical sparkles around the glowing orb, warm golden sunlight through window. ATMOSPHERE: Sweet protective warmth, playful guardian energy. STRICT: Maintain same face and features as reference. Only ONE toddler, child is fully human, glowing orb is a plain smooth sphere of warm light."
+                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME baby from the reference — {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate infant features. WEARING: Mint green snap onesie. ACTION: Baby crawling energetically across a soft play mat on all fours, reaching toward a colorful soft toy just ahead, while {guardian_light_desc} floats gently above following baby's path and casting a warm protective golden light. Cheerful focused expression. SETTING: Playful nursery WIDE VIEW, cheerful afternoon sunlight through window, pastel play mat, various soft toys scattered around, golden sparkles drifting from the orb above. ATMOSPHERE: Sweet protective warmth, playful guardian energy. STRICT: Maintain same face and features as reference. Only ONE baby, baby is fully human, glowing orb is a plain smooth sphere of warm light.",
+                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME toddler from the reference — {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate toddler features. WEARING: Mint green cotton playsuit. ACTION: Toddler crouching down low on the floor, focused expression, stacking soft colorful blocks with both hands, while {guardian_light_desc} floats gently above and to the side, casting a warm protective golden light over the play. SETTING: Playful nursery WIDE VIEW, cheerful afternoon sunlight through window, pastel play mat, colorful soft toys and blocks scattered around, golden sparkles from the orb. ATMOSPHERE: Sweet protective warmth, playful guardian energy. STRICT: Maintain same face and features as reference. Only ONE toddler, child is fully human, glowing orb is a plain smooth sphere of warm light."
             },
             {
                 "text_es": "Esa luz cuida y protege.\nTodo está bien.\nNada te falta.",
                 "text_en": "That light cares and protects.\nAll is well.\nYou need nothing more.",
-                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME baby from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate infant features, natural infant proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Baby sitting contentedly on a soft blanket, peaceful serene expression, with a round warm glowing golden orb nearby creating a soft warm halo of protection around baby, the orb glowing steadily and emanating peace and security. SETTING: Protected nursery WIDE VIEW, soft warm light, lavender and gold tones, floating sparkles forming a gentle protective circle around baby. ATMOSPHERE: Serene complete safety and love, warm protective halo. STRICT: Maintain same face and features as reference. Only ONE baby, baby is fully human, glowing orb is a plain smooth sphere of light.",
-                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME toddler from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate toddler features, natural proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Toddler standing contentedly in the nursery, peaceful serene expression, with a round warm glowing golden orb nearby creating a soft warm halo of protection around child, the orb glowing steadily and emanating peace and security. SETTING: Protected nursery WIDE VIEW, soft warm light, lavender and gold tones, floating sparkles forming a gentle protective circle around child. ATMOSPHERE: Serene complete safety and love, warm protective halo. STRICT: Maintain same face and features as reference. Only ONE toddler, child is fully human, glowing orb is a plain smooth sphere of light."
+                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME baby from the reference — {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate infant features. WEARING: Cozy cream knit onesie. ACTION: Baby lying on back inside the cozy white crib, looking up with peaceful serene expression, tiny hands resting open on the mattress, while {guardian_light_desc} floats above the crib creating a gentle dome of golden sparkles around baby. SETTING: Protected nursery WIDE VIEW, soft lavender and gold tones, cream crib with soft blankets, gentle sparkles forming a glowing protective circle above the crib. ATMOSPHERE: Complete safety and love, warm golden protective halo. STRICT: Maintain same face and features as reference. Only ONE baby, baby is fully human, glowing orb is a plain smooth sphere of light.",
+                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME toddler from the reference — {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate toddler features. WEARING: Cozy cream knit romper. ACTION: Toddler sitting cross-legged on a soft play mat, eyes closed, hands resting open on knees, a calm blissful expression, while {guardian_light_desc} orbits slowly around the child creating a gentle halo of golden sparkles. SETTING: Protected nursery WIDE VIEW, soft lavender and gold tones, cream furniture, gentle sparkles forming a glowing protective circle around the child. ATMOSPHERE: Complete safety and love, warm golden protective halo. STRICT: Maintain same face and features as reference. Only ONE toddler, child is fully human, glowing orb is a plain smooth sphere of light."
             },
             {
                 "text_es": "La luz baila con las estrellas.\n{name} mira el cielo.\nTodo brilla con amor.",
                 "text_en": "The light dances with the stars.\n{name} looks at the sky.\nEverything shines with love.",
-                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME baby from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate infant features, natural infant proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Baby sitting on a soft blanket by a nursery window at night, gentle expression with lips softly closed, looking up at the night sky with soft wonder. A tiny smooth plain round glowing ball of pure warm golden light floats outside the window among stars, dancing gracefully and creating trails of golden sparkles. SETTING: Magical night sky visible through window WIDE VIEW, stars twinkling, golden trails of light, soft lavender and cream nursery tones. ATMOSPHERE: Magical starlight dance, wonder and love. STRICT: Maintain same face and features as reference. Only ONE baby, baby is fully human, baby has a gentle closed-mouth expression, glowing orb is a plain smooth sphere of light.",
-                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME toddler from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate toddler features, natural proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Toddler standing by a nursery window at night, gentle expression with lips softly closed, looking up at the night sky with soft wonder. A tiny smooth plain round glowing ball of pure warm golden light floats outside the window among stars, dancing gracefully and creating trails of golden sparkles. SETTING: Magical night sky visible through window WIDE VIEW, stars twinkling, golden trails of light, soft lavender and cream nursery tones. ATMOSPHERE: Magical starlight dance, wonder and love. STRICT: Maintain same face and features as reference. Only ONE toddler, child is fully human, child has a gentle closed-mouth expression, glowing orb is a plain smooth sphere of light."
+                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME baby from the reference — {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate infant features. WEARING: Soft pale blue onesie. ACTION: Baby standing inside the crib gripping the crib rail with both tiny hands, face pressed slightly forward, gazing out the nursery window at the night sky with mouth slightly open in awe, while {guardian_light_desc} dances among the stars outside the window, trailing golden sparkles through the night. SETTING: Magical night sky visible through window WIDE VIEW, stars twinkling, golden sparkle trails dancing outside, soft lavender nursery lit by star glow and orb light. ATMOSPHERE: Magical starlight dance, wonder and love. STRICT: Maintain same face and features as reference. Only ONE baby, baby is fully human, glowing orb is a plain smooth sphere of light.",
+                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME toddler from the reference — {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate toddler features. WEARING: Soft pale blue pajama set. ACTION: Toddler standing on tiptoe at the nursery window, tiny hands pressed flat against the glass, nose close to the pane, gazing out with wide eyes full of wonder at the night sky while {guardian_light_desc} dances among the stars outside, trailing golden sparkles. SETTING: Magical night sky visible through window WIDE VIEW, stars twinkling, golden sparkle trails dancing outside, soft lavender nursery lit by starlight and orb glow. ATMOSPHERE: Magical starlight dance, wonder and love. STRICT: Maintain same face and features as reference. Only ONE toddler, child is fully human, glowing orb is a plain smooth sphere of light."
             },
             {
                 "text_es": "La luz se acerca despacio.\nSe posa a tu lado.\nSuave, tranquila.\nYa casi es hora de dormir.",
                 "text_en": "The light comes closer slowly.\nIt settles beside you.\nSoft and calm.\nIt's almost time to sleep.",
-                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME baby from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate infant features, natural infant proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Baby sitting on a soft blanket, peaceful serene expression, while a round warm glowing golden orb floats very close beside baby at eye level, glowing gently dimmer like a soft nightlight. SETTING: Peaceful nursery WIDE VIEW, soft evening light dimming, lavender and cream tones, calm atmosphere, gentle sparkles. ATMOSPHERE: Peaceful nighttime transition, gentle calming glow. STRICT: Maintain same face and features as reference. Only ONE baby, baby is fully human, glowing orb is a plain smooth sphere of light.",
-                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME toddler from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate toddler features, natural proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Toddler sitting on the edge of a toddler bed, peaceful serene expression, while a round warm glowing golden orb floats very close beside child at eye level, glowing gently dimmer like a soft nightlight. SETTING: Peaceful nursery WIDE VIEW, soft evening light dimming, lavender and cream tones, calm atmosphere, gentle sparkles. ATMOSPHERE: Peaceful nighttime transition, gentle calming glow. STRICT: Maintain same face and features as reference. Only ONE toddler, child is fully human, glowing orb is a plain smooth sphere of light."
+                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME baby from the reference — {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate infant features. WEARING: Soft pink zip-up sleeper. ACTION: Baby lying on back on a soft cream blanket on the nursery floor, eyes drooping with sleepiness, yawning with tiny mouth wide open, small arms and legs relaxed, while {guardian_light_desc} descends slowly and settles beside baby at floor level, glowing very softly like a nightlight. SETTING: Peaceful nursery WIDE VIEW, soft evening light dimming to dusk, lavender and cream tones, calm serene atmosphere, orb casting a soft dim halo. ATMOSPHERE: Peaceful drowsy bedtime, gentle calming glow, everything slowing down. STRICT: Maintain same face and features as reference. Only ONE baby, baby is fully human, glowing orb is a plain smooth sphere of light.",
+                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME toddler from the reference — {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate toddler features. WEARING: Soft pink zip-up pajamas. ACTION: Toddler lying on side on a soft toddler bed, eyes half-closed with sleepiness, one arm curled under a small pillow, peaceful drowsy expression, while {guardian_light_desc} descends slowly beside the bed and settles at pillow height, glowing very softly like a nightlight. SETTING: Peaceful nursery WIDE VIEW, soft evening light dimming to dusk, lavender and cream tones, calm atmosphere, soft golden halo from the orb. ATMOSPHERE: Peaceful drowsy bedtime, gentle calming glow. STRICT: Maintain same face and features as reference. Only ONE toddler, child is fully human, glowing orb is a plain smooth sphere of light."
             },
             {
                 "text_es": "Es hora de descansar.\nLa luz cuida tu sueño.\nCierra los ojos, {name}.\nTe queremos.",
                 "text_en": "Time to rest now.\nThe light watches over your dreams.\nClose your eyes, {name}.\nWe love you.",
-                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME baby from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate infant features, natural infant proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Baby peacefully sleeping in a cozy crib, eyes gently closed, covered with cloud-soft blanket. A tiny smooth plain round glowing ball of pure warm golden light floats softly beside baby like a gentle nightlight, glowing with warmth and love. SETTING: Peaceful nursery WIDE VIEW, gentle moonlight through window, soft lavender and cream tones, tiny stars twinkling outside, the glowing orb casting a warm protective glow. ATMOSPHERE: Serene eternal love and protection, moonlit dreamtime. STRICT: Maintain same face and features as reference. Only ONE baby, baby is fully human, glowing orb is a plain smooth sphere of light.",
-                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME toddler from the reference — {gender_word} ({age_display}), {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate toddler features, natural proportions, large smooth forehead, small delicate ears, tiny rounded nose. WEARING: Plain soft white onesie. ACTION: Toddler peacefully sleeping in a cozy toddler bed, eyes gently closed, covered with cloud-soft blanket. A tiny smooth plain round glowing ball of pure warm golden light floats softly beside child like a gentle nightlight, glowing with warmth and love. SETTING: Peaceful nursery WIDE VIEW, gentle moonlight through window, soft lavender and cream tones, tiny stars twinkling outside, the glowing orb casting a warm protective glow. ATMOSPHERE: Serene eternal love and protection, moonlit dreamtime. STRICT: Maintain same face and features as reference. Only ONE toddler, child is fully human, glowing orb is a plain smooth sphere of light."
+                "scene_template": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME baby from the reference — {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate infant features. WEARING: Cozy cream fleece sleep sack. ACTION: Baby peacefully sleeping in a cozy white crib, eyes completely closed, tiny lips softly parted, covered with a soft cream blanket tucked gently around small shoulders, one tiny fist resting near cheek. {guardian_light_desc} hovers beside the crib casting a soft gentle protective glow over baby's sleeping face. SETTING: Dreamy nursery WIDE VIEW, gentle silver moonlight through white curtains, soft lavender and cream tones, tiny stars twinkling outside, the golden orb glowing warmly beside the crib. ATMOSPHERE: Serene eternal love and protection, moonlit dreamtime. STRICT: Maintain same face and features as reference. Only ONE baby, baby is fully human, glowing orb is a plain smooth sphere of light.",
+                "scene_template_toddler": "Soft luxury digital illustration, fine art children's book style, premium baby memory book. CHARACTER: The EXACT SAME toddler from the reference — {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, softly rounded cheeks, delicate toddler features. WEARING: Cozy cream fleece pajamas. ACTION: Toddler peacefully sleeping curled on side in a cozy toddler bed, eyes completely closed, cheek resting on a soft pillow, covered with a cloud-soft cream blanket, small hands tucked together under the pillow. {guardian_light_desc} hovers beside the bed casting a soft protective glow over the sleeping child. SETTING: Dreamy nursery WIDE VIEW, gentle silver moonlight through white curtains, soft lavender and cream tones, tiny stars twinkling outside, the golden orb glowing warmly. ATMOSPHERE: Serene eternal love and protection, moonlit dreamtime. STRICT: Maintain same face and features as reference. Only ONE toddler, child is fully human, glowing orb is a plain smooth sphere of light."
             }
         ],
     },
@@ -2499,37 +2499,90 @@ def get_cover_prompt(story_id: str, child_name: str, gender: str, traits: dict) 
 
 
 def adapt_baby_pose_for_age(prompt: str, child_age: int) -> str:
-    """Adapt baby poses in prompts based on child's age (child_age is NOW IN MONTHS for baby stories).
-    - 1-3 months:  lying flat on back, cannot sit or lift head
-    - 4-7 months:  lying or propped sitting with support, cannot sit alone
-    - 8-12 months: sitting supported or crawling, cannot stand
-    - 12-18 months: sitting or standing unsteadily, first steps
-    - 18-24 months: walking confidently, standing
+    """Adapt baby poses in prompts based on child's age (child_age in MONTHS for baby stories).
+
+    Motor development milestones used:
+    0-3 months : lying flat on back only. No tummy time, no sitting, no crawling, no standing.
+    4-5 months : lying on back OR tummy time (head lifted). No sitting alone, no crawling, no standing.
+    6-7 months : sitting propped with support OR gripping crib rail to stand (6m+). No independent crawling.
+    8-11 months: sitting unsupported, crawling, pulling to stand gripping furniture. No walking.
+    12+ months : toddler templates handle this range.
+
+    Strategy: replace incompatible action phrases INSIDE the ACTION section directly,
+    then append a short age constraint note.
     """
+    import re as _ra
+
+    def _in_action(p, old_pat, new_str, flags=_ra.IGNORECASE | _ra.DOTALL):
+        """Replace old_pat only inside the ACTION: ... SETTING: (or end) block."""
+        def _sub(m):
+            return 'ACTION:' + _ra.sub(old_pat, new_str, m.group(1), flags=flags, count=1)
+        return _ra.sub(r'ACTION:(.*?)(?=SETTING:|ATMOSPHERE:|STRICT:|$)', _sub, p, flags=_ra.DOTALL)
+
     if child_age <= 3:
-        prompt += (
-            " AGE GUIDANCE: This is a newborn 1-3 month old baby. "
-            "Keep baby lying flat on back on a soft blanket, tiny arms and legs relaxed. "
-            "A very young newborn — cannot sit, cannot hold head up. Natural newborn position only."
-        )
+        # 0-3 months: lying flat on back only
+        prompt = _in_action(prompt,
+            r'crawling\s+\w+\s+across[^,\.]*',
+            'lying flat on their back on a soft blanket, tiny arms relaxed at sides')
+        prompt = _in_action(prompt,
+            r'crawling[^,\.]*',
+            'lying flat on their back')
+        prompt = _in_action(prompt,
+            r'standing inside the crib gripping the crib rail[^,\.]*',
+            'lying in the crib on their back, gazing upward')
+        prompt = _in_action(prompt,
+            r'sitting upright[^,\.]*',
+            'lying flat on their back')
+        prompt = _in_action(prompt,
+            r'sitting[^,\.]*clapping[^,\.]*',
+            'lying on their back, tiny arms and legs moving gently')
+        prompt += (" AGE: 0-3 month newborn — lying flat on back only, "
+                   "cannot sit, crawl, or stand.")
+
+    elif child_age <= 5:
+        # 4-5 months: lying or tummy time. No sitting alone, crawling, or standing.
+        prompt = _in_action(prompt,
+            r'crawling energetically across[^,\.]*',
+            'lying on tummy (tummy time), head lifted with effort, reaching forward with tiny outstretched arms')
+        prompt = _in_action(prompt,
+            r'crawling[^,\.]*',
+            'lying on tummy with head lifted')
+        prompt = _in_action(prompt,
+            r'standing inside the crib gripping the crib rail[^,\.]*',
+            'lying in the crib on their back looking up through the crib bars')
+        prompt = _in_action(prompt,
+            r'sitting upright[^,\.]*clapping[^,\.]*',
+            'lying on their back, tiny arms waving happily')
+        prompt += (" AGE: 4-5 month infant — tummy time or lying on back, "
+                   "cannot crawl, sit alone, or stand.")
+
     elif child_age <= 7:
-        prompt += (
-            " AGE GUIDANCE: This is a 4-7 month old infant. "
-            "Keep baby lying on a soft surface or propped sitting with full support. "
-            "Cannot sit alone. Natural infant position."
-        )
-    elif child_age <= 12:
-        prompt += (
-            " AGE GUIDANCE: This is an 8-12 month old baby. "
-            "Keep baby sitting supported or crawling on all fours — cannot stand or walk yet."
-        )
+        # 6-7 months: sitting with support, may grip crib rail to stand (6m+). No independent crawling.
+        prompt = _in_action(prompt,
+            r'crawling energetically across[^,\.]*',
+            'sitting propped on the soft play mat, reaching forward with both hands outstretched')
+        prompt = _in_action(prompt,
+            r'crawling[^,\.]*',
+            'sitting with gentle support')
+        # Standing gripping rail IS valid at 6-7 months — no replacement needed
+        prompt += (" AGE: 6-7 month infant — sitting with support or gripping rail to stand; "
+                   "not yet crawling independently.")
+
+    elif child_age <= 11:
+        # 8-11 months: crawling and pulling to stand are fine. No walking.
+        prompt = _in_action(prompt,
+            r'walking independently[^,\.]*',
+            'crawling energetically')
+        prompt += (" AGE: 8-11 month baby — crawling and pulling to stand on furniture; "
+                   "not yet walking independently.")
+
     return prompt
 
 
 def enforce_gender_clothing(prompt: str, gender: str) -> str:
-    # If the prompt already has an OUTFIT block, use only a light gender reminder
+    # If the prompt already has an OUTFIT or WEARING block, use only a light gender reminder
     # so we don't override the scene's specific clothing description
-    has_outfit = 'OUTFIT:' in prompt
+    has_outfit = 'OUTFIT:' in prompt or 'WEARING:' in prompt
     if gender == 'male':
         if has_outfit:
             rule = " Only ONE boy character."
@@ -2547,6 +2600,102 @@ def enforce_gender_clothing(prompt: str, gender: str) -> str:
     else:
         prompt += rule
     return prompt
+
+
+def _simplify_baby_reference_prompt(prompt: str) -> str:
+    """For baby stories with FLUX 2 Dev reference-based generation, slim down the prompt
+    without losing the character and clothing anchors FLUX needs for scene consistency.
+
+    What we KEEP (essential for consistency):
+    - CHARACTER: slimmed to key traits only — gender, age, hair color, skin tone.
+      Without this FLUX generates different skin/hair each scene even with a reference.
+    - WEARING: always "Plain soft white onesie." — without it enforce_gender_clothing
+      injects "dress, skirt, bow" for girls and breaks the onesie look.
+    - ACTION, SETTING, ATMOSPHERE: unchanged (these are the per-scene variation).
+
+    What we REMOVE (long anatomy list that adds noise without helping the model):
+    - Physical features: "softly rounded cheeks, delicate infant features, large smooth
+      forehead, small delicate ears, tiny rounded nose, natural infant proportions".
+    - "Maintain same face and features as reference." (already said in reference_note).
+    - "baby/child is fully human" (overly constraining, reference handles it).
+    """
+    import re as _re2
+
+    # --- style prefix (before any section keyword) ---
+    style_match = _re2.match(
+        r'^(.*?)(?=\bCHARACTER\b|\bWEARING\b|\bACTION\b)',
+        prompt, _re2.DOTALL
+    )
+    style = style_match.group(1).strip().rstrip('. ') + '. ' if style_match else ''
+
+    # --- CHARACTER: keep only up through skin tone, strip anatomy list after ---
+    char_match = _re2.search(
+        r'\bCHARACTER:(.*?)(?=\bWEARING\b|\bACTION\b|\bSETTING\b)',
+        prompt, _re2.DOTALL
+    )
+    if char_match:
+        ct = char_match.group(1).strip()
+        # Strip everything from the first anatomy phrase onward
+        ct = _re2.sub(
+            r',?\s*(?:softly rounded cheeks|delicate (?:infant|toddler)|natural (?:infant|toddler|child) proportions|'
+            r'large smooth forehead|small delicate ears|tiny rounded nose|'
+            r'cute expression|round normal human ears|warm proud smile|'
+            r'sparkling eyes|eyes sparkling)[^.]*',
+            '', ct, flags=_re2.IGNORECASE
+        )
+        ct = ct.rstrip(', ').strip()
+        if not ct.endswith('.'):
+            ct += '.'
+        char = 'CHARACTER: ' + ct + ' '
+    else:
+        char = ''
+
+    # --- WEARING: preserve from template (each scene may have a different outfit) ---
+    wearing_match = _re2.search(
+        r'\bWEARING:(.*?)(?=\bACTION\b|\bSETTING\b|\bATMOSPHERE\b|\bSTRICT\b)',
+        prompt, _re2.DOTALL
+    )
+    if wearing_match:
+        wearing = 'WEARING:' + wearing_match.group(1).rstrip() + ' '
+    else:
+        wearing = 'WEARING: Plain soft white onesie. '
+
+    # --- ACTION ---
+    action_match = _re2.search(
+        r'\bACTION:(.*?)(?=\bSETTING\b|\bATMOSPHERE\b|\bSTRICT\b|$)',
+        prompt, _re2.DOTALL
+    )
+    action = ('ACTION:' + action_match.group(1).rstrip() + ' ') if action_match else ''
+
+    # --- SETTING ---
+    setting_match = _re2.search(
+        r'\bSETTING:(.*?)(?=\bATMOSPHERE\b|\bSTRICT\b|$)',
+        prompt, _re2.DOTALL
+    )
+    setting = ('SETTING:' + setting_match.group(1).rstrip() + ' ') if setting_match else ''
+
+    # --- ATMOSPHERE ---
+    atm_match = _re2.search(
+        r'\bATMOSPHERE:(.*?)(?=\bSTRICT\b|$)',
+        prompt, _re2.DOTALL
+    )
+    atm = ('ATMOSPHERE:' + atm_match.group(1).rstrip() + ' ') if atm_match else ''
+
+    # --- STRICT: remove redundant face/anatomy clauses, keep count constraints ---
+    strict_match = _re2.search(r'\bSTRICT:(.*?)$', prompt, _re2.DOTALL)
+    strict = ''
+    if strict_match:
+        s = strict_match.group(1).strip()
+        s = _re2.sub(r'Maintain same face and features as reference\.?\s*', '', s)
+        s = _re2.sub(r',?\s*baby is fully human\.?', '', s)
+        s = _re2.sub(r',?\s*child is fully human\.?', '', s)
+        s = s.strip().strip(',').strip()
+        if s:
+            strict = 'STRICT: ' + s
+
+    result = (style + char + wearing + action + setting + atm + strict).strip()
+    result = _re2.sub(r'\s{2,}', ' ', result)
+    return result
 
 
 def get_scene_prompts(story_id: str, child_name: str, gender: str, traits: dict, use_reference_image: bool = False) -> list:
@@ -2602,8 +2751,15 @@ def get_scene_prompts(story_id: str, child_name: str, gender: str, traits: dict,
         # Also neutralize hair_action — any mention of hair in ACTION distracts FLUX from the reference
         hair_action = ""
 
-    # Age display based on child's age
-    age_display = f"{child_age} year old" if child_age > 0 else "baby"
+    # Age display based on child's age (baby stories use months)
+    if is_baby_story:
+        if child_age <= 3:    age_display = "1-3 month old"
+        elif child_age <= 7:  age_display = "4-7 month old"
+        elif child_age <= 12: age_display = "8-12 month old"
+        elif child_age <= 18: age_display = "12-18 month old"
+        else:                 age_display = "18-24 month old"
+    else:
+        age_display = f"{child_age} year old" if child_age > 0 else "baby"
     
     # Build child base description for consistent character rendering
     # Use story-specific base_character_override if available
@@ -2675,9 +2831,24 @@ def get_scene_prompts(story_id: str, child_name: str, gender: str, traits: dict,
 
         if is_baby_story:
             prompt = adapt_baby_pose_for_age(prompt, child_age)
-        
+            # Inject minimal CHARACTER anchor BEFORE simplification if templates lack one
+            # (baby_guardian_light has no CHARACTER section — without this FLUX 2 Dev
+            # generates different skin/hair every scene).
+            if 'CHARACTER:' not in prompt:
+                char_anchor = (
+                    f"CHARACTER: {gender_word} ({age_display}), "
+                    f"{hair_desc}, {skin_tone} skin. "
+                )
+                if 'ACTION:' in prompt:
+                    prompt = prompt.replace('ACTION:', char_anchor + 'ACTION:', 1)
+                else:
+                    prompt = char_anchor + prompt
+            # Simplify BEFORE enforce_gender_clothing so WEARING is present when
+            # enforce_gender_clothing checks it (avoids adding dress/skirt for girls).
+            prompt = _simplify_baby_reference_prompt(prompt)
+
         prompt = enforce_gender_clothing(prompt, gender)
-        
+
         if hair_length == 'very_little' and 'STRICT:' in prompt and not is_baby_story:
             prompt = prompt.replace('STRICT:', 'STRICT: Child head is completely bald, smooth round scalp,', 1)
 
@@ -2766,7 +2937,18 @@ def get_closing_prompt(story_id: str, child_name: str, gender: str, traits: dict
     
     if is_baby_story:
         prompt = adapt_baby_pose_for_age(prompt, child_age)
-    
+        if 'CHARACTER:' not in prompt:
+            char_anchor = (
+                f"CHARACTER: {gender_word} ({age_display}), "
+                f"{hair_desc}, {skin_tone} skin. "
+            )
+            if 'ACTION:' in prompt:
+                prompt = prompt.replace('ACTION:', char_anchor + 'ACTION:', 1)
+            else:
+                prompt = char_anchor + prompt
+        # Simplify BEFORE enforce_gender_clothing so WEARING is present
+        prompt = _simplify_baby_reference_prompt(prompt)
+
     prompt = enforce_gender_clothing(prompt, gender)
     
     return prompt
