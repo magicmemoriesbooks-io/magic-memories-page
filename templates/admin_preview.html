@@ -73,13 +73,14 @@
     .ap-lightbox-close { position: absolute; top: 20px; right: 30px; color: #fff; font-size: 32px; cursor: pointer; background: none; border: none; }
 </style>
 
+{% include 'admin_nav.html' %}
 <div style="max-width:1100px; margin:24px auto; padding:0 20px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
         <div>
             <h2 style="font-size:22px; color:#1a1a1a; margin:0;">Cuento de {{ preview.child_name }}</h2>
             <p style="font-size:13px; color:#888; margin-top:4px;">{{ preview_id }}</p>
         </div>
-        <a href="{{ url_for('admin_dashboard') }}" class="ap-btn ap-btn-back">&larr; Dashboard</a>
+        <a href="/admin/cuentos" class="ap-btn ap-btn-back">&larr; Cuentos</a>
     </div>
 
     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-bottom:20px;">

@@ -9489,65 +9489,50 @@ def admin_pending_retries():
         except:
             pass
     
-    html = """
-    <!DOCTYPE html>
-    <html><head><meta charset="UTF-8"><title>Admin - Reintentos Pendientes</title>
-    <style>
-        body { font-family: Arial, sans-serif; background: #f8f4ff; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; }
-        h1 { color: #7c3aed; }
-        .card { background: white; border-radius: 12px; padding: 20px; margin: 15px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .status-retrying { border-left: 4px solid #f59e0b; }
-        .status-exhausted { border-left: 4px solid #dc2626; }
-        .status-fixed { border-left: 4px solid #22c55e; }
-        table { width: 100%%; border-collapse: collapse; }
-        td { padding: 6px 10px; }
-        .label { font-weight: bold; color: #4b5563; width: 150px; }
-        .btn { display: inline-block; padding: 8px 16px; border-radius: 8px; text-decoration: none; color: white; font-weight: bold; margin: 4px; cursor: pointer; border: none; }
-        .btn-retry { background: #f59e0b; }
-        .btn-view { background: #7c3aed; }
-        .btn-back { background: #6b7280; }
-        .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; color: white; }
-        .badge-retrying { background: #f59e0b; }
-        .badge-exhausted { background: #dc2626; }
-        .empty { text-align: center; color: #9ca3af; padding: 40px; }
-    </style></head><body>
-    <div class="container">
-        <a href="/admin/dashboard" class="btn btn-back">← Dashboard</a>
-        <h1>🔄 Reintentos Pendientes</h1>
-    """
-    
-    if not pending_retries:
-        html += '<div class="card empty"><h3>✅ No hay reintentos pendientes</h3><p>Todos los libros se generaron correctamente.</p></div>'
-    
-    for item in pending_retries:
-        status_class = 'status-exhausted' if item['retry_exhausted'] else 'status-retrying'
-        badge_class = 'badge-exhausted' if item['retry_exhausted'] else 'badge-retrying'
-        badge_text = '🚨 AGOTADO' if item['retry_exhausted'] else '🔄 Reintentando'
-        
-        html += f"""
-        <div class="card {status_class}">
-            <span class="badge {badge_class}">{badge_text}</span>
-            <table>
-                <tr><td class="label">Preview ID:</td><td>{item['preview_id']}</td></tr>
-                <tr><td class="label">Nombre:</td><td>{item['child_name']}</td></tr>
-                <tr><td class="label">Cuento:</td><td>{item['story_id']}</td></tr>
-                <tr><td class="label">Cliente:</td><td>{item['customer_email']}</td></tr>
-                <tr><td class="label">Escenas fallidas:</td><td style="color: #dc2626; font-weight: bold;">{', '.join(str(s) for s in item['failed_scenes'])}</td></tr>
-                <tr><td class="label">Reintentos:</td><td>{item['retry_count']}/{item['max_retries']}</td></tr>
-                <tr><td class="label">Fecha:</td><td>{item['created']}</td></tr>
-            </table>
-            <div style="margin-top: 10px;">
-                <a href="/admin/preview/{item['preview_id']}" class="btn btn-view">Ver Preview</a>
-                <form action="/admin/retry-scenes/{item['preview_id']}" method="POST" style="display: inline;">
-                    <button type="submit" class="btn btn-retry">🔄 Reintentar Ahora</button>
-                </form>
-            </div>
-        </div>
-        """
-    
-    html += "</div></body></html>"
-    return html
+    return render_template('admin_pending_retries.html', pending_retries=pending_retries)
+
+
+@app.route('/admin/cuentos')
+def admin_cuentos():
+    """Admin: dedicated page listing all story previews."""
+    if not check_admin_auth():
+        return redirect(url_for('admin_login_page'))
+    import glob as glob_mod
+    story_previews = []
+    preview_files = glob_mod.glob('story_previews/*.json')
+    for pf in sorted(preview_files, key=os.path.getmtime, reverse=True)[:100]:
+        try:
+            with open(pf, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            pid = os.path.basename(pf).replace('.json', '')
+            story_previews.append({
+                'preview_id': pid,
+                'child_name': data.get('child_name', 'Unknown'),
+                'story_id': data.get('story_id', ''),
+                'customer_email': data.get('customer_email', ''),
+                'paid': data.get('paid', False),
+                'has_scenes': len(data.get('scenes', [])) > 0,
+                'created': datetime.fromtimestamp(os.path.getmtime(pf)).strftime('%Y-%m-%d %H:%M'),
+            })
+        except Exception:
+            pass
+    return render_template('admin_cuentos.html', story_previews=story_previews)
+
+
+@app.route('/admin/negocio')
+def admin_negocio():
+    """Admin: business metrics section (placeholder for future metrics)."""
+    if not check_admin_auth():
+        return redirect(url_for('admin_login_page'))
+    return render_template('admin_negocio.html')
+
+
+@app.route('/admin/crm')
+def admin_crm():
+    """Admin: unified CRM view (placeholder for future implementation)."""
+    if not check_admin_auth():
+        return redirect(url_for('admin_login_page'))
+    return render_template('admin_crm.html')
 
 
 @app.route('/admin/retry-scenes/<preview_id>', methods=['POST'])

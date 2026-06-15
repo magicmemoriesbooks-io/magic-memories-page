@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Cuentos Realizados — Admin{% endblock %}
+{% block content %}
+{% include 'admin_nav.html' %}
+<div style="background: #f8fafc; min-height: 80vh; padding: 24px; font-family: 'Quicksand', 'Segoe UI', sans-serif;">
+<div style="max-width: 1300px; margin: 0 auto;">
+
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+    <div>
+      <h1 style="font-size: 22px; font-weight: 800; color: #1e293b; margin: 0 0 2px 0;">📖 Cuentos Realizados</h1>
+      <p style="font-size: 12px; color: #64748b; margin: 0;">{{ story_previews|length }} cuento(s) más recientes</p>
+    </div>
+  </div>
+
+  <div id="cpResult" style="display: none; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 13px;"></div>
+
+  <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+    <div style="padding: 12px 16px; background: linear-gradient(135deg, #10B981, #34D399); color: white; display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-weight: 700; font-size: 14px;">📖 Todos los cuentos (últimos 100)</span>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <label style="font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+          <input type="checkbox" id="selectAllStories" onchange="selectAll('story-check', this.checked)" style="cursor: pointer;"> Todos
+        </label>
+        <button onclick="deleteSelected('story-check')" style="padding: 4px 10px; background: #EF4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 11px;">Eliminar seleccionados</button>
+      </div>
+    </div>
+
+    {% if story_previews %}
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+        <thead>
+          <tr style="background: #F1F5F9;">
+            <th style="padding: 10px 8px; width: 30px;"></th>
+            <th style="padding: 10px 8px; text-align: left; font-weight: 600; white-space: nowrap;">Nombre</th>
+            <th style="padding: 10px 8px; text-align: left; font-weight: 600; white-space: nowrap;">Cuento</th>
+            <th style="padding: 10px 8px; text-align: left; font-weight: 600; white-space: nowrap;">Estado</th>
+            <th style="padding: 10px 8px; text-align: left; font-weight: 600; white-space: nowrap;">Email</th>
+            <th style="padding: 10px 8px; text-align: left; font-weight: 600; white-space: nowrap;">ID</th>
+            <th style="padding: 10px 8px; text-align: left; font-weight: 600; white-space: nowrap;">Fecha</th>
+            <th style="padding: 10px 8px; text-align: right; font-weight: 600; white-space: nowrap;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for preview in story_previews %}
+          <tr id="row-preview-{{ preview.preview_id }}" style="border-top: 1px solid #E2E8F0; {% if preview.paid %}background: #f0fdf4;{% endif %}">
+            <td style="padding: 8px 8px; text-align: center;">
+              <input type="checkbox" class="story-check" data-id="{{ preview.preview_id }}" style="cursor: pointer;">
+            </td>
+            <td style="padding: 8px 8px;">
+              <strong style="color: #1e293b;">{{ preview.child_name }}</strong>
+            </td>
+            <td style="padding: 8px 8px;">
+              <span style="font-size: 11px; color: #64748B;">{{ preview.story_id }}</span><br>
+              {% if preview.has_scenes %}
+              <span style="background: #D1FAE5; color: #065F46; padding: 1px 6px; border-radius: 8px; font-size: 10px;">Con escenas</span>
+              {% else %}
+              <span style="background: #FEF3C7; color: #92400E; padding: 1px 6px; border-radius: 8px; font-size: 10px;">Sin escenas</span>
+              {% endif %}
+            </td>
+            <td style="padding: 8px 8px;">
+              {% if preview.paid %}
+              <span style="background: #D1FAE5; color: #065F46; padding: 2px 8px; border-radius: 8px; font-size: 10px; font-weight: 700;">✓ Pagado</span>
+              {% else %}
+              <span style="background: #F1F5F9; color: #94A3B8; padding: 2px 8px; border-radius: 8px; font-size: 10px;">Preview</span>
+              {% endif %}
+            </td>
+            <td style="padding: 8px 8px;">
+              <span style="font-size: 11px; color: #64748b;">{{ preview.customer_email or '—' }}</span>
+            </td>
+            <td style="padding: 8px 8px;">
+              <code onclick="navigator.clipboard.writeText('{{ preview.preview_id }}').then(()=>alert('ID copiado!'))" title="Clic para copiar" style="font-size:10px;background:#F1F5F9;padding:2px 5px;border-radius:4px;cursor:pointer;color:#475569;">{{ preview.preview_id }}</code>
+            </td>
+            <td style="padding: 8px 8px;">
+              <span style="color: #94A3B8; font-size: 11px;">{{ preview.created }}</span>
+            </td>
+            <td style="padding: 8px 8px; text-align: right; white-space: nowrap;">
+              <a href="{{ url_for('admin_view_preview', preview_id=preview.preview_id) }}" style="padding: 3px 8px; border: 1px solid #6366F1; color: #6366F1; border-radius: 5px; text-decoration: none; font-size: 11px;">Ver</a>
+              <button onclick="deletePreview('{{ preview.preview_id }}', 'row-preview-{{ preview.preview_id }}')" style="padding: 3px 8px; border: 1px solid #EF4444; color: #EF4444; background: white; border-radius: 5px; cursor: pointer; font-size: 11px; margin-left: 4px;">Eliminar</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="text-align: center; color: #94A3B8; padding: 40px;">No hay cuentos generados</p>
+    {% endif %}
+  </div>
+
+</div>
+</div>
+
+<script>
+function selectAll(className, checked) {
+  document.querySelectorAll('.' + className).forEach(cb => cb.checked = checked);
+}
+
+async function deleteSelected(className) {
+  const checked = document.querySelectorAll('.' + className + ':checked');
+  if (checked.length === 0) { alert('Selecciona al menos un elemento'); return; }
+  if (!confirm('¿Eliminar ' + checked.length + ' elemento(s)? Los eBooks activos de clientes serán preservados automáticamente.')) return;
+  let deleted = 0, preserved = 0;
+  for (const cb of checked) {
+    const id = cb.dataset.id;
+    try {
+      const res = await fetch('/admin/delete-preview/' + id, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        deleted++;
+        if (data.ebook_preserved) {
+          preserved++;
+          const row = cb.closest('tr');
+          if (row) { cb.disabled = true; const btn = row.querySelector('button[onclick*="deletePreview"]'); if (btn) { btn.disabled = true; btn.textContent = '✓ Archivos liberados'; btn.style.color = '#6B7280'; btn.style.borderColor = '#6B7280'; } }
+        } else {
+          const row = cb.closest('tr');
+          if (row) { row.style.opacity = '0'; setTimeout(() => row.remove(), 200); }
+        }
+      }
+    } catch (e) {}
+  }
+  let msg = 'Procesados: ' + deleted + ' de ' + checked.length + '.';
+  if (preserved > 0) msg += '\n\n' + preserved + ' cuento(s) tenían eBook activo → archivos liberados pero el eBook del cliente fue preservado.';
+  alert(msg);
+}
+
+async function deletePreview(previewId, rowId) {
+  if (!confirm('¿Eliminar este cuento? Si tiene un eBook activo de cliente, los archivos se liberarán pero el eBook será preservado.')) return;
+  try {
+    const res = await fetch('/admin/delete-preview/' + previewId, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      const row = document.getElementById(rowId);
+      if (data.ebook_preserved) {
+        if (row) { const btn = row.querySelector('button[onclick*="deletePreview"]'); if (btn) { btn.disabled = true; btn.textContent = '✓ Archivos liberados'; btn.style.color = '#6B7280'; btn.style.borderColor = '#6B7280'; btn.style.cursor = 'default'; } }
+        alert('✓ Archivos liberados.\nEl eBook del cliente fue preservado — sigue disponible en la Biblioteca de eBooks.');
+      } else {
+        if (row) { row.style.transition = 'opacity 0.3s'; row.style.opacity = '0'; setTimeout(() => row.remove(), 300); }
+      }
+    } else { alert('Error: ' + (data.error || 'No se pudo eliminar')); }
+  } catch (e) { alert('Error: ' + e.message); }
+}
+</script>
+{% endblock %}

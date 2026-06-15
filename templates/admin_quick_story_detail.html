@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 min-h-screen">
+{% include 'admin_nav.html' %}
 <div class="container mx-auto px-4 py-8 max-w-5xl">
 
     <!-- Header -->
@@ -39,17 +40,17 @@
             </span>
             {% endif %}
 
-            <a href="/admin/gelato-order/{{ preview_id }}/download-pdf"
-               class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold text-sm hover:bg-indigo-700 transition shadow-sm">
-                ⬇️ Bajar PDF (CP)
+            <a href="/cp-files/{{ preview_id }}/book.pdf" target="_blank"
+               class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold text-sm hover:bg-indigo-700 transition shadow-sm"
+               title="Ver el PDF que se envía a Cloudprinter (sirve el archivo ya generado, sin regenerar)">
+                👁️ Ver PDF Cloudprinter
             </a>
 
-            {% if story.cp_pdf_url %}
-            <a href="{{ story.cp_pdf_url }}" target="_blank"
-               class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-400 text-white rounded-lg text-sm hover:bg-indigo-500 transition shadow-sm">
-                🔗 PDF CP URL directa
+            <a href="/admin/gelato-order/{{ preview_id }}/download-pdf"
+               class="inline-flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg text-sm hover:bg-gray-600 transition shadow-sm"
+               title="Genera el PDF de Cloudprinter si no existe aún (puede llamar a FLUX)">
+                🔄 Generar PDF CP
             </a>
-            {% endif %}
 
             <a href="/order-complete/{{ preview_id }}" target="_blank"
                class="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg text-sm hover:bg-teal-700 transition shadow-sm">

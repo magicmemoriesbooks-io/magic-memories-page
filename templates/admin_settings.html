@@ -3,11 +3,11 @@
 {% block title %}Ajustes Admin - Magic Memories Books{% endblock %}
 
 {% block content %}
+{% include 'admin_nav.html' %}
 <div style="background: white; min-height: 80vh; padding: 24px; max-width: 500px; margin: 0 auto;">
 
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
         <h2 style="font-family: 'Quicksand', sans-serif; font-weight: 700; color: #1a1a1a; margin: 0; font-size: 22px;">Ajustes Admin</h2>
-        <a href="{{ url_for('admin_dashboard') }}" style="padding: 6px 14px; border: 1px solid #6366F1; color: #6366F1; background: white; border-radius: 6px; text-decoration: none; font-size: 12px;">Volver al Panel</a>
     </div>
 
     <div style="background: #f9fafb; border-radius: 12px; padding: 24px; border: 1px solid #e5e7eb;">

@@ -1,313 +1,191 @@
 {% extends "base.html" %}
 
-{% block title %}Admin Dashboard - Magic Memories Books{% endblock %}
+{% block title %}Dashboard — Admin Magic Memories Books{% endblock %}
 
 {% block content %}
-<div style="background: white; min-height: 80vh; padding: 24px; max-width: 1200px; margin: 0 auto;">
-    
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
-        <h2 style="font-family: 'Quicksand', sans-serif; font-weight: 700; color: #1a1a1a; margin: 0; font-size: 22px;">Panel de Administración</h2>
-        <div style="display: flex; gap: 8px;">
-            <button onclick="resetRateLimits()" style="padding: 6px 14px; border: 1px solid #10B981; color: #10B981; background: white; border-radius: 6px; cursor: pointer; font-size: 12px;">🔄 Reset Límite Pruebas</button>
-            <button onclick="testCpConnection()" style="padding: 6px 14px; border: 1px solid #6366F1; color: #6366F1; background: white; border-radius: 6px; cursor: pointer; font-size: 12px;">Probar Cloudprinter API</button>
-            <a href="{{ url_for('admin_settings') }}" style="padding: 6px 14px; border: 1px solid #6B7280; color: #6B7280; background: white; border-radius: 6px; text-decoration: none; font-size: 12px;">Ajustes</a>
-            <a href="{{ url_for('admin_logout') }}" style="padding: 6px 14px; border: 1px solid #EF4444; color: #EF4444; background: white; border-radius: 6px; text-decoration: none; font-size: 12px;">Cerrar Sesión</a>
-        </div>
-    </div>
-    
-    <div id="cpTestResult" style="display: none; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 13px;"></div>
-    
-    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
-        
-        <div onclick="testCpConnection()" style="background: linear-gradient(135deg, #6366F1, #818CF8); border-radius: 12px; padding: 20px; color: white; text-align: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-            <div style="font-size: 24px; margin-bottom: 4px;">🖨️</div>
-            <div style="font-size: 28px; font-weight: 700;">CP</div>
-            <div style="font-size: 13px; opacity: 0.9;">Test Cloudprinter</div>
-        </div>
-        
-        <div onclick="toggleSection('stories-section')" style="background: linear-gradient(135deg, #10B981, #34D399); border-radius: 12px; padding: 20px; color: white; text-align: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-            <div style="font-size: 24px; margin-bottom: 4px;">📖</div>
-            <div style="font-size: 28px; font-weight: 700;">{{ story_previews|length }}</div>
-            <div style="font-size: 13px; opacity: 0.9;">Cuentos Generados</div>
-        </div>
-        
-        <a href="/admin/gift-book" style="background: linear-gradient(135deg, #8B5CF6, #EC4899); border-radius: 12px; padding: 20px; color: white; text-align: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-decoration: none; display: block; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-            <div style="font-size: 24px; margin-bottom: 4px;">🎁</div>
-            <div style="font-size: 28px; font-weight: 700;">&nbsp;</div>
-            <div style="font-size: 13px; opacity: 0.9;">Cuentos de Regalo</div>
-        </a>
-        
-        <a href="/admin/uploaded-photos" style="background: linear-gradient(135deg, #EF4444, #F87171); border-radius: 12px; padding: 20px; color: white; text-align: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-decoration: none; display: block; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-            <div style="font-size: 24px; margin-bottom: 4px;">📸</div>
-            <div style="font-size: 28px; font-weight: 700;">&nbsp;</div>
-            <div style="font-size: 13px; opacity: 0.9;">Fotos Usuarios (72h)</div>
-        </a>
+{% include 'admin_nav.html' %}
+<div style="background: #f8fafc; min-height: 80vh; padding: 24px; font-family: 'Quicksand', 'Segoe UI', sans-serif;">
+<div style="max-width: 1200px; margin: 0 auto;">
 
-        <a href="/admin/ebook-library" style="background: linear-gradient(135deg, #0EA5E9, #0284C7); border-radius: 12px; padding: 20px; color: white; text-align: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-decoration: none; display: block; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-            <div style="font-size: 24px; margin-bottom: 4px;">📚</div>
-            <div style="font-size: 28px; font-weight: 700;">&nbsp;</div>
-            <div style="font-size: 13px; opacity: 0.9;">Biblioteca eBooks</div>
-        </a>
-        
-        <div onclick="toggleSection('failed-section')" style="background: linear-gradient(135deg, #DC2626, #B91C1C); border-radius: 12px; padding: 20px; color: white; text-align: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-            <div style="font-size: 24px; margin-bottom: 4px;">⚠️</div>
-            <div style="font-size: 28px; font-weight: 700;">{{ failed_orders|length }}</div>
-            <div style="font-size: 13px; opacity: 0.9;">Pedidos Fallidos</div>
-        </div>
-        
-        <div style="display: flex; gap: 8px; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-            <a href="/admin/newsletter" style="flex: 1; background: linear-gradient(135deg, #06B6D4, #22D3EE); padding: 16px 8px; color: white; text-align: center; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform=''">
-                <div style="font-size: 22px; margin-bottom: 2px;">📧</div>
-                <div style="font-size: 12px; opacity: 0.95; font-weight: 600;">Suscriptores</div>
-            </a>
-            <a href="/admin/coupons" style="flex: 1; background: linear-gradient(135deg, #D4AF37, #B8860B); padding: 16px 8px; color: white; text-align: center; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform=''">
-                <div style="font-size: 22px; margin-bottom: 2px;">🎟️</div>
-                <div style="font-size: 12px; opacity: 0.95; font-weight: 600;">Cupones</div>
-            </a>
-        </div>
-        
-        <a href="/admin/print-requests" style="background: linear-gradient(135deg, #D97706, #F59E0B); border-radius: 12px; padding: 20px; color: white; text-align: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-decoration: none; display: block; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-            <div style="font-size: 24px; margin-bottom: 4px;">📦</div>
-            <div style="font-size: 28px; font-weight: 700;">&nbsp;</div>
-            <div style="font-size: 13px; opacity: 0.9;">Libros Impresos</div>
-        </a>
+  <div style="margin-bottom: 24px;">
+    <h1 style="font-size: 22px; font-weight: 800; color: #1e293b; margin: 0 0 4px 0;">Dashboard</h1>
+    <p style="font-size: 13px; color: #64748b; margin: 0;">Resumen operativo del negocio.</p>
+  </div>
 
-        <a href="/admin/preview-leads" style="background: linear-gradient(135deg, #F472B6, #EC4899); border-radius: 12px; padding: 20px; color: white; text-align: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-decoration: none; display: block; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-            <div style="font-size: 24px; margin-bottom: 4px;">👀</div>
-            <div style="font-size: 28px; font-weight: 700;">{{ preview_leads_count }}</div>
-            <div style="font-size: 13px; opacity: 0.9;">Preview Leads</div>
-        </a>
-        
-        <a href="/admin/pending-retries" style="background: linear-gradient(135deg, #F59E0B, #FBBF24); border-radius: 12px; padding: 20px; color: white; text-align: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-decoration: none; display: block; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-            <div style="font-size: 24px; margin-bottom: 4px;">🔄</div>
-            <div style="font-size: 28px; font-weight: 700;">&nbsp;</div>
-            <div style="font-size: 13px; opacity: 0.9;">Reintentos Escenas</div>
-        </a>
-        
-        <div onclick="toggleSection('stories-section')" style="background: linear-gradient(135deg, #F59E0B, #D97706); border-radius: 12px; padding: 20px; color: white; text-align: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-            <div style="font-size: 24px; margin-bottom: 4px;">💾</div>
-            <div style="font-size: 28px; font-weight: 700;">{{ story_previews|length }}</div>
-            <div style="font-size: 13px; opacity: 0.9;">Previews Activos</div>
-        </div>
+  <div id="cpResult" style="display: none; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 13px;"></div>
+
+  <!-- KPI TILES -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 24px;">
+
+    <div style="background: white; border-radius: 14px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; text-align: center;">
+      <div style="font-size: 28px; margin-bottom: 4px;">📖</div>
+      <div style="font-size: 32px; font-weight: 800; color: #1e293b;">{{ story_previews|length }}</div>
+      <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Cuentos generados</div>
+      <a href="/admin/cuentos" style="display: inline-block; margin-top: 8px; font-size: 11px; color: #6366f1; text-decoration: none; font-weight: 600;">Ver todos →</a>
     </div>
-    
-    
-    <div id="stories-section" style="display: none; margin-bottom: 20px;">
-        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; overflow: hidden;">
-            <div style="padding: 12px 16px; background: linear-gradient(135deg, #10B981, #34D399); color: white; display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-weight: 600; font-size: 14px;">📖 Cuentos Generados (últimos 50)</span>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <label style="font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                        <input type="checkbox" id="selectAllStories" onchange="selectAll('story-check', this.checked)" style="cursor: pointer;"> Todos
-                    </label>
-                    <button onclick="deleteSelected('story-check')" style="padding: 4px 10px; background: #EF4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 11px;">Eliminar seleccionados</button>
-                    <button onclick="toggleSection('stories-section')" style="background: none; border: none; color: white; cursor: pointer; font-size: 18px;">✕</button>
-                </div>
-            </div>
-            <div style="max-height: 500px; overflow-y: auto;">
-                {% if story_previews %}
-                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                    <thead>
-                        <tr style="background: #F1F5F9;">
-                            <th style="padding: 8px 6px; width: 30px;"></th>
-                            <th style="padding: 8px 8px; text-align: left; font-weight: 600;">Nombre</th>
-                            <th style="padding: 8px 8px; text-align: left; font-weight: 600;">Cuento</th>
-                            <th style="padding: 8px 8px; text-align: left; font-weight: 600;">ID</th>
-                            <th style="padding: 8px 8px; text-align: left; font-weight: 600;">Fecha</th>
-                            <th style="padding: 8px 8px; text-align: right; font-weight: 600;">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for preview in story_previews %}
-                        <tr id="row-preview-{{ preview.preview_id }}" style="border-top: 1px solid #E2E8F0;">
-                            <td style="padding: 8px 6px; text-align: center;">
-                                <input type="checkbox" class="story-check" data-id="{{ preview.preview_id }}" style="cursor: pointer;">
-                            </td>
-                            <td style="padding: 8px 8px;"><strong>{{ preview.child_name }}</strong></td>
-                            <td style="padding: 8px 8px;">
-                                <span style="font-size: 11px; color: #64748B;">{{ preview.story_id }}</span><br>
-                                {% if preview.has_scenes %}
-                                <span style="background: #D1FAE5; color: #065F46; padding: 1px 6px; border-radius: 8px; font-size: 10px;">Con escenas</span>
-                                {% else %}
-                                <span style="background: #FEF3C7; color: #92400E; padding: 1px 6px; border-radius: 8px; font-size: 10px;">Sin escenas</span>
-                                {% endif %}
-                            </td>
-                            <td style="padding: 8px 8px;">
-                                <code onclick="navigator.clipboard.writeText('{{ preview.preview_id }}').then(()=>alert('ID copiado!'))" title="Clic para copiar" style="font-size:10px;background:#F1F5F9;padding:2px 5px;border-radius:4px;cursor:pointer;color:#475569;">{{ preview.preview_id }}</code>
-                            </td>
-                            <td style="padding: 8px 8px;"><span style="color: #94A3B8; font-size: 11px;">{{ preview.created }}</span></td>
-                            <td style="padding: 8px 8px; text-align: right; white-space: nowrap;">
-                                <a href="{{ url_for('admin_view_preview', preview_id=preview.preview_id) }}" style="padding: 3px 8px; border: 1px solid #6366F1; color: #6366F1; border-radius: 5px; text-decoration: none; font-size: 11px;">Ver</a>
-                                <button onclick="deletePreview('{{ preview.preview_id }}', 'row-preview-{{ preview.preview_id }}')" style="padding: 3px 8px; border: 1px solid #EF4444; color: #EF4444; background: white; border-radius: 5px; cursor: pointer; font-size: 11px; margin-left: 4px;">Eliminar</button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                {% else %}
-                <p style="text-align: center; color: #94A3B8; padding: 24px;">No hay cuentos generados</p>
-                {% endif %}
-            </div>
-        </div>
+
+    <div style="background: white; border-radius: 14px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; text-align: center;">
+      <div style="font-size: 28px; margin-bottom: 4px;">👀</div>
+      <div style="font-size: 32px; font-weight: 800; color: #1e293b;">{{ preview_leads_count }}</div>
+      <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Leads capturados</div>
+      <a href="/admin/preview-leads" style="display: inline-block; margin-top: 8px; font-size: 11px; color: #6366f1; text-decoration: none; font-weight: 600;">Ver leads →</a>
     </div>
-    
-    
-    <div id="failed-section" style="display: none; margin-bottom: 20px;">
-        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; overflow: hidden;">
-            <div style="padding: 12px 16px; background: linear-gradient(135deg, #DC2626, #B91C1C); color: white; display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-weight: 600; font-size: 14px;">⚠️ Pedidos Fallidos en Cloudprinter ({{ failed_orders|length }})</span>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    {% if failed_orders %}
-                    <label style="font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                        <input type="checkbox" id="selectAllFailed" onchange="selectAll('failed-check', this.checked)" style="cursor: pointer;"> Todos
-                    </label>
-                    <button onclick="deleteSelected('failed-check')" style="padding: 4px 10px; background: #FEE2E2; color: #991B1B; border: none; border-radius: 6px; cursor: pointer; font-size: 11px;">Eliminar seleccionados</button>
-                    {% endif %}
-                    <button onclick="toggleSection('failed-section')" style="background: none; border: none; color: white; cursor: pointer; font-size: 18px;">✕</button>
-                </div>
-            </div>
-            {% if failed_orders %}
-            <div style="padding: 8px 16px; background: #FEF2F2; font-size: 12px; color: #991B1B;">
-                Pagados pero rechazados por Cloudprinter — corregir dirección y reenviar, o eliminar.
-            </div>
-            <div style="max-height: 400px; overflow-y: auto;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                    <thead>
-                        <tr style="background: #F1F5F9;">
-                            <th style="padding: 8px 6px; width: 30px;"></th>
-                            <th style="padding: 8px 8px; text-align: left; font-weight: 600;">Nombre</th>
-                            <th style="padding: 8px 8px; text-align: left; font-weight: 600;">Libro</th>
-                            <th style="padding: 8px 8px; text-align: left; font-weight: 600;">Email</th>
-                            <th style="padding: 8px 8px; text-align: left; font-weight: 600;">Error</th>
-                            <th style="padding: 8px 8px; text-align: right; font-weight: 600;">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for fo in failed_orders %}
-                        <tr id="row-failed-{{ fo.preview_id }}" style="border-top: 1px solid #E2E8F0;">
-                            <td style="padding: 8px 6px; text-align: center;">
-                                <input type="checkbox" class="failed-check" data-id="{{ fo.preview_id }}" style="cursor: pointer;">
-                            </td>
-                            <td style="padding: 8px 8px;"><strong>{{ fo.child_name }}</strong></td>
-                            <td style="padding: 8px 8px;"><span style="font-size: 11px; color: #64748B;">{{ fo.story_id }}</span></td>
-                            <td style="padding: 8px 8px;"><span style="font-size: 11px;">{{ fo.customer_email }}</span></td>
-                            <td style="padding: 8px 8px;"><span style="font-size: 11px; color: #DC2626;">{% set _err = fo.cp_error or fo.lulu_error or '' %}{{ _err[:50] }}{% if _err|length > 50 %}...{% endif %}</span></td>
-                            <td style="padding: 8px 8px; text-align: right; white-space: nowrap;">
-                                <a href="/admin/rescue-order/{{ fo.preview_id }}" style="padding: 3px 8px; background: #F59E0B; color: white; border-radius: 5px; text-decoration: none; font-size: 11px;">Rescatar</a>
-                                <button onclick="deletePreview('{{ fo.preview_id }}', 'row-failed-{{ fo.preview_id }}')" style="padding: 3px 8px; border: 1px solid #EF4444; color: #EF4444; background: white; border-radius: 5px; cursor: pointer; font-size: 11px; margin-left: 4px;">Eliminar</button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <p style="text-align: center; color: #94A3B8; padding: 24px;">No hay pedidos fallidos</p>
-            {% endif %}
-        </div>
+
+    <div onclick="toggleSection('failed-section')" style="background: white; border-radius: 14px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px solid {% if failed_orders %}#fca5a5{% else %}#e2e8f0{% endif %}; text-align: center; cursor: pointer; transition: transform 0.15s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+      <div style="font-size: 28px; margin-bottom: 4px;">⚠️</div>
+      <div style="font-size: 32px; font-weight: 800; color: {% if failed_orders %}#dc2626{% else %}#1e293b{% endif %};">{{ failed_orders|length }}</div>
+      <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Pedidos fallidos</div>
+      <div style="display: inline-block; margin-top: 8px; font-size: 11px; color: #6366f1; font-weight: 600;">{% if failed_orders %}Ver alertas ↓{% else %}Sin alertas ✓{% endif %}</div>
     </div>
-    
+
+    <!-- PLACEHOLDER: Ingresos del mes -->
+    <div style="background: white; border-radius: 14px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px dashed #cbd5e1; text-align: center; opacity: 0.6;">
+      <div style="font-size: 28px; margin-bottom: 4px;">💰</div>
+      <div style="font-size: 14px; font-weight: 700; color: #94a3b8;">—</div>
+      <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Ingresos del mes</div>
+      <div style="display: inline-block; margin-top: 8px; font-size: 10px; color: #cbd5e1; font-weight: 600;">Pendiente Fase 1</div>
+    </div>
+
+    <!-- PLACEHOLDER: Ventas del mes -->
+    <div style="background: white; border-radius: 14px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px dashed #cbd5e1; text-align: center; opacity: 0.6;">
+      <div style="font-size: 28px; margin-bottom: 4px;">🛒</div>
+      <div style="font-size: 14px; font-weight: 700; color: #94a3b8;">—</div>
+      <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Ventas del mes</div>
+      <div style="display: inline-block; margin-top: 8px; font-size: 10px; color: #cbd5e1; font-weight: 600;">Pendiente Fase 1</div>
+    </div>
+
+    <!-- PLACEHOLDER: Conversión -->
+    <div style="background: white; border-radius: 14px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px dashed #cbd5e1; text-align: center; opacity: 0.6;">
+      <div style="font-size: 28px; margin-bottom: 4px;">🎯</div>
+      <div style="font-size: 14px; font-weight: 700; color: #94a3b8;">—%</div>
+      <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Conversión lead→compra</div>
+      <div style="display: inline-block; margin-top: 8px; font-size: 10px; color: #cbd5e1; font-weight: 600;">Pendiente Fase 1</div>
+    </div>
+
+  </div>
+
+  <!-- ALERTA: Pedidos Fallidos -->
+  <div id="failed-section" style="display: {% if failed_orders %}block{% else %}none{% endif %}; margin-bottom: 20px;">
+    <div style="background: white; border: 1px solid #fca5a5; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+      <div style="padding: 12px 16px; background: linear-gradient(135deg, #DC2626, #B91C1C); color: white; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-weight: 700; font-size: 14px;">⚠️ Pedidos Fallidos en Cloudprinter ({{ failed_orders|length }})</span>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          {% if failed_orders %}
+          <label style="font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+            <input type="checkbox" id="selectAllFailed" onchange="selectAll('failed-check', this.checked)" style="cursor: pointer;"> Todos
+          </label>
+          <button onclick="deleteSelected('failed-check')" style="padding: 4px 10px; background: #FEE2E2; color: #991B1B; border: none; border-radius: 6px; cursor: pointer; font-size: 11px;">Eliminar seleccionados</button>
+          {% endif %}
+          <button onclick="toggleSection('failed-section')" style="background: none; border: none; color: white; cursor: pointer; font-size: 18px;">✕</button>
+        </div>
+      </div>
+      {% if failed_orders %}
+      <div style="padding: 8px 16px; background: #FEF2F2; font-size: 12px; color: #991B1B;">
+        Pagados pero rechazados por Cloudprinter — corregir dirección y reenviar, o eliminar.
+      </div>
+      <div style="max-height: 400px; overflow-y: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <thead>
+            <tr style="background: #F1F5F9;">
+              <th style="padding: 8px 6px; width: 30px;"></th>
+              <th style="padding: 8px 8px; text-align: left; font-weight: 600;">Nombre</th>
+              <th style="padding: 8px 8px; text-align: left; font-weight: 600;">Libro</th>
+              <th style="padding: 8px 8px; text-align: left; font-weight: 600;">Email</th>
+              <th style="padding: 8px 8px; text-align: left; font-weight: 600;">Error</th>
+              <th style="padding: 8px 8px; text-align: right; font-weight: 600;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for fo in failed_orders %}
+            <tr id="row-failed-{{ fo.preview_id }}" style="border-top: 1px solid #E2E8F0;">
+              <td style="padding: 8px 6px; text-align: center;">
+                <input type="checkbox" class="failed-check" data-id="{{ fo.preview_id }}" style="cursor: pointer;">
+              </td>
+              <td style="padding: 8px 8px;"><strong>{{ fo.child_name }}</strong></td>
+              <td style="padding: 8px 8px;"><span style="font-size: 11px; color: #64748B;">{{ fo.story_id }}</span></td>
+              <td style="padding: 8px 8px;"><span style="font-size: 11px;">{{ fo.customer_email }}</span></td>
+              <td style="padding: 8px 8px;"><span style="font-size: 11px; color: #DC2626;">{% set _err = fo.cp_error or fo.lulu_error or '' %}{{ _err[:50] }}{% if _err|length > 50 %}...{% endif %}</span></td>
+              <td style="padding: 8px 8px; text-align: right; white-space: nowrap;">
+                <a href="/admin/rescue-order/{{ fo.preview_id }}" style="padding: 3px 8px; background: #F59E0B; color: white; border-radius: 5px; text-decoration: none; font-size: 11px;">Rescatar</a>
+                <button onclick="deletePreview('{{ fo.preview_id }}', 'row-failed-{{ fo.preview_id }}')" style="padding: 3px 8px; border: 1px solid #EF4444; color: #EF4444; background: white; border-radius: 5px; cursor: pointer; font-size: 11px; margin-left: 4px;">Eliminar</button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p style="text-align: center; color: #94A3B8; padding: 24px;">No hay pedidos fallidos</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ACCESOS RÁPIDOS -->
+  <div style="background: white; border-radius: 14px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
+    <h2 style="font-size: 14px; font-weight: 700; color: #475569; margin: 0 0 14px 0;">Accesos rápidos</h2>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+      <a href="/admin/cuentos" style="padding: 8px 16px; background: #ede9fe; color: #7c3aed; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 700;">📖 Cuentos Realizados</a>
+      <a href="/admin/print-requests" style="padding: 8px 16px; background: #fef3c7; color: #d97706; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 700;">📦 Libros Impresos</a>
+      <a href="/admin/preview-leads" style="padding: 8px 16px; background: #fce7f3; color: #be185d; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 700;">👀 Preview Leads</a>
+      <a href="/admin/pending-retries" style="padding: 8px 16px; background: #fef3c7; color: #92400e; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 700;">🔄 Reintentos</a>
+      <a href="/admin/crm" style="padding: 8px 16px; background: #dbeafe; color: #1d4ed8; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 700;">👥 CRM</a>
+      <a href="/admin/negocio" style="padding: 8px 16px; background: #d1fae5; color: #065f46; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 700;">📊 Negocio</a>
+    </div>
+  </div>
+
+</div>
 </div>
 
 <script>
 function toggleSection(sectionId) {
-    const section = document.getElementById(sectionId);
-    if (section.style.display === 'none') {
-        document.querySelectorAll('[id$="-section"]').forEach(s => s.style.display = 'none');
-        section.style.display = 'block';
-        section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    } else {
-        section.style.display = 'none';
-    }
+  const section = document.getElementById(sectionId);
+  section.style.display = section.style.display === 'none' ? 'block' : 'none';
 }
-
 function selectAll(className, checked) {
-    document.querySelectorAll('.' + className).forEach(cb => cb.checked = checked);
+  document.querySelectorAll('.' + className).forEach(cb => cb.checked = checked);
 }
-
 async function deleteSelected(className) {
-    const checked = document.querySelectorAll('.' + className + ':checked');
-    if (checked.length === 0) { alert('Selecciona al menos un elemento'); return; }
-    if (!confirm('¿Eliminar ' + checked.length + ' elemento(s)? Los eBooks activos de clientes serán preservados automáticamente.')) return;
-
-    let deleted = 0, preserved = 0;
-    for (const cb of checked) {
-        const id = cb.dataset.id;
-        try {
-            const res = await fetch('/admin/delete-preview/' + id, { method: 'POST' });
-            const data = await res.json();
-            if (data.success) {
-                deleted++;
-                if (data.ebook_preserved) {
-                    preserved++;
-                    const row = cb.closest('tr');
-                    if (row) {
-                        cb.disabled = true;
-                        const btn = row.querySelector('button[onclick*="deletePreview"]');
-                        if (btn) { btn.disabled = true; btn.textContent = '✓ Archivos liberados'; btn.style.color = '#6B7280'; btn.style.borderColor = '#6B7280'; }
-                    }
-                } else {
-                    const row = cb.closest('tr');
-                    if (row) { row.style.opacity = '0'; setTimeout(() => row.remove(), 200); }
-                }
-            }
-        } catch (e) {}
-    }
-    let msg = 'Procesados: ' + deleted + ' de ' + checked.length + '.';
-    if (preserved > 0) msg += '\n\n' + preserved + ' cuento(s) tenían eBook activo → archivos liberados pero el eBook del cliente fue preservado.';
-    alert(msg);
+  const checked = document.querySelectorAll('.' + className + ':checked');
+  if (checked.length === 0) { alert('Selecciona al menos un elemento'); return; }
+  if (!confirm('¿Eliminar ' + checked.length + ' elemento(s)? Los eBooks activos de clientes serán preservados automáticamente.')) return;
+  let deleted = 0, preserved = 0;
+  for (const cb of checked) {
+    const id = cb.dataset.id;
+    try {
+      const res = await fetch('/admin/delete-preview/' + id, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        deleted++;
+        if (data.ebook_preserved) {
+          preserved++;
+          const row = cb.closest('tr');
+          if (row) { cb.disabled = true; const btn = row.querySelector('button[onclick*="deletePreview"]'); if (btn) { btn.disabled = true; btn.textContent = '✓ Archivos liberados'; btn.style.color = '#6B7280'; btn.style.borderColor = '#6B7280'; } }
+        } else {
+          const row = cb.closest('tr');
+          if (row) { row.style.opacity = '0'; setTimeout(() => row.remove(), 200); }
+        }
+      }
+    } catch (e) {}
+  }
+  let msg = 'Procesados: ' + deleted + ' de ' + checked.length + '.';
+  if (preserved > 0) msg += '\n\n' + preserved + ' cuento(s) tenían eBook activo → archivos liberados pero el eBook del cliente fue preservado.';
+  alert(msg);
 }
-
 async function deletePreview(previewId, rowId) {
-    if (!confirm('¿Eliminar este cuento? Si tiene un eBook activo de cliente, los archivos se liberarán pero el eBook será preservado.')) return;
-    try {
-        const res = await fetch('/admin/delete-preview/' + previewId, { method: 'POST' });
-        const data = await res.json();
-        if (data.success) {
-            const row = document.getElementById(rowId);
-            if (data.ebook_preserved) {
-                if (row) {
-                    const btn = row.querySelector('button[onclick*="deletePreview"]');
-                    if (btn) { btn.disabled = true; btn.textContent = '✓ Archivos liberados'; btn.style.color = '#6B7280'; btn.style.borderColor = '#6B7280'; btn.style.cursor = 'default'; }
-                }
-                alert('✓ Archivos liberados.\nEl eBook del cliente fue preservado — sigue disponible en la Biblioteca de eBooks.');
-            } else {
-                if (row) { row.style.transition = 'opacity 0.3s'; row.style.opacity = '0'; setTimeout(() => row.remove(), 300); }
-            }
-        } else {
-            alert('Error: ' + (data.error || 'No se pudo eliminar'));
-        }
-    } catch (e) { alert('Error: ' + e.message); }
-}
-
-async function resetRateLimits() {
-    try {
-        const res = await fetch('/admin/reset-rate-limits', {method: 'POST'});
-        const data = await res.json();
-        if (data.success) {
-            const r = document.getElementById('cpTestResult');
-            r.style.display = 'block'; r.style.background = '#D1FAE5'; r.style.color = '#065F46';
-            r.textContent = '✅ Límite de generaciones reseteado. Ya puedes volver a generar previsualizaciones.';
-            setTimeout(() => r.style.display = 'none', 4000);
-        }
-    } catch(e) { alert('Error al resetear límites'); }
-}
-
-async function testCpConnection() {
-    const r = document.getElementById('cpTestResult');
-    r.style.display = 'block'; r.style.background = '#DBEAFE'; r.style.color = '#1E40AF';
-    r.textContent = 'Probando conexión con Cloudprinter API...';
-    try {
-        const res = await fetch('/admin/test-cp-connection');
-        const data = await res.json();
-        if (data.connection_success) {
-            r.style.background = '#D1FAE5'; r.style.color = '#065F46';
-            r.innerHTML = '✅ ' + data.message + '<br><small>Modo: ' + (data.sandbox_mode ? 'SANDBOX' : 'PRODUCCIÓN') + '</small>';
-        } else {
-            r.style.background = '#FEE2E2'; r.style.color = '#991B1B';
-            r.innerHTML = '❌ ' + data.message;
-        }
-    } catch (e) { r.style.background = '#FEE2E2'; r.style.color = '#991B1B'; r.textContent = '❌ ' + e.message; }
+  if (!confirm('¿Eliminar este cuento? Si tiene un eBook activo de cliente, los archivos se liberarán pero el eBook será preservado.')) return;
+  try {
+    const res = await fetch('/admin/delete-preview/' + previewId, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      const row = document.getElementById(rowId);
+      if (data.ebook_preserved) {
+        if (row) { const btn = row.querySelector('button[onclick*="deletePreview"]'); if (btn) { btn.disabled = true; btn.textContent = '✓ Archivos liberados'; btn.style.color = '#6B7280'; btn.style.borderColor = '#6B7280'; btn.style.cursor = 'default'; } }
+        alert('✓ Archivos liberados.\nEl eBook del cliente fue preservado — sigue disponible en la Biblioteca de eBooks.');
+      } else {
+        if (row) { row.style.transition = 'opacity 0.3s'; row.style.opacity = '0'; setTimeout(() => row.remove(), 300); }
+      }
+    } else { alert('Error: ' + (data.error || 'No se pudo eliminar')); }
+  } catch (e) { alert('Error: ' + e.message); }
 }
 </script>
 {% endblock %}

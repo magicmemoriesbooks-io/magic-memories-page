@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Reintentos Escenas — Admin{% endblock %}
+{% block content %}
+{% include 'admin_nav.html' %}
+<div style="background: #f8f4ff; min-height: 80vh; padding: 24px; font-family: 'Quicksand', Arial, sans-serif;">
+<div style="max-width: 1100px; margin: 0 auto;">
+
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 10px;">
+    <div>
+      <h1 style="font-size: 22px; font-weight: 800; color: #7c3aed; margin: 0 0 2px 0;">🔄 Reintentos Pendientes</h1>
+      <p style="font-size: 12px; color: #6b7280; margin: 0;">Cuentos con escenas fallidas, en reintento o con reintentos agotados</p>
+    </div>
+  </div>
+
+  {% if pending_retries %}
+  {% for item in pending_retries %}
+  <div style="background: white; border-radius: 12px; padding: 20px; margin: 15px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid {% if item.retry_exhausted %}#dc2626{% elif item.scenes_retrying %}#f59e0b{% else %}#22c55e{% endif %};">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
+      <div>
+        <strong style="font-size: 15px; color: #1e293b;">{{ item.child_name }}</strong>
+        <span style="margin-left: 8px; font-size: 12px; color: #6b7280;">{{ item.story_id }}</span>
+        <br>
+        <span style="font-size: 12px; color: #6b7280;">Email: {{ item.customer_email or '—' }}</span>
+        <br>
+        <span style="font-size: 11px; color: #9ca3af;">Creado: {{ item.created }}</span>
+      </div>
+      <div style="text-align: right;">
+        {% if item.retry_exhausted %}
+        <span style="background: #fee2e2; color: #dc2626; padding: 3px 10px; border-radius: 8px; font-size: 11px; font-weight: 700;">⛔ Reintentos agotados</span>
+        {% elif item.scenes_retrying %}
+        <span style="background: #fef3c7; color: #d97706; padding: 3px 10px; border-radius: 8px; font-size: 11px; font-weight: 700;">⏳ Reintentando...</span>
+        {% else %}
+        <span style="background: #dcfce7; color: #16a34a; padding: 3px 10px; border-radius: 8px; font-size: 11px; font-weight: 700;">✓ Resuelto</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div style="margin-top: 14px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+      <div style="font-size: 12px; color: #4b5563;">
+        <strong>Escenas fallidas:</strong> {{ item.failed_scenes | join(', ') or '—' }}
+      </div>
+      <div style="font-size: 12px; color: #4b5563;">
+        <strong>Reintentos:</strong> {{ item.retry_count }} / {{ item.max_retries }}
+      </div>
+    </div>
+
+    <div style="margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap;">
+      <a href="/admin/preview/{{ item.preview_id }}" style="padding: 6px 14px; background: #6366f1; color: white; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 600;">Ver cuento</a>
+      {% if item.failed_scenes %}
+      {% for scene_num in item.failed_scenes %}
+      <form method="POST" action="/admin/retry-scenes/{{ item.preview_id }}" style="display: inline;">
+        <button type="submit" style="padding: 6px 14px; background: #f59e0b; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600;">🔄 Reintentar escena {{ scene_num }}</button>
+      </form>
+      {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div style="background: white; border-radius: 12px; padding: 48px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+    <div style="font-size: 48px; margin-bottom: 12px;">✅</div>
+    <div style="font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 6px;">Sin reintentos pendientes</div>
+    <div style="font-size: 13px; color: #64748b;">Todos los cuentos se generaron correctamente.</div>
+  </div>
+  {% endif %}
+
+</div>
+</div>
+{% endblock %}

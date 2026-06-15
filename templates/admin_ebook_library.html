@@ -3,11 +3,11 @@
 {% block title %}Biblioteca eBooks - Admin{% endblock %}
 
 {% block content %}
+{% include 'admin_nav.html' %}
 <div style="background: white; min-height: 80vh; padding: 24px; max-width: 1300px; margin: 0 auto;">
 
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
         <h2 style="font-family: 'Quicksand', sans-serif; font-weight: 700; color: #1a1a1a; margin: 0; font-size: 22px;">📚 Biblioteca de eBooks</h2>
-        <a href="{{ url_for('admin_dashboard') }}" style="padding: 6px 14px; border: 1px solid #6366F1; color: #6366F1; background: white; border-radius: 6px; text-decoration: none; font-size: 12px;">Volver al Panel</a>
     </div>
 
     <p style="color: #64748B; font-size: 13px; margin-bottom: 8px;">

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}CRM — Admin{% endblock %}
+{% block content %}
+{% include 'admin_nav.html' %}
+<div style="background: #f8fafc; min-height: 80vh; padding: 32px 24px; font-family: 'Quicksand', 'Segoe UI', sans-serif;">
+<div style="max-width: 1200px; margin: 0 auto;">
+
+  <div style="margin-bottom: 28px;">
+    <h1 style="font-size: 22px; font-weight: 800; color: #1e293b; margin: 0 0 4px 0;">CRM — Clientes</h1>
+    <p style="font-size: 13px; color: #64748b; margin: 0;">Vista unificada por cliente: leads, compras, emails y estado.</p>
+  </div>
+
+  <div style="background: white; border-radius: 14px; padding: 48px 32px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; text-align: center;">
+    <div style="font-size: 56px; margin-bottom: 16px;">👥</div>
+    <div style="font-size: 18px; font-weight: 800; color: #1e293b; margin-bottom: 8px;">CRM pendiente de implementación</div>
+    <div style="font-size: 13px; color: #64748b; max-width: 480px; margin: 0 auto 28px auto; line-height: 1.6;">
+      Esta sección mostrará una vista unificada por email del cliente: leads capturados, compras realizadas, emails enviados y estado actual del pedido.
+    </div>
+    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+      <div style="background: #f1f5f9; border-radius: 10px; padding: 14px 20px; min-width: 140px;">
+        <div style="font-size: 20px; margin-bottom: 4px;">📋</div>
+        <div style="font-size: 11px; font-weight: 700; color: #475569;">Leads por cliente</div>
+        <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">Disponible en Fase 1</div>
+      </div>
+      <div style="background: #f1f5f9; border-radius: 10px; padding: 14px 20px; min-width: 140px;">
+        <div style="font-size: 20px; margin-bottom: 4px;">💳</div>
+        <div style="font-size: 11px; font-weight: 700; color: #475569;">Compras realizadas</div>
+        <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">Disponible en Fase 1</div>
+      </div>
+      <div style="background: #f1f5f9; border-radius: 10px; padding: 14px 20px; min-width: 140px;">
+        <div style="font-size: 20px; margin-bottom: 4px;">📧</div>
+        <div style="font-size: 11px; font-weight: 700; color: #475569;">Historial de emails</div>
+        <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">Disponible en Fase 2</div>
+      </div>
+      <div style="background: #f1f5f9; border-radius: 10px; padding: 14px 20px; min-width: 140px;">
+        <div style="font-size: 20px; margin-bottom: 4px;">🔖</div>
+        <div style="font-size: 11px; font-weight: 700; color: #475569;">Estado del cliente</div>
+        <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">Disponible en Fase 2</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top: 20px; text-align: center;">
+    <p style="font-size: 12px; color: #94a3b8;">Mientras tanto, puedes buscar leads en <a href="/admin/preview-leads" style="color: #6366f1; text-decoration: none; font-weight: 700;">Preview Leads</a> y ver cuentos en <a href="/admin/cuentos" style="color: #6366f1; text-decoration: none; font-weight: 700;">Cuentos Realizados</a>.</p>
+  </div>
+
+</div>
+</div>
+{% endblock %}

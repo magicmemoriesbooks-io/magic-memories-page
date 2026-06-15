@@ -1,0 +1,83 @@
+<style>
+.mmadmin-nav { background: #1e293b; font-family: 'Quicksand', 'Segoe UI', sans-serif; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+.mmadmin-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; align-items: stretch; }
+.mmadmin-brand { color: #f8fafc; text-decoration: none; padding: 13px 18px; font-weight: 800; font-size: 13px; white-space: nowrap; border-right: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 6px; }
+.mmadmin-brand:hover { background: rgba(255,255,255,0.05); }
+.mmadmin-item { color: rgba(255,255,255,0.80); text-decoration: none; padding: 13px 15px; font-size: 12.5px; font-weight: 600; display: flex; align-items: center; gap: 4px; white-space: nowrap; cursor: pointer; transition: background 0.15s, color 0.15s; }
+.mmadmin-item:hover, .mmadmin-item.active { background: rgba(255,255,255,0.08); color: #fff; }
+.mmadmin-item.active { border-bottom: 2px solid #6366f1; }
+.mmadmin-dropdown { position: relative; }
+.mmadmin-dropdown:hover .mmadmin-menu { display: block; }
+.mmadmin-menu { display: none; position: absolute; top: 100%; left: 0; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-top: 2px solid #6366f1; border-radius: 0 0 10px 10px; min-width: 210px; box-shadow: 0 8px 24px rgba(0,0,0,0.35); z-index: 9999; }
+.mmadmin-menu a { display: block; color: rgba(255,255,255,0.78); text-decoration: none; padding: 10px 16px; font-size: 12px; font-weight: 600; font-family: 'Quicksand', 'Segoe UI', sans-serif; transition: background 0.12s; }
+.mmadmin-menu a:hover { background: rgba(99,102,241,0.18); color: #fff; }
+.mmadmin-menu a:first-child { border-radius: 0; }
+.mmadmin-menu a:last-child { border-radius: 0 0 10px 10px; }
+.mmadmin-spacer { flex: 1; }
+.mmadmin-logout { color: rgba(255,100,100,0.85); text-decoration: none; padding: 13px 15px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px; transition: background 0.15s; }
+.mmadmin-logout:hover { background: rgba(239,68,68,0.12); color: #ef4444; }
+.mmadmin-caret { font-size: 9px; opacity: 0.6; }
+</style>
+
+<nav class="mmadmin-nav">
+  <div class="mmadmin-nav-inner">
+    <a href="/admin/dashboard" class="mmadmin-brand">✨ MagicAdmin</a>
+
+    <a href="/admin/dashboard" class="mmadmin-item {% if request.path == '/admin/dashboard' %}active{% endif %}">Dashboard</a>
+
+    <a href="/admin/negocio" class="mmadmin-item {% if request.path.startswith('/admin/negocio') %}active{% endif %}">Negocio</a>
+
+    <div class="mmadmin-dropdown">
+      <span class="mmadmin-item {% if request.path in ['/admin/cuentos','/admin/gift-book','/admin/ebook-library','/admin/print-requests','/admin/uploaded-photos','/admin/pending-retries'] %}active{% endif %}">
+        Operaciones <span class="mmadmin-caret">▾</span>
+      </span>
+      <div class="mmadmin-menu">
+        <a href="/admin/cuentos">📖 Cuentos Realizados</a>
+        <a href="/admin/gift-book">🎁 Cuentos de Regalo</a>
+        <a href="/admin/ebook-library">📚 Biblioteca eBooks</a>
+        <a href="/admin/print-requests">📦 Libros Impresos</a>
+        <a href="/admin/uploaded-photos">📸 Fotos Usuarios</a>
+        <a href="/admin/pending-retries">🔄 Reintentos Escenas</a>
+      </div>
+    </div>
+
+    <a href="/admin/crm" class="mmadmin-item {% if request.path.startswith('/admin/crm') %}active{% endif %}">CRM</a>
+
+    <div class="mmadmin-dropdown">
+      <span class="mmadmin-item {% if request.path in ['/admin/newsletter','/admin/coupons','/admin/preview-leads'] %}active{% endif %}">
+        Marketing <span class="mmadmin-caret">▾</span>
+      </span>
+      <div class="mmadmin-menu">
+        <a href="/admin/newsletter">📧 Newsletter</a>
+        <a href="/admin/coupons">🎟️ Cupones</a>
+        <a href="/admin/preview-leads">👀 Preview Leads</a>
+      </div>
+    </div>
+
+    <div class="mmadmin-dropdown">
+      <span class="mmadmin-item {% if request.path in ['/admin/settings','/admin/test-cp-connection','/admin/cp-order-lookup'] %}active{% endif %}">
+        Configuración <span class="mmadmin-caret">▾</span>
+      </span>
+      <div class="mmadmin-menu">
+        <a href="/admin/settings">⚙️ Ajustes</a>
+        <a href="/admin/test-cp-connection">🖨️ Test Cloudprinter</a>
+        <a href="/admin/cp-order-lookup">🔍 Consulta CP</a>
+        <a href="#" onclick="adminResetRateLimits(); return false;">🔄 Reset Límite Pruebas</a>
+      </div>
+    </div>
+
+    <div class="mmadmin-spacer"></div>
+    <a href="/admin/logout" class="mmadmin-logout">Salir ×</a>
+  </div>
+</nav>
+
+<script>
+async function adminResetRateLimits() {
+  try {
+    const res = await fetch('/admin/reset-rate-limits', {method: 'POST'});
+    const data = await res.json();
+    if (data.success) alert('✅ Límite de generaciones reseteado.');
+    else alert('Error al resetear.');
+  } catch(e) { alert('Error: ' + e.message); }
+}
+</script>

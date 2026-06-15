@@ -32,9 +32,9 @@
     </style>
 </head>
 <body>
+{% include 'admin_nav.html' %}
     <div class="header">
         <h1>Newsletter Admin</h1>
-        <a href="{{ url_for('admin_dashboard') }}">&larr; Dashboard</a>
     </div>
     <div class="container">
         {% with messages = get_flashed_messages() %}
