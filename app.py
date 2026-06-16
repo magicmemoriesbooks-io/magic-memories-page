@@ -9766,23 +9766,24 @@ def admin_negocio():
                     break
             if price is not None:
                 _prod_revenue[code].append(price)
-    # Solo mostrar productos con al menos 1 venta
+    # Mostrar SIEMPRE las 6 tarjetas — se llenan con ventas conforme llegan
     products_individual = []
     for c in _ALL_CODES:
-        if _prod_units[c] > 0:
-            prices = _prod_revenue[c]
-            products_individual.append((c, {
-                'count': _prod_units[c],
-                'prices': prices,           # lista de precios reales por unidad
-                'has_revenue': len(prices) > 0,
-                'revenue_total': sum(prices),
-                'price_min': min(prices) if prices else None,
-                'price_max': max(prices) if prices else None,
-            }))
+        prices = _prod_revenue[c]
+        products_individual.append((c, {
+            'count': _prod_units[c],
+            'prices': prices,
+            'has_revenue': len(prices) > 0,
+            'revenue_total': sum(prices),
+            'price_min': min(prices) if prices else None,
+            'price_max': max(prices) if prices else None,
+        }))
 
-    # Combinaciones de compra — agrupadas por combo-label
+    # Combinaciones de compra — solo pedidos con 2+ tipos de producto juntos
     _combos = {}
     for s in valid_sales:
+        if len(s['compra_codes']) < 2:
+            continue  # pedido de un solo producto — no es combinación
         ck = s['compra_key'] or 'desconocido'
         if ck not in _combos:
             _combos[ck] = {'count': 0, 'revenue': 0.0, 'codes': s['compra_codes']}

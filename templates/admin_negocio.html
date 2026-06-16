@@ -373,11 +373,11 @@
   <!-- ══════════════════════════════════════════════════════ -->
   <div class="ng-section">
     <div class="ng-section-title">📦 Productos Vendidos
-      <span style="font-size:11px;color:#94a3b8;font-weight:400;margin-left:auto;">Unidades por tipo de producto · solo con ventas</span>
+      <span style="font-size:11px;color:#94a3b8;font-weight:400;margin-left:auto;">Unidades vendidas por tipo · se actualiza con cada compra</span>
     </div>
-    {% if products_individual %}
     <div class="ng-prod-grid">
       {% for code, data in products_individual %}
+      {% if data.count > 0 %}
       <div class="ng-prod-card">
         <div class="ng-prod-code">
           <span class="ng-badge cc-{{ code|lower|replace('_','-') }}" style="font-size:11px;padding:4px 10px;">{{ code }}</span>
@@ -392,11 +392,18 @@
           {% endif %}
         {% endif %}
       </div>
+      {% else %}
+      <div class="ng-prod-card" style="opacity:0.45;border-style:dashed;">
+        <div class="ng-prod-code">
+          <span class="ng-badge cc-{{ code|lower|replace('_','-') }}" style="font-size:11px;padding:4px 10px;opacity:0.6;">{{ code }}</span>
+        </div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:8px;">{{ code_labels.get(code, '') }}</div>
+        <div class="ng-prod-units" style="color:#cbd5e1;">0 unidades</div>
+        <div style="font-size:10px;color:#cbd5e1;margin-top:4px;">Sin ventas aún</div>
+      </div>
+      {% endif %}
       {% endfor %}
     </div>
-    {% else %}
-    <div style="background:white;border-radius:12px;padding:24px;text-align:center;color:#94a3b8;font-size:13px;border:1px solid #e2e8f0;">Sin ventas con importe registrado.</div>
-    {% endif %}
   </div>
 
   <!-- ══════════════════════════════════════════════════════ -->
@@ -404,7 +411,7 @@
   <!-- ══════════════════════════════════════════════════════ -->
   <div class="ng-section">
     <div class="ng-section-title">🛒 Combinaciones de Compra
-      <span style="font-size:11px;color:#94a3b8;font-weight:400;margin-left:auto;">Qué formatos se compraron juntos · análisis comercial</span>
+      <span style="font-size:11px;color:#94a3b8;font-weight:400;margin-left:auto;">Pedidos con más de un formato · aparecen automáticamente</span>
     </div>
     {% if combinations_list %}
     <div class="ng-prod-grid">
@@ -423,7 +430,11 @@
       {% endfor %}
     </div>
     {% else %}
-    <div style="background:white;border-radius:12px;padding:24px;text-align:center;color:#94a3b8;font-size:13px;border:1px solid #e2e8f0;">Sin combinaciones registradas.</div>
+    <div class="ng-prod-card" style="border-style:dashed;opacity:0.55;text-align:center;padding:28px 18px;">
+      <div style="font-size:28px;margin-bottom:8px;">🛒</div>
+      <div style="font-size:13px;color:#64748b;font-weight:600;margin-bottom:4px;">Sin combinaciones aún</div>
+      <div style="font-size:11px;color:#94a3b8;">Aparecerán aquí cuando un cliente compre<br>más de un formato en el mismo pedido</div>
+    </div>
     {% endif %}
   </div>
 
