@@ -412,10 +412,16 @@ def prepare_book_for_visor(story_data, preview_id, book_uuid=None, is_gift=False
             pass
 
     safe_name = child_name.replace(' ', '_').replace("'", "")
-    # Point to the app's dynamic download route — always serves the proper
-    # imprimible PDF (28 pages, 3mm bleed, crop marks). Never expose the
-    # internal _digital.pdf (plain image compilation) to end users.
-    pdf_filename = f'/download-book/{preview_id}'
+    # Only expose the PDF download button to customers who paid for it.
+    # Ebook-only buyers must NOT see the download button in the visor.
+    _customer_has_pdf = bool(
+        story_data.get('want_pdf') or
+        story_data.get('want_print') or
+        story_data.get('pdf_paid') or
+        story_data.get('pdf_order') or
+        story_data.get('product_type') == 'personalized_pdf'
+    )
+    pdf_filename = f'/download-book/{preview_id}' if _customer_has_pdf else None
 
     music_file = story_data.get('visor_music', None) or get_music_for_story(story_data)
 
