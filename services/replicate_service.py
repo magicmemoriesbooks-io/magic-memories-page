@@ -29,7 +29,7 @@ IDEOGRAM_CHARACTER_MODEL = "ideogram-ai/ideogram-character:1f8e198263a0d8171b76c
 
 BABY_STORY_IDS = ['baby_soft_world', 'baby_puppy_love', 'baby_first_pet', 'baby_guardian_light']
 # Stories that use FLUX Kontext Pro for scene generation (real Kontext, not FLUX 2 Pro Redux)
-KONTEXT_STORY_IDS = ['baby_soft_world']
+KONTEXT_STORY_IDS = ['baby_soft_world', 'baby_puppy_love', 'baby_first_pet', 'baby_guardian_light']
 
 # Reference images for consistency (static assets)
 PUPPY_PLUSH_REFERENCE = "static/assets/puppy_plush_reference.png"
