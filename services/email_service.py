@@ -52,6 +52,7 @@ _EMAIL_TYPE_META = {
     'admin_cp_order':       {'category': 'admin',      'label': 'Admin: pedido CP'},
     'admin_error':          {'category': 'admin',      'label': 'Admin: error'},
     'admin_other':          {'category': 'admin',      'label': 'Admin: notificación'},
+    'skipped_duplicate':    {'category': 'system',     'label': 'Duplicado omitido'},
 }
 
 def log_email(email_type: str, to_email: str, subject: str, result: str,
@@ -96,6 +97,42 @@ def log_email(email_type: str, to_email: str, subject: str, result: str,
             _f.write(_json.dumps(entry, ensure_ascii=False) + '\n')
     except Exception as _e:
         print(f'[EMAIL-LOG] Failed to write log entry: {_e}')
+
+
+def _is_duplicate_send(preview_id: str, email_type: str, days: int = 30) -> bool:
+    """Return True if a SENT email of this type was already logged for this preview_id
+    within the last N days. Used to prevent duplicate sends caused by scheduler bugs,
+    permission errors, or concurrent workers."""
+    try:
+        if not preview_id:
+            return False
+        from datetime import datetime as _dt_dup, timedelta as _td_dup
+        cutoff = _dt_dup.now() - _td_dup(days=days)
+        if not _os_el.path.exists(EMAIL_LOG_FILE):
+            return False
+        with open(EMAIL_LOG_FILE, 'r', encoding='utf-8') as _f:
+            for _line in _f:
+                _line = _line.strip()
+                if not _line:
+                    continue
+                try:
+                    _entry = _json.loads(_line)
+                    if (_entry.get('preview_id') == preview_id
+                            and _entry.get('email_type') == email_type
+                            and _entry.get('result') == 'SENT'):
+                        _ts_str = _entry.get('ts', '')
+                        if _ts_str:
+                            try:
+                                _ts = _dt_dup.fromisoformat(_ts_str)
+                                if _ts >= cutoff:
+                                    return True
+                            except Exception:
+                                pass
+                except Exception:
+                    pass
+    except Exception as _dup_e:
+        print(f'[EMAIL-LOG] _is_duplicate_send error: {_dup_e}')
+    return False
 
 
 def _isabel_signature_html() -> str:
@@ -3012,6 +3049,12 @@ def send_feedback_email_24h(to_email: str, child_name: str = '', lang: str = 'es
     Template is universal across all products — references the child and story title,
     not the specific product. Saves HTML body for CRM preview. Notifies admin on error."""
 
+    if preview_id and _is_duplicate_send(preview_id, 'feedback_24h'):
+        print(f"[LEAD] SKIPPED_DUPLICATE feedback_24h for {preview_id} — already sent in last 30 days")
+        log_email('skipped_duplicate', to_email, 'feedback_24h [duplicado omitido]', 'SKIPPED_DUPLICATE',
+                  preview_id=preview_id, child_name=child_name, lang=lang)
+        return True
+
     _child  = child_name.strip() if child_name.strip() else 'tu pequeño/a'
     _story  = story_name.strip() if story_name.strip() else ''
     _story_ref = f'<strong>{_story}</strong>' if _story else 'el cuento personalizado'
@@ -3127,6 +3170,12 @@ def send_feedback_email_24h(to_email: str, child_name: str = '', lang: str = 'es
 
 def send_upsell_print_email(preview_id: str, to_email: str, child_name: str = '', lang: str = 'es') -> bool:
     """Send the 48h post-purchase upsell email offering PDF + printed book formats."""
+    if preview_id and _is_duplicate_send(preview_id, 'upsell_print'):
+        print(f"[LEAD] SKIPPED_DUPLICATE upsell_print for {preview_id} — already sent in last 30 days")
+        log_email('skipped_duplicate', to_email, 'upsell_print [duplicado omitido]', 'SKIPPED_DUPLICATE',
+                  preview_id=preview_id, child_name=child_name, lang=lang)
+        return True
+
     formats_url = f"https://magicmemoriesbooks.com/formats/{preview_id}"
     name_str = child_name.strip() if child_name.strip() else ''
 
