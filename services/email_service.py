@@ -471,17 +471,20 @@ Magic Memories Books
             server.send_message(msg)
         
         print(f"[EMAIL SERVICE] Email sent successfully to: {to_email} with {attached_count} attachments")
-        _age = story_data.get('age_group', '')
-        _etype = 'ebook_ready' if not pdf_printable_path else 'pdf_ready'
-        log_email(_etype, to_email, subject,
-                  'SENT', preview_id=preview_id or '', child_name=story_data.get('child_name',''), lang=story_data.get('lang','es'))
+        _is_real_sale = story_data.get('paid', False) and not give_gift_ebook and not story_data.get('is_gift', False)
+        if _is_real_sale:
+            _etype = 'ebook_ready' if not pdf_printable_path else 'pdf_ready'
+            log_email(_etype, to_email, subject,
+                      'SENT', preview_id=preview_id or '', child_name=story_data.get('child_name',''), lang=story_data.get('lang','es'))
         return {'success': True, 'message': f'Email sent with {attached_count} attachments'}
         
     except Exception as e:
         print(f"[EMAIL SERVICE] Error sending email: {str(e)}")
-        _etype2 = 'ebook_ready' if not pdf_printable_path else 'pdf_ready'
-        log_email(_etype2, to_email, subject,
-                  'ERROR', preview_id=preview_id or '', child_name=story_data.get('child_name',''), lang=story_data.get('lang','es'), error=str(e))
+        _is_real_sale2 = story_data.get('paid', False) and not give_gift_ebook and not story_data.get('is_gift', False)
+        if _is_real_sale2:
+            _etype2 = 'ebook_ready' if not pdf_printable_path else 'pdf_ready'
+            log_email(_etype2, to_email, subject,
+                      'ERROR', preview_id=preview_id or '', child_name=story_data.get('child_name',''), lang=story_data.get('lang','es'), error=str(e))
         return {'success': False, 'message': str(e)}
 
 
@@ -1947,14 +1950,16 @@ Magic Memories Books
         if pdf_download_url:
             attachments_info += f", pdf_download_link=True"
         print(f"[EMAIL] eBook email sent to {to_email} (is_gift={is_gift}{attachments_info})")
-        log_email('ebook_ready', to_email, subject, 'SENT',
-                  preview_id=preview_id, child_name=story_data.get('child_name',''), lang=story_data.get('lang','es'))
+        if not is_gift and story_data.get('paid', False):
+            log_email('ebook_ready', to_email, subject, 'SENT',
+                      preview_id=preview_id, child_name=story_data.get('child_name',''), lang=story_data.get('lang','es'))
         return {'success': True, 'message': f'eBook email sent to {to_email}'}
         
     except Exception as e:
         print(f"[EMAIL] Failed to send eBook email: {e}")
-        log_email('ebook_ready', to_email, subject, 'ERROR',
-                  preview_id=preview_id, child_name=story_data.get('child_name',''), lang=story_data.get('lang','es'), error=str(e))
+        if not is_gift and story_data.get('paid', False):
+            log_email('ebook_ready', to_email, subject, 'ERROR',
+                      preview_id=preview_id, child_name=story_data.get('child_name',''), lang=story_data.get('lang','es'), error=str(e))
         return {'success': False, 'error': str(e)}
 
 
