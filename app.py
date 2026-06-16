@@ -9712,10 +9712,15 @@ def admin_negocio():
             continue
     sales.sort(key=lambda x: x['payment_date'], reverse=True)
 
-    # Ventas válidas = importe > 0, O tiene paypal_order_id como prueba de pago
+    # Emails internos de prueba — excluidos del panel de ventas reales
+    _INTERNAL_DOMAINS = ('@magicmemoriesbooks.com',)
+    _is_internal = lambda em: em and any(em.strip().lower().endswith(d) for d in _INTERNAL_DOMAINS)
+
+    # Ventas válidas = importe > 0 O paypal_order_id presente, Y email no interno
     valid_sales = [
         s for s in sales
-        if (s['amount_paid'] and s['amount_paid'] > 0) or s['paypal_order_id']
+        if ((s['amount_paid'] and s['amount_paid'] > 0) or s['paypal_order_id'])
+        and not _is_internal(s['customer_email'])
     ]
 
     known_revenue = round(sum(s['amount_paid'] or 0 for s in valid_sales), 2)
