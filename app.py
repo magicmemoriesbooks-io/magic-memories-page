@@ -6184,8 +6184,11 @@ def regenerate_quick_scene(preview_id, scene_num):
     
     try:
         from services.quick_stories.checkout import is_quick_story as check_qs_regen
+        from services.replicate_service import KONTEXT_STORY_IDS as _KSI
         is_qs_regen = check_qs_regen(story_id)
-        scene_prompts = get_scene_prompts(story_id, child_name, gender, traits, use_reference_image=is_qs_regen)
+        _use_kontext_real_regen = story_id in _KSI
+        # Kontext strips CAST: at runtime; FLUX 2 Dev needs use_reference_image=True for @image1 tokens
+        scene_prompts = get_scene_prompts(story_id, child_name, gender, traits, use_reference_image=(is_qs_regen and not _use_kontext_real_regen))
         scene_index = scene_num - 1
         
         if scene_index >= len(scene_prompts):
@@ -6224,6 +6227,27 @@ def regenerate_quick_scene(preview_id, scene_num):
             )
         elif use_ideogram and not ref_image_regen:
             return jsonify({'success': False, 'error': 'No reference image found for Ideogram regeneration'}), 400
+        elif _use_kontext_real_regen and ref_image_regen:
+            from services.replicate_service import generate_scene_with_real_kontext
+            print(f"[REGENERATE-QS] Using FLUX Kontext Pro with reference: {ref_image_regen}")
+            try:
+                new_scene_path = generate_scene_with_real_kontext(
+                    prompt, ref_image_regen, scene_num, regen_aspect, output_dir,
+                    gender=gender, age_range=age_range,
+                    hair_length=hair_length_regen, child_age=child_age_regen,
+                    story_id=story_id
+                )
+            except Exception as kontext_err:
+                error_str = str(kontext_err)
+                print(f"[REGENERATE-QS] Kontext Pro failed for scene {scene_num}: {error_str}")
+                is_service_error = any(x in error_str.lower() for x in ["temporarily unavailable", "q_descale", "timeout", "overloaded", "503", "502"])
+                if is_service_error:
+                    lang = story_data.get('lang', 'es')
+                    service_msg = 'El servicio de imágenes está temporalmente ocupado. Por favor intenta regenerar en unos minutos.' if lang == 'es' else 'Image service is temporarily busy. Please try regenerating in a few minutes.'
+                    return jsonify({'success': False, 'error': service_msg, 'service_error': True}), 503
+                raise
+        elif _use_kontext_real_regen and not ref_image_regen:
+            return jsonify({'success': False, 'error': 'No reference image found for Kontext regeneration'}), 400
         elif ref_image_regen:
             from services.replicate_service import generate_scene_with_flux2dev
             print(f"[REGENERATE-QS] Using FLUX 2 Dev with reference: {ref_image_regen}")
@@ -8863,7 +8887,7 @@ def admin_test_cp_connection():
     except Exception as e:
         result['message'] = f"Error: {e}"
 
-    return jsonify(result)
+    return render_template('admin_test_cp_connection.html', result=result)
 
 
 @app.route('/admin/cp-order-lookup', methods=['GET', 'POST'])
@@ -8885,48 +8909,7 @@ def admin_cp_order_lookup():
             else:
                 result = {'error': f'No se encontró el pedido {ref} en Cloudprinter'}
 
-    html = f"""
-    <!DOCTYPE html><html><head><title>CP Order Lookup</title>
-    <style>body{{font-family:sans-serif;max-width:800px;margin:40px auto;padding:20px}}
-    input{{padding:8px;width:400px;border:1px solid #ccc;border-radius:4px}}
-    button{{padding:8px 20px;background:#7c3aed;color:white;border:none;border-radius:4px;cursor:pointer}}
-    pre{{background:#f5f5f5;padding:16px;border-radius:8px;overflow:auto;font-size:13px}}
-    .ok{{color:#16a34a}}.err{{color:#dc2626}}.addr{{background:#eff6ff;padding:12px;border-radius:6px;border-left:4px solid #3b82f6}}
-    </style></head><body>
-    <h2>🔍 Cloudprinter Order Lookup</h2>
-    <p>Consulta cualquier pedido por referencia (ej: <code>MM-abc123-456</code> o <code>MMPB-abc123</code>)</p>
-    <form method="POST">
-      <input name="reference" value="{ref}" placeholder="MM-... o MMPB-...">
-      <button type="submit">Consultar</button>
-    </form>
-    """
-    if result and 'error' not in result:
-        addr = result.get('cp_address') or {}
-        addr_html = ''
-        if addr:
-            addr_html = f"""<div class="addr"><strong>📦 Dirección recibida por CP:</strong><br>
-            {addr.get('name','')}<br>
-            {addr.get('street1','')}{'<br>' + addr.get('street2','') if addr.get('street2') else ''}<br>
-            {addr.get('city','')}, {addr.get('postcode','')}<br>
-            {addr.get('country','')}</div>"""
-        tracking_html = ''
-        if result.get('tracking_number'):
-            tracking_html = f"""<p>🚚 <strong>Tracking:</strong> {result['tracking_number']}<br>
-            {'<a href="' + result['tracking_url'] + '" target="_blank">' + result['tracking_url'] + '</a>' if result.get('tracking_url') else ''}<br>
-            Transportista: {result.get('carrier','desconocido')}</p>"""
-        html += f"""
-        <hr style="margin:24px 0">
-        <h3>Pedido: <code>{ref}</code></h3>
-        <p>Estado: <span class="ok"><strong>{result.get('status_text',{}).get('es', result.get('status',''))}</strong></span></p>
-        {addr_html}
-        {tracking_html}
-        <details><summary>Respuesta completa de CP (raw)</summary><pre>{json.dumps(result.get('raw',{}), indent=2, ensure_ascii=False)}</pre></details>
-        """
-    elif result and 'error' in result:
-        html += f'<p class="err">⚠️ {result["error"]}</p>'
-
-    html += '</body></html>'
-    return html
+    return render_template('admin_cp_order_lookup.html', result=result, ref=ref)
 
 
 @app.route('/admin/update-shipping/<preview_id>', methods=['POST'])
@@ -9590,7 +9573,12 @@ def admin_gift_book():
                     'scenes_generating': data.get('scenes_generating', False),
                     'book_scenes_ready': data.get('book_scenes_ready', False),
                     'pages_composed': data.get('pages_composed', False),
-                    'has_lulu_folder': bool(data.get('lulu_order_folder')) and os.path.exists(data.get('lulu_order_folder', '')),
+                    'has_pdf_access': (
+                        (bool(data.get('lulu_order_folder')) and os.path.exists(data.get('lulu_order_folder', '')))
+                        or data.get('book_scenes_ready', False)
+                        or data.get('pages_composed', False)
+                        or data.get('cp_pdfs_ready', False)
+                    ),
                     'created': datetime.fromtimestamp(os.path.getmtime(pf)).strftime('%Y-%m-%d %H:%M'),
                 })
         except:
@@ -9649,12 +9637,9 @@ def admin_gift_download(preview_id):
         story_data = json.load(f)
     
     lulu_folder = story_data.get('lulu_order_folder', '')
-    if not lulu_folder or not os.path.exists(lulu_folder):
-        return "PDFs not ready yet. Please wait for composition to finish.", 404
-    
-    folder_name = os.path.basename(lulu_folder)
-    interior_exists = os.path.exists(os.path.join(lulu_folder, 'interior.pdf'))
-    cover_exists = os.path.exists(os.path.join(lulu_folder, 'cover.pdf'))
+    folder_name = os.path.basename(lulu_folder) if lulu_folder else ''
+    interior_exists = bool(lulu_folder) and os.path.exists(os.path.join(lulu_folder, 'interior.pdf'))
+    cover_exists = bool(lulu_folder) and os.path.exists(os.path.join(lulu_folder, 'cover.pdf'))
     
     return render_template('admin_gift_download.html',
                           story_data=story_data,
