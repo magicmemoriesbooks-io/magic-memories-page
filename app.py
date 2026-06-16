@@ -7963,7 +7963,7 @@ def admin_dashboard():
                 story_previews.append(preview_info)
                 
                 _print_failed = (data.get('cp_status') == 'failed' or data.get('lulu_status') == 'failed')
-                if _print_failed and data.get('paid'):
+                if _print_failed and data.get('paid') and not data.get('cp_dismissed'):
                     failed_orders.append({
                         'preview_id': pid,
                         'child_name': data.get('child_name', 'Unknown'),
@@ -10047,6 +10047,7 @@ def admin_delete_preview(preview_id):
         if has_committed_ebook:
             _purge_story_files(preview_id, data, include_lulu=True, skip_visor=True)
             data['story_files_deleted'] = True
+            data['cp_dismissed'] = True  # hide from failed-orders panel on next load
             with open(preview_file, 'w') as f:
                 json.dump(data, f, ensure_ascii=False)
             print(f"[ADMIN-DELETE] {preview_id}: archivos liberados, eBook preservado")

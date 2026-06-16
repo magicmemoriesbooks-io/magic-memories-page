@@ -179,11 +179,9 @@ async function deletePreview(previewId, rowId) {
     if (data.success) {
       const row = document.getElementById(rowId);
       if (data.ebook_preserved) {
-        if (row) { const btn = row.querySelector('button[onclick*="deletePreview"]'); if (btn) { btn.disabled = true; btn.textContent = '✓ Archivos liberados'; btn.style.color = '#6B7280'; btn.style.borderColor = '#6B7280'; btn.style.cursor = 'default'; } }
         alert('✓ Archivos liberados.\nEl eBook del cliente fue preservado — sigue disponible en la Biblioteca de eBooks.');
-      } else {
-        if (row) { row.style.transition = 'opacity 0.3s'; row.style.opacity = '0'; setTimeout(() => row.remove(), 300); }
       }
+      if (row) { row.style.transition = 'opacity 0.3s'; row.style.opacity = '0'; setTimeout(() => row.remove(), 300); }
     } else { alert('Error: ' + (data.error || 'No se pudo eliminar')); }
   } catch (e) { alert('Error: ' + e.message); }
 }
