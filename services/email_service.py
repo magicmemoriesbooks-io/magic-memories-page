@@ -43,6 +43,7 @@ _EMAIL_TYPE_META = {
     'generation_started':   {'category': 'delivery',   'label': 'Generación iniciada'},
     'generation_failed':    {'category': 'delivery',   'label': 'Generación fallida'},
     'feedback_24h':         {'category': 'followup',   'label': 'Feedback 24h'},
+    'feedback_manual':      {'category': 'Seguimiento','label': 'Feedback manual'},
     'upsell_print':         {'category': 'followup',   'label': 'Upsell impresión 48h'},
     'coupon':               {'category': 'retention',  'label': 'Cupón'},
     'newsletter':           {'category': 'retention',  'label': 'Newsletter'},
@@ -55,13 +56,27 @@ _EMAIL_TYPE_META = {
 
 def log_email(email_type: str, to_email: str, subject: str, result: str,
               preview_id: str = '', child_name: str = '', lang: str = 'es',
-              error: str = '') -> None:
-    """Append one email event to the persistent JSONL log (data/email_log.jsonl)."""
+              error: str = '', body_html: str = '') -> None:
+    """Append one email event to the persistent JSONL log (data/email_log.jsonl).
+    If body_html is provided, saves the HTML to data/email_bodies/ for CRM preview."""
     try:
         from datetime import datetime as _dt_el
         meta = _EMAIL_TYPE_META.get(email_type, {'category': 'other', 'label': email_type})
+        ts_str = _dt_el.now().isoformat(timespec='seconds')
+
+        body_file = ''
+        if body_html:
+            _bodies_dir = _os_el.path.join(_os_el.path.dirname(EMAIL_LOG_FILE), 'email_bodies')
+            _os_el.makedirs(_bodies_dir, exist_ok=True)
+            _safe_pid = (preview_id or 'noid').replace('/', '_')
+            _safe_ts  = ts_str[:10]
+            body_file = f"{_safe_pid}_{email_type}_{_safe_ts}.html"
+            _body_path = _os_el.path.join(_bodies_dir, body_file)
+            with open(_body_path, 'w', encoding='utf-8') as _bf:
+                _bf.write(body_html)
+
         entry = {
-            'ts':         _dt_el.now().isoformat(timespec='seconds'),
+            'ts':         ts_str,
             'preview_id': preview_id or '',
             'to_email':   to_email or '',
             'child_name': child_name or '',
@@ -72,6 +87,7 @@ def log_email(email_type: str, to_email: str, subject: str, result: str,
             'subject':    subject or '',
             'result':     result,
             'error':      error or '',
+            'body_file':  body_file,
         }
         log_dir = _os_el.path.dirname(EMAIL_LOG_FILE)
         if log_dir:

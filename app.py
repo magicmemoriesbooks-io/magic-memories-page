@@ -9878,6 +9878,21 @@ def admin_crm():
     )
 
 
+@app.route('/admin/crm/email-preview/<path:filename>')
+def admin_crm_email_preview(filename):
+    """Serve the stored HTML body of a logged email for CRM preview."""
+    if not check_admin_auth():
+        return redirect(url_for('admin_login_page'))
+    import re
+    safe = re.sub(r'[^a-zA-Z0-9_\-\.]', '', filename)
+    body_path = os.path.join('data', 'email_bodies', safe)
+    if not os.path.exists(body_path):
+        return '<p style="font-family:sans-serif;padding:40px;color:#dc2626;">Vista previa no disponible para este email (generado antes de esta función).</p>', 404
+    with open(body_path, 'r', encoding='utf-8') as _f:
+        html = _f.read()
+    return html, 200, {'Content-Type': 'text/html; charset=utf-8'}
+
+
 @app.route('/admin/retry-scenes/<preview_id>', methods=['POST'])
 def admin_retry_scenes(preview_id):
     if not check_admin_auth():

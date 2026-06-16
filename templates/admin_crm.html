@@ -104,6 +104,7 @@
           <th style="padding:10px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748b;white-space:nowrap;">TIPO DE EMAIL</th>
           <th style="padding:10px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748b;">ASUNTO</th>
           <th style="padding:10px 8px;text-align:center;font-size:10px;font-weight:700;color:#64748b;">RESULTADO</th>
+          <th style="padding:10px 8px;text-align:center;font-size:10px;font-weight:700;color:#64748b;">VER</th>
         </tr>
       </thead>
       <tbody>
@@ -173,6 +174,16 @@
               <span style="background:#fef9c3;color:#854d0e;border-radius:5px;padding:3px 8px;font-size:10px;font-weight:700;">📋 HISTÓRICO</span>
             {% else %}
               <span style="background:#f1f5f9;color:#64748b;border-radius:5px;padding:3px 8px;font-size:10px;font-weight:700;">{{ e.get('result','?') }}</span>
+            {% endif %}
+          </td>
+
+          <td style="padding:9px 8px;text-align:center;">
+            {% if e.get('body_file') %}
+              <a href="/admin/crm/email-preview/{{ e.get('body_file') }}" target="_blank"
+                 style="display:inline-block;background:#f3e8ff;color:#7c3aed;border:1px solid #ddd6fe;border-radius:6px;padding:3px 9px;font-size:11px;font-weight:700;text-decoration:none;"
+                 title="Ver el email exacto que recibió el cliente">👁 Ver</a>
+            {% else %}
+              <span style="color:#cbd5e1;font-size:10px;">—</span>
             {% endif %}
           </td>
 
