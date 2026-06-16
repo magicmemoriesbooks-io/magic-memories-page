@@ -2,82 +2,651 @@
 {% block title %}Negocio — Admin{% endblock %}
 {% block content %}
 {% include 'admin_nav.html' %}
-<div style="background: #f8fafc; min-height: 80vh; padding: 32px 24px; font-family: 'Quicksand', 'Segoe UI', sans-serif;">
-<div style="max-width: 1200px; margin: 0 auto;">
 
-  <div style="margin-bottom: 28px;">
-    <h1 style="font-size: 22px; font-weight: 800; color: #1e293b; margin: 0 0 4px 0;">Negocio</h1>
-    <p style="font-size: 13px; color: #64748b; margin: 0;">Métricas comerciales, conversión y rendimiento.</p>
+<style>
+.ng-wrap { background:#f8fafc; min-height:80vh; padding:28px 20px; font-family:'Quicksand','Segoe UI',sans-serif; }
+.ng-inner { max-width:1400px; margin:0 auto; }
+.ng-h1 { font-size:22px; font-weight:800; color:#1e293b; margin:0 0 4px 0; }
+.ng-sub { font-size:13px; color:#64748b; margin:0 0 24px 0; }
+.ng-section { margin-bottom:32px; }
+.ng-section-title { font-size:13px; font-weight:800; color:#1e293b; margin:0 0 14px 0; padding-bottom:8px; border-bottom:2px solid #e2e8f0; display:flex; align-items:center; gap:8px; }
+
+/* ── KPI CARDS ── */
+.ng-cards { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; }
+.ng-card { background:white; border-radius:14px; padding:18px 20px; box-shadow:0 1px 6px rgba(0,0,0,0.07); border:2px solid #e2e8f0; cursor:pointer; transition:border-color .15s,box-shadow .15s,transform .1s; user-select:none; }
+.ng-card:hover { border-color:#818cf8; box-shadow:0 4px 16px rgba(99,102,241,0.15); transform:translateY(-1px); }
+.ng-card.active { border-color:#6366f1; box-shadow:0 4px 18px rgba(99,102,241,0.22); background:#fafafe; }
+.ng-card-icon { width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:15px; margin-bottom:10px; }
+.ng-card-val { font-size:26px; font-weight:800; color:#1e293b; line-height:1; margin-bottom:3px; }
+.ng-card-lbl { font-size:11px; color:#475569; font-weight:700; }
+.ng-card-sub { font-size:10px; color:#94a3b8; margin-top:5px; }
+
+/* ── FILTER PANELS ── */
+.ng-filter-panel { display:none; background:white; border-radius:12px; border:2px solid #6366f1; padding:14px 18px; margin-bottom:16px; }
+.ng-filter-panel.open { display:block; }
+.ng-filter-title { font-size:11px; font-weight:800; color:#6366f1; margin:0 0 10px 0; }
+.ng-chips { display:flex; flex-wrap:wrap; gap:7px; }
+.ng-chip { display:inline-flex; align-items:center; gap:4px; padding:4px 11px; border-radius:20px; font-size:11px; font-weight:700; border:1.5px solid #e2e8f0; background:#f8fafc; color:#334155; cursor:pointer; transition:all .12s; }
+.ng-chip:hover,.ng-chip.selected { border-color:#6366f1; color:#6366f1; background:#eef2ff; }
+.ng-chip.selected { background:#6366f1; color:white; }
+
+/* ── FILTER BAR ── */
+.ng-filter-bar { display:none; background:#eef2ff; border:1px solid #c7d2fe; border-radius:10px; padding:9px 14px; margin-bottom:10px; align-items:center; gap:10px; font-size:12px; flex-wrap:wrap; }
+.ng-filter-bar.on { display:flex; }
+.ng-reset-btn { padding:4px 12px; border-radius:7px; font-size:11px; font-weight:700; background:#ef4444; color:white; border:none; cursor:pointer; }
+
+/* ── TABLE ── */
+.ng-table-wrap { background:white; border-radius:14px; box-shadow:0 1px 6px rgba(0,0,0,0.07); border:1px solid #e2e8f0; overflow-x:auto; }
+.ng-table { width:100%; border-collapse:collapse; font-size:11.5px; }
+.ng-table th { background:#f1f5f9; color:#475569; font-weight:700; padding:9px 11px; text-align:left; white-space:nowrap; border-bottom:1px solid #e2e8f0; }
+.ng-table td { padding:8px 11px; border-bottom:1px solid #f1f5f9; color:#334155; vertical-align:middle; }
+.ng-table tr:last-child td { border-bottom:none; }
+.ng-table tr.ng-hidden { display:none; }
+.ng-table tr.sales-row:hover td { background:#f8fafc; }
+.ng-pid { font-family:'Courier New',monospace; font-size:11.5px; color:#6366f1; font-weight:700; text-decoration:none; white-space:nowrap; }
+.ng-pid:hover { text-decoration:underline; }
+.ng-cpref { font-family:'Courier New',monospace; font-size:10px; color:#334155; white-space:nowrap; }
+.ng-badge { display:inline-block; padding:2px 7px; border-radius:20px; font-size:10px; font-weight:700; white-space:nowrap; }
+.ng-g { background:#dcfce7; color:#15803d; }
+.ng-b { background:#dbeafe; color:#1d4ed8; }
+.ng-r { background:#fee2e2; color:#b91c1c; }
+.ng-gr { background:#f1f5f9; color:#64748b; }
+.ng-btn { display:inline-block; padding:4px 11px; border-radius:7px; font-size:10.5px; font-weight:700; text-decoration:none; background:#6366f1; color:white; white-space:nowrap; border:none; cursor:pointer; }
+.ng-btn:hover { background:#4f46e5; }
+.ng-btn-sm { padding:3px 9px; font-size:10px; background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; border-radius:6px; cursor:pointer; font-weight:700; white-space:nowrap; }
+.ng-btn-sm:hover { background:#e2e8f0; }
+
+/* ── COMPRA BADGES ── */
+.compra-codes { display:flex; flex-wrap:wrap; gap:3px; }
+.cc-qs-ebook  { background:#ede9fe; color:#6d28d9; }
+.cc-qs-pdf    { background:#dbeafe; color:#1e40af; }
+.cc-qs-print  { background:#dcfce7; color:#15803d; }
+.cc-pb-ebook  { background:#fce7f3; color:#9d174d; }
+.cc-pb-pdf    { background:#e0f2fe; color:#0369a1; }
+.cc-pb-print  { background:#d1fae5; color:#065f46; }
+
+/* ── DETAIL ROW ── */
+.ng-detail-row { display:none; }
+.ng-detail-row.open { display:table-row; }
+.ng-detail-row td { background:#fafafa; border-bottom:2px solid #e2e8f0; padding:0; }
+.ng-detail-inner { padding:16px 20px; }
+.ng-detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.ng-desglose { background:white; border:1px solid #e2e8f0; border-radius:10px; padding:14px 18px; }
+.ng-desglose-title { font-size:11px; font-weight:800; color:#475569; margin:0 0 10px 0; text-transform:uppercase; letter-spacing:.04em; }
+.ng-desglose-row { display:flex; justify-content:space-between; align-items:center; padding:5px 0; font-size:12px; color:#334155; border-bottom:1px solid #f1f5f9; }
+.ng-desglose-row:last-child { border-bottom:none; }
+.ng-desglose-row.total { font-weight:800; font-size:13px; color:#1e293b; border-top:2px solid #e2e8f0; margin-top:4px; padding-top:8px; border-bottom:none; }
+.ng-desglose-row.discount { color:#dc2626; }
+.ng-desglose-row.shipping { color:#0369a1; }
+.ng-audit { background:white; border:1px solid #e2e8f0; border-radius:10px; padding:14px 18px; }
+.ng-audit-title { font-size:11px; font-weight:800; color:#475569; margin:0 0 10px 0; text-transform:uppercase; letter-spacing:.04em; }
+.ng-audit-row { display:flex; flex-direction:column; gap:2px; padding:6px 0; border-bottom:1px solid #f1f5f9; font-size:11px; }
+.ng-audit-row:last-child { border-bottom:none; }
+.ng-audit-key { color:#94a3b8; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+.ng-audit-val { font-family:'Courier New',monospace; color:#334155; word-break:break-all; }
+
+/* ── PRODUCT / COMBO CARDS ── */
+.ng-prod-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; }
+.ng-prod-card { background:white; border-radius:12px; padding:16px 18px; border:1px solid #e2e8f0; box-shadow:0 1px 5px rgba(0,0,0,0.05); }
+.ng-prod-code { margin-bottom:8px; }
+.ng-prod-units { font-size:22px; font-weight:800; color:#1e293b; line-height:1; }
+.ng-prod-sub { font-size:11px; color:#64748b; margin-top:4px; }
+.ng-prod-rev { font-size:12px; color:#15803d; font-weight:700; margin-top:3px; }
+
+/* ── CUSTOMERS ── */
+.ng-cust-toggle { cursor:pointer; color:#6366f1; font-weight:700; font-size:11px; text-decoration:none; }
+.ng-cust-toggle:hover { text-decoration:underline; }
+
+/* ── DATA QUALITY ── */
+.ng-dq-row { display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid #f1f5f9; font-size:12px; }
+.ng-dq-row:last-child { border-bottom:none; }
+.ng-progress { flex:1; height:7px; background:#f1f5f9; border-radius:4px; overflow:hidden; max-width:200px; }
+.ng-progress-fill { height:100%; border-radius:4px; }
+
+@media(max-width:1100px){ .ng-cards{grid-template-columns:repeat(2,1fr);} .ng-detail-grid{grid-template-columns:1fr;} }
+@media(max-width:600px){ .ng-cards{grid-template-columns:1fr 1fr;} }
+</style>
+
+<div class="ng-wrap">
+<div class="ng-inner">
+
+  <h1 class="ng-h1">Panel de Negocio</h1>
+  <p class="ng-sub">Solo ventas reales · <code>amount_paid &gt; 0</code> · Los registros históricos de prueba se ignoran</p>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- 1. KPI CARDS                                          -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div class="ng-cards">
+
+    <div class="ng-card active" id="card-all" onclick="ngReset()">
+      <div class="ng-card-icon" style="background:linear-gradient(135deg,#6366f1,#818cf8);">💰</div>
+      <div class="ng-card-val">${{ "%.2f"|format(known_revenue) }}</div>
+      <div class="ng-card-lbl">Facturación conocida</div>
+      <div class="ng-card-sub">suma de ventas reales</div>
+    </div>
+
+    <div class="ng-card" id="card-valid" onclick="ngReset()">
+      <div class="ng-card-icon" style="background:linear-gradient(135deg,#10b981,#34d399);">🧾</div>
+      <div class="ng-card-val">{{ valid_count }}</div>
+      <div class="ng-card-lbl">Venta{{ 's' if valid_count != 1 }} válida{{ 's' if valid_count != 1 }}</div>
+      <div class="ng-card-sub">con importe registrado &gt; 0</div>
+    </div>
+
+    <div class="ng-card" id="card-country" onclick="ngTogglePanel('panel-paises')">
+      <div class="ng-card-icon" style="background:linear-gradient(135deg,#0ea5e9,#38bdf8);">🌍</div>
+      <div class="ng-card-val">{{ total_valid_countries }}</div>
+      <div class="ng-card-lbl">País{{ 'es' if total_valid_countries != 1 }}</div>
+      <div class="ng-card-sub">{% for c, _ in countries_valid_list %}{{ c }}{% if not loop.last %}, {% endif %}{% endfor %}</div>
+    </div>
+
+    <div class="ng-card" id="card-product" onclick="ngTogglePanel('panel-productos')">
+      <div class="ng-card-icon" style="background:linear-gradient(135deg,#f59e0b,#fbbf24);">📦</div>
+      <div class="ng-card-val">{{ products_individual|length }}</div>
+      <div class="ng-card-lbl">Tipo{{ 's' if products_individual|length != 1 }} de producto</div>
+      <div class="ng-card-sub">{{ products_individual|length }} producto{{ 's' if products_individual|length != 1 }} con ventas</div>
+    </div>
+
   </div>
 
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px;">
-
-    <div style="background: white; border-radius: 14px; padding: 28px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
-      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-        <div style="width: 40px; height: 40px; background: linear-gradient(135deg,#6366f1,#818cf8); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px;">💰</div>
-        <div>
-          <div style="font-size: 13px; font-weight: 700; color: #1e293b;">Ventas</div>
-          <div style="font-size: 11px; color: #94a3b8;">Por día · semana · mes · tipo</div>
-        </div>
-      </div>
-      <div style="background: #f1f5f9; border-radius: 10px; padding: 20px; text-align: center;">
-        <div style="font-size: 24px; margin-bottom: 8px;">📊</div>
-        <div style="font-size: 13px; font-weight: 700; color: #475569;">Pendiente de implementación</div>
-        <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Requiere Fase 1 de métricas</div>
-      </div>
+  <!-- FILTER PANELS -->
+  <div class="ng-filter-panel" id="panel-paises">
+    <div class="ng-filter-title">🌍 Filtrar por país</div>
+    <div class="ng-chips">
+      {% for country, data in countries_valid_list %}
+      <span class="ng-chip" onclick="ngFilter('country','{{ country }}')" data-val="{{ country }}">
+        {{ country }} <span style="opacity:.6">×{{ data.count }}</span>
+        <span style="opacity:.55">${{ "%.0f"|format(data.revenue) }}</span>
+      </span>
+      {% endfor %}
     </div>
-
-    <div style="background: white; border-radius: 14px; padding: 28px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
-      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-        <div style="width: 40px; height: 40px; background: linear-gradient(135deg,#10b981,#34d399); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px;">🎯</div>
-        <div>
-          <div style="font-size: 13px; font-weight: 700; color: #1e293b;">Conversión</div>
-          <div style="font-size: 11px; color: #94a3b8;">Leads → Compra %</div>
-        </div>
-      </div>
-      <div style="background: #f1f5f9; border-radius: 10px; padding: 20px; text-align: center;">
-        <div style="font-size: 24px; margin-bottom: 8px;">📈</div>
-        <div style="font-size: 13px; font-weight: 700; color: #475569;">Pendiente de implementación</div>
-        <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Requiere Fase 1 de métricas</div>
-      </div>
-    </div>
-
-    <div style="background: white; border-radius: 14px; padding: 28px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
-      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-        <div style="width: 40px; height: 40px; background: linear-gradient(135deg,#0ea5e9,#38bdf8); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px;">📧</div>
-        <div>
-          <div style="font-size: 13px; font-weight: 700; color: #1e293b;">Emails</div>
-          <div style="font-size: 11px; color: #94a3b8;">Enviados · fallidos · último envío</div>
-        </div>
-      </div>
-      <div style="background: #f1f5f9; border-radius: 10px; padding: 20px; text-align: center;">
-        <div style="font-size: 24px; margin-bottom: 8px;">📬</div>
-        <div style="font-size: 13px; font-weight: 700; color: #475569;">Pendiente de implementación</div>
-        <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Requiere tabla email_log (Fase 2)</div>
-      </div>
-    </div>
-
-    <div style="background: white; border-radius: 14px; padding: 28px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
-      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-        <div style="width: 40px; height: 40px; background: linear-gradient(135deg,#f59e0b,#fbbf24); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px;">🌍</div>
-        <div>
-          <div style="font-size: 13px; font-weight: 700; color: #1e293b;">Países</div>
-          <div style="font-size: 11px; color: #94a3b8;">Top compradores · top leads</div>
-        </div>
-      </div>
-      <div style="background: #f1f5f9; border-radius: 10px; padding: 20px; text-align: center;">
-        <div style="font-size: 24px; margin-bottom: 8px;">🗺️</div>
-        <div style="font-size: 13px; font-weight: 700; color: #475569;">Pendiente de implementación</div>
-        <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Requiere campo country_code (Fase 1)</div>
-      </div>
-    </div>
-
   </div>
 
-  <div style="margin-top: 24px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 16px 20px; font-size: 12px; color: #92400e;">
-    <strong>ℹ️ Sección en construcción.</strong> Las métricas de Negocio se activarán en las próximas fases de desarrollo. La estructura está preparada y los datos comenzarán a mostrarse automáticamente una vez implementadas.
+  <div class="ng-filter-panel" id="panel-productos">
+    <div class="ng-filter-title">📦 Filtrar por producto</div>
+    <div class="ng-chips">
+      {% for code, data in products_individual %}
+      <span class="ng-chip" onclick="ngFilter('code','{{ code }}')" data-val="{{ code }}">
+        <span class="ng-badge cc-{{ code|lower|replace('_','-') }}" style="font-size:9px;">{{ code }}</span>
+        <span style="opacity:.6">×{{ data.count }}</span>
+      </span>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- 2. TABLA PRINCIPAL                                    -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div class="ng-section" id="section-tabla">
+    <div class="ng-section-title">🧾 Ventas válidas
+      <span id="lbl-count" style="font-size:11px;color:#94a3b8;font-weight:400;margin-left:auto;">{{ valid_count }} resultado{{ 's' if valid_count != 1 }}</span>
+    </div>
+
+    <div class="ng-filter-bar" id="filter-bar">
+      <span style="font-size:13px;">🔎</span>
+      <span style="color:#4f46e5;font-weight:700;" id="filter-bar-text"></span>
+      <span id="filter-bar-count" style="background:#6366f1;color:white;border-radius:20px;padding:1px 10px;font-size:11px;font-weight:800;"></span>
+      <button class="ng-reset-btn" onclick="ngReset()">✕ Quitar filtro</button>
+    </div>
+
+    <div class="ng-table-wrap">
+      <table class="ng-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Story ID</th>
+            <th>Cliente</th>
+            <th>Email</th>
+            <th>País</th>
+            <th>Compra</th>
+            <th>Importe</th>
+            <th>CP Ref</th>
+            <th>Estado CP</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-sales">
+          {% if sales %}
+            {% for s in sales %}
+            {% set rid = loop.index %}
+            <tr class="sales-row"
+                data-country="{{ s.payer_country|lower }}"
+                data-compra="{{ s.compra_key }}"
+                data-codes="{{ s.compra_codes|join(',') }}">
+
+              <td style="white-space:nowrap;color:#64748b;font-size:10.5px;">
+                {{ s.payment_date[:10] if s.payment_date else '—' }}
+                {% if s.payment_date and s.payment_date|length > 10 %}
+                <br><span style="color:#94a3b8;">{{ s.payment_date[11:16] }}</span>
+                {% endif %}
+              </td>
+
+              <td>
+                <a href="/admin/preview/{{ s.preview_id }}" class="ng-pid">{{ s.preview_id }}</a>
+              </td>
+
+              <td style="white-space:nowrap;color:#475569;font-size:11px;">{{ s.child_name or '—' }}</td>
+
+              <td style="font-size:10.5px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ s.customer_email }}">
+                {{ s.customer_email or '—' }}
+              </td>
+
+              <td style="text-align:center;font-weight:700;font-size:12px;">{{ s.payer_country or '—' }}</td>
+
+              <td>
+                {% if s.compra_codes %}
+                <div class="compra-codes">
+                  {% for code in s.compra_codes %}
+                  <span class="ng-badge cc-{{ code|lower|replace('_','-') }}" title="{{ code_labels.get(code, code) }}">{{ code }}</span>
+                  {% endfor %}
+                </div>
+                {% else %}<span style="color:#cbd5e1;">—</span>{% endif %}
+              </td>
+
+              <td style="white-space:nowrap;font-weight:800;">
+                <span style="color:#15803d;">${{ "%.2f"|format(s.amount_paid) }}</span>
+                <span style="font-size:10px;color:#94a3b8;">{{ s.currency }}</span>
+              </td>
+
+              <td>
+                {% if s.cp_ref %}
+                <span class="ng-cpref">{{ s.cp_ref }}</span>
+                {% else %}<span style="color:#cbd5e1;font-size:10.5px;">—</span>{% endif %}
+              </td>
+
+              <td style="white-space:nowrap;">
+                {% if s.cp_estado == 'En tránsito' %}
+                  <span class="ng-badge ng-b">🚚 Tránsito</span>
+                {% elif s.cp_estado == 'Enviado' %}
+                  <span class="ng-badge ng-g">✓ Enviado</span>
+                {% elif s.cp_estado == 'Error' %}
+                  <span class="ng-badge ng-r">✕ Error</span>
+                {% elif s.cp_ref %}
+                  <span class="ng-badge ng-gr">Procesando</span>
+                {% else %}
+                  <span style="color:#cbd5e1;font-size:10.5px;">—</span>
+                {% endif %}
+              </td>
+
+              <td style="white-space:nowrap;">
+                <a href="/admin/preview/{{ s.preview_id }}" class="ng-btn" style="margin-right:4px;">Ver</a>
+                <button class="ng-btn-sm" onclick="ngToggleDetail('d{{ rid }}',this)">🧾 Detalle</button>
+              </td>
+
+            </tr>
+
+            <!-- FILA DE DETALLE ECONÓMICO -->
+            <tr class="ng-detail-row sales-row"
+                id="d{{ rid }}"
+                data-country="{{ s.payer_country|lower }}"
+                data-compra="{{ s.compra_key }}"
+                data-codes="{{ s.compra_codes|join(',') }}">
+              <td colspan="10">
+                <div class="ng-detail-inner">
+                  <div class="ng-detail-grid">
+
+                    <div class="ng-desglose">
+                      <div class="ng-desglose-title">🧾 Resumen de Compra</div>
+                      {% if s.format_prices %}
+                        {% for fp_key, price in s.format_prices.items() %}
+                        <div class="ng-desglose-row">
+                          <span>{% if fp_key == 'ebook' %}eBook Interactivo
+                            {% elif fp_key in ('digital', 'pdf') %}Cuento Digital (PDF)
+                            {% elif fp_key == 'print' %}Libro Impreso
+                            {% else %}{{ fp_key }}{% endif %}</span>
+                          <span style="font-weight:700;">${{ "%.2f"|format(price) }}</span>
+                        </div>
+                        {% endfor %}
+                        {% if s.discount_amount and s.discount_amount > 0 %}
+                        <div class="ng-desglose-row discount">
+                          <span>Descuento
+                            {%- if s.discount_pct %} ({{ s.discount_pct|int }}%){% endif %}
+                            {%- if s.coupon_code %} · {{ s.coupon_code }}{% endif %}
+                          </span>
+                          <span style="font-weight:700;">−${{ "%.2f"|format(s.discount_amount) }}</span>
+                        </div>
+                        {% endif %}
+                        {% if s.shipping_cost_usd is not none and s.shipping_cost_usd > 0 %}
+                        <div class="ng-desglose-row shipping">
+                          <span>Envío</span>
+                          <span style="font-weight:700;">${{ "%.2f"|format(s.shipping_cost_usd) }}</span>
+                        </div>
+                        {% endif %}
+                        <div class="ng-desglose-row total">
+                          <span>Total</span>
+                          <span>${{ "%.2f"|format(s.amount_paid) }} {{ s.currency }}</span>
+                        </div>
+                      {% else %}
+                        <div style="color:#94a3b8;font-size:11.5px;padding:4px 0 8px;">Sin desglose por línea.</div>
+                        <div class="ng-desglose-row total">
+                          <span>Total</span>
+                          <span>${{ "%.2f"|format(s.amount_paid) }} {{ s.currency }}</span>
+                        </div>
+                      {% endif %}
+                    </div>
+
+                    <div class="ng-audit">
+                      <div class="ng-audit-title">🔍 Auditoría</div>
+                      <div class="ng-audit-row">
+                        <span class="ng-audit-key">Story ID</span>
+                        <span class="ng-audit-val">{{ s.preview_id }}</span>
+                      </div>
+                      <div class="ng-audit-row">
+                        <span class="ng-audit-key">PayPal Order ID</span>
+                        <span class="ng-audit-val">{{ s.paypal_order_id or '—' }}</span>
+                      </div>
+                      <div class="ng-audit-row">
+                        <span class="ng-audit-key">Capture ID</span>
+                        <span class="ng-audit-val">{{ s.capture_id or '—' }}</span>
+                      </div>
+                      <div class="ng-audit-row">
+                        <span class="ng-audit-key">Cloudprinter Ref</span>
+                        <span class="ng-audit-val">{{ s.cp_ref or '—' }}
+                          {% if s.cp_tracking_url %}<a href="{{ s.cp_tracking_url }}" target="_blank" style="color:#6366f1;margin-left:4px;">🔗</a>{% endif %}
+                        </span>
+                      </div>
+                      {% if s.coupon_code %}
+                      <div class="ng-audit-row">
+                        <span class="ng-audit-key">Cupón</span>
+                        <span class="ng-audit-val">{{ s.coupon_code }}</span>
+                      </div>
+                      {% endif %}
+                    </div>
+
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            {% endfor %}
+          {% else %}
+            <tr><td colspan="10" style="text-align:center;padding:40px;color:#94a3b8;">Sin ventas válidas registradas (amount_paid &gt; 0).</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- 3. PRODUCTOS VENDIDOS                                 -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div class="ng-section">
+    <div class="ng-section-title">📦 Productos Vendidos
+      <span style="font-size:11px;color:#94a3b8;font-weight:400;margin-left:auto;">Unidades por tipo de producto · solo con ventas</span>
+    </div>
+    {% if products_individual %}
+    <div class="ng-prod-grid">
+      {% for code, data in products_individual %}
+      <div class="ng-prod-card">
+        <div class="ng-prod-code">
+          <span class="ng-badge cc-{{ code|lower|replace('_','-') }}" style="font-size:11px;padding:4px 10px;">{{ code }}</span>
+        </div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:8px;">{{ code_labels.get(code, '') }}</div>
+        <div class="ng-prod-units">{{ data.count }} unidad{{ 'es' if data.count != 1 }}</div>
+        {% if data.has_revenue %}
+          {% if data.price_min == data.price_max %}
+            <div class="ng-prod-rev">${{ "%.2f"|format(data.price_min) }} por unidad</div>
+          {% else %}
+            <div class="ng-prod-rev">${{ "%.2f"|format(data.price_min) }}–${{ "%.2f"|format(data.price_max) }}</div>
+          {% endif %}
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="background:white;border-radius:12px;padding:24px;text-align:center;color:#94a3b8;font-size:13px;border:1px solid #e2e8f0;">Sin ventas con importe registrado.</div>
+    {% endif %}
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- 4. COMBINACIONES DE COMPRA                            -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div class="ng-section">
+    <div class="ng-section-title">🛒 Combinaciones de Compra
+      <span style="font-size:11px;color:#94a3b8;font-weight:400;margin-left:auto;">Qué formatos se compraron juntos · análisis comercial</span>
+    </div>
+    {% if combinations_list %}
+    <div class="ng-prod-grid">
+      {% for combo_label, data in combinations_list %}
+      <div class="ng-prod-card">
+        <div class="compra-codes" style="margin-bottom:8px;flex-wrap:wrap;gap:4px;">
+          {% for code in data.codes %}
+          <span class="ng-badge cc-{{ code|lower|replace('_','-') }}" style="font-size:10px;">{{ code }}</span>
+          {% else %}
+          <span style="color:#94a3b8;font-size:11px;">{{ combo_label }}</span>
+          {% endfor %}
+        </div>
+        <div class="ng-prod-units" style="font-size:18px;">{{ data.count }} pedido{{ 's' if data.count != 1 }}</div>
+        <div class="ng-prod-rev">${{ "%.2f"|format(data.revenue) }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="background:white;border-radius:12px;padding:24px;text-align:center;color:#94a3b8;font-size:13px;border:1px solid #e2e8f0;">Sin combinaciones registradas.</div>
+    {% endif %}
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- 5. PAÍSES                                             -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div class="ng-section">
+    <div class="ng-section-title">🌍 Países
+      <span style="font-size:11px;color:#94a3b8;font-weight:400;margin-left:auto;">Solo de ventas válidas · sin "desconocido"</span>
+    </div>
+    {% if countries_valid_list %}
+    <div class="ng-table-wrap">
+      <table class="ng-table">
+        <thead>
+          <tr>
+            <th>País</th>
+            <th style="text-align:center;">Ventas</th>
+            <th style="text-align:right;">Facturación</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for country, data in countries_valid_list %}
+          <tr>
+            <td style="font-weight:700;font-size:14px;">{{ country }}</td>
+            <td style="text-align:center;font-weight:800;color:#6366f1;">{{ data.count }}</td>
+            <td style="text-align:right;font-weight:800;color:#15803d;">${{ "%.2f"|format(data.revenue) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div style="background:white;border-radius:12px;padding:24px;text-align:center;color:#94a3b8;font-size:13px;border:1px solid #e2e8f0;">Sin países registrados.</div>
+    {% endif %}
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- 6. CLIENTES                                           -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div class="ng-section">
+    <div class="ng-section-title">👤 Clientes
+      <span style="font-size:11px;color:#94a3b8;font-weight:400;margin-left:auto;">{{ customers_list|length }} email{{ 's' if customers_list|length != 1 }} · ordenado por facturación</span>
+    </div>
+    {% if customers_list %}
+    <div class="ng-table-wrap">
+      <table class="ng-table">
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th style="text-align:center;">Compras</th>
+            <th style="text-align:right;">Total</th>
+            <th>Última compra</th>
+            <th style="text-align:center;">País</th>
+            <th>Historial</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for email, cdata in customers_list %}
+          {% set cid = loop.index %}
+          <tr>
+            <td style="font-weight:700;font-size:11.5px;">{{ email }}</td>
+            <td style="text-align:center;font-weight:800;color:#6366f1;">{{ cdata.count }}</td>
+            <td style="text-align:right;font-weight:800;color:#15803d;">${{ "%.2f"|format(cdata.revenue) }}</td>
+            <td style="font-size:11px;color:#64748b;">{{ cdata.last_date[:10] if cdata.last_date else '—' }}</td>
+            <td style="text-align:center;font-weight:700;">{{ cdata.last_country or '—' }}</td>
+            <td><a class="ng-cust-toggle" onclick="toggleCust('c{{ cid }}',this);return false;" href="#">Ver ▾</a></td>
+          </tr>
+          <tr id="row-c{{ cid }}" style="display:none;">
+            <td colspan="6" style="padding:0 12px 14px 12px;background:#f8fafc;">
+              <div style="border-radius:9px;overflow:hidden;border:1px solid #e2e8f0;margin-top:4px;">
+                <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                  <thead><tr style="background:#f1f5f9;">
+                    <th style="padding:7px 11px;color:#64748b;font-weight:700;text-align:left;">Story ID</th>
+                    <th style="padding:7px 11px;color:#64748b;font-weight:700;text-align:left;">Fecha</th>
+                    <th style="padding:7px 11px;color:#64748b;font-weight:700;text-align:left;">Compra</th>
+                    <th style="padding:7px 11px;color:#64748b;font-weight:700;text-align:right;">Importe</th>
+                    <th style="padding:7px 11px;color:#64748b;font-weight:700;text-align:left;">CP Ref</th>
+                    <th style="padding:7px 11px;"></th>
+                  </tr></thead>
+                  <tbody>
+                    {% for p in cdata.purchases|sort(attribute='payment_date',reverse=True) %}
+                    <tr style="border-top:1px solid #f1f5f9;">
+                      <td style="padding:7px 11px;"><a href="/admin/preview/{{ p.preview_id }}" class="ng-pid" style="font-size:11px;">{{ p.preview_id }}</a></td>
+                      <td style="padding:7px 11px;color:#64748b;">{{ p.payment_date[:10] if p.payment_date else '—' }}</td>
+                      <td style="padding:7px 11px;">
+                        <div class="compra-codes">
+                          {% for code in p.compra_codes %}<span class="ng-badge cc-{{ code|lower|replace('_','-') }}" style="font-size:9px;">{{ code }}</span>{% endfor %}
+                        </div>
+                      </td>
+                      <td style="padding:7px 11px;text-align:right;font-weight:800;color:#15803d;">${{ "%.2f"|format(p.amount_paid) }}</td>
+                      <td style="padding:7px 11px;font-family:'Courier New',monospace;font-size:10px;color:#64748b;">{{ p.cp_ref or '—' }}</td>
+                      <td style="padding:7px 11px;"><a href="/admin/preview/{{ p.preview_id }}" class="ng-btn" style="font-size:10px;padding:3px 9px;">Ver</a></td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div style="background:white;border-radius:12px;padding:24px;text-align:center;color:#94a3b8;font-size:13px;border:1px solid #e2e8f0;">Sin clientes con ventas válidas.</div>
+    {% endif %}
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- 7. CALIDAD DE DATOS                                   -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div class="ng-section">
+    <div class="ng-section-title">🩺 Cobertura de Datos
+      <span style="font-size:11px;color:#94a3b8;font-weight:400;margin-left:auto;">Sobre {{ valid_count }} venta{{ 's' if valid_count != 1 }} válida{{ 's' if valid_count != 1 }}</span>
+    </div>
+    <div style="background:white;border-radius:14px;padding:20px 24px;box-shadow:0 1px 6px rgba(0,0,0,0.07);border:1px solid #e2e8f0;">
+      {% if valid_count > 0 %}
+        {% set dq_fields = [
+          ('capture_id', 'Capture ID PayPal', with_capture),
+          ('cloudprinter_ref', 'Cloudprinter Ref', with_cp_ref),
+        ] %}
+        <div style="display:grid;grid-template-columns:220px 1fr 80px 80px 80px;gap:0;font-size:11px;font-weight:700;color:#94a3b8;padding:0 0 8px 0;border-bottom:1px solid #e2e8f0;margin-bottom:4px;">
+          <span>Campo</span><span>Cobertura</span><span style="text-align:right;">Con dato</span><span style="text-align:right;">Sin dato</span><span style="text-align:right;">%</span>
+        </div>
+        {% for field_key, field_label, field_count in dq_fields %}
+        {% set pct = (field_count / valid_count * 100)|int %}
+        {% set missing = valid_count - field_count %}
+        <div class="ng-dq-row">
+          <span style="width:220px;flex-shrink:0;font-size:11.5px;color:#334155;">
+            <code style="font-size:10px;background:#f1f5f9;padding:1px 5px;border-radius:4px;">{{ field_key }}</code>
+          </span>
+          <div class="ng-progress">
+            <div class="ng-progress-fill" style="width:{{ pct }}%;background:{% if pct==100 %}#22c55e{% elif pct>=50 %}#f59e0b{% else %}#ef4444{% endif %};"></div>
+          </div>
+          <span style="text-align:right;font-weight:800;color:#15803d;width:80px;">{{ field_count }}</span>
+          <span style="text-align:right;font-weight:800;color:{% if missing>0 %}#ef4444{% else %}#94a3b8{% endif %};width:80px;">{{ missing }}</span>
+          <span style="text-align:right;width:80px;font-weight:800;color:{% if pct==100 %}#15803d{% elif pct>=50 %}#f59e0b{% else %}#ef4444{% endif %};">{{ pct }}%</span>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div style="color:#94a3b8;font-size:13px;">Sin ventas válidas.</div>
+      {% endif %}
+    </div>
   </div>
 
 </div>
 </div>
+
+<script>
+let _activeFilter = null;
+let _activeVal    = null;
+
+function ngFilter(type, val) {
+  _activeFilter = type; _activeVal = val;
+  document.querySelectorAll('.ng-filter-panel').forEach(p => p.classList.remove('open'));
+  document.querySelectorAll('.ng-card').forEach(c => c.classList.remove('active'));
+  if (type === 'country') document.getElementById('card-country')?.classList.add('active');
+  else if (type === 'code') document.getElementById('card-product')?.classList.add('active');
+  applyFilter();
+}
+
+function ngReset() {
+  _activeFilter = null; _activeVal = null;
+  document.querySelectorAll('.ng-filter-panel').forEach(p => p.classList.remove('open'));
+  document.querySelectorAll('.ng-card').forEach(c => c.classList.remove('active'));
+  document.getElementById('card-all')?.classList.add('active');
+  applyFilter();
+}
+
+function ngTogglePanel(id) {
+  const panel = document.getElementById(id);
+  if (!panel) return;
+  const isOpen = panel.classList.contains('open');
+  document.querySelectorAll('.ng-filter-panel').forEach(p => p.classList.remove('open'));
+  if (!isOpen) panel.classList.add('open');
+}
+
+function applyFilter() {
+  const rows   = document.querySelectorAll('tr.sales-row');
+  const bar    = document.getElementById('filter-bar');
+  const barTxt = document.getElementById('filter-bar-text');
+  const barCnt = document.getElementById('filter-bar-count');
+  const lbl    = document.getElementById('lbl-count');
+  let visible  = 0;
+
+  rows.forEach(row => {
+    let show = true;
+    if (_activeFilter === 'country') {
+      show = row.dataset.country === _activeVal.toLowerCase();
+    } else if (_activeFilter === 'code') {
+      const codes = (row.dataset.codes || '').split(',');
+      show = codes.includes(_activeVal);
+    }
+    row.classList.toggle('ng-hidden', !show);
+    if (show && !row.id.startsWith('d')) visible++;
+  });
+
+  if (_activeFilter) {
+    bar.classList.add('on');
+    barTxt.textContent = `Filtro: ${_activeVal}`;
+    barCnt.textContent = visible + ' resultado' + (visible !== 1 ? 's' : '');
+    lbl.textContent = visible + ' resultado' + (visible !== 1 ? 's' : '');
+  } else {
+    bar.classList.remove('on');
+    barTxt.textContent = '';
+    barCnt.textContent = '';
+    lbl.textContent = '{{ valid_count }} resultado{{ "s" if valid_count != 1 }}';
+  }
+}
+
+function ngToggleDetail(id, btn) {
+  const row = document.getElementById(id);
+  if (!row) return;
+  const isOpen = row.classList.contains('open');
+  row.classList.toggle('open', !isOpen);
+  btn.textContent = isOpen ? '🧾 Detalle' : '✕ Cerrar';
+}
+
+function toggleCust(id, el) {
+  const row = document.getElementById('row-' + id);
+  if (!row) return;
+  const open = row.style.display === 'table-row';
+  row.style.display = open ? 'none' : 'table-row';
+  el.textContent = open ? 'Ver ▾' : 'Ocultar ▴';
+}
+</script>
+
 {% endblock %}
