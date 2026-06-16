@@ -9595,7 +9595,8 @@ def _build_compra_codes(d):
     """Return ordered list of purchase codes like ['QS_EBOOK', 'QS_PDF', 'QS_PRINT']."""
     product_type = d.get('product_type', '') or ''
     _PB_TYPES = ('cp_personalized', 'personalized_pdf', 'personalized_book', 'personalized')
-    is_pb = product_type in _PB_TYPES
+    # Also treat illustrated books as PB regardless of product_type field
+    is_pb = product_type in _PB_TYPES or bool(d.get('is_illustrated_book'))
     familia = 'PB' if is_pb else 'QS'
     parts = []
     fp = d.get('format_prices', {}) or {}
