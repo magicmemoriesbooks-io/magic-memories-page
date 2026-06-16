@@ -260,6 +260,16 @@ No text, no watermarks, no signatures."""
             baby_hair_block = get_baby_hair_description(hair_color, gender)
             baby_hair_section = f"CRITICAL (Hair): {baby_hair_block}"
 
+        if gender == "male":
+            bg_colors = "soft pastel blue, cream and mint"
+            gender_strict = "STRICT: plain smooth bare earlobes with zero ear accessories, clean masculine baby appearance, small rounded plain ears, no studs, no rings, no clips on ears."
+        elif gender == "female":
+            bg_colors = "soft pastel pink, cream and lavender"
+            gender_strict = "STRICT: pure baby girl appearance, soft delicate features, gentle feminine look."
+        else:
+            bg_colors = "soft pastel cream, mint and lavender"
+            gender_strict = "STRICT: plain bare earlobes, no ear accessories."
+
         portrait_prompt = f"""Soft luxury digital illustration for a baby memory book, premium texture, gentle and cozy art style.
 
 Subject: {age_desc} with {eye_desc} and {skin_desc}.
@@ -269,12 +279,12 @@ Subject: {age_desc} with {eye_desc} and {skin_desc}.
 The {gender_word} is {pose_desc} in a cozy nursery setting.
 Wearing a simple soft white onesie with no decorations.
 Sweet innocent expression, soft gummy smile with lips gently closed.
-Soft pastel pink, cream and lavender background with gentle floating sparkles.
+{bg_colors} background with gentle floating sparkles.
 Warm morning sunlight through white curtains, soft natural shadows, peaceful calm atmosphere.
 Clear view of full body, face clearly visible.
 Professional illustration, centered composition.
-No accessories, no jewelry, no earrings.
-No text. No watermarks."""
+{gender_strict}
+Pure illustration only, clean artwork, no text, no watermarks."""
     elif not portrait_prompt and story_id in ['magic_chef', 'magic_chef_illustrated']:
         child_age = int(traits.get('child_age', '5'))
         gender_word = "little boy" if gender == "male" else "little girl" if gender == "female" else "child"
