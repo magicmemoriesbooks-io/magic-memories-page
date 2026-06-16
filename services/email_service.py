@@ -432,331 +432,8 @@ def test_email_connection() -> dict:
         return {'success': False, 'message': str(e)}
 
 
-def send_print_order_notification(
-    order_folder: str,
-    print_job_id: str,
-    title: str,
-    customer_email: str,
-    shipping_address: dict,
-    interior_pdf_path: Optional[str] = None,
-    cover_pdf_path: Optional[str] = None,
-    interior_url: Optional[str] = None,
-    cover_url: Optional[str] = None,
-    print_partner: str = 'Cloudprinter'
-) -> dict:
-    from datetime import datetime
-    
-    admin_email = "pay@magicmemoriesbooks.com"
-    
-    address_name = shipping_address.get('name', 'N/A')
-    address_street = shipping_address.get('street1', 'N/A')
-    address_city = shipping_address.get('city', 'N/A')
-    address_state = shipping_address.get('state_code', 'N/A')
-    address_country = shipping_address.get('country_code', 'N/A')
-    address_postal = shipping_address.get('postcode', 'N/A')
-    
-    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    
-    subject = f"📦 Nuevo pedido {print_partner} - {title} - {print_job_id}"
-    
-    def _admin_info_row(label, value, alt_bg=False):
-        bg = 'background:#fef2f2;' if alt_bg else ''
-        return f'<tr style="{bg}"><td style="padding:10px 12px;color:#6b7280;font-size:13px;width:140px;">{label}</td><td style="padding:10px 12px;color:#1f2937;font-size:14px;font-weight:600;">{value}</td></tr>'
-    
-    pdf_links = ""
-    if interior_url:
-        pdf_links += f'<a href="{interior_url}" style="color:#dc2626;font-weight:600;">📄 Descargar Interior PDF</a><br>'
-    if cover_url:
-        pdf_links += f'<a href="{cover_url}" style="color:#dc2626;font-weight:600;">📄 Descargar Cover PDF</a>'
-    
-    content = f"""
-        <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:15px;">
-            {_admin_info_row('Job ID', print_job_id, True)}
-            {_admin_info_row('Imprenta', print_partner)}
-            {_admin_info_row('Título', title, True)}
-            {_admin_info_row('Carpeta', order_folder)}
-            {_admin_info_row('Cliente', customer_email, True)}
-            {_admin_info_row('Fecha', timestamp)}
-        </table>
-        
-        <h3 style="color:#dc2626;margin-top:20px;font-size:16px;">📍 Dirección de Envío</h3>
-        <div style="background:#fef2f2;padding:15px;border-radius:8px;border-left:4px solid #dc2626;margin:10px 0;">
-            <p style="margin:0;color:#1f2937;font-size:14px;">
-                <strong>{address_name}</strong><br>
-                {address_street}<br>
-                {address_city}, {address_state} {address_postal}<br>
-                {address_country}
-            </p>
-        </div>
-        
-        <h3 style="color:#dc2626;margin-top:20px;font-size:16px;">📎 Archivos PDF</h3>
-        <div style="background:#fef2f2;padding:15px;border-radius:8px;border-left:4px solid #dc2626;margin:10px 0;">
-            <p style="margin:0;">{pdf_links}</p>
-            <p style="color:#6b7280;font-size:12px;margin-top:8px;">(Los PDFs son demasiado grandes para adjuntar por email)</p>
-        </div>
-    """
-    
-    html_body = _admin_wrapper(f"📦 Nuevo Pedido {print_partner}", content)
-    
-    text_body = f"""
-NUEVO PEDIDO {print_partner.upper()}
-{'='*20}
-
-Job ID: {print_job_id}
-Imprenta: {print_partner}
-Título: {title}
-Carpeta: {order_folder}
-Cliente: {customer_email}
-Fecha: {timestamp}
-
-DIRECCIÓN DE ENVÍO:
-{address_name}
-{address_street}
-{address_city}, {address_state} {address_postal}
-{address_country}
-
-ARCHIVOS PDF:
-Interior: {interior_url or 'N/A'}
-Cover: {cover_url or 'N/A'}
-    """
-    
-    if not SMTP_USER or not SMTP_PASSWORD:
-        print(f"[PRINT NOTIFICATION] SMTP not configured. Would send to: {admin_email}")
-        with open('email_log.txt', 'a') as f:
-            f.write(f"\n{'='*50}\nPRINT ORDER NOTIFICATION ({print_partner})\nTO: {admin_email}\nJOB ID: {print_job_id}\n{'='*50}\n")
-        return {'success': True, 'message': f'{print_partner} notification logged (SMTP not configured)', 'simulated': True}
-    
-    try:
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = subject
-        msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
-        msg['To'] = admin_email
-        
-        msg.attach(MIMEText(text_body, 'plain', 'utf-8'))
-        msg.attach(MIMEText(html_body, 'html', 'utf-8'))
-        
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
-            server.send_message(msg)
-        
-        print(f"[PRINT NOTIFICATION] Email sent to {admin_email} with PDF download links")
-        return {'success': True, 'message': f'{print_partner} notification sent with download links'}
-        
-    except Exception as e:
-        print(f"[PRINT NOTIFICATION] Error sending email: {str(e)}")
-        return {'success': False, 'message': str(e)}
 
 
-send_lulu_order_notification = send_print_order_notification
-
-
-
-
-def send_printable_pdf_notification(
-    to_email: str,
-    child_name: str,
-    book_title: str,
-    pdf_path: str,
-    interior_url: str = '',
-    cover_url: str = '',
-    recovery_url: str = '',
-    lang: str = 'es',
-    visor_url: str = ''
-) -> bool:
-    """
-    Email for customers in non-print-partner countries.
-    Clearly presents TWO printing options:
-      Option 1 — Simple print: attached 24-page A4 PDF → local copy shop
-      Option 2 — Professional hardcover: interior.pdf + cover.pdf → specialist printer
-    Plus an eBook gift section.
-    """
-    if lang == 'es':
-        subject = f"Tu libro listo para imprimir — {book_title} para {child_name}"
-
-        intro = (
-            f"Tu cuento personalizado <strong>\"{book_title}\"</strong> para <strong>{child_name}</strong> "
-            f"está listo. Te enviamos <strong>dos formas distintas de imprimirlo</strong> — elige la que "
-            f"mejor se adapte a la imprenta de tu ciudad."
-        )
-
-        opt1_title = "Opción 1 — Impresión sencilla (PDF adjunto)"
-        opt1_what = (
-            "El PDF de <strong>26 páginas en A4 a 300 DPI</strong> va adjunto a este correo. "
-            "Llévalo a cualquier papelería o copy shop local."
-        )
-        opt1_steps = [
-            "Descarga el PDF adjunto en tu dispositivo o llévalo en un USB.",
-            "Ve a cualquier papelería o imprenta local.",
-            "Pide: <strong>impresión a color en A4, doble cara</strong>.",
-            "Para el encuadernado puedes elegir: <strong>espiral, grapas tipo revista, o rústica pegada</strong>.",
-            "El resultado será un libro de 26 páginas de alta calidad. ¡Listo!",
-        ]
-        opt1_note = "💡 Esta opción es la más sencilla y económica."
-
-        opt2_title = "Opción 2 — Tapa dura profesional (archivos de alta resolución)"
-        opt2_what = (
-            "Para un acabado profesional con <strong>tapa dura</strong>, descarga los dos archivos "
-            "de alta resolución a continuación y llévalos a una imprenta especializada."
-        )
-        opt2_interior_label = "📄 Descargar interior del libro (300 DPI)"
-        opt2_cover_label = "🖼️ Descargar portada completa (300 DPI)"
-        opt2_instructions_title = "Qué decirle a la imprenta:"
-        opt2_steps = [
-            "<em>\"Quiero imprimir un libro de tapa dura. Te mando el interior y la cubierta ya preparados a 300 DPI.\"</em>",
-            "Archivo <strong>interior.pdf</strong>: páginas interiores. Pide papel <strong>estucado mate o brillo de 150–170 g/m²</strong>, impresión a doble cara.",
-            "Archivo <strong>cover.pdf</strong>: portada + lomo + contraportada en una sola pieza. Pide <strong>cartón rígido con plastificado mate o brillo</strong>.",
-            "Encuadernado: <strong>tapa dura (case binding)</strong> — también llamado lomo cuadrado o cosido.",
-            "Perfil de color: <strong>CMYK</strong>. Resolución: <strong>300 DPI</strong>. Impresión a sangre completa (sin márgenes blancos).",
-        ]
-        opt2_note = "💡 Esta opción requiere una imprenta con servicio de encuadernación de libros."
-
-        ebook_title = "📱 Tu eBook de Regalo (acceso durante 6 meses)"
-        ebook_body = "Mientras tanto, puedes leer el cuento de forma interactiva en nuestra app:"
-        ebook_btn = "📖 Abrir mi eBook ahora"
-
-        alert_text = (
-            "¿Tienes alguna duda sobre cómo imprimir? Escríbenos a "
-            "<strong>pay@magicmemoriesbooks.com</strong> y te ayudamos."
-        )
-
-    else:
-        subject = f"Your book is ready to print — {book_title} for {child_name}"
-
-        intro = (
-            f"Your personalized story <strong>\"{book_title}\"</strong> for <strong>{child_name}</strong> "
-            f"is ready. We're sending you <strong>two different ways to print it</strong> — choose whichever "
-            f"works best for a print shop near you."
-        )
-
-        opt1_title = "Option 1 — Simple print (attached PDF)"
-        opt1_what = (
-            "The <strong>24-page A4 PDF at 300 DPI</strong> is attached to this email. "
-            "Take it to any local copy shop or print shop."
-        )
-        opt1_steps = [
-            "Download the attached PDF to your device or copy it to a USB drive.",
-            "Go to any local copy shop or print shop.",
-            "Ask for: <strong>color printing on A4, double-sided</strong>.",
-            "For binding you can choose: <strong>spiral, saddle-stitch (stapled), or perfect binding</strong>.",
-            "The result will be a high-quality 24-page book. Enjoy!",
-        ]
-        opt1_note = "💡 This is the simplest and most affordable option."
-
-        opt2_title = "Option 2 — Professional hardcover (high-resolution files)"
-        opt2_what = (
-            "For a professional <strong>hardcover</strong> finish, download the two high-resolution "
-            "files below and take them to a specialist printer."
-        )
-        opt2_interior_label = "📄 Download book interior (300 DPI)"
-        opt2_cover_label = "🖼️ Download full cover spread (300 DPI)"
-        opt2_instructions_title = "What to tell the print shop:"
-        opt2_steps = [
-            "<em>\"I want to print a hardcover book. Here are the interior and cover files, ready at 300 DPI.\"</em>",
-            "File <strong>interior.pdf</strong>: interior pages. Ask for <strong>coated matte or gloss paper 150–170 gsm</strong>, double-sided.",
-            "File <strong>cover.pdf</strong>: front cover + spine + back cover in a single spread. Ask for <strong>rigid board with matte or gloss lamination</strong>.",
-            "Binding: <strong>hardcover (case binding)</strong> — also called casebound or sewn binding.",
-            "Color profile: <strong>CMYK</strong>. Resolution: <strong>300 DPI</strong>. Full bleed (no white borders).",
-        ]
-        opt2_note = "💡 This option requires a printer that offers book binding services."
-
-        ebook_title = "📱 Your Gift eBook (6-month access)"
-        ebook_body = "In the meantime, enjoy an interactive reading experience in our app:"
-        ebook_btn = "📖 Open my eBook now"
-
-        alert_text = (
-            "Questions about printing? Email us at "
-            "<strong>pay@magicmemoriesbooks.com</strong> and we'll help."
-        )
-
-    def _steps_list(steps):
-        items = "".join(
-            f'<li style="padding:5px 0;font-size:14px;color:#374151;">{s}</li>'
-            for s in steps
-        )
-        return f'<ol style="margin:0;padding-left:20px;">{items}</ol>'
-
-    opt1_steps_html = _steps_list(opt1_steps)
-
-    opt1_section = _success_box(f'''
-        <h3 style="margin-top:0;color:#166534;">🖨️ {opt1_title}</h3>
-        <p style="font-size:14px;color:#374151;margin:0 0 10px 0;">{opt1_what}</p>
-        {opt1_steps_html}
-        <p style="font-size:13px;color:#374151;margin:10px 0 0 0;">{opt1_note}</p>
-    ''')
-
-    opt2_steps_html = _steps_list(opt2_steps)
-
-    opt2_links_html = ''
-    if interior_url:
-        opt2_links_html += f'<p style="margin:6px 0;"><a href="{interior_url}" style="color:#7c3aed;font-weight:600;">{opt2_interior_label}</a></p>'
-    if cover_url:
-        opt2_links_html += f'<p style="margin:6px 0;"><a href="{cover_url}" style="color:#7c3aed;font-weight:600;">{opt2_cover_label}</a></p>'
-
-    opt2_section = ''
-    if interior_url or cover_url:
-        opt2_section = _info_box(f'''
-            <h3 style="margin-top:0;color:#7c3aed;">📦 {opt2_title}</h3>
-            <p style="font-size:14px;color:#374151;margin:0 0 10px 0;">{opt2_what}</p>
-            {opt2_links_html}
-            <p style="font-size:14px;color:#374151;margin:12px 0 6px 0;font-weight:600;">{opt2_instructions_title}</p>
-            {opt2_steps_html}
-            <p style="font-size:13px;color:#374151;margin:10px 0 0 0;">{opt2_note}</p>
-        ''')
-
-    ebook_section = ''
-    ebook_link = visor_url or recovery_url
-    if ebook_link:
-        ebook_section = _info_box(f'''
-            <h3 style="margin-top:0;color:#7c3aed;">{ebook_title}</h3>
-            <p style="font-size:14px;color:#374151;margin:0 0 12px 0;">{ebook_body}</p>
-            {_cta_button(ebook_btn, ebook_link)}
-        ''')
-
-    content = f"""
-        <p style="font-size:16px;color:#374151;">{intro}</p>
-        {opt1_section}
-        {opt2_section}
-        {ebook_section}
-        {_alert_box(f'<p style="margin:0;color:#92400e;font-size:14px;">{alert_text}</p>')}
-        {_newsletter_invite_html(lang)}
-    """
-
-    title_es = "🖨️ ¡Tu libro listo para imprimir!"
-    title_en = "🖨️ Your Book Is Ready to Print!"
-    html_content = _email_wrapper(title_es if lang == 'es' else title_en, content, to_email)
-
-    msg = MIMEMultipart('mixed')
-    msg['Subject'] = subject
-    msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
-    msg['To'] = to_email
-
-    msg.attach(MIMEText(html_content, 'html'))
-
-    if pdf_path and os.path.exists(pdf_path):
-        with open(pdf_path, 'rb') as f:
-            pdf_data = f.read()
-        pdf_part = MIMEApplication(pdf_data, _subtype='pdf')
-        safe_name = child_name.replace(' ', '_').replace("'", '')
-        _p3_fname = os.path.basename(pdf_path)
-        _p3_fmt = "_LETTER" if "_LETTER" in _p3_fname else "_A4" if "_A4" in _p3_fname else ""
-        pdf_part.add_header('Content-Disposition', 'attachment',
-                            filename=f"{safe_name}_imprimible{_p3_fmt}.pdf")
-        msg.attach(pdf_part)
-        print(f"[EMAIL] Attached printable PDF: {pdf_path}")
-    else:
-        print(f"[EMAIL] WARNING: Printable PDF not found at {pdf_path}")
-
-    try:
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
-            server.sendmail(FROM_EMAIL, to_email, msg.as_string())
-        print(f"[EMAIL] Printable PDF notification sent to {to_email}")
-        return True
-    except Exception as e:
-        print(f"[EMAIL] Failed to send printable PDF notification: {e}")
-        return False
 
 
 def send_admin_purchase_notification(
@@ -867,83 +544,6 @@ def send_admin_purchase_notification(
             return {'success': False, 'message': 'SMTP not configured'}
     except Exception as e:
         print(f"[ADMIN NOTIFY] Error sending notification: {e}")
-        return {'success': False, 'message': str(e)}
-
-
-def send_admin_gift_email(
-    to_email: str,
-    book_title: str,
-    child_name: str,
-    interior_url: str,
-    cover_url: str,
-    order_folder: str
-) -> dict:
-    from datetime import datetime
-    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    
-    subject = f"🎁 Libro Regalo Listo - {book_title}"
-    
-    content = f"""
-        <div style="background:#fef2f2;padding:15px;border-radius:8px;border-left:4px solid #dc2626;margin:15px 0;">
-            <p style="margin:0;color:#1f2937;font-size:14px;"><strong>Libro:</strong> {book_title}</p>
-            <p style="margin:5px 0 0;color:#1f2937;font-size:14px;"><strong>Protagonista:</strong> {child_name}</p>
-            <p style="margin:5px 0 0;color:#1f2937;font-size:14px;"><strong>Carpeta:</strong> {order_folder}</p>
-            <p style="margin:5px 0 0;color:#1f2937;font-size:14px;"><strong>Fecha:</strong> {timestamp}</p>
-        </div>
-        
-        <h3 style="color:#dc2626;margin-top:25px;font-size:16px;">Archivos para Cloudprinter</h3>
-        <p style="color:#374151;font-size:14px;">Descarga estos archivos y súbelos manualmente a Cloudprinter para imprimir:</p>
-        
-        <div style="text-align:center;margin:20px 0;">
-            <a href="{interior_url}" style="display:inline-block;background-color:#dc2626;background-image:linear-gradient(135deg,#dc2626,#b91c1c);color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin:5px;">📄 Descargar Interior PDF</a>
-            <br><br>
-            <a href="{cover_url}" style="display:inline-block;background-color:#dc2626;background-image:linear-gradient(135deg,#dc2626,#b91c1c);color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin:5px;">📄 Descargar Cover PDF</a>
-        </div>
-        
-        <div style="background:#fef3c7;padding:15px;border-radius:8px;border-left:4px solid #f59e0b;margin:15px 0;">
-            <p style="margin:0;font-size:13px;color:#92400e;">
-                <strong>Recuerda:</strong> Sube el interior y la portada por separado en la plataforma de impresión. 
-                El interior es el PDF con todas las páginas del libro. La portada es el spread completo (frente + lomo + contraportada).
-            </p>
-        </div>
-    """
-    
-    html_body = _admin_wrapper("🎁 Libro Regalo Generado", content)
-    
-    text_body = f"""LIBRO REGALO GENERADO
-====================
-Libro: {book_title}
-Protagonista: {child_name}
-Carpeta: {order_folder}
-Fecha: {timestamp}
-
-ARCHIVOS PARA LULU:
-Interior: {interior_url}
-Cover: {cover_url}
-"""
-    
-    if not SMTP_USER or not SMTP_PASSWORD:
-        print(f"[ADMIN GIFT EMAIL] SMTP not configured. Would send to: {to_email}")
-        return {'success': True, 'message': 'Admin gift email logged (SMTP not configured)', 'simulated': True}
-    
-    try:
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = subject
-        msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
-        msg['To'] = to_email
-        
-        msg.attach(MIMEText(text_body, 'plain', 'utf-8'))
-        msg.attach(MIMEText(html_body, 'html', 'utf-8'))
-        
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
-            server.send_message(msg)
-        
-        print(f"[ADMIN GIFT EMAIL] Sent to {to_email}")
-        return {'success': True, 'message': 'Admin gift email sent'}
-    except Exception as e:
-        print(f"[ADMIN GIFT EMAIL] Error: {str(e)}")
         return {'success': False, 'message': str(e)}
 
 
@@ -2963,110 +2563,6 @@ def send_personalized_pdf_admin_email(
         return {'success': False, 'message': str(e)}
 
 
-def _send_cp_pb_customer_notification_REMOVED(
-    *args, **kwargs
-) -> bool:
-    """REMOVED: This function is no longer called. Email #3 (send_ebook_email with is_print_order=True) handles print order confirmation."""
-    from datetime import datetime
-
-    _SHIPPING_DAYS = {
-        'cp_saver':  {'es': '10-20 días hábiles', 'en': '10-20 business days'},
-        'cp_ground': {'es': '7-15 días hábiles',  'en': '7-15 business days'},
-        'cp_fast':   {'es': '3-7 días hábiles',   'en': '3-7 business days'},
-    }
-    transit = _SHIPPING_DAYS.get(shipping_level, _SHIPPING_DAYS['cp_saver'])
-
-    addr_name    = shipping_address.get('name', '')
-    addr_street  = shipping_address.get('street1', '')
-    addr_city    = shipping_address.get('city', '')
-    addr_state   = shipping_address.get('state_code', '')
-    addr_postal  = shipping_address.get('postcode', '')
-    addr_country = shipping_address.get('country_code', '')
-    addr_html    = f"<strong>{addr_name}</strong><br>{addr_street}<br>{addr_city}, {addr_state} {addr_postal}<br>{addr_country}"
-
-    visor_html = ''
-    if visor_url:
-        visor_html = _info_box(
-            f'<h3 style="margin-top:0;color:#7c3aed;">📱 Lee tu libro online</h3>'
-            f'<p style="color:#374151;font-size:14px;margin:0 0 12px 0;">Mientras esperas tu libro impreso, disfruta del eBook interactivo.</p>'
-            + _cta_button('📖 Abrir mi eBook', visor_url)
-        ) if lang == 'es' else _info_box(
-            f'<h3 style="margin-top:0;color:#7c3aed;">📱 Read your book online</h3>'
-            f'<p style="color:#374151;font-size:14px;margin:0 0 12px 0;">While you wait for your printed book, enjoy the interactive eBook.</p>'
-            + _cta_button('📖 Open my eBook', visor_url)
-        )
-
-    order_ref_row_es = f'<tr><td style="padding:6px 0;font-weight:600;width:160px;">Referencia CP:</td><td><code style="font-family:monospace;background:#f3e8ff;padding:2px 6px;border-radius:4px;">{cp_order_ref}</code></td></tr>' if cp_order_ref else ''
-    order_ref_row_en = f'<tr><td style="padding:6px 0;font-weight:600;width:160px;">CP Reference:</td><td><code style="font-family:monospace;background:#f3e8ff;padding:2px 6px;border-radius:4px;">{cp_order_ref}</code></td></tr>' if cp_order_ref else ''
-
-    if lang == 'es':
-        subject = f"Tu libro '{book_title}' para {child_name} está en impresión"
-        content = f"""
-            <p style="font-size:16px;color:#374151;">¡Tu pedido ha sido enviado a imprenta!</p>
-            {_success_box(f'''
-                <h3 style="margin-top:0;color:#166534;">📖 "{book_title}"</h3>
-                <p style="color:#374151;font-size:14px;">Tapa dura &middot; {page_count} páginas &middot; A4 &middot; Impresión a color</p>
-                <p style="color:#374151;font-size:14px;">Tu libro para <strong>{child_name}</strong> ya está siendo impreso.</p>
-            ''')}
-            {_info_box(f'''
-                <h3 style="margin-top:0;color:#7c3aed;">📦 Detalles del Envío</h3>
-                <table style="width:100%;font-size:14px;color:#374151;">
-                    <tr><td style="padding:6px 0;font-weight:600;width:160px;">Dirección:</td><td>{addr_html}</td></tr>
-                    <tr><td style="padding:6px 0;font-weight:600;">Tránsito estimado:</td><td>{transit['es']}</td></tr>
-                    {order_ref_row_es}
-                </table>
-            ''')}
-            {visor_html}
-            {_newsletter_invite_html('es')}
-            <p style="color:#7c3aed;font-weight:bold;text-align:center;">¡Gracias por crear recuerdos mágicos! 💜</p>
-        """
-    else:
-        subject = f"Your book '{book_title}' for {child_name} is being printed"
-        content = f"""
-            <p style="font-size:16px;color:#374151;">Your order has been sent to print!</p>
-            {_success_box(f'''
-                <h3 style="margin-top:0;color:#166534;">📖 "{book_title}"</h3>
-                <p style="color:#374151;font-size:14px;">Hardcover &middot; {page_count} pages &middot; A4 &middot; Full color print</p>
-                <p style="color:#374151;font-size:14px;">Your book for <strong>{child_name}</strong> is now being printed.</p>
-            ''')}
-            {_info_box(f'''
-                <h3 style="margin-top:0;color:#7c3aed;">📦 Shipping Details</h3>
-                <table style="width:100%;font-size:14px;color:#374151;">
-                    <tr><td style="padding:6px 0;font-weight:600;width:160px;">Address:</td><td>{addr_html}</td></tr>
-                    <tr><td style="padding:6px 0;font-weight:600;">Estimated transit:</td><td>{transit['en']}</td></tr>
-                    {order_ref_row_en}
-                </table>
-            ''')}
-            {visor_html}
-            {_newsletter_invite_html('en')}
-            <p style="color:#7c3aed;font-weight:bold;text-align:center;">Thank you for creating magical memories! 💜</p>
-        """
-
-    html_body = _email_wrapper("✨ Magic Memories Books ✨", content, to_email)
-    text_body = f"{'Tu libro' if lang == 'es' else 'Your book'} '{book_title}' {'está siendo impreso' if lang == 'es' else 'is being printed'}. {'Tránsito estimado' if lang == 'es' else 'Estimated transit'}: {transit[lang]}."
-
-    if not SMTP_USER or not SMTP_PASSWORD:
-        print(f"[CP PB CUSTOMER] SMTP not configured. Would send to: {to_email}")
-        return True
-
-    try:
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = subject
-        msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
-        msg['To'] = to_email
-        msg.attach(MIMEText(text_body, 'plain', 'utf-8'))
-        msg.attach(MIMEText(html_body, 'html', 'utf-8'))
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
-            server.send_message(msg)
-        print(f"[CP PB CUSTOMER] Email sent to {to_email}")
-        return True
-    except Exception as e:
-        print(f"[CP PB CUSTOMER] Error: {e}")
-        return False
-
-
 def send_print_order_confirmation_email(
     to_email: str,
     story_data: dict,
@@ -3338,9 +2834,9 @@ def register_purchase_for_follow_up(preview_id: str, email: str, child_name: str
 
 def send_feedback_email_24h(to_email: str, child_name: str = '', lang: str = 'es') -> bool:
     """Send the 24h post-purchase feedback / thank-you email from Isabel."""
-    subject = "Tu cuento de ayer - Magic Memories Books"
-
-    content = """
+    if lang == 'es':
+        subject = "Tu cuento de ayer - Magic Memories Books"
+        content = """
         <p style="font-size:16px;color:#374151;line-height:1.8;margin-top:0;">Hola,</p>
         <p style="font-size:16px;color:#374151;line-height:1.8;">
             Ayer creaste un cuento personalizado en Magic Memories Books y
@@ -3362,6 +2858,30 @@ def send_feedback_email_24h(to_email: str, child_name: str = '', lang: str = 'es
             para las familias que conf&iacute;an en nosotros.
         </p>
         <p style="font-size:16px;color:#374151;line-height:1.8;margin-bottom:0;">Muchas gracias,</p>"""
+    else:
+        subject = "Your story from yesterday - Magic Memories Books"
+        content = """
+        <p style="font-size:16px;color:#374151;line-height:1.8;margin-top:0;">Hello,</p>
+        <p style="font-size:16px;color:#374151;line-height:1.8;">
+            Yesterday you created a personalized story on Magic Memories Books and
+            we wanted to thank you for trying our platform.
+        </p>
+        <p style="font-size:16px;color:#374151;line-height:1.8;">
+            We&#39;re just getting started and every opinion matters enormously to us.
+        </p>
+        <p style="font-size:18px;color:#7c3aed;font-weight:bold;line-height:1.8;">
+            Did you like the result?<br>
+            Where did you hear about us?
+        </p>
+        <p style="font-size:16px;color:#374151;line-height:1.8;">
+            If you have a minute, just reply to this email and
+            tell us what you thought of the experience.
+        </p>
+        <p style="font-size:16px;color:#374151;line-height:1.8;">
+            We&#39;d love to read your feedback and keep improving
+            for the families who trust us.
+        </p>
+        <p style="font-size:16px;color:#374151;line-height:1.8;margin-bottom:0;">Thank you so much,</p>"""
 
     html_body = _email_wrapper("Magic Memories Books", content, to_email)
 
@@ -3388,15 +2908,15 @@ def send_upsell_print_email(preview_id: str, to_email: str, child_name: str = ''
     """Send the 48h post-purchase upsell email offering PDF + printed book formats."""
     formats_url = f"https://magicmemoriesbooks.com/formats/{preview_id}"
     name_str = child_name.strip() if child_name.strip() else ''
-    subject = f"El cuento de {name_str} — ¿quieres tenerlo en papel?" if name_str else "Tu cuento de Magic Memories Books — ¿quieres tenerlo en papel?"
 
-    btn_label = "Ver opciones para mi cuento"
-    if name_str:
-        intro_line = f"Hace d&iacute;as creaste el cuento de <strong>{name_str}</strong> en Magic Memories Books y saber que qued&oacute; muy bonito nos llena de alegr&iacute;a."
-    else:
-        intro_line = "Hace d&iacute;as creaste un cuento personalizado en Magic Memories Books y saber que qued&oacute; muy bonito nos llena de alegr&iacute;a."
-
-    content = f"""
+    if lang == 'es':
+        subject = f"El cuento de {name_str} — ¿quieres tenerlo en papel?" if name_str else "Tu cuento de Magic Memories Books — ¿quieres tenerlo en papel?"
+        btn_label = "Ver opciones para mi cuento"
+        if name_str:
+            intro_line = f"Hace d&iacute;as creaste el cuento de <strong>{name_str}</strong> en Magic Memories Books y saber que qued&oacute; muy bonito nos llena de alegr&iacute;a."
+        else:
+            intro_line = "Hace d&iacute;as creaste un cuento personalizado en Magic Memories Books y saber que qued&oacute; muy bonito nos llena de alegr&iacute;a."
+        content = f"""
         <p style="font-size:16px;color:#374151;line-height:1.8;margin-top:0;">Hola,</p>
         <p style="font-size:16px;color:#374151;line-height:1.8;">
             {intro_line}
@@ -3424,6 +2944,41 @@ def send_upsell_print_email(preview_id: str, to_email: str, child_name: str = ''
             </tr>
         </table>
         <p style="font-size:16px;color:#374151;line-height:1.8;margin-bottom:0;">Un abrazo,</p>"""
+    else:
+        subject = f"{name_str}'s story — would you like it in print?" if name_str else "Your Magic Memories Books story — would you like it in print?"
+        btn_label = "See options for my story"
+        if name_str:
+            intro_line = f"A few days ago you created <strong>{name_str}</strong>&#39;s story on Magic Memories Books and knowing it turned out beautifully fills us with joy."
+        else:
+            intro_line = "A few days ago you created a personalized story on Magic Memories Books and knowing it turned out beautifully fills us with joy."
+        content = f"""
+        <p style="font-size:16px;color:#374151;line-height:1.8;margin-top:0;">Hello,</p>
+        <p style="font-size:16px;color:#374151;line-height:1.8;">
+            {intro_line}
+        </p>
+        <p style="font-size:16px;color:#374151;line-height:1.8;">
+            I wanted to let you know that you can also have the story in a physical format —
+            either as a <strong>printable PDF</strong> to print at home or at any copy shop,
+            or as a <strong>real printed book</strong>, hardcover, that you can hold in your hands
+            and give as a gift.
+        </p>
+        <p style="font-size:16px;color:#374151;line-height:1.8;">
+            The story is already generated, so there&#39;s no wait. Just choose the format
+            you prefer and we&#39;ll take care of the rest.
+        </p>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:32px auto;">
+            <tr>
+                <td align="center" bgcolor="#7c3aed" style="border-radius:12px;background-color:#7c3aed;">
+                    <a href="{formats_url}" target="_blank"
+                       style="display:inline-block;padding:14px 32px;font-family:sans-serif;font-size:16px;
+                              font-weight:bold;color:#ffffff;text-decoration:none;border-radius:12px;
+                              mso-padding-alt:14px 32px;">
+                        {btn_label} &#8594;
+                    </a>
+                </td>
+            </tr>
+        </table>
+        <p style="font-size:16px;color:#374151;line-height:1.8;margin-bottom:0;">Warm regards,</p>"""
 
     html_body = _email_wrapper("Magic Memories Books", content, to_email)
 
