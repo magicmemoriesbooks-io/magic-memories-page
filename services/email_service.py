@@ -621,26 +621,69 @@ def send_payment_confirmation_email(to_email: str, child_name: str, recovery_url
         return False
 
 
-def send_recovery_link_email(to_email: str, child_name: str, recovery_url: str, lang: str = 'es'):
+def send_recovery_link_email(to_email: str, child_name: str, recovery_url: str, lang: str = 'es',
+                              want_ebook: bool = False, want_pdf: bool = False, want_print: bool = False):
+    """Send recovery link email. Content adapts to product type:
+    - only_ebook (want_ebook=True, want_pdf=False, want_print=False): no print/approve language
+    - pdf (want_pdf=True, no print): mention review and download
+    - print or default: full review-and-approve-before-printing flow
+    """
+    only_ebook = bool(want_ebook) and not bool(want_pdf) and not bool(want_print)
+    has_pdf = bool(want_pdf) and not bool(want_print)
+
     if lang == 'es':
-        subject = f"¡Revisa y aprueba el cuento de {child_name} antes de imprimir!"
-        content = f"""
-                <h2 style="color:#7c3aed;margin-top:0;">¡Tu cuento está casi listo!</h2>
-                <p style="font-size:16px;color:#374151;">
-                    Estamos creando el libro personalizado de <strong>{child_name}</strong>. En unos minutos podrás revisarlo. 🎨
-                </p>
-                {_info_box(f'''
+        if only_ebook:
+            subject = f"Accede a tu cuento de {child_name}"
+            heading = "¡Tu cuento está casi listo!"
+            cta_label = "📖 Abrir mi cuento"
+            instructions = _info_box(f'''
+                    <h3 style="margin-top:0;color:#7c3aed;">📋 ¿Qué pasa ahora?</h3>
+                    <ol style="color:#374151;font-size:14px;padding-left:20px;margin:0;">
+                        <li style="margin-bottom:8px;"><strong>Espera unos minutos</strong> — estamos generando las ilustraciones de <strong>{child_name}</strong>. 🎨</li>
+                        <li style="margin-bottom:0;"><strong>Usa el enlace de abajo</strong> para abrir tu cuento cuando esté listo.</li>
+                    </ol>
+                ''')
+            cta_label_link = "Si el botón no funciona, copia este enlace en tu navegador:"
+            wrapper_title = "📖 Accede a tu cuento"
+        elif has_pdf:
+            subject = f"Tu cuento de {child_name} estará listo en unos minutos"
+            heading = "¡Tu cuento está casi listo!"
+            cta_label = "🔍 Revisar y descargar"
+            instructions = _info_box(f'''
+                    <h3 style="margin-top:0;color:#7c3aed;">📋 ¿Qué debes hacer cuando esté listo?</h3>
+                    <ol style="color:#374151;font-size:14px;padding-left:20px;margin:0;">
+                        <li style="margin-bottom:8px;"><strong>Revisa todas las páginas</strong> — asegúrate de que las ilustraciones y el texto son correctos.</li>
+                        <li style="margin-bottom:8px;"><strong>Regenera las imágenes</strong> que no te gusten — puedes hacerlo gratis antes de descargar.</li>
+                        <li style="margin-bottom:0;"><strong>Descarga tu PDF</strong> — listo para imprimir en casa o en cualquier copistería.</li>
+                    </ol>
+                ''')
+            cta_label_link = "Si el botón no funciona, copia este enlace en tu navegador:"
+            wrapper_title = "🔍 Revisa y Descarga tu Cuento"
+        else:
+            subject = f"¡Revisa y aprueba el cuento de {child_name} antes de imprimir!"
+            heading = "¡Tu cuento está casi listo!"
+            cta_label = "🔍 Revisar mi cuento"
+            instructions = _info_box(f'''
                     <h3 style="margin-top:0;color:#7c3aed;">📋 ¿Qué debes hacer cuando esté listo?</h3>
                     <ol style="color:#374151;font-size:14px;padding-left:20px;margin:0;">
                         <li style="margin-bottom:8px;"><strong>Revisa todas las páginas</strong> — asegúrate de que las ilustraciones y el texto son correctos.</li>
                         <li style="margin-bottom:8px;"><strong>Regenera las imágenes</strong> que no te gusten — puedes hacerlo gratis antes de aprobar.</li>
                         <li style="margin-bottom:0;"><strong>Aprueba y envía a imprenta</strong> — solo entonces se enviará a imprimir y enviar.</li>
                     </ol>
-                ''')}
+                ''')
+            cta_label_link = "Si el botón no funciona, copia este enlace en tu navegador:"
+            wrapper_title = "🔍 Revisa Tu Cuento Antes de Imprimir"
+
+        content = f"""
+                <h2 style="color:#7c3aed;margin-top:0;">{heading}</h2>
+                <p style="font-size:16px;color:#374151;">
+                    Estamos creando el libro personalizado de <strong>{child_name}</strong>. En unos minutos podrás revisarlo. 🎨
+                </p>
+                {instructions}
                 {_success_box(f'''
-                    <p style="margin-bottom:15px;color:#374151;font-weight:600;">Usa este enlace para revisar tu cuento cuando esté listo:</p>
-                    {_cta_button("🔍 Revisar mi cuento", recovery_url)}
-                    <p style="margin-top:10px;font-size:12px;color:#6b7280;text-align:center;">Si el botón no funciona, copia este enlace en tu navegador:</p>
+                    <p style="margin-bottom:15px;color:#374151;font-weight:600;">Usa este enlace para acceder a tu cuento cuando esté listo:</p>
+                    {_cta_button(cta_label, recovery_url)}
+                    <p style="margin-top:10px;font-size:12px;color:#6b7280;text-align:center;">{cta_label_link}</p>
                     <p style="font-size:11px;color:#374151;word-break:break-all;text-align:center;">{recovery_url}</p>
                 ''')}
                 {_alert_box(f'''
@@ -650,26 +693,60 @@ def send_recovery_link_email(to_email: str, child_name: str, recovery_url: str, 
                 ''')}
                 <p style="color:#374151;font-size:14px;">¿Tienes alguna duda? Escríbenos a:</p>
                 <p style="color:#374151;"><strong>pay@magicmemoriesbooks.com</strong></p>"""
-        html_content = _email_wrapper("🔍 Revisa Tu Cuento Antes de Imprimir", content, to_email)
+        html_content = _email_wrapper(wrapper_title, content, to_email)
     else:
-        subject = f"Review and approve {child_name}'s story before printing!"
-        content = f"""
-                <h2 style="color:#7c3aed;margin-top:0;">Your story is almost ready!</h2>
-                <p style="font-size:16px;color:#374151;">
-                    We are creating <strong>{child_name}</strong>'s personalized book. In a few minutes you'll be able to review it. 🎨
-                </p>
-                {_info_box(f'''
+        if only_ebook:
+            subject = f"Access {child_name}'s story"
+            heading = "Your story is almost ready!"
+            cta_label = "📖 Open my story"
+            instructions = _info_box(f'''
+                    <h3 style="margin-top:0;color:#7c3aed;">📋 What happens next?</h3>
+                    <ol style="color:#374151;font-size:14px;padding-left:20px;margin:0;">
+                        <li style="margin-bottom:8px;"><strong>Wait a few minutes</strong> — we are generating the illustrations for <strong>{child_name}</strong>. 🎨</li>
+                        <li style="margin-bottom:0;"><strong>Use the link below</strong> to open your story when it is ready.</li>
+                    </ol>
+                ''')
+            cta_label_link = "If the button doesn't work, copy this link into your browser:"
+            wrapper_title = "📖 Access your story"
+        elif has_pdf:
+            subject = f"{child_name}'s story will be ready in a few minutes"
+            heading = "Your story is almost ready!"
+            cta_label = "🔍 Review and download"
+            instructions = _info_box(f'''
+                    <h3 style="margin-top:0;color:#7c3aed;">📋 What to do when it's ready?</h3>
+                    <ol style="color:#374151;font-size:14px;padding-left:20px;margin:0;">
+                        <li style="margin-bottom:8px;"><strong>Review all pages</strong> — make sure the illustrations and text look correct.</li>
+                        <li style="margin-bottom:8px;"><strong>Regenerate any images</strong> you don't like — you can do this for free before downloading.</li>
+                        <li style="margin-bottom:0;"><strong>Download your PDF</strong> — ready to print at home or at any copy shop.</li>
+                    </ol>
+                ''')
+            cta_label_link = "If the button doesn't work, copy this link into your browser:"
+            wrapper_title = "🔍 Review and Download Your Story"
+        else:
+            subject = f"Review and approve {child_name}'s story before printing!"
+            heading = "Your story is almost ready!"
+            cta_label = "🔍 Review my story"
+            instructions = _info_box(f'''
                     <h3 style="margin-top:0;color:#7c3aed;">📋 What to do when it's ready?</h3>
                     <ol style="color:#374151;font-size:14px;padding-left:20px;margin:0;">
                         <li style="margin-bottom:8px;"><strong>Review all pages</strong> — make sure the illustrations and text look correct.</li>
                         <li style="margin-bottom:8px;"><strong>Regenerate any images</strong> you don't like — you can do this for free before approving.</li>
                         <li style="margin-bottom:0;"><strong>Approve and send to print</strong> — only then will we print and ship your book.</li>
                     </ol>
-                ''')}
+                ''')
+            cta_label_link = "If the button doesn't work, copy this link into your browser:"
+            wrapper_title = "🔍 Review Your Story Before Printing"
+
+        content = f"""
+                <h2 style="color:#7c3aed;margin-top:0;">{heading}</h2>
+                <p style="font-size:16px;color:#374151;">
+                    We are creating <strong>{child_name}</strong>'s personalized book. In a few minutes you'll be able to review it. 🎨
+                </p>
+                {instructions}
                 {_success_box(f'''
-                    <p style="margin-bottom:15px;color:#374151;font-weight:600;">Use this link to review your story when it's ready:</p>
-                    {_cta_button("🔍 Review my story", recovery_url)}
-                    <p style="margin-top:10px;font-size:12px;color:#6b7280;text-align:center;">If the button doesn't work, copy this link into your browser:</p>
+                    <p style="margin-bottom:15px;color:#374151;font-weight:600;">Use this link to access your story when it is ready:</p>
+                    {_cta_button(cta_label, recovery_url)}
+                    <p style="margin-top:10px;font-size:12px;color:#6b7280;text-align:center;">{cta_label_link}</p>
                     <p style="font-size:11px;color:#374151;word-break:break-all;text-align:center;">{recovery_url}</p>
                 ''')}
                 {_alert_box(f'''
@@ -679,20 +756,20 @@ def send_recovery_link_email(to_email: str, child_name: str, recovery_url: str, 
                 ''')}
                 <p style="color:#374151;font-size:14px;">Questions? Email us at:</p>
                 <p style="color:#374151;"><strong>pay@magicmemoriesbooks.com</strong></p>"""
-        html_content = _email_wrapper("🔍 Review Your Story Before Printing", content, to_email)
-    
+        html_content = _email_wrapper(wrapper_title, content, to_email)
+
     msg = MIMEMultipart('alternative')
     msg['Subject'] = subject
     msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
     msg['To'] = to_email
     msg.attach(MIMEText(html_content, 'html'))
-    
+
     try:
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
             server.starttls()
             server.login(SMTP_USER, SMTP_PASSWORD)
             server.sendmail(FROM_EMAIL, to_email, msg.as_string())
-        print(f"[EMAIL] Recovery link sent to {to_email}")
+        print(f"[EMAIL] Recovery link sent to {to_email} (only_ebook={only_ebook}, has_pdf={has_pdf})")
         return True
     except Exception as e:
         print(f"[EMAIL] Failed to send recovery link: {e}")

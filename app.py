@@ -4547,6 +4547,12 @@ def paypal_capture_order():
             captured_amount_usd = float(_cap_captures[0].get('amount', {}).get('value', 0)) if _cap_captures else 0.0
         except Exception:
             captured_amount_usd = 0.0
+        try:
+            _captured_capture_id = _cap_captures[0].get('id', '') if _cap_captures else ''
+            _captured_payer_country = capture_data.get('payer', {}).get('address', {}).get('country_code', '')
+        except Exception:
+            _captured_capture_id = ''
+            _captured_payer_country = ''
         print(f"[PAYPAL] Order {order_id} captured. Payer: {payer_email}. Amount: ${captured_amount_usd:.2f}")
         coupon_code = data.get('coupon_code', '').strip().upper()
         buyer_email = data.get('buyer_email', '').strip().lower() or payer_email
@@ -4620,11 +4626,42 @@ def paypal_capture_order():
             amount_mismatch_warning = "; ".join(integrity_warnings) if integrity_warnings else None
             summary = cart_summary(session, country_code)
             total_usd = expected_total if expected_total else summary['total']
+            try:
+                _c0 = capture_data.get('purchase_units', [{}])[0].get('payments', {}).get('captures', [{}])[0]
+                _cart_payment_data = {
+                    'amount_paid': captured_amount_usd,
+                    'currency': _c0.get('amount', {}).get('currency_code', 'USD'),
+                    'capture_id': _c0.get('id', ''),
+                    'payer_country': capture_data.get('payer', {}).get('address', {}).get('country_code', ''),
+                }
+            except Exception:
+                _cart_payment_data = {'amount_paid': captured_amount_usd, 'currency': 'USD'}
+            # Enriquecer con datos económicos para persistencia en JSON
+            _fmt_type_map = {
+                'ebook': 'ebook', 'universo_ebook': 'ebook',
+                'qs_digital': 'digital',
+                'qs_print': 'print', 'cp_personalized': 'print',
+                'personalized_pdf': 'pdf',
+            }
+            _fp_cart = {}
+            for _ci in cart_items_for_fulfillment:
+                _fk = _fmt_type_map.get(_ci.get('product_type', ''))
+                if _fk:
+                    _fp_cart[_fk] = round(float(_ci.get('price', 0)), 2)
+            _cart_subtotal = round(summary.get('subtotal', 0), 2)
+            _cart_shipping = round(summary.get('shipping', 0), 2)
+            _cart_disc_raw = round(_cart_subtotal + _cart_shipping - captured_amount_usd, 2) if captured_amount_usd > 0 else 0.0
+            _cart_disc = _cart_disc_raw if _cart_disc_raw > 0.015 else 0.0
+            _cart_payment_data['format_prices'] = _fp_cart
+            _cart_payment_data['shipping_cost_usd'] = _cart_shipping
+            _cart_payment_data['discount_amount'] = _cart_disc
+            _cart_payment_data['coupon_code'] = coupon_code or ''
             fulfilled_items = []
             failed_items = []
             for item in cart_items_for_fulfillment:
                 try:
-                    dispatched = _dispatch_cart_item(item, buyer_email, order_id, shipping_address=shipping_address)
+                    _item_payment_data = {**_cart_payment_data, 'product_type': item.get('product_type', '')}
+                    dispatched = _dispatch_cart_item(item, buyer_email, order_id, shipping_address=shipping_address, payment_data=_item_payment_data)
                     if dispatched:
                         fulfilled_items.append({**item, 'paypal_order_id': order_id})
                     else:
@@ -4669,7 +4706,7 @@ def paypal_capture_order():
             lang = session.get('lang', 'es')
             return jsonify({'success': True, 'redirect_url': f'/cart/success?lang={lang}'})
 
-        return jsonify({'success': True, 'orderID': order_id, 'payer_email': payer_email, 'status': status, 'captured_amount_usd': captured_amount_usd})
+        return jsonify({'success': True, 'orderID': order_id, 'payer_email': payer_email, 'status': status, 'captured_amount_usd': captured_amount_usd, 'capture_id': _captured_capture_id, 'payer_country': _captured_payer_country})
     except Exception as e:
         print(f"[PAYPAL] capture-order error: {e}")
         return jsonify({'error': str(e)}), 500
@@ -4841,7 +4878,7 @@ def _normalize_cart_shipping_address(addr: dict) -> dict:
     }
 
 
-def _dispatch_cart_item(item: dict, buyer_email: str, paypal_order_id: str, shipping_address: dict = None):
+def _dispatch_cart_item(item: dict, buyer_email: str, paypal_order_id: str, shipping_address: dict = None, payment_data: dict = None):
     """Dispatch post-payment processing for a single cart item."""
     preview_id = item.get('preview_id', '')
     product_type = item.get('product_type', '')
@@ -4867,6 +4904,28 @@ def _dispatch_cart_item(item: dict, buyer_email: str, paypal_order_id: str, ship
     story_data['payment_status'] = 'completed'
     story_data['customer_email'] = buyer_email
     story_data['cart_purchase'] = True
+    if payment_data:
+        _amt = payment_data.get('amount_paid')
+        if _amt is not None:
+            story_data['amount_paid'] = _amt
+        _cur = payment_data.get('currency')
+        if _cur:
+            story_data['currency'] = _cur
+        _cap = payment_data.get('capture_id')
+        if _cap:
+            story_data['capture_id'] = _cap
+        _country = payment_data.get('payer_country')
+        if _country:
+            story_data['payer_country'] = _country
+        _pt = payment_data.get('product_type')
+        if _pt:
+            story_data['product_type'] = _pt
+        _fp_d = payment_data.get('format_prices', {})
+        if _fp_d:
+            story_data['format_prices'] = _fp_d
+        story_data['shipping_cost_usd'] = round(float(payment_data.get('shipping_cost_usd', 0) or 0), 2)
+        story_data['discount_amount'] = round(float(payment_data.get('discount_amount', 0) or 0), 2)
+        story_data['coupon_code'] = payment_data.get('coupon_code', '') or ''
     _PHYSICAL_PRODUCT_TYPES = ('qs_print', 'cp_personalized')
     is_physical = product_type in _PHYSICAL_PRODUCT_TYPES
     if shipping_address and is_physical:
@@ -5121,7 +5180,18 @@ def process_payment(preview_id):
     story_data['payment_date'] = datetime.now().isoformat()
     story_data['generation_complete'] = True
     story_data['payment_status'] = 'completed'
-    
+    _amt_d = float(data.get('amount_usd', 0) or 0)
+    if _amt_d > 0:
+        story_data['amount_paid'] = round(_amt_d, 2)
+    story_data['currency'] = data.get('currency', 'USD') or 'USD'
+    if data.get('capture_id'):
+        story_data['capture_id'] = data['capture_id']
+    if data.get('payer_country'):
+        story_data['payer_country'] = data['payer_country']
+    _pt_d = product_type or data.get('product_type', '') or story_data.get('product_type', '')
+    if _pt_d:
+        story_data['product_type'] = _pt_d
+
     client_ip = get_client_ip()
     preview_rate_limits.pop(client_ip, None)
     print(f"[RATE LIMIT] Cleared for IP {client_ip} after payment")
@@ -5166,6 +5236,20 @@ def process_payment(preview_id):
             print(f"[PAYMENT] DB update for RealStoryOrder failed (non-blocking): {db_err}")
             db.session.rollback()
     
+    # --- Persistir datos económicos (format_prices, discount, shipping, cupón) ---
+    _eco_fp_raw = data.get('format_prices', {})
+    if _eco_fp_raw:
+        story_data['format_prices'] = {k: round(float(v), 2) for k, v in _eco_fp_raw.items() if v}
+    _eco_sc = round(float(data.get('shipping_cost', 0) or 0), 2)
+    story_data['shipping_cost_usd'] = _eco_sc
+    _eco_cc = (data.get('coupon_code') or '').strip().upper()
+    story_data['coupon_code'] = _eco_cc
+    _eco_total = round(float(data.get('amount_usd', 0) or 0), 2)
+    _eco_fp_vals = story_data.get('format_prices', {})
+    _eco_subtotal = round(sum(_eco_fp_vals.values()), 2) if _eco_fp_vals else 0.0
+    _eco_disc = round(_eco_subtotal + _eco_sc - _eco_total, 2) if (_eco_subtotal > 0 and _eco_total > 0 and (_eco_subtotal + _eco_sc - _eco_total) > 0.015) else 0.0
+    story_data['discount_amount'] = _eco_disc
+
     with open(preview_file, 'w', encoding='utf-8') as f:
         json.dump(story_data, f, ensure_ascii=False, indent=2)
     
@@ -7087,8 +7171,13 @@ def resend_recovery_email(preview_id):
     child_name = story_data.get('child_name', 'Historia')
     lang = story_data.get('lang', story_data.get('language', 'es'))
     
-    success = send_recovery_link_email(customer_email, child_name, recovery_url, lang)
-    
+    success = send_recovery_link_email(
+        customer_email, child_name, recovery_url, lang,
+        want_ebook=story_data.get('want_ebook', False),
+        want_pdf=story_data.get('want_pdf', False),
+        want_print=story_data.get('want_print', False),
+    )
+
     if success:
         return jsonify({'success': True, 'message': 'Recovery email sent'})
     else:
@@ -9502,12 +9591,222 @@ def admin_cuentos():
     return render_template('admin_cuentos.html', story_previews=story_previews)
 
 
+def _build_compra_codes(d):
+    """Return ordered list of purchase codes like ['QS_EBOOK', 'QS_PDF', 'QS_PRINT']."""
+    product_type = d.get('product_type', '') or ''
+    _PB_TYPES = ('cp_personalized', 'personalized_pdf', 'personalized_book', 'personalized')
+    is_pb = product_type in _PB_TYPES
+    familia = 'PB' if is_pb else 'QS'
+    parts = []
+    fp = d.get('format_prices', {}) or {}
+    fmts = d.get('formats', []) or []
+    want_ebook = d.get('want_ebook', False)
+    want_pdf = d.get('want_pdf', False) or d.get('pdf_paid', False)
+    want_print = d.get('want_print', False)
+    if fp:
+        if 'ebook' in fp:
+            parts.append(f'{familia}_EBOOK')
+        if 'digital' in fp or 'pdf' in fp:
+            parts.append(f'{familia}_PDF')
+        if 'print' in fp:
+            parts.append(f'{familia}_PRINT')
+    elif fmts:
+        if 'ebook' in fmts:
+            parts.append(f'{familia}_EBOOK')
+        if 'digital' in fmts or 'pdf' in fmts:
+            parts.append(f'{familia}_PDF')
+        if 'print' in fmts:
+            parts.append(f'{familia}_PRINT')
+    else:
+        if want_ebook:
+            parts.append(f'{familia}_EBOOK')
+        if want_pdf:
+            parts.append(f'{familia}_PDF')
+        if want_print:
+            parts.append(f'{familia}_PRINT')
+        if not parts:
+            _fallback = {
+                'qs_digital': ['QS_EBOOK'], 'ebook': ['QS_EBOOK'],
+                'qs_print': ['QS_PRINT'],
+                'personalized_pdf': ['PB_PDF'],
+                'cp_personalized': ['PB_PRINT'],
+            }
+            parts = _fallback.get(product_type, [])
+    return parts
+
+
+_COMPRA_CODE_LABELS = {
+    'QS_EBOOK': 'eBook interactivo',
+    'QS_PDF': 'PDF imprimible',
+    'QS_PRINT': 'Libro impreso tapa blanda',
+    'PB_EBOOK': 'eBook interactivo',
+    'PB_PDF': 'PDF imprimible',
+    'PB_PRINT': 'Libro impreso tapa dura',
+}
+
+
 @app.route('/admin/negocio')
 def admin_negocio():
-    """Admin: business metrics section (placeholder for future metrics)."""
+    """Admin: business control panel — real sales data from story_previews/*.json."""
     if not check_admin_auth():
         return redirect(url_for('admin_login_page'))
-    return render_template('admin_negocio.html')
+    import glob as _glob
+    sales = []
+    for fpath in _glob.glob('story_previews/*.json'):
+        try:
+            with open(fpath, 'r', encoding='utf-8') as _f:
+                _d = json.load(_f)
+            if not _d.get('paid'):
+                continue
+            _pid = os.path.basename(fpath).replace('.json', '')
+            _cp_pb_ref = _d.get('cp_pb_order_ref', '') or ''
+            _cp_qs_ref = _d.get('cp_order_ref', '') or ''
+            _cp_ref = _cp_pb_ref or _cp_qs_ref
+            _cp_os = _d.get('cp_order_status', '') or ''
+            _cp_st = _d.get('cp_status', '') or ''
+            _cp_sub = bool(_d.get('cp_submitted'))
+            if _cp_os == 'shipped' or _d.get('cp_tracking_code'):
+                _cp_estado = 'En tránsito'
+            elif _cp_os in ('submitted',) or _cp_st == 'sent' or _cp_sub:
+                _cp_estado = 'Enviado'
+            elif _cp_os == 'failed':
+                _cp_estado = 'Error'
+            else:
+                _cp_estado = ''
+            _compra_codes = _build_compra_codes(_d)
+            _compra_label = ' + '.join(_compra_codes) if _compra_codes else (_d.get('product_type', '') or 'desconocido')
+            _compra_key = _compra_label
+            sales.append({
+                'preview_id': _pid,
+                'amount_paid': _d.get('amount_paid'),
+                'currency': _d.get('currency', 'USD') or 'USD',
+                'payer_country': _d.get('payer_country', '') or '',
+                'product_type': _d.get('product_type', '') or '',
+                'payment_date': _d.get('payment_date', '') or '',
+                'customer_email': _d.get('customer_email', '') or '',
+                'paypal_order_id': _d.get('paypal_order_id', '') or '',
+                'capture_id': _d.get('capture_id', '') or '',
+                'generation_complete': bool(_d.get('generation_complete')),
+                'email_sent': bool(_d.get('email_sent')),
+                'cp_submitted': _cp_sub,
+                'cp_ref': _cp_ref,
+                'cp_estado': _cp_estado,
+                'cp_tracking_code': _d.get('cp_tracking_code', '') or '',
+                'cp_tracking_url': _d.get('cp_tracking_url', '') or '',
+                'child_name': _d.get('child_name', '') or '',
+                'story_id': _d.get('story_id', '') or '',
+                'compra_codes': _compra_codes,
+                'compra_label': _compra_label,
+                'compra_key': _compra_key,
+                'format_prices': _d.get('format_prices', {}) or {},
+                'discount_amount': _d.get('discount_amount'),
+                'discount_pct': _d.get('discount_pct'),
+                'shipping_cost_usd': _d.get('shipping_cost_usd'),
+                'coupon_code': _d.get('coupon_code', '') or '',
+            })
+        except Exception:
+            continue
+    sales.sort(key=lambda x: x['payment_date'], reverse=True)
+
+    # Ventas válidas = amount_paid > 0 (excluye pruebas históricas sin importe)
+    valid_sales = [s for s in sales if s['amount_paid'] and s['amount_paid'] > 0]
+
+    known_revenue = round(sum(s['amount_paid'] for s in valid_sales), 2)
+    valid_count = len(valid_sales)
+
+    # Países — solo de ventas válidas, sin "(desconocido)"
+    _countries = {}
+    for s in valid_sales:
+        c = s['payer_country']
+        if not c:
+            continue
+        if c not in _countries:
+            _countries[c] = {'count': 0, 'revenue': 0.0}
+        _countries[c]['count'] += 1
+        _countries[c]['revenue'] += s['amount_paid']
+    countries_valid_list = sorted(_countries.items(), key=lambda x: x[1]['revenue'], reverse=True)
+    total_valid_countries = len(countries_valid_list)
+
+    # Productos individuales vendidos — cada código por separado
+    # Revenue: solo desde format_prices por línea (no el total del pedido)
+    _ALL_CODES = ['QS_EBOOK', 'QS_PDF', 'QS_PRINT', 'PB_EBOOK', 'PB_PDF', 'PB_PRINT']
+    # Mapeo código → clave en format_prices
+    _CODE_TO_FP = {
+        'QS_EBOOK': ('ebook',), 'PB_EBOOK': ('ebook',),
+        'QS_PDF':   ('digital', 'pdf'), 'PB_PDF': ('digital', 'pdf'),
+        'QS_PRINT': ('print',), 'PB_PRINT': ('print',),
+    }
+    _prod_units = {c: 0 for c in _ALL_CODES}
+    _prod_revenue = {c: [] for c in _ALL_CODES}  # lista de precios individuales
+    for s in valid_sales:
+        fp = s.get('format_prices') or {}
+        for code in s['compra_codes']:
+            if code not in _prod_units:
+                continue
+            _prod_units[code] += 1
+            # Buscar precio real de ese formato en format_prices
+            price = None
+            for fp_key in _CODE_TO_FP.get(code, ()):
+                if fp_key in fp and fp[fp_key] is not None:
+                    price = fp[fp_key]
+                    break
+            if price is not None:
+                _prod_revenue[code].append(price)
+    # Solo mostrar productos con al menos 1 venta
+    products_individual = []
+    for c in _ALL_CODES:
+        if _prod_units[c] > 0:
+            prices = _prod_revenue[c]
+            products_individual.append((c, {
+                'count': _prod_units[c],
+                'prices': prices,           # lista de precios reales por unidad
+                'has_revenue': len(prices) > 0,
+                'revenue_total': sum(prices),
+                'price_min': min(prices) if prices else None,
+                'price_max': max(prices) if prices else None,
+            }))
+
+    # Combinaciones de compra — agrupadas por combo-label
+    _combos = {}
+    for s in valid_sales:
+        ck = s['compra_key'] or 'desconocido'
+        if ck not in _combos:
+            _combos[ck] = {'count': 0, 'revenue': 0.0, 'codes': s['compra_codes']}
+        _combos[ck]['count'] += 1
+        _combos[ck]['revenue'] += s['amount_paid']
+    combinations_list = sorted(_combos.items(), key=lambda x: x[1]['revenue'], reverse=True)
+
+    # Clientes — solo de ventas válidas
+    _customers = {}
+    for s in valid_sales:
+        em = s['customer_email'] or '(sin email)'
+        if em not in _customers:
+            _customers[em] = {'count': 0, 'revenue': 0.0, 'last_date': '', 'last_country': '', 'purchases': []}
+        _customers[em]['count'] += 1
+        _customers[em]['revenue'] += s['amount_paid']
+        if s['payment_date'] > _customers[em]['last_date']:
+            _customers[em]['last_date'] = s['payment_date']
+            _customers[em]['last_country'] = s['payer_country']
+        _customers[em]['purchases'].append(s)
+    customers_list = sorted(_customers.items(), key=lambda x: x[1]['revenue'], reverse=True)
+
+    # Auditoría de cobertura — sobre ventas válidas
+    with_capture = sum(1 for s in valid_sales if s['capture_id'])
+    with_cp_ref = sum(1 for s in valid_sales if s['cp_ref'])
+
+    return render_template('admin_negocio.html',
+        sales=valid_sales,
+        known_revenue=known_revenue,
+        valid_count=valid_count,
+        total_valid_countries=total_valid_countries,
+        products_individual=products_individual,
+        combinations_list=combinations_list,
+        countries_valid_list=countries_valid_list,
+        customers_list=customers_list,
+        with_capture=with_capture,
+        with_cp_ref=with_cp_ref,
+        code_labels=_COMPRA_CODE_LABELS,
+    )
 
 
 @app.route('/admin/crm')
@@ -10180,7 +10479,10 @@ def _generate_scenes_background(preview_id, **kwargs):
                 to_email=_qs_email,
                 child_name=_qs_child_name,
                 recovery_url=_qs_recovery_url,
-                lang=_qs_lang
+                lang=_qs_lang,
+                want_ebook=story_data.get('want_ebook', False),
+                want_pdf=story_data.get('want_pdf', False),
+                want_print=story_data.get('want_print', False),
             )
             story_data['recovery_email_sent'] = True
             with open(preview_file, 'w', encoding='utf-8') as _qsf:
@@ -11033,7 +11335,10 @@ def _compose_personalized_book_background(preview_id, **kwargs):
                 to_email=customer_email,
                 child_name=child_name,
                 recovery_url=_recovery_url,
-                lang=lang
+                lang=lang,
+                want_ebook=story_data.get('want_ebook', False),
+                want_pdf=story_data.get('want_pdf', False),
+                want_print=story_data.get('want_print', False),
             )
             story_data['recovery_email_sent'] = True
             with open(preview_file, 'w', encoding='utf-8') as _f:
@@ -12901,6 +13206,27 @@ def paypal_capture_formats_order():
         amount_paid = float(capture.get('amount', {}).get('value', 0))
         payer_email = result.get('payer', {}).get('email_address', data.get('email', ''))
         buyer_email = data.get('email', payer_email) or payer_email
+        _fmt_currency = capture.get('amount', {}).get('currency_code', 'USD')
+        _fmt_capture_id = capture.get('id', '')
+        _fmt_payer_country = result.get('payer', {}).get('address', {}).get('country_code', '')
+        _fmt_payment_data_base = {
+            'amount_paid': amount_paid,
+            'currency': _fmt_currency,
+            'capture_id': _fmt_capture_id,
+            'payer_country': _fmt_payer_country,
+        }
+        # Datos económicos para persistencia — /formats no usa cupones ni descuentos
+        _fmt_pdf_price = round(Config.PERSONALIZED_PDF_PRICE / 100.0, 2)
+        _fmt_print_price = round(Config.CP_PB_BASE_PRICE / 100.0, 2)
+        _fmt_fp = {}
+        if want_pdf:
+            _fmt_fp['pdf'] = _fmt_pdf_price
+        if want_print:
+            _fmt_fp['print'] = _fmt_print_price
+        _fmt_payment_data_base['format_prices'] = _fmt_fp
+        _fmt_payment_data_base['shipping_cost_usd'] = round(verified_ship_usd, 2)
+        _fmt_payment_data_base['discount_amount'] = 0.0
+        _fmt_payment_data_base['coupon_code'] = ''
 
         # --- Verify captured amount matches authoritative server total (tolerance $0.05) ---
         if abs(amount_paid - expected_total) > 0.05:
@@ -12927,6 +13253,7 @@ def paypal_capture_formats_order():
                 {'preview_id': preview_id, 'product_type': 'personalized_pdf', 'lang': lang},
                 buyer_email,
                 order_id,
+                payment_data={**_fmt_payment_data_base, 'product_type': 'personalized_pdf'},
             )
 
         # --- Create PrintOrderRequest for physical book ---
@@ -12952,6 +13279,17 @@ def paypal_capture_formats_order():
             story_data['payment_date'] = datetime.now().isoformat()
             story_data['payment_status'] = 'completed'
             story_data['customer_email'] = buyer_email
+            story_data['amount_paid'] = amount_paid
+            story_data['currency'] = _fmt_currency
+            if _fmt_capture_id:
+                story_data['capture_id'] = _fmt_capture_id
+            if _fmt_payer_country:
+                story_data['payer_country'] = _fmt_payer_country
+            story_data['product_type'] = 'cp_personalized'
+            story_data['format_prices'] = _fmt_fp
+            story_data['shipping_cost_usd'] = round(verified_ship_usd, 2)
+            story_data['discount_amount'] = 0.0
+            story_data['coupon_code'] = ''
             with open(preview_file, 'w', encoding='utf-8') as f:
                 json.dump(story_data, f, ensure_ascii=False, indent=2)
 
