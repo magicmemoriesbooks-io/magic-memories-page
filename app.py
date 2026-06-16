@@ -9826,10 +9826,56 @@ def admin_negocio():
 
 @app.route('/admin/crm')
 def admin_crm():
-    """Admin: unified CRM view (placeholder for future implementation)."""
+    """Admin: CRM — Historial de emails enviados."""
     if not check_admin_auth():
         return redirect(url_for('admin_login_page'))
-    return render_template('admin_crm.html')
+
+    from services.email_service import EMAIL_LOG_FILE
+
+    entries = []
+    if os.path.exists(EMAIL_LOG_FILE):
+        with open(EMAIL_LOG_FILE, 'r', encoding='utf-8') as _f:
+            for line in _f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    entries.append(json.loads(line))
+                except Exception:
+                    pass
+
+    entries.sort(key=lambda x: x.get('ts', ''), reverse=True)
+
+    # Filter params
+    q_email    = request.args.get('email', '').strip().lower()
+    q_cat      = request.args.get('cat', '').strip()
+    q_pid      = request.args.get('pid', '').strip().lower()
+    q_result   = request.args.get('result', '').strip()
+
+    filtered = entries
+    if q_email:
+        filtered = [e for e in filtered if q_email in (e.get('to_email') or '').lower()]
+    if q_cat:
+        filtered = [e for e in filtered if e.get('category') == q_cat]
+    if q_pid:
+        filtered = [e for e in filtered if q_pid in (e.get('preview_id') or '').lower()]
+    if q_result:
+        filtered = [e for e in filtered if e.get('result') == q_result]
+
+    total     = len(entries)
+    sent_ct   = sum(1 for e in entries if e.get('result') == 'SENT')
+    error_ct  = sum(1 for e in entries if e.get('result') == 'ERROR')
+    cats      = {}
+    for e in entries:
+        c = e.get('category','other')
+        cats[c] = cats.get(c, 0) + 1
+
+    return render_template('admin_crm.html',
+        entries=filtered,
+        total=total, sent_ct=sent_ct, error_ct=error_ct,
+        cats=cats,
+        q_email=q_email, q_cat=q_cat, q_pid=q_pid, q_result=q_result,
+    )
 
 
 @app.route('/admin/retry-scenes/<preview_id>', methods=['POST'])

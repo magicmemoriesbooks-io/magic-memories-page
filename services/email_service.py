@@ -22,6 +22,65 @@ FROM_NAME = os.environ.get('FROM_NAME', 'Magic Memories Books')
 LOGO_URL = "https://magicmemoriesbooks.com/static/images/logo.png"
 FIRMA_URL = "https://magicmemoriesbooks.com/static/images/firma_isabel.jpg"
 
+import json as _json
+import os as _os_el
+
+EMAIL_LOG_FILE = _os_el.path.join(
+    _os_el.path.dirname(_os_el.path.abspath(__file__)), '..', 'data', 'email_log.jsonl'
+)
+
+_EMAIL_TYPE_META = {
+    'payment_confirmation': {'category': 'delivery',   'label': 'Pago confirmado'},
+    'recovery_link':        {'category': 'delivery',   'label': 'Recovery link'},
+    'story_delivery':       {'category': 'delivery',   'label': 'Historia lista'},
+    'ebook_ready':          {'category': 'delivery',   'label': 'eBook listo'},
+    'pdf_ready':            {'category': 'delivery',   'label': 'PDF listo'},
+    'print_production':     {'category': 'delivery',   'label': 'Libro en producción'},
+    'tracking':             {'category': 'delivery',   'label': 'Tracking enviado'},
+    'print_failure':        {'category': 'delivery',   'label': 'Error de impresión'},
+    'print_resolved':       {'category': 'delivery',   'label': 'Impresión resuelta'},
+    'illustrations_ready':  {'category': 'delivery',   'label': 'Ilustraciones listas'},
+    'generation_started':   {'category': 'delivery',   'label': 'Generación iniciada'},
+    'generation_failed':    {'category': 'delivery',   'label': 'Generación fallida'},
+    'feedback_24h':         {'category': 'followup',   'label': 'Feedback 24h'},
+    'upsell_print':         {'category': 'followup',   'label': 'Upsell impresión 48h'},
+    'coupon':               {'category': 'retention',  'label': 'Cupón'},
+    'newsletter':           {'category': 'retention',  'label': 'Newsletter'},
+    'ebook_expiry':         {'category': 'retention',  'label': 'Aviso vencimiento eBook'},
+    'admin_purchase':       {'category': 'admin',      'label': 'Admin: nueva compra'},
+    'admin_cp_order':       {'category': 'admin',      'label': 'Admin: pedido CP'},
+    'admin_error':          {'category': 'admin',      'label': 'Admin: error'},
+    'admin_other':          {'category': 'admin',      'label': 'Admin: notificación'},
+}
+
+def log_email(email_type: str, to_email: str, subject: str, result: str,
+              preview_id: str = '', child_name: str = '', lang: str = 'es',
+              error: str = '') -> None:
+    """Append one email event to the persistent JSONL log (data/email_log.jsonl)."""
+    try:
+        from datetime import datetime as _dt_el
+        meta = _EMAIL_TYPE_META.get(email_type, {'category': 'other', 'label': email_type})
+        entry = {
+            'ts':         _dt_el.now().isoformat(timespec='seconds'),
+            'preview_id': preview_id or '',
+            'to_email':   to_email or '',
+            'child_name': child_name or '',
+            'lang':       lang or 'es',
+            'email_type': email_type,
+            'category':   meta['category'],
+            'label':      meta['label'],
+            'subject':    subject or '',
+            'result':     result,
+            'error':      error or '',
+        }
+        log_dir = _os_el.path.dirname(EMAIL_LOG_FILE)
+        if log_dir:
+            _os_el.makedirs(log_dir, exist_ok=True)
+        with open(EMAIL_LOG_FILE, 'a', encoding='utf-8') as _f:
+            _f.write(_json.dumps(entry, ensure_ascii=False) + '\n')
+    except Exception as _e:
+        print(f'[EMAIL-LOG] Failed to write log entry: {_e}')
+
 
 def _isabel_signature_html() -> str:
     """Returns Isabel Ojeda's signature block for user-facing emails."""
@@ -412,10 +471,17 @@ Magic Memories Books
             server.send_message(msg)
         
         print(f"[EMAIL SERVICE] Email sent successfully to: {to_email} with {attached_count} attachments")
+        _age = story_data.get('age_group', '')
+        _etype = 'ebook_ready' if not pdf_printable_path else 'pdf_ready'
+        log_email(_etype, to_email, subject,
+                  'SENT', preview_id=preview_id or '', child_name=story_data.get('child_name',''), lang=story_data.get('lang','es'))
         return {'success': True, 'message': f'Email sent with {attached_count} attachments'}
         
     except Exception as e:
         print(f"[EMAIL SERVICE] Error sending email: {str(e)}")
+        _etype2 = 'ebook_ready' if not pdf_printable_path else 'pdf_ready'
+        log_email(_etype2, to_email, subject,
+                  'ERROR', preview_id=preview_id or '', child_name=story_data.get('child_name',''), lang=story_data.get('lang','es'), error=str(e))
         return {'success': False, 'message': str(e)}
 
 
@@ -615,9 +681,11 @@ def send_payment_confirmation_email(to_email: str, child_name: str, recovery_url
             server.login(SMTP_USER, SMTP_PASSWORD)
             server.sendmail(FROM_EMAIL, to_email, msg.as_string())
         print(f"[EMAIL] Payment confirmation sent to {to_email}")
+        log_email('payment_confirmation', to_email, subject, 'SENT', child_name=child_name, lang=lang)
         return True
     except Exception as e:
         print(f"[EMAIL] Failed to send payment confirmation: {e}")
+        log_email('payment_confirmation', to_email, subject, 'ERROR', child_name=child_name, lang=lang, error=str(e))
         return False
 
 
@@ -770,9 +838,11 @@ def send_recovery_link_email(to_email: str, child_name: str, recovery_url: str, 
             server.login(SMTP_USER, SMTP_PASSWORD)
             server.sendmail(FROM_EMAIL, to_email, msg.as_string())
         print(f"[EMAIL] Recovery link sent to {to_email} (only_ebook={only_ebook}, has_pdf={has_pdf})")
+        log_email('recovery_link', to_email, subject, 'SENT', child_name=child_name, lang=lang)
         return True
     except Exception as e:
         print(f"[EMAIL] Failed to send recovery link: {e}")
+        log_email('recovery_link', to_email, subject, 'ERROR', child_name=child_name, lang=lang, error=str(e))
         return False
 
 
@@ -1877,10 +1947,14 @@ Magic Memories Books
         if pdf_download_url:
             attachments_info += f", pdf_download_link=True"
         print(f"[EMAIL] eBook email sent to {to_email} (is_gift={is_gift}{attachments_info})")
+        log_email('ebook_ready', to_email, subject, 'SENT',
+                  preview_id=preview_id, child_name=story_data.get('child_name',''), lang=story_data.get('lang','es'))
         return {'success': True, 'message': f'eBook email sent to {to_email}'}
         
     except Exception as e:
         print(f"[EMAIL] Failed to send eBook email: {e}")
+        log_email('ebook_ready', to_email, subject, 'ERROR',
+                  preview_id=preview_id, child_name=story_data.get('child_name',''), lang=story_data.get('lang','es'), error=str(e))
         return {'success': False, 'error': str(e)}
 
 
@@ -2975,9 +3049,11 @@ def send_feedback_email_24h(to_email: str, child_name: str = '', lang: str = 'es
             server.login(SMTP_USER, SMTP_PASSWORD)
             server.sendmail(FROM_EMAIL, to_email, msg.as_string())
         print(f"[LEAD] 24h feedback email sent to {to_email}")
+        log_email('feedback_24h', to_email, subject, 'SENT', child_name=child_name, lang=lang)
         return True
     except Exception as e:
         print(f"[LEAD] Failed to send 24h feedback email to {to_email}: {e}")
+        log_email('feedback_24h', to_email, subject, 'ERROR', child_name=child_name, lang=lang, error=str(e))
         return False
 
 
@@ -3072,9 +3148,11 @@ def send_upsell_print_email(preview_id: str, to_email: str, child_name: str = ''
             server.login(SMTP_USER, SMTP_PASSWORD)
             server.sendmail(FROM_EMAIL, to_email, msg.as_string())
         print(f"[LEAD] 48h upsell email sent to {to_email} (preview: {preview_id})")
+        log_email('upsell_print', to_email, subject, 'SENT', preview_id=preview_id, child_name=child_name, lang=lang)
         return True
     except Exception as e:
         print(f"[LEAD] Failed to send 48h upsell email to {to_email}: {e}")
+        log_email('upsell_print', to_email, subject, 'ERROR', preview_id=preview_id, child_name=child_name, lang=lang, error=str(e))
         return False
 
 
