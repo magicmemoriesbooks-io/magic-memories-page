@@ -2978,7 +2978,8 @@ import json as _json
 FOLLOW_UPS_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'lead_follow_ups.json')
 
 
-def register_purchase_for_follow_up(preview_id: str, email: str, child_name: str, lang: str = 'es'):
+def register_purchase_for_follow_up(preview_id: str, email: str, child_name: str,
+                                    lang: str = 'es', story_name: str = ''):
     """Record a real purchase so the 24h follow-up email can be scheduled."""
     if not email or '@' not in email:
         return
@@ -2993,6 +2994,7 @@ def register_purchase_for_follow_up(preview_id: str, email: str, child_name: str
         data[preview_id] = {
             'email': email,
             'child_name': child_name or '',
+            'story_name': story_name or '',
             'lang': lang or 'es',
             'purchased_at': __import__('datetime').datetime.now().isoformat(),
             'email_1_sent': False,
@@ -3004,56 +3006,73 @@ def register_purchase_for_follow_up(preview_id: str, email: str, child_name: str
         print(f"[LEAD] Error registering follow-up: {e}")
 
 
-def send_feedback_email_24h(to_email: str, child_name: str = '', lang: str = 'es') -> bool:
-    """Send the 24h post-purchase feedback / thank-you email from Isabel."""
+def send_feedback_email_24h(to_email: str, child_name: str = '', lang: str = 'es',
+                            story_name: str = '', preview_id: str = '') -> bool:
+    """Send the 24h post-purchase feedback email from Isabel.
+    Template is universal across all products — references the child and story title,
+    not the specific product. Saves HTML body for CRM preview. Notifies admin on error."""
+
+    _child  = child_name.strip() if child_name.strip() else 'tu pequeño/a'
+    _story  = story_name.strip() if story_name.strip() else ''
+    _story_ref = f'<strong>{_story}</strong>' if _story else 'el cuento personalizado'
+
     if lang == 'es':
-        subject = "Tu cuento de ayer - Magic Memories Books"
-        content = """
+        subject = f'¿Qué te pareció el cuento de {child_name.split()[0] if child_name else "tu pequeño/a"}? 💜'
+        content = f"""
         <p style="font-size:16px;color:#374151;line-height:1.8;margin-top:0;">Hola,</p>
         <p style="font-size:16px;color:#374151;line-height:1.8;">
-            Ayer creaste un cuento personalizado en Magic Memories Books y
-            quer&iacute;amos darte las gracias por probar nuestra plataforma.
+            Ayer recibiste el cuento personalizado de {_story_ref} y quer&iacute;a darte las gracias
+            por confiar en Magic Memories Books.
         </p>
         <p style="font-size:16px;color:#374151;line-height:1.8;">
-            Estamos empezando y cada opini&oacute;n cuenta much&iacute;simo para nosotros.
-        </p>
-        <p style="font-size:18px;color:#7c3aed;font-weight:bold;line-height:1.8;">
-            &iquest;Te gust&oacute; el resultado?<br>
-            &iquest;D&oacute;nde nos conociste?
+            Espero que la experiencia haya sido especial y que hayas disfrutado
+            viendo c&oacute;mo la historia cobraba vida.
         </p>
         <p style="font-size:16px;color:#374151;line-height:1.8;">
-            Si tienes un minuto, simplemente responde a este correo y
-            cu&eacute;ntanos qu&eacute; te pareci&oacute; la experiencia.
+            Como estamos mejorando constantemente la plataforma, me encantar&iacute;a conocer tu opini&oacute;n.
+        </p>
+        <p style="font-size:16px;color:#7c3aed;font-weight:600;line-height:2;margin:20px 0 4px 0;">
+            &iquest;C&oacute;mo conociste Magic Memories Books?
+        </p>
+        <p style="font-size:16px;color:#7c3aed;font-weight:600;line-height:2;margin:4px 0;">
+            &iquest;Hay algo que podr&iacute;amos mejorar en la experiencia?
+        </p>
+        <p style="font-size:16px;color:#374151;line-height:1.8;margin-top:16px;">
+            Si tienes un minuto, simplemente responde a este correo. Leo personalmente todos los mensajes
+            y cada comentario nos ayuda a crear mejores historias para las pr&oacute;ximas familias.
         </p>
         <p style="font-size:16px;color:#374151;line-height:1.8;">
-            Nos encantar&aacute; leer tu opini&oacute;n y seguir mejorando
-            para las familias que conf&iacute;an en nosotros.
+            Muchas gracias por acompa&ntilde;arnos en este proyecto.
         </p>
-        <p style="font-size:16px;color:#374151;line-height:1.8;margin-bottom:0;">Muchas gracias,</p>"""
+        <p style="font-size:16px;color:#374151;line-height:1.8;margin-bottom:0;">Un abrazo,</p>"""
     else:
-        subject = "Your story from yesterday - Magic Memories Books"
-        content = """
+        subject = f"How did {child_name.split()[0] if child_name else 'your little one'}'s story turn out? 💜"
+        content = f"""
         <p style="font-size:16px;color:#374151;line-height:1.8;margin-top:0;">Hello,</p>
         <p style="font-size:16px;color:#374151;line-height:1.8;">
-            Yesterday you created a personalized story on Magic Memories Books and
-            we wanted to thank you for trying our platform.
+            Yesterday you received the personalized story {_story_ref} and I wanted to thank you
+            for trusting Magic Memories Books.
         </p>
         <p style="font-size:16px;color:#374151;line-height:1.8;">
-            We&#39;re just getting started and every opinion matters enormously to us.
-        </p>
-        <p style="font-size:18px;color:#7c3aed;font-weight:bold;line-height:1.8;">
-            Did you like the result?<br>
-            Where did you hear about us?
+            I hope the experience was special and that you enjoyed watching the story come to life.
         </p>
         <p style="font-size:16px;color:#374151;line-height:1.8;">
-            If you have a minute, just reply to this email and
-            tell us what you thought of the experience.
+            As we&#39;re constantly improving the platform, I&#39;d love to hear your opinion.
+        </p>
+        <p style="font-size:16px;color:#7c3aed;font-weight:600;line-height:2;margin:20px 0 4px 0;">
+            How did you hear about Magic Memories Books?
+        </p>
+        <p style="font-size:16px;color:#7c3aed;font-weight:600;line-height:2;margin:4px 0;">
+            Is there anything we could improve about the experience?
+        </p>
+        <p style="font-size:16px;color:#374151;line-height:1.8;margin-top:16px;">
+            If you have a minute, just reply to this email. I personally read every message
+            and each comment helps us create better stories for future families.
         </p>
         <p style="font-size:16px;color:#374151;line-height:1.8;">
-            We&#39;d love to read your feedback and keep improving
-            for the families who trust us.
+            Thank you so much for joining us on this journey.
         </p>
-        <p style="font-size:16px;color:#374151;line-height:1.8;margin-bottom:0;">Thank you so much,</p>"""
+        <p style="font-size:16px;color:#374151;line-height:1.8;margin-bottom:0;">Warm regards,</p>"""
 
     html_body = _email_wrapper("Magic Memories Books", content, to_email)
 
@@ -3070,11 +3089,39 @@ def send_feedback_email_24h(to_email: str, child_name: str = '', lang: str = 'es
             server.login(SMTP_USER, SMTP_PASSWORD)
             server.sendmail(FROM_EMAIL, to_email, msg.as_string())
         print(f"[LEAD] 24h feedback email sent to {to_email}")
-        log_email('feedback_24h', to_email, subject, 'SENT', child_name=child_name, lang=lang)
+        log_email('feedback_24h', to_email, subject, 'SENT',
+                  preview_id=preview_id, child_name=child_name, lang=lang, body_html=html_body)
         return True
     except Exception as e:
         print(f"[LEAD] Failed to send 24h feedback email to {to_email}: {e}")
-        log_email('feedback_24h', to_email, subject, 'ERROR', child_name=child_name, lang=lang, error=str(e))
+        log_email('feedback_24h', to_email, subject, 'ERROR',
+                  preview_id=preview_id, child_name=child_name, lang=lang, error=str(e))
+        # Notify admin of failed feedback email
+        try:
+            _admin_subject = f"[ERROR] Email feedback 24h no enviado — {child_name} ({preview_id})"
+            _admin_content = f"""
+            <p style="font-size:15px;color:#374151;">El email de feedback 24h <strong>no se pudo enviar</strong> al cliente.</p>
+            <table style="font-size:13px;color:#374151;border-collapse:collapse;width:100%;">
+              <tr><td style="padding:4px 8px;font-weight:600;">Preview ID:</td><td style="padding:4px 8px;font-family:monospace;">{preview_id}</td></tr>
+              <tr><td style="padding:4px 8px;font-weight:600;">Cliente:</td><td style="padding:4px 8px;">{to_email}</td></tr>
+              <tr><td style="padding:4px 8px;font-weight:600;">Niño/a:</td><td style="padding:4px 8px;">{child_name}</td></tr>
+              <tr><td style="padding:4px 8px;font-weight:600;">Cuento:</td><td style="padding:4px 8px;">{story_name}</td></tr>
+              <tr><td style="padding:4px 8px;font-weight:600;color:#dc2626;">Error:</td><td style="padding:4px 8px;font-family:monospace;color:#dc2626;">{e}</td></tr>
+            </table>
+            <p style="font-size:13px;color:#6b7280;margin-top:16px;">Puedes reenviarlo manualmente desde el CRM en /admin/crm</p>"""
+            _admin_html = _admin_wrapper("⚠ Error email feedback 24h", _admin_content)
+            _err_msg = MIMEMultipart('alternative')
+            _err_msg['Subject'] = _admin_subject
+            _err_msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
+            _err_msg['To'] = FROM_EMAIL
+            _err_msg.attach(MIMEText(_admin_html, 'html', 'utf-8'))
+            with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as _srv:
+                _srv.starttls()
+                _srv.login(SMTP_USER, SMTP_PASSWORD)
+                _srv.sendmail(FROM_EMAIL, FROM_EMAIL, _err_msg.as_string())
+            print(f"[LEAD] Admin notified of failed feedback email for {preview_id}")
+        except Exception as _ae:
+            print(f"[LEAD] Could not notify admin: {_ae}")
         return False
 
 
@@ -3207,6 +3254,8 @@ def process_pending_follow_up_emails():
                         entry.get('email', ''),
                         entry.get('child_name', ''),
                         entry.get('lang', 'es'),
+                        story_name=entry.get('story_name', ''),
+                        preview_id=preview_id,
                     )
                     if ok:
                         entry['email_1_sent'] = True
