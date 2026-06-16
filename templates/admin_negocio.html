@@ -254,7 +254,9 @@
               </td>
 
               <td style="white-space:nowrap;">
-                {% if s.cp_estado == 'En tránsito' %}
+                {% if s.cp_estado == 'Entregado' %}
+                  <span class="ng-badge ng-g">✅ Entregado</span>
+                {% elif s.cp_estado == 'En tránsito' %}
                   <span class="ng-badge ng-b">🚚 Tránsito</span>
                 {% elif s.cp_estado == 'Enviado' %}
                   <span class="ng-badge ng-g">✓ Enviado</span>

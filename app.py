@@ -9669,7 +9669,9 @@ def admin_negocio():
             _cp_os = _d.get('cp_order_status', '') or ''
             _cp_st = _d.get('cp_status', '') or ''
             _cp_sub = bool(_d.get('cp_submitted'))
-            if _cp_os == 'shipped' or _d.get('cp_tracking_code'):
+            if _cp_os == 'delivered':
+                _cp_estado = 'Entregado'
+            elif _cp_os == 'shipped' or _d.get('cp_tracking_code'):
                 _cp_estado = 'En tránsito'
             elif _cp_os in ('submitted',) or _cp_st == 'sent' or _cp_sub:
                 _cp_estado = 'Enviado'
