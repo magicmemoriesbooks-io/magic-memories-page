@@ -9678,9 +9678,9 @@ def admin_negocio():
             _compra_key = _compra_label
             sales.append({
                 'preview_id': _pid,
-                'amount_paid': _d.get('amount_paid'),
+                'amount_paid': _d.get('amount_paid') or _d.get('customer_total_usd') or None,
                 'currency': _d.get('currency', 'USD') or 'USD',
-                'payer_country': _d.get('payer_country', '') or '',
+                'payer_country': _d.get('payer_country', '') or _d.get('buyer_country', '') or '',
                 'product_type': _d.get('product_type', '') or '',
                 'payment_date': _d.get('payment_date', '') or '',
                 'customer_email': _d.get('customer_email', '') or '',
@@ -9708,10 +9708,13 @@ def admin_negocio():
             continue
     sales.sort(key=lambda x: x['payment_date'], reverse=True)
 
-    # Ventas válidas = amount_paid > 0 (excluye pruebas históricas sin importe)
-    valid_sales = [s for s in sales if s['amount_paid'] and s['amount_paid'] > 0]
+    # Ventas válidas = importe > 0, O tiene paypal_order_id como prueba de pago
+    valid_sales = [
+        s for s in sales
+        if (s['amount_paid'] and s['amount_paid'] > 0) or s['paypal_order_id']
+    ]
 
-    known_revenue = round(sum(s['amount_paid'] for s in valid_sales), 2)
+    known_revenue = round(sum(s['amount_paid'] or 0 for s in valid_sales), 2)
     valid_count = len(valid_sales)
 
     # Países — solo de ventas válidas, sin "(desconocido)"
@@ -9723,7 +9726,7 @@ def admin_negocio():
         if c not in _countries:
             _countries[c] = {'count': 0, 'revenue': 0.0}
         _countries[c]['count'] += 1
-        _countries[c]['revenue'] += s['amount_paid']
+        _countries[c]['revenue'] += s['amount_paid'] or 0
     countries_valid_list = sorted(_countries.items(), key=lambda x: x[1]['revenue'], reverse=True)
     total_valid_countries = len(countries_valid_list)
 
@@ -9773,7 +9776,7 @@ def admin_negocio():
         if ck not in _combos:
             _combos[ck] = {'count': 0, 'revenue': 0.0, 'codes': s['compra_codes']}
         _combos[ck]['count'] += 1
-        _combos[ck]['revenue'] += s['amount_paid']
+        _combos[ck]['revenue'] += s['amount_paid'] or 0
     combinations_list = sorted(_combos.items(), key=lambda x: x[1]['revenue'], reverse=True)
 
     # Clientes — solo de ventas válidas
@@ -9783,7 +9786,7 @@ def admin_negocio():
         if em not in _customers:
             _customers[em] = {'count': 0, 'revenue': 0.0, 'last_date': '', 'last_country': '', 'purchases': []}
         _customers[em]['count'] += 1
-        _customers[em]['revenue'] += s['amount_paid']
+        _customers[em]['revenue'] += s['amount_paid'] or 0
         if s['payment_date'] > _customers[em]['last_date']:
             _customers[em]['last_date'] = s['payment_date']
             _customers[em]['last_country'] = s['payer_country']
