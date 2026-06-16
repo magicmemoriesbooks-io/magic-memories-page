@@ -461,6 +461,9 @@ def auto_purge_old_stories():
                         continue
                     if story_date > cutoff:
                         continue
+                    # NEVER purge paid orders — only unpaid previews age out
+                    if data.get('paid'):
+                        continue
                     if _has_committed_ebook(data):
                         print(f"[AUTO-PURGE] Skipping {preview_id} — has committed eBook")
                         continue
