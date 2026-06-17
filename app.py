@@ -636,16 +636,51 @@ def index():
     except Exception:
         stories_display = "500+"
     # Testimonials keyed by filename — add new ones here to grow the gallery
+    # Each entry: es/en text + author_es/author_en for bilingual display
     GALLERY_TESTIMONIALS = {
-        '00_sofia_mom_reading.jpg':      {'es': 'No podía creer que ella fuera la protagonista', 'en': "She couldn't believe she was the main character"},
-        '00a_lifestyle_mama_leyendo.jpg':{'es': 'Un momento mágico para recordar siempre', 'en': 'A magical moment to remember forever'},
-        '04_alex_mom_pink.jpg':          {'es': 'Lo leyó tres veces el mismo día', 'en': 'He read it three times the same day'},
-        '05_maria_mom_reading.jpg':      {'es': 'Fue el regalo favorito de su cumpleaños', 'en': 'It was her favorite birthday gift'},
-        '06_alex_chef_cover.jpg':        {'es': 'La mejor idea de regalo que hemos tenido', 'en': 'The best gift idea we\'ve ever had'},
-        '07_maria_together.jpg':         {'es': '«¡Soy yo, soy yo!» — al verlo por primera vez', 'en': '"It\'s me, it\'s me!" — seeing it for the first time'},
-        '07a_lifestyle_bebe_papa.png':   {'es': 'Desde el primer día, su cuento favorito', 'en': 'From day one, her favorite story'},
-        '11a_lifestyle_nina_tablet.png': {'es': 'No quería que se acabara el cuento', 'en': 'She didn\'t want the story to end'},
-        '05a_lifestyle_nino_piscina.png':{'es': 'Lo llevó hasta la piscina para leerlo', 'en': 'He took it to the pool just to read it'},
+        '00_sofia_mom_reading.jpg': {
+            'es': 'No podía creer que ella fuera la protagonista', 'en': "She couldn't believe she was the main character",
+            'author_es': 'Mamá de Sofía', 'author_en': "Sofia's mom",
+        },
+        '00a_lifestyle_mama_leyendo.jpg': {
+            'es': 'Un momento mágico para recordar siempre', 'en': 'A magical moment to remember forever',
+            'author_es': '', 'author_en': '',
+        },
+        '02_maria_painting.jpg': {
+            'es': 'María está feliz con su cuento: cuando no se lo estoy leyendo, ¡está pintando! Qué buena idea la de las hojas de pintar.',
+            'en': 'María loves her book — when I\'m not reading it to her, she\'s painting it! The coloring pages were a brilliant idea.',
+            'author_es': 'Mamá de María', 'author_en': "María's mom",
+        },
+        '04_alex_mom_pink.jpg': {
+            'es': 'Lo leyó tres veces el mismo día', 'en': 'He read it three times the same day',
+            'author_es': 'Mamá de Alex', 'author_en': "Alex's mom",
+        },
+        '05_maria_mom_reading.jpg': {
+            'es': 'Fue el regalo favorito de su cumpleaños', 'en': 'It was her favorite birthday gift',
+            'author_es': '', 'author_en': '',
+        },
+        '06_alex_chef_cover.jpg': {
+            'es': 'La cara de mi nieto habla por sí sola, es el cuento que más le gusta.',
+            'en': "My grandson's face says it all — it's the book he loves the most.",
+            'author_es': 'Abu Isa', 'author_en': 'Grandma Isa',
+        },
+        '07_maria_together.jpg': {
+            'es': '«¡Soy yo, soy yo!» — al verlo por primera vez', 'en': '"It\'s me, it\'s me!" — seeing it for the first time',
+            'author_es': '', 'author_en': '',
+        },
+        '07a_lifestyle_bebe_papa.png': {
+            'es': 'Este libro, cuando mi perrita Katty conoció a nuestra pequeña Anna, es lo más bello que he tenido. Pude personalizar no solo a mi bebé, ¡sino a mi perrita también!',
+            'en': 'This book about when our dog Katty first met our little Anna is the most beautiful thing I own. I could personalize not just my baby, but my dog too!',
+            'author_es': 'Mamá de Anna', 'author_en': "Anna's mom",
+        },
+        '11a_lifestyle_nina_tablet.png': {
+            'es': 'No quería que se acabara el cuento', 'en': "She didn't want the story to end",
+            'author_es': '', 'author_en': '',
+        },
+        '05a_lifestyle_nino_piscina.png': {
+            'es': 'Lo llevó hasta la piscina para leerlo', 'en': 'He took it to the pool just to read it',
+            'author_es': '', 'author_en': '',
+        },
     }
     gallery_items = []
     try:
@@ -664,6 +699,8 @@ def index():
                         'is_lifestyle': 'lifestyle' in f,
                         'testimonial_es': t.get('es', ''),
                         'testimonial_en': t.get('en', ''),
+                        'author_es': t.get('author_es', ''),
+                        'author_en': t.get('author_en', ''),
                     })
         posters_dir = os.path.join(app.static_folder, 'images', 'posters')
         if os.path.isdir(gallery_vid_dir):

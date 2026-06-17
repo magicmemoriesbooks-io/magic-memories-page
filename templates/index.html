@@ -829,13 +829,13 @@
 
     <!-- Header -->
     <div class="text-center mb-10">
-      <p class="section-label" style="color:#c4a0f5;letter-spacing:.12em;font-size:13px;text-transform:uppercase;font-weight:600;">
+      <p class="section-label" style="color:#7c5cbf;letter-spacing:.12em;font-size:13px;text-transform:uppercase;font-weight:700;">
         {% if lang == 'es' %}Familias reales · Momentos reales{% else %}Real families · Real moments{% endif %}
       </p>
-      <h2 style="font-family:'Playfair Display',serif;font-size:clamp(26px,4vw,42px);font-weight:700;color:#fff;margin-top:10px;line-height:1.2;">
+      <h2 style="font-family:'Playfair Display',serif;font-size:clamp(26px,4vw,42px);font-weight:700;color:#2d1b69;margin-top:10px;line-height:1.2;">
         {% if lang == 'es' %}💜 Historias reales, niños reales{% else %}💜 Real stories, real children{% endif %}
       </h2>
-      <p style="font-family:'Quicksand',sans-serif;font-size:15px;color:rgba(255,255,255,0.55);margin-top:12px;max-width:560px;margin-left:auto;margin-right:auto;line-height:1.6;">
+      <p style="font-family:'Quicksand',sans-serif;font-size:15px;color:#6b5a82;margin-top:12px;max-width:560px;margin-left:auto;margin-right:auto;line-height:1.6;">
         {% if lang == 'es' %}Cada foto que ves aquí pertenece a una familia que decidió convertir a su hijo en protagonista de su propio cuento.{% else %}Every photo you see here belongs to a family who chose to make their child the hero of their own story.{% endif %}
       </p>
     </div>
@@ -845,26 +845,31 @@
       {% for item in gallery_items %}
         {% if item.type == 'image' %}
         {% set testimonial = item.testimonial_es if lang == 'es' else item.testimonial_en %}
-        <div class="mmg-item" onclick="mmgOpen('{{ item.url }}','image')">
-          <img src="{{ item.url }}" alt="Magic Memories Book — libro personalizado real" loading="lazy">
-          <div class="mmg-hover-layer">
-            <div class="mmg-zoom-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/></svg>
+        {% set author = item.author_es if lang == 'es' else item.author_en %}
+        <div class="mmg-item{% if testimonial %} mmg-has-card{% endif %}" onclick="mmgOpen('{{ item.url }}','image')">
+          <div class="mmg-img-wrap">
+            <img src="{{ item.url }}" alt="Magic Memories Book — libro personalizado real" loading="lazy">
+            <div class="mmg-hover-layer">
+              <div class="mmg-zoom-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/></svg>
+              </div>
             </div>
-            {% if testimonial %}
-            <div class="mmg-testimonial">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="#c4a0f5" style="flex-shrink:0;margin-top:2px;"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1zm12 0c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></svg>
-              <span>{{ testimonial }}</span>
-            </div>
-            {% endif %}
           </div>
+          {% if testimonial %}
+          <div class="mmg-card">
+            <p class="mmg-card-quote">&ldquo;{{ testimonial }}&rdquo;</p>
+            {% if author %}<p class="mmg-card-author">— {{ author }}</p>{% endif %}
+          </div>
+          {% endif %}
         </div>
         {% elif item.type == 'video' %}
         <div class="mmg-item mmg-video-item" onclick="mmgOpen('{{ item.url }}','video')">
-          <video src="{{ item.url }}" muted loop playsinline preload="metadata"{% if item.poster %} poster="{{ item.poster }}"{% endif %}></video>
-          <div class="mmg-hover-layer">
-            <div class="mmg-play-icon">
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+          <div class="mmg-img-wrap">
+            <video src="{{ item.url }}" muted loop playsinline preload="metadata"{% if item.poster %} poster="{{ item.poster }}"{% endif %}></video>
+            <div class="mmg-hover-layer">
+              <div class="mmg-play-icon">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+              </div>
             </div>
           </div>
         </div>
@@ -885,13 +890,13 @@
 </div>
 
 <style>
-/* ── Gallery section ── */
+/* ── Gallery section — light golden background ── */
 .mmg-section {
-  background: linear-gradient(180deg, #0f0d1a 0%, #12100f 60%, #0f0d1a 100%);
+  background: linear-gradient(180deg, #fdf5e0 0%, #fef9ec 40%, #fdf5e0 100%);
   position: relative;
 }
 
-/* CSS columns masonry — natural heights, zero black gaps */
+/* CSS columns masonry — natural heights, zero gaps */
 .mmg-masonry {
   columns: 2;
   column-gap: 10px;
@@ -899,98 +904,101 @@
 @media(min-width: 600px)  { .mmg-masonry { columns: 3; column-gap: 12px; } }
 @media(min-width: 1024px) { .mmg-masonry { columns: 4; column-gap: 14px; } }
 
+/* Each card — image + optional caption */
 .mmg-item {
   break-inside: avoid;
   margin-bottom: 10px;
   border-radius: 14px;
   overflow: hidden;
   cursor: zoom-in;
-  position: relative;
   display: block;
-  background: #1c1622;
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(80,40,120,0.08);
+  transition: box-shadow .3s ease, transform .3s ease;
+}
+.mmg-item:hover {
+  box-shadow: 0 6px 24px rgba(80,40,120,0.18);
+  transform: translateY(-2px);
 }
 @media(min-width: 600px)  { .mmg-item { margin-bottom: 12px; } }
 @media(min-width: 1024px) { .mmg-item { margin-bottom: 14px; } }
 
-/* Natural height — this is the key fix vs CSS Grid */
-.mmg-item img,
-.mmg-item video {
+/* Image wrapper — handles overflow + hover zoom */
+.mmg-img-wrap {
+  position: relative;
+  overflow: hidden;
+}
+.mmg-img-wrap img,
+.mmg-img-wrap video {
   width: 100%;
   height: auto;
   display: block;
   transition: transform .45s cubic-bezier(.25,.46,.45,.94);
 }
-.mmg-item:hover img,
-.mmg-item:hover video { transform: scale(1.04); }
+.mmg-item:hover .mmg-img-wrap img,
+.mmg-item:hover .mmg-img-wrap video { transform: scale(1.04); }
 
-/* Hover overlay with gradient */
+/* Hover overlay */
 .mmg-hover-layer {
   position: absolute;
   inset: 0;
   background: transparent;
   transition: background .3s ease;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
 }
 .mmg-item:hover .mmg-hover-layer {
-  background: linear-gradient(180deg, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.55) 100%);
+  background: rgba(0,0,0,0.22);
 }
 
-/* Zoom icon (center) */
+/* Zoom icon */
 .mmg-zoom-icon {
   opacity: 0;
   transform: scale(0.8);
-  transition: opacity .28s, transform .28s;
-  background: rgba(255,255,255,0.18);
+  transition: opacity .25s, transform .25s;
+  background: rgba(255,255,255,0.22);
   border-radius: 50%;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 42px; height: 42px;
+  display: flex; align-items: center; justify-content: center;
   backdrop-filter: blur(4px);
-  flex-shrink: 0;
 }
 .mmg-item:hover .mmg-zoom-icon { opacity: 1; transform: scale(1); }
 
-/* Play icon (video) */
+/* Play icon */
 .mmg-play-icon {
   opacity: 0;
-  transition: opacity .28s;
-  background: rgba(255,255,255,0.18);
+  transition: opacity .25s;
+  background: rgba(255,255,255,0.22);
   border-radius: 50%;
-  width: 52px;
-  height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 50px; height: 50px;
+  display: flex; align-items: center; justify-content: center;
   backdrop-filter: blur(4px);
 }
 .mmg-item:hover .mmg-play-icon { opacity: 1; }
 
-/* Testimonial — slides up from bottom on hover */
-.mmg-testimonial {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 10px 12px;
-  font-family: 'Quicksand', sans-serif;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #fff;
-  display: flex;
-  gap: 7px;
-  align-items: flex-start;
-  opacity: 0;
-  transform: translateY(6px);
-  transition: opacity .32s ease, transform .32s ease;
-  line-height: 1.45;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+/* Testimonial card — always visible below photo */
+.mmg-card {
+  padding: 12px 14px 14px;
+  background: #fff;
+  border-top: 2px solid #f3e8cc;
 }
-.mmg-item:hover .mmg-testimonial { opacity: 1; transform: translateY(0); }
+.mmg-card-quote {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 13px;
+  font-style: italic;
+  color: #3d2060;
+  line-height: 1.55;
+  margin: 0 0 7px 0;
+}
+.mmg-card-author {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #9b6fd4;
+  margin: 0;
+  letter-spacing: .02em;
+}
 
 #mmg-lightbox.open { display: flex !important; }
 </style>
