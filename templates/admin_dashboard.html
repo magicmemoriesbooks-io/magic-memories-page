@@ -7,59 +7,109 @@
 <div style="background: #f8fafc; min-height: 80vh; padding: 24px; font-family: 'Quicksand', 'Segoe UI', sans-serif;">
 <div style="max-width: 1200px; margin: 0 auto;">
 
-  <div style="margin-bottom: 24px;">
+  <div style="margin-bottom: 20px;">
     <h1 style="font-size: 22px; font-weight: 800; color: #1e293b; margin: 0 0 4px 0;">Dashboard</h1>
     <p style="font-size: 13px; color: #64748b; margin: 0;">Resumen operativo del negocio.</p>
   </div>
 
   <div id="cpResult" style="display: none; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 13px;"></div>
 
-  <!-- KPI TILES -->
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 24px;">
+  <!-- ══════════════════════════════════════════════════════════
+       FILA 1 — NEGOCIO
+  ══════════════════════════════════════════════════════════ -->
+  <div style="margin-bottom: 6px;">
+    <span style="font-size: 10px; font-weight: 800; color: #94a3b8; letter-spacing: 0.08em; text-transform: uppercase;">Negocio</span>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 20px;">
 
-    <div style="background: white; border-radius: 14px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; text-align: center;">
-      <div style="font-size: 28px; margin-bottom: 4px;">📖</div>
-      <div style="font-size: 32px; font-weight: 800; color: #1e293b;">{{ story_previews|length }}</div>
-      <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Cuentos generados</div>
-      <a href="/admin/cuentos" style="display: inline-block; margin-top: 8px; font-size: 11px; color: #6366f1; text-decoration: none; font-weight: 600;">Ver todos →</a>
+    <!-- Clientes -->
+    <a href="/admin/crm/clientes" style="text-decoration: none;">
+    <div style="background: white; border-radius: 14px; padding: 18px 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; text-align: center; transition: transform 0.15s; cursor: pointer;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+      <div style="font-size: 26px; margin-bottom: 4px;">👤</div>
+      <div style="font-size: 30px; font-weight: 800; color: #1e293b;">{{ num_clientes }}</div>
+      <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Clientes únicos</div>
+      <div style="display: inline-block; margin-top: 8px; font-size: 10px; color: #6366f1; font-weight: 600;">Ver clientes →</div>
+    </div>
+    </a>
+
+    <!-- Ingresos del mes -->
+    <div style="background: white; border-radius: 14px; padding: 18px 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; text-align: center;">
+      <div style="font-size: 26px; margin-bottom: 4px;">💰</div>
+      <div style="font-size: 30px; font-weight: 800; color: {% if ingresos_mes > 0 %}#16a34a{% else %}#1e293b{% endif %};">${{ "%.2f"|format(ingresos_mes) }}</div>
+      <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Ingresos del mes</div>
+      <div style="margin-top: 8px; font-size: 10px; color: #94a3b8;">{{ ventas_mes }} venta{% if ventas_mes != 1 %}s{% endif %} este mes</div>
     </div>
 
-    <div style="background: white; border-radius: 14px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; text-align: center;">
-      <div style="font-size: 28px; margin-bottom: 4px;">👀</div>
-      <div style="font-size: 32px; font-weight: 800; color: #1e293b;">{{ preview_leads_count }}</div>
-      <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Leads capturados</div>
-      <a href="/admin/preview-leads" style="display: inline-block; margin-top: 8px; font-size: 11px; color: #6366f1; text-decoration: none; font-weight: 600;">Ver leads →</a>
+    <!-- Ventas del mes -->
+    <a href="/admin/cuentos" style="text-decoration: none;">
+    <div style="background: white; border-radius: 14px; padding: 18px 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; text-align: center; transition: transform 0.15s; cursor: pointer;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+      <div style="font-size: 26px; margin-bottom: 4px;">🛒</div>
+      <div style="font-size: 30px; font-weight: 800; color: #1e293b;">{{ ventas_mes }}</div>
+      <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Ventas del mes</div>
+      <div style="display: inline-block; margin-top: 8px; font-size: 10px; color: #6366f1; font-weight: 600;">Ver cuentos →</div>
+    </div>
+    </a>
+
+    <!-- Conversión -->
+    <div style="background: white; border-radius: 14px; padding: 18px 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; text-align: center;">
+      <div style="font-size: 26px; margin-bottom: 4px;">🎯</div>
+      <div style="font-size: 30px; font-weight: 800; color: {% if conversion_pct >= 25 %}#16a34a{% elif conversion_pct >= 10 %}#d97706{% else %}#1e293b{% endif %};">{{ conversion_pct }}%</div>
+      <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Conversión lead→cliente</div>
+      <div style="margin-top: 8px; font-size: 10px; color: #94a3b8;">{{ num_clientes }} de {{ num_clientes + leads_emails_unicos }} emails únicos</div>
     </div>
 
-    <div onclick="toggleSection('failed-section')" style="background: white; border-radius: 14px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px solid {% if failed_orders %}#fca5a5{% else %}#e2e8f0{% endif %}; text-align: center; cursor: pointer; transition: transform 0.15s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-      <div style="font-size: 28px; margin-bottom: 4px;">⚠️</div>
-      <div style="font-size: 32px; font-weight: 800; color: {% if failed_orders %}#dc2626{% else %}#1e293b{% endif %};">{{ failed_orders|length }}</div>
-      <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Pedidos fallidos</div>
-      <div style="display: inline-block; margin-top: 8px; font-size: 11px; color: #6366f1; font-weight: 600;">{% if failed_orders %}Ver alertas ↓{% else %}Sin alertas ✓{% endif %}</div>
+    <!-- Leads activos (2 números) -->
+    <a href="/admin/crm/leads" style="text-decoration: none;">
+    <div style="background: white; border-radius: 14px; padding: 18px 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px solid #fde68a; text-align: center; transition: transform 0.15s; cursor: pointer;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+      <div style="font-size: 26px; margin-bottom: 4px;">🟡</div>
+      <div style="font-size: 30px; font-weight: 800; color: #d97706;">{{ leads_previews }}</div>
+      <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Leads activos</div>
+      <div style="margin-top: 6px; font-size: 10px; color: #92400e; font-weight: 600; background: #fef3c7; border-radius: 6px; padding: 2px 8px; display: inline-block;">{{ leads_emails_unicos }} email{% if leads_emails_unicos != 1 %}s{% endif %} únicos</div>
+    </div>
+    </a>
+
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       FILA 2 — PRODUCTO
+  ══════════════════════════════════════════════════════════ -->
+  <div style="margin-bottom: 6px;">
+    <span style="font-size: 10px; font-weight: 800; color: #94a3b8; letter-spacing: 0.08em; text-transform: uppercase;">Producto</span>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 24px;">
+
+    <!-- Cuentos generados -->
+    <a href="/admin/cuentos" style="text-decoration: none;">
+    <div style="background: white; border-radius: 14px; padding: 18px 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; text-align: center; transition: transform 0.15s; cursor: pointer;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+      <div style="font-size: 26px; margin-bottom: 4px;">📖</div>
+      <div style="font-size: 30px; font-weight: 800; color: #1e293b;">{{ cuentos_generados }}</div>
+      <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Cuentos generados</div>
+      <div style="display: inline-block; margin-top: 8px; font-size: 10px; color: #6366f1; font-weight: 600;">Ver todos →</div>
+    </div>
+    </a>
+
+    <!-- Pedidos fallidos -->
+    <div onclick="toggleSection('failed-section')" style="background: white; border-radius: 14px; padding: 18px 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px solid {% if failed_orders %}#fca5a5{% else %}#e2e8f0{% endif %}; text-align: center; cursor: pointer; transition: transform 0.15s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+      <div style="font-size: 26px; margin-bottom: 4px;">⚠️</div>
+      <div style="font-size: 30px; font-weight: 800; color: {% if failed_orders %}#dc2626{% else %}#1e293b{% endif %};">{{ failed_orders|length }}</div>
+      <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Pedidos fallidos</div>
+      <div style="display: inline-block; margin-top: 8px; font-size: 10px; color: {% if failed_orders %}#dc2626{% else %}#94a3b8{% endif %}; font-weight: 600;">{% if failed_orders %}Ver alertas ↓{% else %}Sin alertas ✓{% endif %}</div>
     </div>
 
-    <!-- PLACEHOLDER: Ingresos del mes -->
-    <div style="background: white; border-radius: 14px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px dashed #cbd5e1; text-align: center; opacity: 0.6;">
-      <div style="font-size: 28px; margin-bottom: 4px;">💰</div>
-      <div style="font-size: 14px; font-weight: 700; color: #94a3b8;">—</div>
-      <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Ingresos del mes</div>
-      <div style="display: inline-block; margin-top: 8px; font-size: 10px; color: #cbd5e1; font-weight: 600;">Pendiente Fase 1</div>
+    <!-- Cuentos abiertos -->
+    <div style="background: white; border-radius: 14px; padding: 18px 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; text-align: center;">
+      <div style="font-size: 26px; margin-bottom: 4px;">👀</div>
+      <div style="font-size: 30px; font-weight: 800; color: #0891b2;">{{ cuentos_abiertos }}</div>
+      <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Cuentos abiertos</div>
+      <div style="margin-top: 8px; font-size: 10px; color: #94a3b8;">Primera apertura en visor</div>
     </div>
 
-    <!-- PLACEHOLDER: Ventas del mes -->
-    <div style="background: white; border-radius: 14px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px dashed #cbd5e1; text-align: center; opacity: 0.6;">
-      <div style="font-size: 28px; margin-bottom: 4px;">🛒</div>
-      <div style="font-size: 14px; font-weight: 700; color: #94a3b8;">—</div>
-      <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Ventas del mes</div>
-      <div style="display: inline-block; margin-top: 8px; font-size: 10px; color: #cbd5e1; font-weight: 600;">Pendiente Fase 1</div>
-    </div>
-
-    <!-- PLACEHOLDER: Conversión -->
-    <div style="background: white; border-radius: 14px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px dashed #cbd5e1; text-align: center; opacity: 0.6;">
-      <div style="font-size: 28px; margin-bottom: 4px;">🎯</div>
-      <div style="font-size: 14px; font-weight: 700; color: #94a3b8;">—%</div>
-      <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Conversión lead→compra</div>
-      <div style="display: inline-block; margin-top: 8px; font-size: 10px; color: #cbd5e1; font-weight: 600;">Pendiente Fase 1</div>
+    <!-- Cuentos completados -->
+    <div style="background: white; border-radius: 14px; padding: 18px 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; text-align: center;">
+      <div style="font-size: 26px; margin-bottom: 4px;">📚</div>
+      <div style="font-size: 30px; font-weight: 800; color: #7c3aed;">{{ cuentos_completados }}</div>
+      <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Cuentos completados</div>
+      <div style="margin-top: 8px; font-size: 10px; color: #94a3b8;">Última página vista</div>
     </div>
 
   </div>
@@ -120,16 +170,40 @@
     </div>
   </div>
 
-  <!-- ACCESOS RÁPIDOS -->
+  <!-- ══════════════════════════════════════════════════════════
+       ACTIVIDAD RECIENTE
+  ══════════════════════════════════════════════════════════ -->
   <div style="background: white; border-radius: 14px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
-    <h2 style="font-size: 14px; font-weight: 700; color: #475569; margin: 0 0 14px 0;">Accesos rápidos</h2>
-    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-      <a href="/admin/cuentos" style="padding: 8px 16px; background: #ede9fe; color: #7c3aed; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 700;">📖 Cuentos Realizados</a>
-      <a href="/admin/print-requests" style="padding: 8px 16px; background: #fef3c7; color: #d97706; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 700;">📦 Libros Impresos</a>
-      <a href="/admin/preview-leads" style="padding: 8px 16px; background: #fce7f3; color: #be185d; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 700;">👀 Preview Leads</a>
-      <a href="/admin/pending-retries" style="padding: 8px 16px; background: #fef3c7; color: #92400e; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 700;">🔄 Reintentos</a>
-      <a href="/admin/crm" style="padding: 8px 16px; background: #dbeafe; color: #1d4ed8; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 700;">👥 CRM</a>
-      <a href="/admin/negocio" style="padding: 8px 16px; background: #d1fae5; color: #065f46; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 700;">📊 Negocio</a>
+    <h2 style="font-size: 13px; font-weight: 800; color: #475569; margin: 0 0 14px 0; text-transform: uppercase; letter-spacing: 0.06em;">🕐 Actividad reciente</h2>
+
+    {% if activity_recent %}
+    <div style="display: flex; flex-direction: column; gap: 0;">
+      {% for ev in activity_recent %}
+      <div style="display: flex; align-items: flex-start; gap: 12px; padding: 10px 4px; border-bottom: 1px solid #f1f5f9;">
+        <div style="font-size: 18px; min-width: 28px; text-align: center; padding-top: 1px;">{{ ev.icon }}</div>
+        <div style="flex: 1; min-width: 0;">
+          {% if ev.link %}
+          <a href="{{ ev.link }}" style="font-size: 13px; color: #1e293b; font-weight: 600; text-decoration: none; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ ev.text }}</a>
+          {% else %}
+          <div style="font-size: 13px; color: #1e293b; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ ev.text }}</div>
+          {% endif %}
+        </div>
+        <div style="font-size: 11px; color: #94a3b8; white-space: nowrap; padding-top: 2px;">{{ ev.ts_str }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 24px; color: #94a3b8; font-size: 13px;">Sin actividad reciente registrada.</div>
+    {% endif %}
+
+    <!-- Accesos rápidos compactos al pie -->
+    <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid #f1f5f9; display: flex; gap: 8px; flex-wrap: wrap;">
+      <a href="/admin/cuentos" style="padding: 6px 12px; background: #ede9fe; color: #7c3aed; border-radius: 7px; text-decoration: none; font-size: 11px; font-weight: 700;">📖 Cuentos</a>
+      <a href="/admin/print-requests" style="padding: 6px 12px; background: #fef3c7; color: #d97706; border-radius: 7px; text-decoration: none; font-size: 11px; font-weight: 700;">📦 Impresos</a>
+      <a href="/admin/crm/leads" style="padding: 6px 12px; background: #fef9c3; color: #92400e; border-radius: 7px; text-decoration: none; font-size: 11px; font-weight: 700;">🎯 Leads</a>
+      <a href="/admin/pending-retries" style="padding: 6px 12px; background: #fef3c7; color: #92400e; border-radius: 7px; text-decoration: none; font-size: 11px; font-weight: 700;">🔄 Reintentos</a>
+      <a href="/admin/crm" style="padding: 6px 12px; background: #dbeafe; color: #1d4ed8; border-radius: 7px; text-decoration: none; font-size: 11px; font-weight: 700;">👥 CRM</a>
+      <a href="/admin/negocio" style="padding: 6px 12px; background: #d1fae5; color: #065f46; border-radius: 7px; text-decoration: none; font-size: 11px; font-weight: 700;">📊 Negocio</a>
     </div>
   </div>
 

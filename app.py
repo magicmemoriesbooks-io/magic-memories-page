@@ -8023,83 +8023,212 @@ def admin_settings():
 
 @app.route('/admin/dashboard')
 def admin_dashboard():
-    """Admin dashboard with all files."""
+    """Admin dashboard v3 — executive summary with 2 KPI rows + activity feed."""
     if not check_admin_auth():
         return redirect(url_for('admin_login_page'))
-    
-    import glob
 
-    lulu_orders = []
-    lulu_summary = {'total_orders': 0, 'pending': 0, 'sent': 0, 'failed': 0, 'total_size_mb': 0}
-    
+    import glob
+    from collections import Counter
+    from services.email_service import EMAIL_LOG_FILE
+
+    _INTERNAL = {'magicmemoriesbooks.com', 'pay@', 'admin@', 'info@', 'contacto@'}
+    def _is_internal(email):
+        return any(x in email for x in _INTERNAL)
+
+    THIS_MONTH = datetime.utcnow().strftime('%Y-%m')
+
+    # ── Story JSONs — buyers + failed orders + preview list ──────────
     story_previews = []
     failed_orders = []
+    buyer_emails = set()
+    total_revenue = 0.0
+    month_revenue = 0.0
+    month_sales = 0
+    activity_events = []
+
     preview_files = glob.glob('story_previews/*.json')
-    for pf in sorted(preview_files, key=os.path.getmtime, reverse=True)[:50]:
+    for pf in sorted(preview_files, key=os.path.getmtime, reverse=True):
         try:
+            pid = os.path.basename(pf).replace('.json', '')
+            if pid.upper().startswith('TEST_'):
+                continue
             with open(pf, 'r') as f:
                 data = json.load(f)
-                pid = os.path.basename(pf).replace('.json', '')
-                preview_info = {
+            email = (data.get('customer_email') or '').strip().lower()
+            is_admin_gift = data.get('admin_gift', False) or data.get('payment_status') == 'admin_gift'
+            _raw_amount = float(data.get('amount_paid') or data.get('customer_total_usd') or 0)
+            is_paid = (data.get('payment_status') == 'completed' or _raw_amount > 0
+                       or data.get('paid', False) or bool(data.get('paypal_order_id')))
+
+            if len(story_previews) < 50:
+                story_previews.append({
                     'filename': os.path.basename(pf),
                     'preview_id': pid,
                     'child_name': data.get('child_name', 'Unknown'),
                     'story_id': data.get('story_id', ''),
                     'created': datetime.fromtimestamp(os.path.getmtime(pf)).strftime('%Y-%m-%d %H:%M'),
-                    'has_scenes': len(data.get('scenes', [])) > 0
-                }
-                story_previews.append(preview_info)
-                
-                _print_failed = (data.get('cp_status') == 'failed' or data.get('lulu_status') == 'failed')
-                if _print_failed and data.get('paid') and not data.get('cp_dismissed'):
-                    failed_orders.append({
-                        'preview_id': pid,
-                        'child_name': data.get('child_name', 'Unknown'),
-                        'story_id': data.get('story_id', ''),
-                        'customer_email': data.get('customer_email', ''),
-                        'cp_error': data.get('cp_error', data.get('lulu_error', 'Error desconocido')),
-                        'payment_date': data.get('payment_date', ''),
-                        'is_illustrated_book': data.get('is_illustrated_book', False),
-                    })
-        except:
+                    'has_scenes': len(data.get('scenes', [])) > 0,
+                    'visor_url': data.get('visor_url', ''),
+                    'is_demo': False,
+                    'paid': data.get('paid', False),
+                })
+
+            # Failed print orders
+            _print_failed = (data.get('cp_status') == 'failed' or data.get('lulu_status') == 'failed')
+            if _print_failed and data.get('paid') and not data.get('cp_dismissed'):
+                failed_orders.append({
+                    'preview_id': pid,
+                    'child_name': data.get('child_name', 'Unknown'),
+                    'story_id': data.get('story_id', ''),
+                    'customer_email': email,
+                    'cp_error': data.get('cp_error', data.get('lulu_error', 'Error desconocido')),
+                    'payment_date': data.get('payment_date', ''),
+                    'is_illustrated_book': data.get('is_illustrated_book', False),
+                })
+
+            # Buyer KPIs
+            if is_paid and not is_admin_gift and email and not _is_internal(email):
+                buyer_emails.add(email)
+                total_revenue += _raw_amount
+                pd_str = (data.get('payment_date') or '')[:7]
+                if pd_str == THIS_MONTH:
+                    month_revenue += _raw_amount
+                    month_sales += 1
+                # Activity: purchase
+                pd_full = data.get('payment_date')
+                if pd_full:
+                    try:
+                        _ts = datetime.fromisoformat(str(pd_full)[:19])
+                        child = data.get('child_name', 'Cliente')
+                        activity_events.append({'ts': _ts, 'icon': '💳',
+                            'text': f'{child} compró un eBook',
+                            'link': f'/admin/cuentos?search={pid}'})
+                    except Exception:
+                        pass
+                # Activity: Cloudprinter
+                if data.get('cp_submitted') and data.get('cp_submitted_at'):
+                    try:
+                        _ts2 = datetime.fromisoformat(str(data['cp_submitted_at'])[:19])
+                        activity_events.append({'ts': _ts2, 'icon': '📦',
+                            'text': f'Libro de {data.get("child_name","")} enviado a Cloudprinter',
+                            'link': ''})
+                    except Exception:
+                        pass
+        except Exception:
             pass
-    
-    from models import RealStoryOrder
+
+    # ── Story events ───────────────────────────────────────────────────
+    cuentos_abiertos = 0
+    cuentos_completados = 0
+    if os.path.exists(STORY_EVENTS_FILE):
+        with open(STORY_EVENTS_FILE, 'r', encoding='utf-8') as _sf:
+            for _line in _sf:
+                try:
+                    _ev = json.loads(_line)
+                    _etype = _ev.get('event_type', '')
+                    _em = (_ev.get('customer_email') or '')
+                    _pid = _ev.get('preview_id', '')
+                    _ts = datetime.fromisoformat(_ev['ts'][:19])
+                    if _etype == 'FIRST_STORY_OPEN':
+                        cuentos_abiertos += 1
+                        activity_events.append({'ts': _ts, 'icon': '👀',
+                            'text': f'Primera apertura — {_em}',
+                            'link': f'/admin/crm/timeline/{_em}'})
+                    elif _etype == 'STORY_COMPLETED':
+                        cuentos_completados += 1
+                        activity_events.append({'ts': _ts, 'icon': '📚',
+                            'text': f'Cuento completado — {_em}',
+                            'link': f'/admin/crm/timeline/{_em}'})
+                except Exception:
+                    pass
+
+    # ── Email log ──────────────────────────────────────────────────────
+    if os.path.exists(EMAIL_LOG_FILE):
+        with open(EMAIL_LOG_FILE, 'r', encoding='utf-8') as _ef:
+            for _line in _ef:
+                try:
+                    _e = json.loads(_line)
+                    _to = (_e.get('to_email') or '').strip().lower()
+                    if not _to or _is_internal(_to):
+                        continue
+                    _ts_str = (_e.get('ts') or '')[:19]
+                    if not _ts_str:
+                        continue
+                    _ts = datetime.fromisoformat(_ts_str)
+                    _label = _e.get('label') or _e.get('email_type', '')
+                    activity_events.append({'ts': _ts, 'icon': '📧',
+                        'text': f'Email → {_to}: {_label}',
+                        'link': f'/admin/crm/timeline/{_to}'})
+                except Exception:
+                    pass
+
+    # ── Lead counts from DB ────────────────────────────────────────────
+    leads_emails_unicos = 0
+    leads_previews = 0
+    real_stories_count = 0
     try:
         db.session.rollback()
+        from models import RealStoryOrder
         real_stories_count = RealStoryOrder.query.count()
-        preview_leads_count = PreviewLead.query.count()
-    except Exception as db_err:
-        production_logger.error(f"[ADMIN] DB query failed: {db_err}")
-        real_stories_count = 0
-        preview_leads_count = 0
+        _all_leads = PreviewLead.query.order_by(PreviewLead.created_at.desc()).limit(500).all()
+        _lead_email_set = set()
+        for _lead in _all_leads:
+            _lem = (_lead.email or '').strip().lower()
+            if not _lem or _lem in buyer_emails:
+                continue
+            _lead_email_set.add(_lem)
+            leads_previews += 1
+            # Activity: new lead (only recent ones)
+            if _lead.created_at:
+                activity_events.append({'ts': _lead.created_at, 'icon': '🎯',
+                    'text': f'Nuevo lead: {_lem}',
+                    'link': '/admin/crm/leads'})
+        leads_emails_unicos = len(_lead_email_set)
+    except Exception as _db_err:
+        production_logger.error(f"[ADMIN] DB query failed: {_db_err}")
         try:
             db.session.rollback()
         except Exception:
             pass
-    
-    for p in story_previews:
-        try:
-            pf = f"story_previews/{p['preview_id']}.json"
-            with open(pf, 'r') as f:
-                sd = json.load(f)
-            p['visor_url'] = sd.get('visor_url', '')
-            p['is_demo'] = False
-            p['paid'] = sd.get('paid', False)
-        except Exception:
-            p['visor_url'] = ''
-            p['is_demo'] = False
-            p['paid'] = False
 
-    return render_template('admin_dashboard.html', 
-                          failed_print_orders=lulu_orders, 
-                          failed_print_summary=lulu_summary,
-                          story_previews=story_previews,
-                          failed_orders=failed_orders,
-                          real_stories_count=real_stories_count,
-                          preview_leads_count=preview_leads_count,
-                          current_demo_url='',
-                          current_demo_url_b='')
+    # ── Conversion ────────────────────────────────────────────────────
+    _total_unique = len(buyer_emails) + leads_emails_unicos
+    conversion_pct = round(len(buyer_emails) / _total_unique * 100, 1) if _total_unique else 0
+
+    # ── Activity feed: sort, format, limit 10 ─────────────────────────
+    activity_events.sort(key=lambda x: x['ts'], reverse=True)
+    # Deduplicate consecutive identical texts
+    _seen_texts = set()
+    activity_deduped = []
+    for _ev in activity_events:
+        _key = (_ev['icon'], _ev['text'])
+        if _key not in _seen_texts:
+            _seen_texts.add(_key)
+            _ev['ts_str'] = _ev['ts'].strftime('%d %b %H:%M')
+            activity_deduped.append(_ev)
+    activity_recent = activity_deduped[:10]
+
+    return render_template('admin_dashboard.html',
+        story_previews=story_previews,
+        failed_orders=failed_orders,
+        real_stories_count=real_stories_count,
+        # Fila 1 — Negocio
+        num_clientes=len(buyer_emails),
+        ingresos_mes=round(month_revenue, 2),
+        ventas_mes=month_sales,
+        conversion_pct=conversion_pct,
+        leads_previews=leads_previews,
+        leads_emails_unicos=leads_emails_unicos,
+        # Fila 2 — Producto
+        cuentos_generados=len(story_previews),
+        cuentos_abiertos=cuentos_abiertos,
+        cuentos_completados=cuentos_completados,
+        # Activity
+        activity_recent=activity_recent,
+        # Legacy compat
+        preview_leads_count=leads_emails_unicos,
+        current_demo_url='',
+        current_demo_url_b='')
 
 @app.route('/admin/reset-rate-limits', methods=['POST'])
 def admin_reset_rate_limits():
@@ -10263,10 +10392,13 @@ def admin_crm_timeline(email):
 
 @app.route('/admin/crm/leads')
 def admin_crm_leads():
-    """CRM: Leads — usuarios que iniciaron preview pero no compraron."""
+    """CRM: Leads — agrupados por email, excluye compradores."""
     if not check_admin_auth():
         return redirect(url_for('admin_login_page'))
     import glob as _glob
+    from collections import Counter as _Counter
+
+    # Build buyer set
     buyer_emails = set()
     for pf in _glob.glob('story_previews/*.json'):
         try:
@@ -10275,29 +10407,70 @@ def admin_crm_leads():
                 continue
             with open(pf, 'r', encoding='utf-8') as _f:
                 d = json.load(_f)
-            is_admin_gift = d.get('admin_gift', False) or d.get('payment_status') == 'admin_gift'
-            if is_admin_gift:
+            if d.get('admin_gift') or d.get('payment_status') == 'admin_gift':
                 continue
-            is_paid = (d.get('payment_status') == 'completed' or
-                       float(d.get('amount_paid') or 0) > 0 or
-                       d.get('paid', False))
+            _amt = float(d.get('amount_paid') or d.get('customer_total_usd') or 0)
+            is_paid = (d.get('payment_status') == 'completed' or _amt > 0
+                       or d.get('paid', False) or bool(d.get('paypal_order_id')))
             if is_paid:
                 em = (d.get('customer_email') or '').strip().lower()
                 if em:
                     buyer_emails.add(em)
         except Exception:
             pass
-    leads_all = PreviewLead.query.order_by(PreviewLead.created_at.desc()).limit(300).all()
+
+    # Load all leads from DB
     total_leads_db = PreviewLead.query.count()
-    unique_emails = db.session.query(db.func.count(db.distinct(PreviewLead.email))).scalar() or 0
+    leads_all = PreviewLead.query.order_by(PreviewLead.created_at.desc()).limit(1000).all()
+
+    # Group by email, exclude buyers
+    _grouped = {}
+    for lead in leads_all:
+        em = (lead.email or '').strip().lower()
+        if not em or em in buyer_emails:
+            continue
+        if em not in _grouped:
+            _grouped[em] = {'email': em, 'previews': [], 'ips': [],
+                            'first_visit': None, 'last_visit': None}
+        g = _grouped[em]
+        g['previews'].append(lead)
+        if lead.ip_address:
+            g['ips'].append(lead.ip_address)
+        if lead.created_at:
+            if g['first_visit'] is None or lead.created_at < g['first_visit']:
+                g['first_visit'] = lead.created_at
+            if g['last_visit'] is None or lead.created_at > g['last_visit']:
+                g['last_visit'] = lead.created_at
+
+    # Build display list sorted by last_visit desc
+    leads_grouped = []
     today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-    today_leads = PreviewLead.query.filter(PreviewLead.created_at >= today_start).count()
-    actual_leads = [l for l in leads_all if (l.email or '').strip().lower() not in buyer_emails]
+    today_count = 0
+    for em, g in sorted(_grouped.items(),
+                        key=lambda x: x[1]['last_visit'] or datetime.min, reverse=True):
+        ip_counter = _Counter(g['ips'])
+        main_ip = ip_counter.most_common(1)[0][0] if ip_counter else '—'
+        story_ids = []
+        for _lead in g['previews']:
+            if _lead.story_id and _lead.story_id not in story_ids:
+                story_ids.append(_lead.story_id)
+        lv = g['last_visit']
+        if lv and lv >= today_start:
+            today_count += 1
+        leads_grouped.append({
+            'email': em,
+            'num_previews': len(g['previews']),
+            'story_ids': story_ids,
+            'first_visit_str': g['first_visit'].strftime('%d %b %Y') if g['first_visit'] else '—',
+            'last_visit_str': lv.strftime('%d %b %Y') if lv else '—',
+            'main_ip': main_ip,
+        })
+
     return render_template('admin_crm_leads.html',
-        leads=actual_leads,
+        leads_grouped=leads_grouped,
         total_leads_db=total_leads_db,
-        unique_emails=unique_emails,
-        today_leads=today_leads,
+        unique_emails=len(leads_grouped),
+        today_leads=today_count,
         buyer_count=len(buyer_emails),
     )
 
