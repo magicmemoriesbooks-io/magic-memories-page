@@ -295,6 +295,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(fireConfetti, 500);
             }
 
+            // STORY_COMPLETED tracking — fires once when user reaches last page
+            if (currentPage >= totalPages - 1) {
+                try {
+                    var _kc = 'mmb_co_' + bookId;
+                    if (!localStorage.getItem(_kc)) {
+                        localStorage.setItem(_kc, '1');
+                        fetch('https://magicmemoriesbooks.com/api/story-completed', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({preview_id: bookId, story_type: 'qs'})
+                        }).catch(function(){});
+                    }
+                } catch(e) {}
+            }
+
             if (autoNarrate) {
                 stopTTS();
                 setTimeout(function() { startTTS(); }, 750);
