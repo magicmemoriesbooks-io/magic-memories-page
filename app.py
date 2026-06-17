@@ -635,6 +635,18 @@ def index():
         stories_display = f"{stories_count}+"
     except Exception:
         stories_display = "500+"
+    # Testimonials keyed by filename — add new ones here to grow the gallery
+    GALLERY_TESTIMONIALS = {
+        '00_sofia_mom_reading.jpg':      {'es': 'No podía creer que ella fuera la protagonista', 'en': "She couldn't believe she was the main character"},
+        '00a_lifestyle_mama_leyendo.jpg':{'es': 'Un momento mágico para recordar siempre', 'en': 'A magical moment to remember forever'},
+        '04_alex_mom_pink.jpg':          {'es': 'Lo leyó tres veces el mismo día', 'en': 'He read it three times the same day'},
+        '05_maria_mom_reading.jpg':      {'es': 'Fue el regalo favorito de su cumpleaños', 'en': 'It was her favorite birthday gift'},
+        '06_alex_chef_cover.jpg':        {'es': 'La mejor idea de regalo que hemos tenido', 'en': 'The best gift idea we\'ve ever had'},
+        '07_maria_together.jpg':         {'es': '«¡Soy yo, soy yo!» — al verlo por primera vez', 'en': '"It\'s me, it\'s me!" — seeing it for the first time'},
+        '07a_lifestyle_bebe_papa.png':   {'es': 'Desde el primer día, su cuento favorito', 'en': 'From day one, her favorite story'},
+        '11a_lifestyle_nina_tablet.png': {'es': 'No quería que se acabara el cuento', 'en': 'She didn\'t want the story to end'},
+        '05a_lifestyle_nino_piscina.png':{'es': 'Lo llevó hasta la piscina para leerlo', 'en': 'He took it to the pool just to read it'},
+    }
     gallery_items = []
     try:
         gallery_img_dir = os.path.join(app.static_folder, 'images', 'gallery')
@@ -645,7 +657,14 @@ def index():
         if os.path.isdir(gallery_img_dir):
             for f in sorted(os.listdir(gallery_img_dir)):
                 if os.path.splitext(f)[1].lower() in img_exts:
-                    imgs.append({'type': 'image', 'url': url_for('static', filename=f'images/gallery/{f}')})
+                    t = GALLERY_TESTIMONIALS.get(f, {})
+                    imgs.append({
+                        'type': 'image',
+                        'url': url_for('static', filename=f'images/gallery/{f}'),
+                        'is_lifestyle': 'lifestyle' in f,
+                        'testimonial_es': t.get('es', ''),
+                        'testimonial_en': t.get('en', ''),
+                    })
         posters_dir = os.path.join(app.static_folder, 'images', 'posters')
         if os.path.isdir(gallery_vid_dir):
             for f in sorted(os.listdir(gallery_vid_dir)):
@@ -654,12 +673,12 @@ def index():
                     poster_file = f'{base}.jpg'
                     poster_url = url_for('static', filename=f'images/posters/{poster_file}') \
                         if os.path.exists(os.path.join(posters_dir, poster_file)) else ''
-                    vids.append({'type': 'video', 'url': url_for('static', filename=f'videos/{f}'), 'poster': poster_url})
-        # Interleave videos among photos: insert at positions 3 and 6 (visible without scrolling)
+                    vids.append({'type': 'video', 'url': url_for('static', filename=f'videos/{f}'), 'poster': poster_url,
+                                 'is_lifestyle': False, 'testimonial_es': '', 'testimonial_en': ''})
+        # Interleave videos at positions 2 and 7 (visible early)
         gallery_items = imgs[:]
-        insert_positions = [3, 5]
         for i, vid in enumerate(vids):
-            pos = insert_positions[i] if i < len(insert_positions) else len(gallery_items)
+            pos = [2, 7][i] if i < 2 else len(gallery_items)
             gallery_items.insert(pos + i, vid)
     except Exception:
         gallery_items = []
