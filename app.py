@@ -10508,6 +10508,8 @@ def admin_crm_leads():
             # Always index by story_id for fallback
             if _jstory:
                 _json_by_sid.setdefault(_jstory, []).append(_info)
+        except Exception:
+            pass
 
     # Build display list sorted by last_visit desc
     leads_grouped = []
