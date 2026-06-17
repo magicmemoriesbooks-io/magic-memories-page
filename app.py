@@ -2233,6 +2233,49 @@ def generate_full_story_api():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+STORY_EVENTS_FILE = os.path.join('data', 'story_events.jsonl')
+
+
+@app.route('/api/story-open', methods=['POST'])
+def api_story_open():
+    """Record FIRST_STORY_OPEN event — called by visor on first load, fire-and-forget."""
+    data = request.get_json(silent=True) or {}
+    preview_id = (data.get('preview_id') or '').strip()
+    story_type = (data.get('story_type') or 'qs').strip()
+    if not preview_id:
+        return jsonify({'ok': False}), 400
+    if os.path.exists(STORY_EVENTS_FILE):
+        with open(STORY_EVENTS_FILE, 'r', encoding='utf-8') as _f:
+            for _line in _f:
+                try:
+                    _ev = json.loads(_line)
+                    if _ev.get('event_type') == 'FIRST_STORY_OPEN' and _ev.get('preview_id') == preview_id:
+                        return jsonify({'ok': True, 'already': True})
+                except Exception:
+                    continue
+    customer_email = ''
+    _sj = os.path.join('story_previews', f'{preview_id}.json')
+    if os.path.exists(_sj):
+        try:
+            with open(_sj, 'r', encoding='utf-8') as _f:
+                _sd = json.load(_f)
+            customer_email = (_sd.get('customer_email') or '').strip().lower()
+        except Exception:
+            pass
+    event = {
+        'event_type': 'FIRST_STORY_OPEN',
+        'preview_id': preview_id,
+        'customer_email': customer_email,
+        'story_type': story_type,
+        'ts': datetime.utcnow().isoformat(),
+        'ip': request.remote_addr or '',
+    }
+    os.makedirs('data', exist_ok=True)
+    with open(STORY_EVENTS_FILE, 'a', encoding='utf-8') as _f:
+        _f.write(json.dumps(event) + '\n')
+    return jsonify({'ok': True})
+
+
 @app.route('/api/generate-baby-preview', methods=['POST'])
 def generate_baby_preview_api():
     """Generate character preview with FLUX via Replicate (supports baby and kids)"""
@@ -9897,11 +9940,20 @@ def admin_crm_email_preview(filename):
 
 @app.route('/admin/crm/clientes')
 def admin_crm_clientes():
-    """CRM: clientes agrupados por email."""
+    """CRM: clientes agrupados por email. Usa payment_date del JSON, nunca mtime."""
     if not check_admin_auth():
         return redirect(url_for('admin_login_page'))
     import glob as _glob
     from datetime import datetime as _dt
+
+    def _parse_date(s):
+        if not s:
+            return None
+        try:
+            return _dt.fromisoformat(str(s)[:19])
+        except Exception:
+            return None
+
     customers = {}
     for pf in _glob.glob('story_previews/*.json'):
         try:
@@ -9923,7 +9975,7 @@ def admin_crm_clientes():
                        bool(d.get('paypal_order_id')))
             if not is_paid:
                 continue
-            file_date = _dt.fromtimestamp(os.path.getmtime(pf))
+            purchase_date = _parse_date(d.get('payment_date'))
             amount = float(_raw_amount)
             child_name = d.get('child_name', '')
             story_name = d.get('story_name') or d.get('title', '')
@@ -9935,8 +9987,8 @@ def admin_crm_clientes():
                     'email': email,
                     'stories': [],
                     'total_amount': 0.0,
-                    'first_date': file_date,
-                    'last_date': file_date,
+                    'first_date': purchase_date,
+                    'last_date': purchase_date,
                 }
             c = customers[email]
             c['stories'].append({
@@ -9944,37 +9996,55 @@ def admin_crm_clientes():
                 'child_name': child_name,
                 'story_name': story_name,
                 'amount': amount,
-                'date': file_date,
+                'date': purchase_date,
                 'want_print': want_print,
                 'want_pdf': want_pdf,
                 'ebook_paid': ebook_paid,
             })
             c['total_amount'] += amount
-            if file_date < c['first_date']:
-                c['first_date'] = file_date
-            if file_date > c['last_date']:
-                c['last_date'] = file_date
+            if purchase_date:
+                if c['first_date'] is None or purchase_date < c['first_date']:
+                    c['first_date'] = purchase_date
+                if c['last_date'] is None or purchase_date > c['last_date']:
+                    c['last_date'] = purchase_date
         except Exception:
             pass
-    customers_list = sorted(customers.values(), key=lambda x: x['last_date'], reverse=True)
+
+    def _sort_key(x):
+        return x['last_date'] or _dt.min
+
+    customers_list = sorted(customers.values(), key=_sort_key, reverse=True)
     for c in customers_list:
         c['num_stories'] = len(c['stories'])
         c['total_amount'] = round(c['total_amount'], 2)
-        c['first_date_str'] = c['first_date'].strftime('%d %b %Y')
-        c['last_date_str'] = c['last_date'].strftime('%d %b %Y')
+        c['first_date_str'] = c['first_date'].strftime('%d %b %Y') if c['first_date'] else 'desconocida'
+        c['last_date_str'] = c['last_date'].strftime('%d %b %Y') if c['last_date'] else 'desconocida'
     return render_template('admin_crm_clientes.html', customers=customers_list, total=len(customers_list))
 
 
 @app.route('/admin/crm/timeline/<path:email>')
 def admin_crm_timeline(email):
-    """CRM: timeline de eventos para un cliente (por email)."""
+    """CRM: timeline de eventos para un cliente. Usa payment_date del JSON; nunca mtime."""
     if not check_admin_auth():
         return redirect(url_for('admin_login_page'))
     import glob as _glob
     from datetime import datetime as _dt
     from services.email_service import EMAIL_LOG_FILE
     email = email.strip().lower()
+
+    def _parse_date(s):
+        if not s:
+            return None
+        try:
+            return _dt.fromisoformat(str(s)[:19])
+        except Exception:
+            return None
+
+    _EPOCH = _dt(2020, 1, 1)  # sentinel for unknown-date events
+
     events = []
+
+    # ── 1. Story JSON events ──────────────────────────────────────────────────
     for pf in _glob.glob('story_previews/*.json'):
         try:
             pid = os.path.basename(pf).replace('.json', '')
@@ -9986,31 +10056,82 @@ def admin_crm_timeline(email):
                 continue
             if d.get('admin_gift', False) or d.get('payment_status') == 'admin_gift':
                 continue
-            file_date = _dt.fromtimestamp(os.path.getmtime(pf))
+            purchase_date = _parse_date(d.get('payment_date'))
+            has_date = purchase_date is not None
+            _ts = purchase_date or _EPOCH
             child_name = d.get('child_name', '')
             story_name = d.get('story_name') or d.get('title', '')
             amount = float(d.get('amount_paid') or d.get('customer_total_usd') or 0)
-            formats = []
-            if d.get('ebook_paid') or d.get('want_ebook'): formats.append('eBook')
-            if d.get('want_pdf') or d.get('pdf_paid'): formats.append('PDF')
-            if d.get('want_print'): formats.append('Libro impreso')
-            events.append({'ts': file_date, 'icon': '💳', 'label': 'Compra realizada',
-                           'detail': story_name or child_name, 'preview_id': pid, 'approx': True})
+            fp = d.get('format_prices') or {}
+            # Determine formats purchased
+            ebook_amt = float(fp.get('ebook', 0) or 0)
+            pdf_amt   = float(fp.get('digital', 0) or fp.get('pdf', 0) or 0)
+            print_amt = float(fp.get('print', 0) or 0)
+            has_ebook = bool(d.get('ebook_paid') or d.get('want_ebook') or ebook_amt > 0)
+            has_pdf   = bool(d.get('want_pdf') or d.get('pdf_paid') or pdf_amt > 0)
+            has_print = bool(d.get('want_print') or print_amt > 0)
+
+            label_title = story_name or (f'Cuento de {child_name}' if child_name else pid[:8])
+
+            # Compra inicial
+            events.append({
+                'ts': _ts, 'icon': '💳',
+                'label': f'Compra: {label_title}',
+                'detail': '', 'preview_id': pid,
+                'approx': not has_date, 'result': '',
+            })
+            # Ingreso total
             if amount > 0:
-                events.append({'ts': file_date, 'icon': '💵', 'label': f'Ingreso: ${amount:.2f} USD',
-                               'detail': '', 'preview_id': pid, 'approx': True})
-            if child_name or formats:
-                events.append({'ts': file_date, 'icon': '📚',
-                               'label': f'Cuento: {child_name}' if child_name else 'Cuento creado',
-                               'detail': ' · '.join(formats), 'preview_id': pid, 'approx': True})
+                events.append({
+                    'ts': _ts, 'icon': '💵',
+                    'label': f'Ingreso: ${amount:.2f} USD',
+                    'detail': '', 'preview_id': pid,
+                    'approx': not has_date, 'result': '',
+                })
+            # Formato eBook entregado
+            if has_ebook:
+                _ebook_detail = f'${ebook_amt:.2f}' if ebook_amt > 0 else ''
+                events.append({
+                    'ts': _ts, 'icon': '📱',
+                    'label': 'eBook entregado',
+                    'detail': _ebook_detail, 'preview_id': pid,
+                    'approx': not has_date, 'result': '',
+                })
+            # Venta adicional PDF
+            if has_pdf:
+                events.append({
+                    'ts': _ts, 'icon': '🛒',
+                    'label': 'PDF comprado',
+                    'detail': f'${pdf_amt:.2f}' if pdf_amt > 0 else '', 'preview_id': pid,
+                    'approx': not has_date, 'result': '',
+                })
+            # Venta adicional impreso + envío a imprenta
+            if has_print:
+                events.append({
+                    'ts': _ts, 'icon': '🛒',
+                    'label': 'Libro impreso comprado',
+                    'detail': f'${print_amt:.2f}' if print_amt > 0 else '', 'preview_id': pid,
+                    'approx': not has_date, 'result': '',
+                })
             if d.get('cp_submitted'):
-                events.append({'ts': file_date, 'icon': '📦', 'label': 'Pedido enviado a imprenta',
-                               'detail': d.get('cp_order_id', ''), 'preview_id': pid, 'approx': True})
-            if d.get('cp_tracking'):
-                events.append({'ts': file_date, 'icon': '🚚', 'label': 'Tracking recibido',
-                               'detail': str(d.get('cp_tracking', '')), 'preview_id': pid, 'approx': True})
+                _cp_ts = _parse_date(d.get('cp_submitted_at')) or _ts
+                events.append({
+                    'ts': _cp_ts, 'icon': '📦',
+                    'label': 'Pedido enviado a imprenta',
+                    'detail': d.get('cp_order_id', '') or d.get('cp_pb_order_id', ''),
+                    'preview_id': pid, 'approx': not has_date, 'result': '',
+                })
+            if d.get('cp_tracking_code') or d.get('cp_tracking'):
+                events.append({
+                    'ts': _ts, 'icon': '🚚',
+                    'label': 'Tracking recibido',
+                    'detail': d.get('cp_tracking_code') or str(d.get('cp_tracking', '')),
+                    'preview_id': pid, 'approx': not has_date, 'result': '',
+                })
         except Exception:
             pass
+
+    # ── 2. Email log events (fechas exactas) ─────────────────────────────────
     _icon_cat = {'delivery': '📧', 'followup': '💌', 'retention': '🔁', 'admin': '🔧'}
     if os.path.exists(EMAIL_LOG_FILE):
         with open(EMAIL_LOG_FILE, 'r', encoding='utf-8') as _ef:
@@ -10029,15 +10150,45 @@ def admin_crm_timeline(email):
                     label = e.get('label') or e.get('email_type', '')
                     events.append({
                         'ts': ts, 'icon': _icon_cat.get(e.get('category', ''), '📧'),
-                        'label': f'Email enviado: {label}',
-                        'detail': e.get('subject', ''), 'preview_id': e.get('preview_id', ''),
+                        'label': f'Email: {label}',
+                        'detail': e.get('subject', ''),
+                        'preview_id': e.get('preview_id', ''),
                         'approx': False, 'result': e.get('result', ''),
                     })
                 except Exception:
                     pass
+
+    # ── 3. FIRST_STORY_OPEN events ────────────────────────────────────────────
+    if os.path.exists(STORY_EVENTS_FILE):
+        with open(STORY_EVENTS_FILE, 'r', encoding='utf-8') as _sf:
+            for line in _sf:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    ev = json.loads(line)
+                    if (ev.get('customer_email') or '').strip().lower() != email:
+                        continue
+                    if ev.get('event_type') != 'FIRST_STORY_OPEN':
+                        continue
+                    ts = _dt.fromisoformat(ev['ts'][:19])
+                    events.append({
+                        'ts': ts, 'icon': '👀',
+                        'label': 'Primera apertura del cuento',
+                        'detail': '',
+                        'preview_id': ev.get('preview_id', ''),
+                        'approx': False, 'result': '',
+                    })
+                except Exception:
+                    pass
+
     events.sort(key=lambda x: x['ts'])
     for ev in events:
-        ev['ts_str'] = ev['ts'].strftime('%d %b %Y %H:%M')
+        _d = ev['ts']
+        if _d == _EPOCH:
+            ev['ts_str'] = 'Fecha desconocida'
+        else:
+            ev['ts_str'] = _d.strftime('%d %b %Y   %H:%M')
     return render_template('admin_crm_timeline.html', email=email, events=events)
 
 

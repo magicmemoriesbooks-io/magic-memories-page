@@ -169,6 +169,21 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('loading-screen').classList.add('hidden');
         document.getElementById('visor').style.display = 'flex';
 
+        // FIRST_STORY_OPEN tracking — fire-and-forget, never blocks reader
+        (function() {
+            try {
+                var _k = 'mmb_op_' + bookId;
+                if (!localStorage.getItem(_k)) {
+                    localStorage.setItem(_k, '1');
+                    fetch('https://magicmemoriesbooks.com/api/story-open', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({preview_id: bookId, story_type: 'pb'})
+                    }).catch(function(){});
+                }
+            } catch(e) {}
+        })();
+
         var lang = (bookData && bookData.language === 'en') ? 'en' : 'es';
         var hintAudio = document.getElementById('hint-audio-text');
         var hintMusic = document.getElementById('hint-music-text');

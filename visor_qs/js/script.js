@@ -180,6 +180,21 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('loading-screen').classList.add('hidden');
         document.getElementById('visor').style.display = 'flex';
 
+        // FIRST_STORY_OPEN tracking — fire-and-forget, never blocks reader
+        (function() {
+            try {
+                var _k = 'mmb_op_' + bookId;
+                if (!localStorage.getItem(_k)) {
+                    localStorage.setItem(_k, '1');
+                    fetch('https://magicmemoriesbooks.com/api/story-open', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({preview_id: bookId, story_type: 'qs'})
+                    }).catch(function(){});
+                }
+            } catch(e) {}
+        })();
+
         var lang = (bookData && bookData.language === 'en') ? 'en' : 'es';
         var hintAudio = document.getElementById('hint-audio-text');
         var hintMusic = document.getElementById('hint-music-text');
@@ -200,6 +215,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function detectRealAspectRatio(callback) {
+        if (bookData.aspect_ratio && bookData.aspect_ratio < 1.0) {
+            callback(bookData.aspect_ratio);
+            return;
+        }
         var interiorPage = bookData.pages.length > 1 ? bookData.pages[1] : bookData.pages[0];
         var probe = new Image();
         probe.onload = function() {
@@ -438,6 +457,9 @@ document.addEventListener('DOMContentLoaded', function() {
         return texts;
     }
 
+    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    var isSafari = !isIOS && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
     function startTTS() {
         var texts = getVisibleTexts();
         if (!texts.length) return;
@@ -446,15 +468,17 @@ document.addEventListener('DOMContentLoaded', function() {
         autoNarrate = true;
         ttsQueue = texts.slice();
         duckMusic();
-        speakNext();
         var btn = document.getElementById('tts-play-btn');
         btn.querySelector('.ic-play').style.display = 'none';
         btn.querySelector('.ic-pause').style.display = 'block';
         btn.classList.add('speaking');
+        // iOS/Safari: cancel() needs a moment to settle before speak() works
+        var delay = (isIOS || isSafari) ? 250 : 0;
+        setTimeout(function() { if (isTTSActive) speakNext(); }, delay);
     }
 
     function speakNext() {
-        if (!ttsQueue.length) { finishTTS(); return; }
+        if (!isTTSActive || !ttsQueue.length) { finishTTS(); return; }
         var text = ttsQueue.shift();
         currentUtterance = new SpeechSynthesisUtterance(text);
         currentUtterance.lang = (bookData.language === 'en') ? 'en-US' : 'es-ES';
@@ -468,7 +492,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (isTTSActive && ttsQueue.length) setTimeout(speakNext, 350);
             else finishTTS();
         };
-        currentUtterance.onerror = function() {
+        currentUtterance.onerror = function(e) {
+            if (e && e.error === 'interrupted') return; // cancelled intentionally
             if (isTTSActive && ttsQueue.length) speakNext();
             else finishTTS();
         };
@@ -481,13 +506,27 @@ document.addEventListener('DOMContentLoaded', function() {
         currentUtterance = null;
         unduckMusic();
         var btn = document.getElementById('tts-play-btn');
+        if (!btn) return;
         btn.querySelector('.ic-play').style.display = 'block';
         btn.querySelector('.ic-pause').style.display = 'none';
         btn.classList.remove('speaking');
     }
 
     function stopTTS() {
-        speechSynthesis.cancel();
+        // Clear callbacks FIRST — prevents onend from re-triggering speakNext after cancel
+        if (currentUtterance) {
+            currentUtterance.onend = null;
+            currentUtterance.onerror = null;
+        }
+        isTTSActive = false;
+        ttsQueue = [];
+        currentUtterance = null;
+        // Safari/iOS: cancel() is unreliable — call it multiple times
+        try { speechSynthesis.cancel(); } catch(e) {}
+        if (isSafari || isIOS) {
+            setTimeout(function() { try { speechSynthesis.cancel(); } catch(e) {} }, 50);
+            setTimeout(function() { try { speechSynthesis.cancel(); } catch(e) {} }, 150);
+        }
         finishTTS();
     }
 
