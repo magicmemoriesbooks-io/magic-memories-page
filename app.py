@@ -10,7 +10,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 import logging
 from werkzeug.utils import secure_filename
 from config import Config
-from models import db, Order, StoryTemplate, RealStoryOrder, RealStoryCharacter, RealStoryPet, NewsletterSubscriber, PreviewLead, PrintOrderRequest, StoryBackup, Coupon, CouponLead, CouponUsage
+from models import db, Order, StoryTemplate, RealStoryOrder, RealStoryCharacter, RealStoryPet, NewsletterSubscriber, PreviewLead, PrintOrderRequest, StoryBackup, Coupon, CouponLead, CouponUsage, PhotoUploadLog
 from translations import TRANSLATIONS, STORY_TEMPLATES, get_translation
 from apscheduler.schedulers.background import BackgroundScheduler
 from services.task_queue import task_queue, production_logger, get_or_create_tracker
@@ -169,6 +169,7 @@ def scheduled_photo_cleanup():
             return
         
         deleted = 0
+        deleted_fns = []
         now = datetime.now()
         for filepath in glob_module.glob(os.path.join(upload_dir, '*')):
             if os.path.isfile(filepath):
@@ -176,12 +177,23 @@ def scheduled_photo_cleanup():
                 if age_hours >= 72:
                     try:
                         os.remove(filepath)
+                        deleted_fns.append(os.path.basename(filepath))
                         deleted += 1
                     except Exception as e:
                         print(f"[PHOTO CLEANUP] Error deleting {filepath}: {e}")
         
         if deleted > 0:
             print(f"[PHOTO CLEANUP] Auto-deleted {deleted} expired photos (>72h)")
+            try:
+                with app.app_context():
+                    _now_utc = datetime.utcnow()
+                    for _fn in deleted_fns:
+                        _log = PhotoUploadLog.query.filter_by(filename=_fn, deleted_at=None).first()
+                        if _log:
+                            _log.deleted_at = _now_utc
+                    db.session.commit()
+            except Exception as _le:
+                print(f"[PHOTO CLEANUP] Log update error: {_le}")
     except Exception as e:
         print(f"[PHOTO CLEANUP ERROR] {str(e)}")
 
@@ -978,6 +990,23 @@ def upload_furry_photo():
     photo.save(filepath)
     
     print(f"[FURRY PHOTO UPLOAD] Saved {photo_type} photo: {filepath}")
+    
+    # Log upload permanently (record survives 72h deletion)
+    try:
+        _story_id_log = (request.form.get('story_id') or '').strip()[:100]
+        _fsize = round(os.path.getsize(filepath) / 1024, 1)
+        _log_entry = PhotoUploadLog(
+            filename=filename,
+            story_id=_story_id_log,
+            photo_type=photo_type,
+            ip_address=request.remote_addr,
+            file_size_kb=_fsize,
+        )
+        db.session.add(_log_entry)
+        db.session.commit()
+    except Exception as _le:
+        print(f"[PHOTO LOG] Could not log upload: {_le}")
+        db.session.rollback()
     
     return jsonify({'success': True, 'path': filepath})
 
@@ -11040,13 +11069,17 @@ def admin_delete_all_preview_leads():
 
 @app.route('/admin/uploaded-photos')
 def admin_uploaded_photos():
-    """Admin page to view and manage uploaded user photos (72h retention)."""
+    """Admin page to view and manage uploaded user photos (72h retention) + permanent log."""
     if not check_admin_auth():
         return redirect(url_for('admin_login_page'))
     
     import glob as glob_module
+    import json as _json_mod
+
+    # Active files on disk
     photos = []
     upload_dir = 'generated/uploads/furry_photos'
+    active_files = set()
     if os.path.exists(upload_dir):
         for filepath in sorted(glob_module.glob(os.path.join(upload_dir, '*')), key=os.path.getmtime, reverse=True):
             if os.path.isfile(filepath):
@@ -11054,23 +11087,87 @@ def admin_uploaded_photos():
                 upload_time = datetime.fromtimestamp(stat.st_mtime)
                 age_hours = (datetime.now() - upload_time).total_seconds() / 3600
                 hours_remaining = max(0, 72 - age_hours)
+                fn = os.path.basename(filepath)
+                active_files.add(fn)
                 photos.append({
-                    'filename': os.path.basename(filepath),
-                    'filepath': filepath,
+                    'filename': fn,
                     'upload_time': upload_time.strftime('%Y-%m-%d %H:%M:%S'),
                     'age_hours': round(age_hours, 1),
                     'hours_remaining': round(hours_remaining, 1),
                     'size_kb': round(stat.st_size / 1024, 1),
                     'expired': hours_remaining <= 0
                 })
-    
+
     total_photos = len(photos)
     expired_count = sum(1 for p in photos if p['expired'])
-    
-    return render_template('admin_photos.html', 
+
+    # Build cross-reference map: filename → {email, child_name, preview_id} from story JSONs
+    _json_photo_map = {}
+    for _pf in glob_module.glob('story_previews/*.json'):
+        try:
+            _pid = os.path.basename(_pf).replace('.json', '')
+            _jd = _json_mod.load(open(_pf))
+            _jem = (_jd.get('customer_email') or '').strip()
+            _jcn = (_jd.get('child_name') or '').strip()
+            _traits = _jd.get('traits') or {}
+            for _pk in ('human_photo_path', 'pet_photo_path', 'child_photo_path'):
+                _pp = _jd.get(_pk) or _traits.get(_pk, '')
+                if _pp:
+                    _fn2 = os.path.basename(_pp)
+                    if _fn2 and _fn2 not in _json_photo_map:
+                        _json_photo_map[_fn2] = {
+                            'email': _jem, 'child_name': _jcn, 'preview_id': _pid
+                        }
+        except Exception:
+            pass
+
+    # Persist enrichment into DB for new matches
+    try:
+        _commit_needed = False
+        for _fn2, _info in _json_photo_map.items():
+            if _info.get('email') or _info.get('child_name'):
+                _entry = PhotoUploadLog.query.filter_by(filename=_fn2).first()
+                if _entry:
+                    if _info.get('email') and not _entry.email:
+                        _entry.email = _info['email']
+                        _commit_needed = True
+                    if _info.get('child_name') and not _entry.child_name:
+                        _entry.child_name = _info['child_name']
+                        _commit_needed = True
+                    if _info.get('preview_id') and not _entry.preview_id:
+                        _entry.preview_id = _info['preview_id']
+                        _commit_needed = True
+        if _commit_needed:
+            db.session.commit()
+    except Exception:
+        db.session.rollback()
+
+    # Full upload history log
+    _raw_log = PhotoUploadLog.query.order_by(PhotoUploadLog.uploaded_at.desc()).limit(500).all()
+    upload_log = []
+    for _e in _raw_log:
+        _ji = _json_photo_map.get(_e.filename, {})
+        upload_log.append({
+            'id': _e.id,
+            'filename': _e.filename,
+            'story_id': _e.story_id or '',
+            'photo_type': _e.photo_type or 'human',
+            'ip': _e.ip_address or '',
+            'size_kb': _e.file_size_kb or 0,
+            'uploaded_at': _e.uploaded_at.strftime('%Y-%m-%d %H:%M') if _e.uploaded_at else '',
+            'deleted_at': _e.deleted_at.strftime('%Y-%m-%d %H:%M') if _e.deleted_at else None,
+            'active': _e.filename in active_files and not _e.deleted_at,
+            'email': _e.email or _ji.get('email', ''),
+            'child_name': _e.child_name or _ji.get('child_name', ''),
+            'preview_id': _e.preview_id or _ji.get('preview_id', ''),
+        })
+
+    return render_template('admin_photos.html',
                           photos=photos,
                           total_photos=total_photos,
-                          expired_count=expired_count)
+                          expired_count=expired_count,
+                          upload_log=upload_log,
+                          log_total=len(upload_log))
 
 @app.route('/admin/uploaded-photos/delete/<filename>', methods=['POST'])
 def admin_delete_photo(filename):
@@ -11086,6 +11183,13 @@ def admin_delete_photo(filename):
     if os.path.exists(filepath):
         os.remove(filepath)
         print(f"[ADMIN] Manually deleted photo: {filename}")
+        try:
+            _log = PhotoUploadLog.query.filter_by(filename=filename, deleted_at=None).first()
+            if _log:
+                _log.deleted_at = datetime.utcnow()
+                db.session.commit()
+        except Exception:
+            db.session.rollback()
         return jsonify({'success': True})
     return jsonify({'success': False, 'error': 'File not found'}), 404
 
@@ -11098,14 +11202,26 @@ def admin_delete_expired_photos():
     import glob as glob_module
     upload_dir = 'generated/uploads/furry_photos'
     deleted = 0
+    deleted_fns = []
     if os.path.exists(upload_dir):
         for filepath in glob_module.glob(os.path.join(upload_dir, '*')):
             if os.path.isfile(filepath):
                 age_hours = (datetime.now() - datetime.fromtimestamp(os.path.getmtime(filepath))).total_seconds() / 3600
                 if age_hours >= 72:
                     os.remove(filepath)
+                    deleted_fns.append(os.path.basename(filepath))
                     deleted += 1
     print(f"[ADMIN] Deleted {deleted} expired photos")
+    try:
+        _now_utc = datetime.utcnow()
+        for _fn in deleted_fns:
+            _log = PhotoUploadLog.query.filter_by(filename=_fn, deleted_at=None).first()
+            if _log:
+                _log.deleted_at = _now_utc
+        if deleted_fns:
+            db.session.commit()
+    except Exception:
+        db.session.rollback()
     return jsonify({'success': True, 'deleted': deleted})
 
 @app.route('/admin/uploaded-photos/serve/<filename>')

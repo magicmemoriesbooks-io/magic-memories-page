@@ -17,15 +17,15 @@
     </div>
 
     <div class="row mb-4">
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card bg-primary text-white">
                 <div class="card-body text-center">
                     <h3>{{ total_photos }}</h3>
-                    <p class="mb-0">Total Fotos</p>
+                    <p class="mb-0">En Disco Ahora</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card bg-success text-white">
                 <div class="card-body text-center">
                     <h3>{{ total_photos - expired_count }}</h3>
@@ -33,7 +33,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card bg-danger text-white">
                 <div class="card-body text-center">
                     <h3>{{ expired_count }}</h3>
@@ -41,17 +41,26 @@
                 </div>
             </div>
         </div>
+        <div class="col-md-3">
+            <div class="card bg-dark text-white">
+                <div class="card-body text-center">
+                    <h3>{{ log_total }}</h3>
+                    <p class="mb-0">Historial Total</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="alert alert-info">
         <strong>Retención de datos:</strong> Las fotos se eliminan automáticamente 72 horas después de la subida (cumplimiento COPPA/GDPR). 
+        El <strong>historial de uploads</strong> permanece en la base de datos (sin la foto) para auditoría.
         Puedes eliminar fotos manualmente si un usuario lo solicita.
     </div>
 
     {% if photos %}
-    <div class="card">
-        <div class="card-header bg-dark text-white">
-            <h5 class="mb-0">Fotos ({{ total_photos }} archivos)</h5>
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">📂 Fotos en Disco ({{ total_photos }} archivos)</h5>
         </div>
         <div id="bulkBar" style="display:none; background:#dc3545; padding:10px 16px; text-align:center;">
             <span style="color:white; font-weight:600; margin-right:12px;"><span id="selectedCount">0</span> foto(s) seleccionadas</span>
@@ -82,17 +91,15 @@
                             <input type="checkbox" class="photo-check" data-filename="{{ photo.filename }}" data-row="{{ loop.index }}" onchange="updateSelectedCount()" style="width:16px; height:16px; cursor:pointer;">
                         </td>
                         <td>
-                            <img src="/admin/uploaded-photos/serve/{{ photo.filename }}" 
-                                 alt="foto" 
+                            <img src="/admin/uploaded-photos/serve/{{ photo.filename }}"
+                                 alt="foto"
                                  style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; cursor: pointer;"
                                  onclick="showFullPhoto(this.src)">
                         </td>
                         <td>
                             <code style="font-size: 0.75rem;">{{ photo.filename }}</code>
                         </td>
-                        <td>
-                            <small>{{ photo.upload_time }}</small>
-                        </td>
+                        <td><small>{{ photo.upload_time }}</small></td>
                         <td>
                             <span class="badge {{ 'bg-danger' if photo.age_hours >= 72 else 'bg-warning text-dark' if photo.age_hours >= 48 else 'bg-success' }}">
                                 {{ photo.age_hours }}h
@@ -107,7 +114,7 @@
                         </td>
                         <td>{{ photo.size_kb }} KB</td>
                         <td>
-                            <button onclick="deletePhoto('{{ photo.filename }}', {{ loop.index }})" 
+                            <button onclick="deletePhoto('{{ photo.filename }}', {{ loop.index }})"
                                     class="btn btn-sm btn-outline-danger">
                                 Eliminar
                             </button>
@@ -119,11 +126,105 @@
         </div>
     </div>
     {% else %}
-    <div class="alert alert-success text-center py-5">
-        <h4>No hay fotos almacenadas</h4>
-        <p class="mb-0">Todas las fotos de usuarios han sido eliminadas correctamente.</p>
+    <div class="alert alert-success text-center py-3 mb-4">
+        <h4>No hay fotos en disco</h4>
+        <p class="mb-0">Todas las fotos activas han sido eliminadas.</p>
     </div>
     {% endif %}
+
+    <!-- HISTORIAL PERMANENTE -->
+    <div class="card">
+        <div class="card-header" style="background:#1e293b; color:white;">
+            <h5 class="mb-0">📋 Historial Permanente de Uploads ({{ log_total }} registros)</h5>
+            <small style="opacity:0.7;">Los registros permanecen aunque la foto haya sido eliminada. Email y nombre se enriquecen desde el JSON del cuento.</small>
+        </div>
+        <div class="card-body p-0">
+            {% if upload_log %}
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:120px;">Archivo</th>
+                        <th>Cuento (story_id)</th>
+                        <th>Tipo</th>
+                        <th>Email</th>
+                        <th>Nombre niño</th>
+                        <th>Preview</th>
+                        <th>IP</th>
+                        <th>Subida</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in upload_log %}
+                    <tr class="{{ 'table-danger' if entry.deleted_at else '' }}">
+                        <td>
+                            {% if entry.active %}
+                            <img src="/admin/uploaded-photos/serve/{{ entry.filename }}"
+                                 alt="foto"
+                                 style="width:40px; height:40px; object-fit:cover; border-radius:3px; cursor:pointer; margin-right:4px;"
+                                 onclick="showFullPhoto(this.src)">
+                            {% else %}
+                            <span style="display:inline-block;width:40px;height:40px;background:#e2e8f0;border-radius:3px;text-align:center;line-height:40px;font-size:18px;">🗑</span>
+                            {% endif %}
+                            <br><code style="font-size:0.65rem;">{{ entry.filename[:16] }}…</code>
+                        </td>
+                        <td>
+                            <small class="text-muted">{{ entry.story_id or '—' }}</small>
+                        </td>
+                        <td>
+                            <span class="badge {{ 'bg-info' if entry.photo_type == 'human' else 'bg-warning text-dark' if entry.photo_type == 'pet' else 'bg-secondary' }}">
+                                {{ entry.photo_type }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if entry.email %}
+                            <small>{{ entry.email }}</small>
+                            {% else %}
+                            <small class="text-muted">—</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if entry.child_name %}
+                            <strong>{{ entry.child_name }}</strong>
+                            {% else %}
+                            <small class="text-muted">—</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if entry.preview_id %}
+                            <a href="/visor_pb/{{ entry.preview_id }}" target="_blank" class="btn btn-xs btn-outline-primary" style="font-size:0.7rem;padding:2px 6px;">
+                                Ver →
+                            </a>
+                            {% else %}
+                            <small class="text-muted">—</small>
+                            {% endif %}
+                        </td>
+                        <td><small class="text-muted">{{ entry.ip }}</small></td>
+                        <td>
+                            <small>{{ entry.uploaded_at }}</small><br>
+                            <small style="font-size:0.7rem;">{{ entry.size_kb }} KB</small>
+                        </td>
+                        <td>
+                            {% if entry.deleted_at %}
+                            <span class="badge bg-danger" title="Eliminada {{ entry.deleted_at }}">🗑 Eliminada</span>
+                            <br><small class="text-muted" style="font-size:0.65rem;">{{ entry.deleted_at }}</small>
+                            {% elif entry.active %}
+                            <span class="badge bg-success">✅ Activa</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Sin registro</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="text-center py-4 text-muted">
+                <p>No hay registros de uploads aún. Los próximos uploads quedarán registrados aquí.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
 </div>
 
 <div id="photoModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:9999; cursor:pointer;" onclick="this.style.display='none'">
@@ -143,6 +244,7 @@ function deletePhoto(filename, rowIndex) {
         .then(data => {
             if (data.success) {
                 document.getElementById('row-' + rowIndex).remove();
+                location.reload();
             } else {
                 alert('Error: ' + (data.error || 'Unknown'));
             }
@@ -181,7 +283,6 @@ function deleteSelected() {
     if (checked.length === 0) return;
     if (!confirm('¿Eliminar ' + checked.length + ' foto(s) seleccionadas permanentemente?')) return;
     let pending = checked.length;
-    let deleted = 0;
     checked.forEach(cb => {
         const fn = cb.dataset.filename;
         const row = cb.dataset.row;
@@ -191,13 +292,9 @@ function deleteSelected() {
                 if (data.success) {
                     const el = document.getElementById('row-' + row);
                     if (el) el.remove();
-                    deleted++;
                 }
                 pending--;
-                if (pending === 0) {
-                    updateSelectedCount();
-                    if (document.querySelectorAll('.photo-check').length === 0) location.reload();
-                }
+                if (pending === 0) location.reload();
             });
     });
 }

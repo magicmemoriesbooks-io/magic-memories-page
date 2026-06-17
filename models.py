@@ -329,3 +329,23 @@ class CouponUsage(db.Model):
 
     def __repr__(self):
         return f'<CouponUsage {self.coupon_code} {self.buyer_email}>'
+
+
+class PhotoUploadLog(db.Model):
+    """Permanent log of every photo upload — record survives 72h auto-deletion."""
+    __tablename__ = 'photo_upload_log'
+
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(255), nullable=False, index=True)
+    story_id = db.Column(db.String(100))
+    photo_type = db.Column(db.String(20), default='human')
+    ip_address = db.Column(db.String(50))
+    file_size_kb = db.Column(db.Float)
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+    deleted_at = db.Column(db.DateTime, nullable=True)
+    email = db.Column(db.String(255), nullable=True)
+    child_name = db.Column(db.String(100), nullable=True)
+    preview_id = db.Column(db.String(100), nullable=True)
+
+    def __repr__(self):
+        return f'<PhotoUploadLog {self.filename}>'
