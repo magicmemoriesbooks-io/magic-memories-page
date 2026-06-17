@@ -30,7 +30,26 @@
     </div>
     {% else %}
 
+    {% if discount_pct %}
+    <div class="bg-green-50 border border-green-200 rounded-2xl p-3 text-center mb-4">
+        <p class="text-green-800 font-bold text-sm">⚡ {% if lang == 'es' %}Precio de lanzamiento — <strong>{{ discount_pct }}% de descuento</strong> aplicado{% else %}Launch price — <strong>{{ discount_pct }}% off</strong> applied{% endif %}</p>
+    </div>
+    {% endif %}
+
     <!-- Card 1: PDF Imprimible -->
+    {% if already_has_pdf %}
+    <div class="bg-green-50 rounded-2xl border-2 border-green-300 p-5 mb-4 flex items-center gap-4">
+        <span class="text-3xl">✅</span>
+        <div>
+            <h3 class="font-display text-lg font-bold text-green-800">
+                {% if lang == 'es' %}📄 PDF Imprimible{% else %}📄 Printable PDF{% endif %}
+            </h3>
+            <p class="text-sm text-green-700 font-medium mt-0.5">
+                {% if lang == 'es' %}Ya incluido en tu compra{% else %}Already included in your purchase{% endif %}
+            </p>
+        </div>
+    </div>
+    {% else %}
     <div id="pdfCard" class="bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-200 mb-4 cursor-pointer transition-all hover:border-purple-400"
          onclick="toggleOption('pdf')">
         <div class="flex items-start gap-4">
@@ -47,7 +66,10 @@
                             {% if lang == 'es' %}Recibe el cuento en tu email listo para imprimir en casa o en cualquier copistería.{% else %}Receive the story by email, ready to print at home or any print shop.{% endif %}
                         </p>
                     </div>
-                    <span class="font-bold text-xl text-purple-700 whitespace-nowrap ml-4">${{ pdf_price }} USD</span>
+                    <div class="text-right ml-4 whitespace-nowrap">
+                        {% if discount_pct %}<span class="line-through text-gray-400 text-sm block">${{ pdf_price_orig }} USD</span>{% endif %}
+                        <span class="font-bold text-xl text-purple-700">${{ pdf_price }} USD</span>
+                    </div>
                 </div>
                 <div id="pdfFormatSelector" class="hidden mt-4 bg-purple-50 rounded-xl p-4">
                     <p class="text-sm font-medium text-gray-700 mb-3">
@@ -67,8 +89,22 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     <!-- Card 2: Libro Impreso Físico -->
+    {% if already_has_print %}
+    <div class="bg-green-50 rounded-2xl border-2 border-green-300 p-5 mb-4 flex items-center gap-4">
+        <span class="text-3xl">✅</span>
+        <div>
+            <h3 class="font-display text-lg font-bold text-green-800">
+                {% if lang == 'es' %}📚 Libro Impreso Físico{% else %}📚 Physical Printed Book{% endif %}
+            </h3>
+            <p class="text-sm text-green-700 font-medium mt-0.5">
+                {% if lang == 'es' %}Ya incluido en tu compra{% else %}Already included in your purchase{% endif %}
+            </p>
+        </div>
+    </div>
+    {% else %}
     <div id="printCard" class="bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-200 mb-4 cursor-pointer transition-all hover:border-purple-400"
          onclick="toggleOption('print')">
         <div class="flex items-start gap-4">
@@ -85,7 +121,10 @@
                             {% if lang == 'es' %}26 páginas, tapa dura, A4, impresión profesional a color. Enviado a tu domicilio.{% else %}26 pages, hardcover, A4, professional full-color printing. Delivered to your door.{% endif %}
                         </p>
                     </div>
-                    <span class="font-bold text-xl text-purple-700 whitespace-nowrap ml-4">${{ print_price }} + {% if lang == 'es' %}envío{% else %}shipping{% endif %}</span>
+                    <div class="text-right ml-4 whitespace-nowrap">
+                        {% if discount_pct %}<span class="line-through text-gray-400 text-sm block">${{ print_price_orig }} + {% if lang == 'es' %}envío{% else %}shipping{% endif %}</span>{% endif %}
+                        <span class="font-bold text-xl text-purple-700">${{ print_price }} + {% if lang == 'es' %}envío{% else %}shipping{% endif %}</span>
+                    </div>
                 </div>
 
                 <div id="printFormSection" class="hidden mt-4">
@@ -149,6 +188,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     <!-- Total + Payment Section -->
     <div id="paymentSection" class="hidden bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6">
@@ -193,8 +233,13 @@
 <script>
 const PREVIEW_ID = '{{ preview_id }}';
 const PDF_PRICE = {{ pdf_price }};
+const PDF_PRICE_ORIG = {{ pdf_price_orig }};
 const PRINT_PRICE = {{ print_price }};
+const PRINT_PRICE_ORIG = {{ print_price_orig }};
+const DISCOUNT_PCT = {{ discount_pct }};
 const LANG = '{{ lang }}';
+const ALREADY_HAS_PDF = {{ 'true' if already_has_pdf else 'false' }};
+const ALREADY_HAS_PRINT = {{ 'true' if already_has_print else 'false' }};
 let wantPdf = false;
 let wantPrint = false;
 let selectedShippingMethod = null;
@@ -225,14 +270,19 @@ function toggleOption(type, forceValue) {
     updatePaymentSection();
 }
 
+function isAddressFilled() {
+    const fields = ['shippingName', 'shippingStreet', 'shippingCity', 'shippingPostal', 'shippingCountry'];
+    return fields.every(id => (document.getElementById(id)?.value || '').trim() !== '');
+}
+
 function updatePaymentSection() {
     const paymentSection = document.getElementById('paymentSection');
     if (!wantPdf && !wantPrint) {
         paymentSection.classList.add('hidden');
         return;
     }
-    // Show payment only if: pdf selected, or print selected AND shipping calculated
-    if (wantPrint && !selectedShippingMethod) {
+    // For print: require address filled AND shipping method selected
+    if (wantPrint && (!isAddressFilled() || !selectedShippingMethod)) {
         paymentSection.classList.add('hidden');
         updateTotalDisplay();
         return;
@@ -249,17 +299,26 @@ function updateTotalDisplay() {
     let total = 0;
     let html = '';
     if (wantPdf) {
-        html += `<div class="flex justify-between"><span class="text-gray-600">${LANG === 'es' ? 'PDF Imprimible:' : 'Printable PDF:'}</span><span>$${PDF_PRICE.toFixed(2)} USD</span></div>`;
+        if (DISCOUNT_PCT) {
+            html += `<div class="flex justify-between text-gray-400 line-through text-xs"><span>${LANG === 'es' ? 'PDF Imprimible:' : 'Printable PDF:'}</span><span>$${PDF_PRICE_ORIG.toFixed(2)} USD</span></div>`;
+        }
+        html += `<div class="flex justify-between"><span class="text-gray-600">${LANG === 'es' ? 'PDF Imprimible:' : 'Printable PDF:'}</span><span class="text-green-700 font-medium">$${PDF_PRICE.toFixed(2)} USD</span></div>`;
         total += PDF_PRICE;
     }
     if (wantPrint) {
-        html += `<div class="flex justify-between"><span class="text-gray-600">${LANG === 'es' ? 'Libro impreso:' : 'Printed book:'}</span><span>$${PRINT_PRICE.toFixed(2)} USD</span></div>`;
+        if (DISCOUNT_PCT) {
+            html += `<div class="flex justify-between text-gray-400 line-through text-xs"><span>${LANG === 'es' ? 'Libro impreso:' : 'Printed book:'}</span><span>$${PRINT_PRICE_ORIG.toFixed(2)} USD</span></div>`;
+        }
+        html += `<div class="flex justify-between"><span class="text-gray-600">${LANG === 'es' ? 'Libro impreso:' : 'Printed book:'}</span><span class="text-green-700 font-medium">$${PRINT_PRICE.toFixed(2)} USD</span></div>`;
         if (selectedShippingMethod) {
             html += `<div class="flex justify-between"><span class="text-gray-600">${LANG === 'es' ? 'Envío:' : 'Shipping:'}</span><span>$${selectedShippingCost.toFixed(2)} USD</span></div>`;
             total += printTotal;
         } else {
             total += PRINT_PRICE;
         }
+    }
+    if (DISCOUNT_PCT && (wantPdf || wantPrint)) {
+        html += `<div class="flex justify-between text-green-600 text-xs font-medium mt-1"><span>⚡ ${DISCOUNT_PCT}% ${LANG === 'es' ? 'dto. lanzamiento' : 'launch discount'}</span><span>${LANG === 'es' ? 'aplicado' : 'applied'}</span></div>`;
     }
     lines.innerHTML = html;
     totalEl.textContent = `$${total.toFixed(2)} USD`;
@@ -458,6 +517,13 @@ document.addEventListener('DOMContentLoaded', function () {
         stateField:   'shippingState',
         countryField: 'shippingCountry',
         lang: '{{ lang }}'
+    });
+
+    // Re-check payment section visibility whenever address fields change
+    ['shippingName', 'shippingStreet', 'shippingCity', 'shippingPostal', 'shippingCountry'].forEach(function(id) {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', function() { if (wantPrint) updatePaymentSection(); });
+        if (el) el.addEventListener('change', function() { if (wantPrint) updatePaymentSection(); });
     });
 });
 </script>

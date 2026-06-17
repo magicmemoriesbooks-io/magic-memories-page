@@ -44,7 +44,7 @@ _EMAIL_TYPE_META = {
     'generation_failed':    {'category': 'delivery',   'label': 'Generación fallida'},
     'feedback_24h':         {'category': 'followup',   'label': 'Feedback 24h'},
     'feedback_manual':      {'category': 'Seguimiento','label': 'Feedback manual'},
-    'upsell_print':         {'category': 'followup',   'label': 'Upsell impresión 48h'},
+    'upsell_print':         {'category': 'retention',  'label': 'Upsell impresión 48h'},
     'coupon':               {'category': 'retention',  'label': 'Cupón'},
     'newsletter':           {'category': 'retention',  'label': 'Newsletter'},
     'ebook_expiry':         {'category': 'retention',  'label': 'Aviso vencimiento eBook'},
@@ -3016,8 +3016,11 @@ FOLLOW_UPS_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'lead_fo
 
 
 def register_purchase_for_follow_up(preview_id: str, email: str, child_name: str,
-                                    lang: str = 'es', story_name: str = ''):
-    """Record a real purchase so the 24h follow-up email can be scheduled."""
+                                    lang: str = 'es', story_name: str = '',
+                                    purchase_type: str = 'ebook'):
+    """Record a real purchase so the 24h/48h follow-up emails can be scheduled.
+    purchase_type: 'ebook' | 'pdf' | 'print'
+    """
     if not email or '@' not in email:
         return
     try:
@@ -3033,12 +3036,13 @@ def register_purchase_for_follow_up(preview_id: str, email: str, child_name: str
             'child_name': child_name or '',
             'story_name': story_name or '',
             'lang': lang or 'es',
+            'purchase_type': purchase_type or 'ebook',
             'purchased_at': __import__('datetime').datetime.now().isoformat(),
             'email_1_sent': False,
         }
         with open(FOLLOW_UPS_FILE, 'w', encoding='utf-8') as f:
             _json.dump(data, f, ensure_ascii=False, indent=2)
-        print(f"[LEAD] Registered 24h follow-up for {email} (preview: {preview_id})")
+        print(f"[LEAD] Registered follow-up for {email} (preview: {preview_id}, type: {purchase_type})")
     except Exception as e:
         print(f"[LEAD] Error registering follow-up: {e}")
 
@@ -3168,88 +3172,169 @@ def send_feedback_email_24h(to_email: str, child_name: str = '', lang: str = 'es
         return False
 
 
-def send_upsell_print_email(preview_id: str, to_email: str, child_name: str = '', lang: str = 'es') -> bool:
-    """Send the 48h post-purchase upsell email offering PDF + printed book formats."""
+def send_upsell_print_email(preview_id: str, to_email: str, child_name: str = '',
+                            lang: str = 'es', story_name: str = '',
+                            purchase_type: str = 'ebook') -> bool:
+    """Send the 48h post-purchase upsell/retention email. 3 variants by purchase_type:
+    - 'ebook' : offer PDF + printed book  (Variant 1)
+    - 'pdf'   : offer printed book only   (Variant 2)
+    - 'print' : thank-you + referral CTA  (Variant 3)
+    Saves HTML body to email_bodies/ for CRM preview. Notifies admin on SMTP error."""
     if preview_id and _is_duplicate_send(preview_id, 'upsell_print'):
         print(f"[LEAD] SKIPPED_DUPLICATE upsell_print for {preview_id} — already sent in last 30 days")
         log_email('skipped_duplicate', to_email, 'upsell_print [duplicado omitido]', 'SKIPPED_DUPLICATE',
                   preview_id=preview_id, child_name=child_name, lang=lang)
         return True
 
-    formats_url = f"https://magicmemoriesbooks.com/formats/{preview_id}"
-    name_str = child_name.strip() if child_name.strip() else ''
+    name_str   = child_name.strip() if child_name.strip() else ''
+    story_str  = story_name.strip() if story_name.strip() else ''
+    first_name = name_str.split()[0] if name_str else ''
+    base_url   = 'https://magicmemoriesbooks.com'
+    formats_url = f"{base_url}/formats/{preview_id}"
+    is_print = purchase_type == 'print'
+    is_pdf   = purchase_type == 'pdf'
+    story_ref_es = f"<strong>{story_str}</strong>" if story_str else "el cuento personalizado"
+    story_ref_en = f"<strong>{story_str}</strong>" if story_str else "your personalized story"
+    variant_tag = f"v{'3' if is_print else '2' if is_pdf else '1'}"
 
-    if lang == 'es':
-        subject = f"El cuento de {name_str} — ¿quieres tenerlo en papel?" if name_str else "Tu cuento de Magic Memories Books — ¿quieres tenerlo en papel?"
-        btn_label = "Ver opciones para mi cuento"
-        if name_str:
-            intro_line = f"Hace d&iacute;as creaste el cuento de <strong>{name_str}</strong> en Magic Memories Books y saber que qued&oacute; muy bonito nos llena de alegr&iacute;a."
+    if lang == 'en':
+        if is_print:
+            subject   = (f"{first_name}'s book is on its way \u2728" if first_name
+                         else "Your book is on its way \u2728")
+            cta_label = "Create a story for another child \u2192"
+            cta_url   = base_url
+            body_paras = f"""
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                I just wanted to write and let you know that {story_ref_en}
+                is in production and will be in your hands soon.
+            </p>
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                I hope it&rsquo;s as special for you as it has been for us to create it.
+            </p>
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                If you know anyone who would love their own personalized story &mdash;
+                a birthday, a special gift &mdash; I&rsquo;d be happy to help them too.
+            </p>"""
+        elif is_pdf:
+            subject   = (f"What if {first_name}'s story arrived at your door? \U0001f4ec" if first_name
+                         else "What if your story arrived at your door? \U0001f4ec")
+            cta_label = "I want the printed book \u2192"
+            cta_url   = formats_url
+            body_paras = f"""
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                You already have the PDF of {story_ref_en} and can print it whenever you like.
+            </p>
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                But if you want something more special &mdash; a real book, hardcover,
+                that you can hold in your hands and keep on a shelf &mdash;
+                we&rsquo;ll print it and send it directly to your home.
+            </p>
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                The story is already done. You just need to choose.
+            </p>"""
         else:
-            intro_line = "Hace d&iacute;as creaste un cuento personalizado en Magic Memories Books y saber que qued&oacute; muy bonito nos llena de alegr&iacute;a."
-        content = f"""
-        <p style="font-size:16px;color:#374151;line-height:1.8;margin-top:0;">Hola,</p>
-        <p style="font-size:16px;color:#374151;line-height:1.8;">
-            {intro_line}
-        </p>
-        <p style="font-size:16px;color:#374151;line-height:1.8;">
-            Quer&iacute;a contarte que puedes tener el cuento tambi&eacute;n en formato f&iacute;sico —
-            ya sea como <strong>PDF imprimible</strong> para imprimir en casa o en cualquier copister&iacute;a,
-            o como un <strong>libro impreso de verdad</strong>, con tapa dura, que puedas sostener en tus manos
-            y regalar.
-        </p>
-        <p style="font-size:16px;color:#374151;line-height:1.8;">
-            El cuento ya est&aacute; generado, as&iacute; que no hay espera. Solo elige el formato
-            que prefieras y nosotros nos encargamos del resto.
-        </p>
-        <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:32px auto;">
-            <tr>
-                <td align="center" bgcolor="#7c3aed" style="border-radius:12px;background-color:#7c3aed;">
-                    <a href="{formats_url}" target="_blank"
-                       style="display:inline-block;padding:14px 32px;font-family:sans-serif;font-size:16px;
-                              font-weight:bold;color:#ffffff;text-decoration:none;border-radius:12px;
-                              mso-padding-alt:14px 32px;">
-                        {btn_label} &#8594;
-                    </a>
-                </td>
-            </tr>
-        </table>
-        <p style="font-size:16px;color:#374151;line-height:1.8;margin-bottom:0;">Un abrazo,</p>"""
-    else:
-        subject = f"{name_str}'s story — would you like it in print?" if name_str else "Your Magic Memories Books story — would you like it in print?"
-        btn_label = "See options for my story"
-        if name_str:
-            intro_line = f"A few days ago you created <strong>{name_str}</strong>&#39;s story on Magic Memories Books and knowing it turned out beautifully fills us with joy."
-        else:
-            intro_line = "A few days ago you created a personalized story on Magic Memories Books and knowing it turned out beautifully fills us with joy."
+            subject   = (f"{first_name}'s story can live in print too \U0001f4d6" if first_name
+                         else "Your story can live in print too \U0001f4d6")
+            cta_label = "See my options \u2192"
+            cta_url   = formats_url
+            body_paras = f"""
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                Two days ago you received {story_ref_en} and I hope you&rsquo;ve enjoyed it together.
+            </p>
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                I wanted to let you know something you might not have known: the story is already
+                ready to print &mdash; no new generation needed, no waiting.
+            </p>
+            <p style="font-size:16px;color:#374151;line-height:1.8;">You can choose what suits you best:</p>
+            <ul style="font-size:16px;color:#374151;line-height:2;padding-left:20px;">
+                <li><strong>&#x1F4C4; Printable PDF</strong> &mdash; Download instantly, print at home or any copy shop.</li>
+                <li><strong>&#x1F4DA; Hardcover printed book</strong> &mdash; We print and ship it directly to your home.</li>
+            </ul>"""
         content = f"""
         <p style="font-size:16px;color:#374151;line-height:1.8;margin-top:0;">Hello,</p>
-        <p style="font-size:16px;color:#374151;line-height:1.8;">
-            {intro_line}
-        </p>
-        <p style="font-size:16px;color:#374151;line-height:1.8;">
-            I wanted to let you know that you can also have the story in a physical format —
-            either as a <strong>printable PDF</strong> to print at home or at any copy shop,
-            or as a <strong>real printed book</strong>, hardcover, that you can hold in your hands
-            and give as a gift.
-        </p>
-        <p style="font-size:16px;color:#374151;line-height:1.8;">
-            The story is already generated, so there&#39;s no wait. Just choose the format
-            you prefer and we&#39;ll take care of the rest.
-        </p>
+        {body_paras}
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:32px auto;">
             <tr>
                 <td align="center" bgcolor="#7c3aed" style="border-radius:12px;background-color:#7c3aed;">
-                    <a href="{formats_url}" target="_blank"
+                    <a href="{cta_url}" target="_blank"
                        style="display:inline-block;padding:14px 32px;font-family:sans-serif;font-size:16px;
-                              font-weight:bold;color:#ffffff;text-decoration:none;border-radius:12px;
-                              mso-padding-alt:14px 32px;">
-                        {btn_label} &#8594;
+                              font-weight:bold;color:#ffffff;text-decoration:none;border-radius:12px;">
+                        {cta_label}
                     </a>
                 </td>
             </tr>
         </table>
         <p style="font-size:16px;color:#374151;line-height:1.8;margin-bottom:0;">Warm regards,</p>"""
+    else:
+        if is_print:
+            subject   = (f"Gracias por el pedido de {first_name} \u2728" if first_name
+                         else "Gracias por tu pedido \u2728")
+            cta_label = "Crear un cuento para otro ni\u00f1o \u2192"
+            cta_url   = base_url
+            body_paras = f"""
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                Solo quer&iacute;a escribirte para decirte que {story_ref_es}
+                est&aacute; en producci&oacute;n y pronto llegar&aacute; a tus manos.
+            </p>
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                Espero que sea tan especial para vosotros como lo ha sido crearlo para nosotros.
+            </p>
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                Si conoces a alguien que le gustar&iacute;a tener su propio cuento personalizado &mdash;
+                un cumplea&ntilde;os, un regalo especial &mdash; estar&eacute; encantada de ayudarle.
+            </p>"""
+        elif is_pdf:
+            subject   = (f"\u00bfY si el cuento de {first_name} llegara a tu buz\u00f3n? \U0001f4ec" if first_name
+                         else "\u00bfY si tu cuento llegara a tu buz\u00f3n? \U0001f4ec")
+            cta_label = "Quiero el libro impreso \u2192"
+            cta_url   = formats_url
+            body_paras = f"""
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                Ya tienes el PDF de {story_ref_es} y puedes imprimirlo cuando quieras.
+            </p>
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                Pero si quieres algo m&aacute;s especial &mdash; un libro de verdad, con tapa dura,
+                que se pueda sostener en las manos y guardar en la estanter&iacute;a &mdash;
+                nosotros lo imprimimos y te lo enviamos a casa.
+            </p>
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                El cuento ya est&aacute; listo. Solo necesitas elegir.
+            </p>"""
+        else:
+            subject   = (f"El cuento de {first_name} tambi\u00e9n puede vivir en papel \U0001f4d6" if first_name
+                         else "Tu cuento tambi\u00e9n puede vivir en papel \U0001f4d6")
+            cta_label = "Ver mis opciones \u2192"
+            cta_url   = formats_url
+            body_paras = f"""
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                Hace dos d&iacute;as recibiste {story_ref_es} y espero que lo hay&aacute;is disfrutado mucho.
+            </p>
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                Quer&iacute;a contarte algo que quiz&aacute;s no sab&iacute;as: el cuento ya est&aacute; listo
+                para imprimirlo tambi&eacute;n. Sin esperas ni generaciones nuevas.
+            </p>
+            <p style="font-size:16px;color:#374151;line-height:1.8;">Puedes elegir lo que m&aacute;s te guste:</p>
+            <ul style="font-size:16px;color:#374151;line-height:2;padding-left:20px;">
+                <li><strong>&#x1F4C4; PDF Imprimible</strong> &mdash; Lo descargas al instante e imprimes en casa o en cualquier copister&iacute;a.</li>
+                <li><strong>&#x1F4DA; Libro impreso con tapa dura</strong> &mdash; Lo imprimimos y te lo enviamos directamente a casa.</li>
+            </ul>"""
+        content = f"""
+        <p style="font-size:16px;color:#374151;line-height:1.8;margin-top:0;">Hola,</p>
+        {body_paras}
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:32px auto;">
+            <tr>
+                <td align="center" bgcolor="#7c3aed" style="border-radius:12px;background-color:#7c3aed;">
+                    <a href="{cta_url}" target="_blank"
+                       style="display:inline-block;padding:14px 32px;font-family:sans-serif;font-size:16px;
+                              font-weight:bold;color:#ffffff;text-decoration:none;border-radius:12px;">
+                        {cta_label}
+                    </a>
+                </td>
+            </tr>
+        </table>
+        <p style="font-size:16px;color:#374151;line-height:1.8;margin-bottom:0;">Un abrazo,</p>"""
 
+    content += _isabel_signature_html()
     html_body = _email_wrapper("Magic Memories Books", content, to_email)
 
     msg = MIMEMultipart('alternative')
@@ -3264,12 +3349,39 @@ def send_upsell_print_email(preview_id: str, to_email: str, child_name: str = ''
             server.starttls()
             server.login(SMTP_USER, SMTP_PASSWORD)
             server.sendmail(FROM_EMAIL, to_email, msg.as_string())
-        print(f"[LEAD] 48h upsell email sent to {to_email} (preview: {preview_id})")
-        log_email('upsell_print', to_email, subject, 'SENT', preview_id=preview_id, child_name=child_name, lang=lang)
+        print(f"[LEAD] 48h upsell email ({variant_tag}) sent to {to_email} (preview: {preview_id})")
+        log_email('upsell_print', to_email, subject, 'SENT',
+                  preview_id=preview_id, child_name=child_name, lang=lang, body_html=html_body)
         return True
     except Exception as e:
-        print(f"[LEAD] Failed to send 48h upsell email to {to_email}: {e}")
-        log_email('upsell_print', to_email, subject, 'ERROR', preview_id=preview_id, child_name=child_name, lang=lang, error=str(e))
+        print(f"[LEAD] Failed to send 48h upsell email ({variant_tag}) to {to_email}: {e}")
+        log_email('upsell_print', to_email, subject, 'ERROR',
+                  preview_id=preview_id, child_name=child_name, lang=lang, error=str(e))
+        try:
+            _admin_subject = f"[ERROR] Email upsell 48h no enviado — {child_name} ({preview_id})"
+            _admin_content = f"""
+            <p style="font-size:15px;color:#374151;">El email de upsell 48h <strong>no se pudo enviar</strong> al cliente.</p>
+            <table style="font-size:13px;color:#374151;border-collapse:collapse;width:100%;">
+              <tr><td style="padding:4px 8px;font-weight:600;">Preview ID:</td><td style="padding:4px 8px;font-family:monospace;">{preview_id}</td></tr>
+              <tr><td style="padding:4px 8px;font-weight:600;">Variante:</td><td style="padding:4px 8px;">{variant_tag} ({purchase_type})</td></tr>
+              <tr><td style="padding:4px 8px;font-weight:600;">Cliente:</td><td style="padding:4px 8px;">{to_email}</td></tr>
+              <tr><td style="padding:4px 8px;font-weight:600;">Ni&#241;o/a:</td><td style="padding:4px 8px;">{child_name}</td></tr>
+              <tr><td style="padding:4px 8px;font-weight:600;color:#dc2626;">Error:</td><td style="padding:4px 8px;font-family:monospace;color:#dc2626;">{e}</td></tr>
+            </table>
+            <p style="font-size:13px;color:#6b7280;margin-top:16px;">Puedes reenviarlo manualmente desde el CRM en /admin/crm</p>"""
+            _admin_html = _admin_wrapper("&#9888; Error email upsell 48h", _admin_content)
+            _err_msg = MIMEMultipart('alternative')
+            _err_msg['Subject'] = _admin_subject
+            _err_msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
+            _err_msg['To'] = FROM_EMAIL
+            _err_msg.attach(MIMEText(_admin_html, 'html', 'utf-8'))
+            with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as _srv:
+                _srv.starttls()
+                _srv.login(SMTP_USER, SMTP_PASSWORD)
+                _srv.sendmail(FROM_EMAIL, FROM_EMAIL, _err_msg.as_string())
+            print(f"[LEAD] Admin notified of failed upsell email for {preview_id}")
+        except Exception as _ae:
+            print(f"[LEAD] Could not notify admin: {_ae}")
         return False
 
 
@@ -3338,6 +3450,8 @@ def process_pending_follow_up_emails():
                             entry.get('email', ''),
                             entry.get('child_name', ''),
                             entry.get('lang', 'es'),
+                            story_name=entry.get('story_name', ''),
+                            purchase_type=entry.get('purchase_type', 'ebook'),
                         )
                         if ok:
                             entry['email_2_sent'] = True

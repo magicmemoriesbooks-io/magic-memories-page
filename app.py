@@ -4950,8 +4950,10 @@ def _dispatch_cart_item(item: dict, buyer_email: str, paypal_order_id: str, ship
         json.dump(story_data, f, ensure_ascii=False, indent=2)
     try:
         from services.email_service import register_purchase_for_follow_up as _reg_fu
+        _ptype = 'print' if story_data.get('want_print') else ('pdf' if story_data.get('want_pdf') else 'ebook')
         _reg_fu(preview_id, buyer_email, story_data.get('child_name', ''), story_data.get('lang', 'es'),
-                story_name=story_data.get('story_name', story_data.get('title', '')))
+                story_name=story_data.get('story_name', story_data.get('title', '')),
+                purchase_type=_ptype)
     except Exception as _fu_err:
         print(f"[LEAD] register_purchase_for_follow_up error: {_fu_err}")
     print(f"[CART-DISPATCH] Processing cart item: {product_type} for {preview_id}")
@@ -5218,8 +5220,10 @@ def process_payment(preview_id):
 
     try:
         from services.email_service import register_purchase_for_follow_up as _reg_fu
+        _ptype = 'print' if story_data.get('want_print') else ('pdf' if story_data.get('want_pdf') else 'ebook')
         _reg_fu(preview_id, email, story_data.get('child_name', ''), story_data.get('lang', 'es'),
-                story_name=story_data.get('story_name', story_data.get('title', '')))
+                story_name=story_data.get('story_name', story_data.get('title', '')),
+                purchase_type=_ptype)
     except Exception as _fu_err:
         print(f"[LEAD] register_purchase_for_follow_up error: {_fu_err}")
 
@@ -12969,7 +12973,7 @@ def paypal_capture_print_order():
                     _prf_lang = _prf_sd.get('lang', 'es')
                     _prf_story_name = _prf_sd.get('story_name', _prf_sd.get('title', ''))
             _reg_fu(pr.preview_id, pr.customer_email, pr.child_name, _prf_lang,
-                    story_name=_prf_story_name)
+                    story_name=_prf_story_name, purchase_type='print')
         except Exception as _fu_err:
             print(f"[LEAD] register_purchase_for_follow_up error: {_fu_err}")
         _po_is_qs = data.get('is_qs', False)
@@ -13083,6 +13087,8 @@ def formats_page(preview_id):
     child_name = ''
     email = ''
     generation_complete = False
+    already_has_pdf = False
+    already_has_print = False
     if os.path.exists(preview_file):
         with open(preview_file, 'r', encoding='utf-8') as f:
             story_data = json.load(f)
@@ -13093,6 +13099,14 @@ def formats_page(preview_id):
             story_data.get('generation_complete') or
             story_data.get('qs_text_composed')
         )
+        already_has_pdf = bool(
+            story_data.get('want_pdf') or story_data.get('pdf_email_sent')
+        )
+        already_has_print = bool(
+            story_data.get('want_print') or story_data.get('cp_submitted')
+        )
+    if already_has_pdf and already_has_print:
+        return redirect('/')
     from config import Config as C
     disc = 1.0 - (C.LAUNCH_DISCOUNT_PCT / 100.0)
     pdf_price_orig = round(C.PERSONALIZED_PDF_PRICE / 100.0, 2)
@@ -13106,6 +13120,8 @@ def formats_page(preview_id):
         child_name=child_name,
         email=email,
         generation_complete=generation_complete,
+        already_has_pdf=already_has_pdf,
+        already_has_print=already_has_print,
         pdf_price=pdf_price,
         pdf_price_orig=pdf_price_orig,
         print_price=print_price,
@@ -13323,8 +13339,10 @@ def paypal_capture_formats_order():
 
         try:
             from services.email_service import register_purchase_for_follow_up as _reg_fu
+            _ptype = 'print' if want_print else ('pdf' if want_pdf else 'ebook')
             _reg_fu(preview_id, buyer_email, child_name, lang,
-                    story_name=story_data.get('story_name', story_data.get('title', '')))
+                    story_name=story_data.get('story_name', story_data.get('title', '')),
+                    purchase_type=_ptype)
         except Exception as _fu_err:
             print(f"[LEAD] register_purchase_for_follow_up error: {_fu_err}")
 
