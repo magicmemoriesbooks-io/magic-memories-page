@@ -10472,8 +10472,10 @@ def admin_crm_leads():
                 g['last_visit'] = lead.created_at
 
     # ── Enrich from story_previews JSONs ──────────────────────────────
-    # Build: email → list of {preview_id, child_name, story_id, date_str, payment_status}
-    _json_lookup = {}
+    # Many lead JSONs have no customer_email (email only in DB).
+    # Strategy: index by email (when present) AND by story_id (for fallback match).
+    _json_by_email = {}   # email → [info, ...]
+    _json_by_sid = {}     # story_id → [info, ...]
     for _pf in _glob.glob('story_previews/*.json'):
         try:
             _pid = os.path.basename(_pf).replace('.json', '')
@@ -10481,28 +10483,31 @@ def admin_crm_leads():
                 continue
             with open(_pf, 'r', encoding='utf-8') as _jf:
                 _jd = json.load(_jf)
+            # Skip paid / buyer stories
+            _jamt = float(_jd.get('amount_paid') or _jd.get('customer_total_usd') or 0)
+            _jpaid = (_jd.get('payment_status') == 'completed' or _jamt > 0
+                      or _jd.get('paid') or bool(_jd.get('paypal_order_id')))
             _jem = (_jd.get('customer_email') or '').strip().lower()
-            if not _jem or _jem in buyer_emails:
+            if _jpaid and not _jd.get('admin_gift'):
                 continue
-            _jpd = _jd.get('payment_date')
-            if _jpd:
-                _jdate = _jpd[:10]
-            else:
-                _jdate = datetime.fromtimestamp(os.path.getctime(_pf)).strftime('%Y-%m-%d')
-            if _jem not in _json_lookup:
-                _json_lookup[_jem] = []
-            _json_lookup[_jem].append({
+            if _jem and _jem in buyer_emails:
+                continue
+            _jstory = _jd.get('story_id', '')
+            _ctime = os.path.getctime(_pf)
+            _jdate = datetime.fromtimestamp(_ctime).strftime('%Y-%m-%d')
+            _info = {
                 'preview_id': _pid,
-                'child_name': _jd.get('child_name', ''),
-                'story_id': _jd.get('story_id', ''),
+                'child_name': (_jd.get('child_name') or '').strip(),
+                'story_id': _jstory,
                 'date_str': _jdate,
-                'ctime': os.path.getctime(_pf),
-            })
-        except Exception:
-            pass
-    # Sort each email's cuentos by ctime desc
-    for _jem in _json_lookup:
-        _json_lookup[_jem].sort(key=lambda x: x['ctime'], reverse=True)
+                'ctime': _ctime,
+            }
+            # Index by email if present
+            if _jem and _jem not in buyer_emails:
+                _json_by_email.setdefault(_jem, []).append(_info)
+            # Always index by story_id for fallback
+            if _jstory:
+                _json_by_sid.setdefault(_jstory, []).append(_info)
 
     # Build display list sorted by last_visit desc
     leads_grouped = []
@@ -10519,8 +10524,24 @@ def admin_crm_leads():
         lv = g['last_visit']
         if lv and lv >= today_start:
             today_count += 1
-        # Merge JSON enrichment
-        _json_cuentos = _json_lookup.get(em, [])
+        # Merge JSON enrichment — email first, fallback to story_id + timestamp proximity
+        _json_cuentos = []
+        if em in _json_by_email:
+            # Email found in JSON: use directly
+            _json_cuentos = sorted(_json_by_email[em], key=lambda x: x['ctime'], reverse=True)
+        else:
+            # No email in JSON — match each story_id by closest ctime to DB lead timestamp
+            _fv_ts = g['first_visit'].timestamp() if g['first_visit'] else 0
+            _seen_pids = set()
+            for _sid in story_ids:
+                _candidates = _json_by_sid.get(_sid, [])
+                if not _candidates:
+                    continue
+                # Pick candidate with ctime closest to first_visit
+                _best = min(_candidates, key=lambda x: abs(x['ctime'] - _fv_ts))
+                if _best['preview_id'] not in _seen_pids:
+                    _seen_pids.add(_best['preview_id'])
+                    _json_cuentos.append(_best)
         leads_grouped.append({
             'email': em,
             'num_previews': len(g['previews']),
