@@ -9916,13 +9916,15 @@ def admin_crm_clientes():
             is_admin_gift = d.get('admin_gift', False) or d.get('payment_status') == 'admin_gift'
             if is_admin_gift:
                 continue
+            _raw_amount = d.get('amount_paid') or d.get('customer_total_usd') or 0
             is_paid = (d.get('payment_status') == 'completed' or
-                       float(d.get('amount_paid') or 0) > 0 or
-                       d.get('paid', False))
+                       float(_raw_amount) > 0 or
+                       d.get('paid', False) or
+                       bool(d.get('paypal_order_id')))
             if not is_paid:
                 continue
             file_date = _dt.fromtimestamp(os.path.getmtime(pf))
-            amount = float(d.get('amount_paid') or 0)
+            amount = float(_raw_amount)
             child_name = d.get('child_name', '')
             story_name = d.get('story_name') or d.get('title', '')
             want_print = d.get('want_print', False)
@@ -9987,7 +9989,7 @@ def admin_crm_timeline(email):
             file_date = _dt.fromtimestamp(os.path.getmtime(pf))
             child_name = d.get('child_name', '')
             story_name = d.get('story_name') or d.get('title', '')
-            amount = float(d.get('amount_paid') or 0)
+            amount = float(d.get('amount_paid') or d.get('customer_total_usd') or 0)
             formats = []
             if d.get('ebook_paid') or d.get('want_ebook'): formats.append('eBook')
             if d.get('want_pdf') or d.get('pdf_paid'): formats.append('PDF')
