@@ -3029,6 +3029,10 @@ def register_purchase_for_follow_up(preview_id: str, email: str, child_name: str
     """
     if not email or '@' not in email:
         return
+    # Never schedule follow-ups for admin test stories (TEST_V1_xxx, TEST_V2_xxx, etc.)
+    if preview_id and preview_id.upper().startswith('TEST_'):
+        print(f"[LEAD] SKIPPED test preview_id {preview_id} — no follow-up for admin test stories")
+        return
     try:
         os.makedirs(os.path.dirname(FOLLOW_UPS_FILE), exist_ok=True)
         data = {}
@@ -3460,6 +3464,9 @@ def process_pending_follow_up_emails():
         changed = False
 
         for preview_id, entry in data.items():
+            # Skip admin test stories — never send follow-ups to test purchases
+            if preview_id.upper().startswith('TEST_'):
+                continue
             try:
                 purchased_at = _dt.fromisoformat(entry.get('purchased_at', ''))
             except ValueError:
