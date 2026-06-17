@@ -101,6 +101,13 @@
               {% if s.want_print %}
               <span style="background:#dcfce7;color:#166534;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:600;">📦 Impreso</span>
               {% endif %}
+              {% if s.opened %}
+                {% if s.completed %}
+                <span title="El cliente llegó a la última página" style="background:#f0fdf4;color:#15803d;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:600;border:1px solid #bbf7d0;">📚 Completado</span>
+                {% else %}
+                <span title="El cliente abrió el visor pero no llegó a la última página aún" style="background:#fff7ed;color:#c2410c;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:600;border:1px solid #fed7aa;">👀 Abierto</span>
+                {% endif %}
+              {% endif %}
               {% if s.amount > 0 %}
               <span style="font-size:12px;font-weight:700;color:#16a34a;">${{ '%.2f'|format(s.amount) }}</span>
               {% endif %}
