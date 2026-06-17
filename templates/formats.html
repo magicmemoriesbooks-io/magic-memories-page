@@ -118,7 +118,7 @@
                             {% if lang == 'es' %}📚 Libro Impreso Físico{% else %}📚 Physical Printed Book{% endif %}
                         </h3>
                         <p class="text-sm text-gray-500 mt-1">
-                            {% if lang == 'es' %}26 páginas, tapa dura, A4, impresión profesional a color. Enviado a tu domicilio.{% else %}26 pages, hardcover, A4, professional full-color printing. Delivered to your door.{% endif %}
+                            {% if lang == 'es' %}28 páginas, tapa dura, A4, impresión profesional a color. Enviado a tu domicilio.{% else %}28 pages, hardcover, A4, professional full-color printing. Delivered to your door.{% endif %}
                         </p>
                     </div>
                     <div class="text-right ml-4 whitespace-nowrap">
@@ -127,7 +127,7 @@
                     </div>
                 </div>
 
-                <div id="printFormSection" class="hidden mt-4">
+                <div id="printFormSection" class="hidden mt-4" onclick="event.stopPropagation()">
                     <!-- Info steps -->
                     <div class="bg-purple-50 border border-purple-100 rounded-xl p-4 mb-4">
                         <div class="space-y-2">
@@ -141,36 +141,124 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Shipping form -->
-                    <div class="grid grid-cols-1 gap-3" onclick="event.stopPropagation()">
-                        <input type="text" id="shippingName" placeholder="{% if lang == 'es' %}Nombre completo{% else %}Full name{% endif %}"
-                            class="w-full p-3 border border-gray-300 rounded-lg text-sm">
-                        <input type="text" id="shippingStreet" placeholder="{% if lang == 'es' %}Dirección (calle y número){% else %}Address (street and number){% endif %}"
-                            class="w-full p-3 border border-gray-300 rounded-lg text-sm">
-                        <div class="grid grid-cols-2 gap-3">
-                            <input type="text" id="shippingCity" placeholder="{% if lang == 'es' %}Ciudad{% else %}City{% endif %}"
-                                class="p-3 border border-gray-300 rounded-lg text-sm">
-                            <input type="text" id="shippingPostal" placeholder="{% if lang == 'es' %}Código postal{% else %}Postal code{% endif %}"
-                                class="p-3 border border-gray-300 rounded-lg text-sm">
+
+                    <!-- Shipping address form -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                {% if lang == 'es' %}Nombre Completo{% else %}Full Name{% endif %} <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="shippingName" maxlength="100"
+                                class="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                placeholder="{% if lang == 'es' %}Juan García López{% else %}John Smith{% endif %}">
                         </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <input type="text" id="shippingState" placeholder="{% if lang == 'es' %}Estado/Provincia{% else %}State/Province{% endif %}"
-                                class="p-3 border border-gray-300 rounded-lg text-sm">
-                            <select id="shippingCountry" class="p-3 border border-gray-300 rounded-lg text-sm bg-white">
-                                <option value="">{% if lang == 'es' %}País{% else %}Country{% endif %}</option>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                {% if lang == 'es' %}Dirección (Línea 1){% else %}Address Line 1{% endif %} <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="shippingStreet" maxlength="40"
+                                class="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                placeholder="{% if lang == 'es' %}Calle Principal 123{% else %}123 Main Street{% endif %}">
+                            <p class="text-xs text-gray-400 mt-0.5">{% if lang == 'es' %}Máx. 40 caracteres{% else %}Max. 40 characters{% endif %}</p>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                {% if lang == 'es' %}Dirección (Línea 2){% else %}Address Line 2{% endif %}
+                            </label>
+                            <input type="text" id="shippingStreet2" maxlength="40"
+                                class="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                placeholder="{% if lang == 'es' %}Portal, piso, bloque (opcional){% else %}Apartment, floor, etc. (optional){% endif %}">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                {% if lang == 'es' %}Ciudad{% else %}City{% endif %} <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="shippingCity" maxlength="50"
+                                class="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                placeholder="{% if lang == 'es' %}Madrid{% else %}New York{% endif %}">
+                        </div>
+
+                        <div>
+                            <label id="stateLabel" class="block text-sm font-medium text-gray-700 mb-1">
+                                {% if lang == 'es' %}Estado/Provincia{% else %}State/Province{% endif %}
+                            </label>
+                            <input type="text" id="shippingState" maxlength="10"
+                                class="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                placeholder="{% if lang == 'es' %}Comunidad Autónoma{% else %}NY{% endif %}">
+                            <p id="stateCodeHint" class="text-xs text-blue-600 mt-1 hidden">
+                                {% if lang == 'es' %}Código 2 letras: GA=Georgia, TX=Texas, CA=California, FL=Florida, NY=New York…{% else %}2-letter code: GA=Georgia, TX=Texas, CA=California, FL=Florida, NY=New York…{% endif %}
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                {% if lang == 'es' %}Código Postal{% else %}Postal Code{% endif %} <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="shippingPostal" maxlength="20"
+                                class="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                placeholder="28001">
+                            <p id="zipStatus" class="text-xs mt-1 hidden"></p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                {% if lang == 'es' %}País{% else %}Country{% endif %} <span class="text-red-500">*</span>
+                            </label>
+                            <select id="shippingCountry"
+                                class="w-full p-3 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                <option value="">{% if lang == 'es' %}Selecciona país{% else %}Select country{% endif %}</option>
                                 {% include '_cp_country_options.html' %}
                             </select>
                         </div>
-                        <input type="tel" id="customerPhone" placeholder="{% if lang == 'es' %}Teléfono (opcional, para mensajería){% else %}Phone (optional, for courier){% endif %}"
-                            class="w-full p-3 border border-gray-300 rounded-lg text-sm">
-                        <button onclick="event.stopPropagation(); calculateShipping()" id="calcBtn"
-                            class="w-full py-3 bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold rounded-xl transition-colors text-sm">
-                            📦 {% if lang == 'es' %}Calcular precio de envío{% else %}Calculate shipping price{% endif %}
-                        </button>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                {% if lang == 'es' %}Teléfono{% else %}Phone{% endif %} <span class="text-red-500">*</span>
+                            </label>
+                            <div class="flex gap-2">
+                                <select id="phonePrefix"
+                                    class="flex-shrink-0 w-32 p-3 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                    <option value="+1">🇺🇸 +1</option>
+                                    <option value="+971">🇦🇪 +971</option>
+                                    <option value="+34">🇪🇸 +34</option>
+                                    <option value="+44">🇬🇧 +44</option>
+                                    <option value="+33">🇫🇷 +33</option>
+                                    <option value="+49">🇩🇪 +49</option>
+                                    <option value="+31">🇳🇱 +31</option>
+                                    <option value="+39">🇮🇹 +39</option>
+                                    <option value="+351">🇵🇹 +351</option>
+                                    <option value="+32">🇧🇪 +32</option>
+                                    <option value="+41">🇨🇭 +41</option>
+                                    <option value="+52">🇲🇽 +52</option>
+                                    <option value="+57">🇨🇴 +57</option>
+                                    <option value="+54">🇦🇷 +54</option>
+                                    <option value="+56">🇨🇱 +56</option>
+                                    <option value="+55">🇧🇷 +55</option>
+                                    <option value="+51">🇵🇪 +51</option>
+                                    <option value="+58">🇻🇪 +58</option>
+                                    <option value="+593">🇪🇨 +593</option>
+                                </select>
+                                <input type="tel" id="shippingPhone" pattern="[0-9\s\-()]{6,15}"
+                                    class="flex-1 p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                    placeholder="555 123 4567">
+                            </div>
+                            <p class="text-xs text-gray-400 mt-0.5">{% if lang == 'es' %}Requerido para el mensajero.{% else %}Required for the courier.{% endif %}</p>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <button onclick="event.stopPropagation(); calculateShipping()" id="calcBtn"
+                                class="w-full py-3 bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold rounded-xl transition-colors text-sm">
+                                📦 {% if lang == 'es' %}Calcular precio de envío{% else %}Calculate shipping price{% endif %}
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Shipping options (hidden until calculated) -->
-                    <div id="shippingOptions" class="hidden mt-4 bg-gray-50 rounded-xl p-4" onclick="event.stopPropagation()">
+                    <div id="shippingOptions" class="hidden mt-4 bg-gray-50 rounded-xl p-4">
                         <h4 class="font-medium text-gray-700 mb-3">{% if lang == 'es' %}Método de envío{% else %}Shipping method{% endif %}</h4>
                         <div id="shippingMethodsContainer" class="space-y-2 mb-3"></div>
                         <div class="border-t pt-3 text-sm space-y-1">
@@ -201,6 +289,28 @@
                 placeholder="tu@email.com"
                 class="w-full p-3 border border-gray-300 rounded-lg text-sm">
         </div>
+
+        <!-- Coupon -->
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+                {% if lang == 'es' %}¿Tienes un cupón de descuento?{% else %}Have a discount coupon?{% endif %}
+            </label>
+            <div class="flex gap-2">
+                <input type="text" id="couponInput" maxlength="30"
+                    class="flex-1 p-3 border border-gray-300 rounded-lg text-sm uppercase tracking-wide focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="{% if lang == 'es' %}Código de cupón{% else %}Coupon code{% endif %}">
+                <button id="applyCouponBtn" onclick="applyCoupon()"
+                    class="px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg text-sm transition-colors">
+                    {% if lang == 'es' %}Aplicar{% else %}Apply{% endif %}
+                </button>
+                <button id="removeCouponBtn" onclick="removeCoupon()" style="display:none;"
+                    class="px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg text-sm transition-colors">
+                    ✕
+                </button>
+            </div>
+            <p id="couponMsg" class="text-xs mt-1 hidden"></p>
+        </div>
+
         <!-- Total -->
         <div class="bg-purple-50 rounded-xl p-4 mb-4">
             <div id="totalLines" class="space-y-1 text-sm"></div>
@@ -209,6 +319,7 @@
                 <span id="totalAmountShow" class="text-2xl font-bold text-purple-700">—</span>
             </div>
         </div>
+
         <h3 class="font-display text-lg font-bold text-gray-800 mb-2">{% if lang == 'es' %}Pago Seguro{% else %}Secure Payment{% endif %}</h3>
         <p class="text-sm text-gray-500 mb-3">{% if lang == 'es' %}PayPal acepta tarjeta de crédito sin necesidad de cuenta PayPal.{% else %}PayPal accepts credit cards without a PayPal account.{% endif %}</p>
         <div class="flex flex-wrap justify-center items-center gap-2 mb-4">
@@ -228,6 +339,41 @@
 
 </section>
 
+<!-- ── Address confirm modal ─────────────────────────────────────────────── -->
+<div id="addressConfirmModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-6 max-w-lg mx-4">
+        <h3 class="font-display text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <span class="text-2xl">📍</span>
+            {% if lang == 'es' %}Confirmar Dirección{% else %}Confirm Address{% endif %}
+        </h3>
+        <p class="text-gray-600 mb-4">
+            {% if lang == 'es' %}Encontramos una versión más precisa de tu dirección. Por favor confirma:{% else %}We found a more precise version of your address. Please confirm:{% endif %}
+        </p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="p-4 border border-gray-300 rounded-xl bg-gray-50">
+                <p class="font-semibold text-gray-700 mb-2 text-sm">{% if lang == 'es' %}Tu dirección:{% else %}Your address:{% endif %}</p>
+                <p class="text-gray-600 text-sm" id="originalAddressDisplay"></p>
+            </div>
+            <div class="p-4 border-2 border-green-500 rounded-xl bg-green-50">
+                <p class="font-semibold text-green-700 mb-2 text-sm flex items-center gap-1">
+                    <span>✓</span> {% if lang == 'es' %}Dirección recomendada:{% else %}Recommended address:{% endif %}
+                </p>
+                <p class="text-green-800 text-sm" id="suggestedAddressDisplay"></p>
+            </div>
+        </div>
+        <div class="flex gap-3">
+            <button type="button" onclick="useOriginalAddress()"
+                class="flex-1 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-xl transition-all">
+                {% if lang == 'es' %}Usar mi dirección{% else %}Use my address{% endif %}
+            </button>
+            <button type="button" onclick="useSuggestedAddress()"
+                class="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition-all">
+                {% if lang == 'es' %}Usar recomendada{% else %}Use recommended{% endif %}
+            </button>
+        </div>
+    </div>
+</div>
+
 {% if generation_complete %}
 <script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=USD&intent=capture" data-namespace="paypal_sdk"></script>
 <script>
@@ -240,6 +386,7 @@ const DISCOUNT_PCT = {{ discount_pct }};
 const LANG = '{{ lang }}';
 const ALREADY_HAS_PDF = {{ 'true' if already_has_pdf else 'false' }};
 const ALREADY_HAS_PRINT = {{ 'true' if already_has_print else 'false' }};
+
 let wantPdf = false;
 let wantPrint = false;
 let selectedShippingMethod = null;
@@ -247,6 +394,17 @@ let selectedShippingCost = 0;
 let printTotal = PRINT_PRICE;
 let paypalButtonsRendered = false;
 
+// ── coupon state ─────────────────────────────────────────────────────────────
+let appliedCoupon = null;
+let appliedDiscountPct = 0;
+let appliedDiscount = 0;
+
+// ── address validation state ─────────────────────────────────────────────────
+let addressValidated = false;
+let validatedAddress = null;
+let addressValidationResolve = null;
+
+// ── format toggles ───────────────────────────────────────────────────────────
 function toggleOption(type, forceValue) {
     if (type === 'pdf') {
         wantPdf = forceValue !== undefined ? forceValue : !wantPdf;
@@ -265,11 +423,13 @@ function toggleOption(type, forceValue) {
             selectedShippingCost = 0;
             printTotal = PRINT_PRICE;
             document.getElementById('shippingOptions').classList.add('hidden');
+            resetAddressValidation();
         }
     }
     updatePaymentSection();
 }
 
+// ── payment section visibility ───────────────────────────────────────────────
 function isAddressFilled() {
     const fields = ['shippingName', 'shippingStreet', 'shippingCity', 'shippingPostal', 'shippingCountry'];
     return fields.every(id => (document.getElementById(id)?.value || '').trim() !== '');
@@ -281,7 +441,6 @@ function updatePaymentSection() {
         paymentSection.classList.add('hidden');
         return;
     }
-    // For print: require address filled AND shipping method selected
     if (wantPrint && (!isAddressFilled() || !selectedShippingMethod)) {
         paymentSection.classList.add('hidden');
         updateTotalDisplay();
@@ -292,47 +451,103 @@ function updatePaymentSection() {
     if (!paypalButtonsRendered) renderPayPalButtons();
 }
 
+// ── total display ────────────────────────────────────────────────────────────
+function getBaseTotal() {
+    let base = 0;
+    if (wantPdf) base += PDF_PRICE;
+    if (wantPrint) base += PRINT_PRICE;
+    return base;
+}
+
+function getTotal() {
+    const base = getBaseTotal();
+    const shipping = (wantPrint && selectedShippingMethod) ? selectedShippingCost : 0;
+    const disc = appliedCoupon ? Math.round(base * appliedDiscountPct) / 100 : 0;
+    return Math.max(base - disc, 0.01) + shipping;
+}
+
 function updateTotalDisplay() {
     const lines = document.getElementById('totalLines');
     const totalEl = document.getElementById('totalAmountShow');
     if (!lines || !totalEl) return;
-    let total = 0;
     let html = '';
+    const shipping = (wantPrint && selectedShippingMethod) ? selectedShippingCost : 0;
     if (wantPdf) {
-        if (DISCOUNT_PCT) {
-            html += `<div class="flex justify-between text-gray-400 line-through text-xs"><span>${LANG === 'es' ? 'PDF Imprimible:' : 'Printable PDF:'}</span><span>$${PDF_PRICE_ORIG.toFixed(2)} USD</span></div>`;
-        }
+        if (DISCOUNT_PCT) html += `<div class="flex justify-between text-gray-400 line-through text-xs"><span>${LANG === 'es' ? 'PDF Imprimible:' : 'Printable PDF:'}</span><span>$${PDF_PRICE_ORIG.toFixed(2)} USD</span></div>`;
         html += `<div class="flex justify-between"><span class="text-gray-600">${LANG === 'es' ? 'PDF Imprimible:' : 'Printable PDF:'}</span><span class="text-green-700 font-medium">$${PDF_PRICE.toFixed(2)} USD</span></div>`;
-        total += PDF_PRICE;
     }
     if (wantPrint) {
-        if (DISCOUNT_PCT) {
-            html += `<div class="flex justify-between text-gray-400 line-through text-xs"><span>${LANG === 'es' ? 'Libro impreso:' : 'Printed book:'}</span><span>$${PRINT_PRICE_ORIG.toFixed(2)} USD</span></div>`;
-        }
+        if (DISCOUNT_PCT) html += `<div class="flex justify-between text-gray-400 line-through text-xs"><span>${LANG === 'es' ? 'Libro impreso:' : 'Printed book:'}</span><span>$${PRINT_PRICE_ORIG.toFixed(2)} USD</span></div>`;
         html += `<div class="flex justify-between"><span class="text-gray-600">${LANG === 'es' ? 'Libro impreso:' : 'Printed book:'}</span><span class="text-green-700 font-medium">$${PRINT_PRICE.toFixed(2)} USD</span></div>`;
         if (selectedShippingMethod) {
-            html += `<div class="flex justify-between"><span class="text-gray-600">${LANG === 'es' ? 'Envío:' : 'Shipping:'}</span><span>$${selectedShippingCost.toFixed(2)} USD</span></div>`;
-            total += printTotal;
+            html += `<div class="flex justify-between"><span class="text-gray-600">${LANG === 'es' ? 'Envío:' : 'Shipping:'}</span><span>$${shipping.toFixed(2)} USD</span></div>`;
         } else {
-            total += PRINT_PRICE;
+            html += `<div class="flex justify-between text-gray-400"><span class="text-gray-600">${LANG === 'es' ? 'Envío:' : 'Shipping:'}</span><span>${LANG === 'es' ? 'Pendiente' : 'Pending'}</span></div>`;
         }
     }
     if (DISCOUNT_PCT && (wantPdf || wantPrint)) {
         html += `<div class="flex justify-between text-green-600 text-xs font-medium mt-1"><span>⚡ ${DISCOUNT_PCT}% ${LANG === 'es' ? 'dto. lanzamiento' : 'launch discount'}</span><span>${LANG === 'es' ? 'aplicado' : 'applied'}</span></div>`;
     }
+    if (appliedCoupon && appliedDiscount > 0) {
+        const base = getBaseTotal();
+        html += `<div class="flex justify-between"><span class="text-gray-600">${LANG === 'es' ? 'Subtotal:' : 'Subtotal:'}</span><span>$${(base + shipping).toFixed(2)} USD</span></div>`;
+        html += `<div class="flex justify-between text-green-700 font-medium"><span>🎟 ${appliedCoupon} (${appliedDiscountPct}% off):</span><span>-$${appliedDiscount.toFixed(2)}</span></div>`;
+    }
     lines.innerHTML = html;
-    totalEl.textContent = `$${total.toFixed(2)} USD`;
-    return total;
+    totalEl.textContent = `$${getTotal().toFixed(2)} USD`;
 }
 
-function getTotal() {
-    let total = 0;
-    if (wantPdf) total += PDF_PRICE;
-    if (wantPrint && selectedShippingMethod) total += printTotal;
-    else if (wantPrint) total += PRINT_PRICE;
-    return total;
+// ── coupon ───────────────────────────────────────────────────────────────────
+async function applyCoupon() {
+    const code = document.getElementById('couponInput').value.trim().toUpperCase();
+    if (!code) return;
+    const email = document.getElementById('customerEmail')?.value?.trim() || '';
+    const msgEl = document.getElementById('couponMsg');
+    msgEl.classList.remove('hidden');
+    msgEl.style.color = 'gray';
+    msgEl.textContent = LANG === 'es' ? 'Verificando...' : 'Checking...';
+    try {
+        const resp = await fetch('/api/validate-coupon', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({code, buyer_email: email, lang: LANG})
+        });
+        const result = await resp.json();
+        if (result.valid) {
+            appliedCoupon = result.code;
+            appliedDiscountPct = result.discount_pct;
+            appliedDiscount = Math.round(getBaseTotal() * appliedDiscountPct) / 100;
+            msgEl.style.color = 'green';
+            msgEl.textContent = '✅ ' + result.discount_pct + (LANG === 'es' ? '% descuento aplicado!' : '% discount applied!');
+            document.getElementById('applyCouponBtn').style.display = 'none';
+            document.getElementById('removeCouponBtn').style.display = 'inline-block';
+            document.getElementById('couponInput').disabled = true;
+            updateTotalDisplay();
+        } else {
+            msgEl.style.color = 'red';
+            msgEl.textContent = '❌ ' + (result.error || (LANG === 'es' ? 'Código inválido' : 'Invalid code'));
+        }
+    } catch(e) {
+        msgEl.style.color = 'red';
+        msgEl.textContent = '❌ ' + (LANG === 'es' ? 'Error de conexión' : 'Connection error');
+    }
 }
 
+function removeCoupon() {
+    appliedCoupon = null;
+    appliedDiscountPct = 0;
+    appliedDiscount = 0;
+    const msgEl = document.getElementById('couponMsg');
+    msgEl.classList.add('hidden');
+    msgEl.textContent = '';
+    document.getElementById('couponInput').value = '';
+    document.getElementById('couponInput').disabled = false;
+    document.getElementById('applyCouponBtn').style.display = 'inline-block';
+    document.getElementById('removeCouponBtn').style.display = 'none';
+    updateTotalDisplay();
+}
+
+// ── shipping calculation ─────────────────────────────────────────────────────
 async function calculateShipping() {
     const country = document.getElementById('shippingCountry').value;
     if (!country) {
@@ -342,11 +557,13 @@ async function calculateShipping() {
     const btn = document.getElementById('calcBtn');
     btn.textContent = LANG === 'es' ? 'Calculando...' : 'Calculating...';
     btn.disabled = true;
+    resetAddressValidation();
     try {
+        const state = document.getElementById('shippingState')?.value || '';
         const resp = await fetch('/api/calculate-dynamic-price', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({product_type: 'cp_personalized', country_code: country, state_code: document.getElementById('shippingState')?.value || ''})
+            body: JSON.stringify({product_type: 'cp_personalized', country_code: country, state_code: state})
         });
         const data = await resp.json();
         if (data.options) {
@@ -398,10 +615,211 @@ function renderShippingMethods(options) {
             printTotal = parseFloat(radio.dataset.total);
             document.getElementById('shippingCostShow').textContent = '$' + selectedShippingCost.toFixed(2) + ' USD';
             updateTotalDisplay();
+            autoValidateAddress();
         });
     });
+    autoValidateAddress();
 }
 
+// ── address validation ───────────────────────────────────────────────────────
+function getShippingAddress() {
+    return {
+        name: document.getElementById('shippingName')?.value || '',
+        street1: document.getElementById('shippingStreet')?.value || '',
+        street2: document.getElementById('shippingStreet2')?.value || '',
+        city: document.getElementById('shippingCity')?.value || '',
+        state_code: document.getElementById('shippingState')?.value || '',
+        postcode: document.getElementById('shippingPostal')?.value || '',
+        country_code: document.getElementById('shippingCountry')?.value || '',
+        phone_number: getFullPhone() || '',
+        email: document.getElementById('customerEmail')?.value?.trim() || '',
+    };
+}
+
+function resetAddressValidation() {
+    addressValidated = false;
+    validatedAddress = null;
+}
+
+async function validateShippingAddress() {
+    const addr = getShippingAddress();
+    try {
+        const resp = await fetch('/api/validate-address', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(addr)
+        });
+        const result = await resp.json();
+
+        if (result.auto_corrected && result.suggested_address) {
+            applySuggestedAddress(result.suggested_address);
+            addressValidated = true;
+            validatedAddress = result.suggested_address;
+            return true;
+        }
+        if (result.valid && result.suggested_address && !result.auto_corrected) {
+            showAddressConfirmModal(addr, result.suggested_address);
+            return new Promise(resolve => { addressValidationResolve = resolve; });
+        }
+        if (!result.valid && !result.suggested_address) {
+            const msg = LANG === 'es'
+                ? (result.message_es || result.message || 'Dirección no válida.')
+                : (result.message || 'Invalid address.');
+            showError(msg);
+            const statusEl = document.getElementById('zipStatus');
+            if (statusEl) { statusEl.textContent = msg; statusEl.className = 'text-xs mt-1 text-red-500'; statusEl.classList.remove('hidden'); }
+            return false;
+        }
+        if (result.valid && result.warning) {
+            const warnMsg = LANG === 'es' ? (result.message_es || result.message || '') : (result.message || '');
+            if (warnMsg) {
+                const statusEl = document.getElementById('zipStatus');
+                if (statusEl) { statusEl.textContent = '⚠ ' + warnMsg; statusEl.className = 'text-xs mt-1 text-amber-600'; statusEl.classList.remove('hidden'); }
+            }
+        }
+        addressValidated = true;
+        validatedAddress = addr;
+        return true;
+    } catch(e) {
+        console.warn('[ADDRESS] Validation failed, proceeding:', e);
+        addressValidated = true;
+        validatedAddress = addr;
+        return true;
+    }
+}
+
+async function autoValidateAddress() {
+    if (addressValidated) return;
+    if (!wantPrint) return;
+    const name = document.getElementById('shippingName')?.value?.trim();
+    const street = document.getElementById('shippingStreet')?.value?.trim();
+    const city = document.getElementById('shippingCity')?.value?.trim();
+    const postal = document.getElementById('shippingPostal')?.value?.trim();
+    const country = document.getElementById('shippingCountry')?.value;
+    if (!name || !street || !city || !postal || !country) return;
+    if (!selectedShippingMethod) return;
+    await validateShippingAddress();
+}
+
+function applySuggestedAddress(s) {
+    if (s.street1) document.getElementById('shippingStreet').value = s.street1;
+    if (s.city) document.getElementById('shippingCity').value = s.city;
+    if (s.state_code) document.getElementById('shippingState').value = s.state_code;
+    if (s.postcode) document.getElementById('shippingPostal').value = s.postcode;
+}
+
+function showAddressConfirmModal(original, suggested) {
+    if (window._photonAC) window._photonAC.close();
+    document.getElementById('originalAddressDisplay').innerHTML = formatAddress(original);
+    document.getElementById('suggestedAddressDisplay').innerHTML = formatAddress(suggested);
+    validatedAddress = suggested;
+    document.getElementById('addressConfirmModal').classList.remove('hidden');
+}
+
+function formatAddress(a) {
+    let lines = [a.name || ''];
+    if (a.street1) lines.push(a.street1);
+    if (a.street2) lines.push(a.street2);
+    lines.push([a.city, a.state_code, a.postcode].filter(Boolean).join(', '));
+    if (a.country_code) lines.push(a.country_code);
+    return lines.filter(Boolean).join('<br>');
+}
+
+function useOriginalAddress() {
+    document.getElementById('addressConfirmModal').classList.add('hidden');
+    addressValidated = true;
+    validatedAddress = getShippingAddress();
+    if (addressValidationResolve) { addressValidationResolve(true); addressValidationResolve = null; }
+}
+
+function useSuggestedAddress() {
+    document.getElementById('addressConfirmModal').classList.add('hidden');
+    applySuggestedAddress(validatedAddress);
+    addressValidated = true;
+    if (addressValidationResolve) { addressValidationResolve(true); addressValidationResolve = null; }
+}
+
+// ── US ZIP auto-fill via Nominatim / OpenStreetMap ───────────────────────────
+let _zipFillLast = '';
+async function zipAutoFill(zip) {
+    const country = document.getElementById('shippingCountry')?.value || '';
+    if (country !== 'US') return;
+    const clean = zip.replace(/\D/g, '');
+    if (clean.length !== 5) return;
+    if (clean === _zipFillLast) return;
+    _zipFillLast = clean;
+    const statusEl = document.getElementById('zipStatus');
+    if (statusEl) { statusEl.textContent = LANG === 'es' ? '⏳ Verificando...' : '⏳ Verifying...'; statusEl.className = 'text-xs mt-1 text-gray-400'; statusEl.classList.remove('hidden'); }
+    try {
+        const url = `https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(clean)}&country=US&format=json&limit=1&addressdetails=1&email=support@magicmemories.com`;
+        const r = await fetch(url);
+        const d = await r.json();
+        if (!Array.isArray(d) || d.length === 0) throw new Error('not found');
+        const addr = d[0].address || {};
+        const city = addr.city || addr.town || addr.village || addr.county || '';
+        const iso = addr['ISO3166-2-lvl4'] || '';
+        const state = iso.includes('-') ? iso.split('-').pop() : '';
+        const cityEl = document.getElementById('shippingCity');
+        const stateEl = document.getElementById('shippingState');
+        if (cityEl && !cityEl.value.trim()) cityEl.value = city;
+        if (stateEl && !stateEl.value.trim()) stateEl.value = state;
+        if (stateEl && state && stateEl.value.trim().toUpperCase() !== state.toUpperCase()) stateEl.value = state;
+        if (statusEl) {
+            statusEl.textContent = city ? `✓ ${city}, ${state}` : (LANG === 'es' ? '✓ Código postal verificado' : '✓ Postal code verified');
+            statusEl.className = 'text-xs mt-1 text-green-600';
+        }
+    } catch(e) {
+        _zipFillLast = '';
+        if (statusEl) { statusEl.textContent = LANG === 'es' ? '✗ ZIP no encontrado' : '✗ ZIP not found'; statusEl.className = 'text-xs mt-1 text-red-500'; }
+    }
+}
+
+// ── phone prefix ─────────────────────────────────────────────────────────────
+function getFullPhone() {
+    const prefix = document.getElementById('phonePrefix')?.value || '';
+    const number = document.getElementById('shippingPhone')?.value?.trim() || '';
+    if (!number) return '';
+    const numClean = number.replace(/^\+\d+\s*/, '');
+    return prefix + ' ' + numClean;
+}
+
+const COUNTRY_PREFIX_MAP = {
+    'US': '+1', 'CA': '+1', 'AE': '+971', 'ES': '+34', 'GB': '+44',
+    'FR': '+33', 'DE': '+49', 'NL': '+31', 'IT': '+39', 'PT': '+351',
+    'BE': '+32', 'CH': '+41', 'MX': '+52', 'CO': '+57', 'AR': '+54',
+    'CL': '+56', 'BR': '+55', 'PE': '+51', 'VE': '+58', 'EC': '+593',
+};
+
+function updatePhonePrefixForCountry(cc) {
+    const prefix = COUNTRY_PREFIX_MAP[cc];
+    if (!prefix) return;
+    const sel = document.getElementById('phonePrefix');
+    if (sel) { const opt = sel.querySelector(`option[value="${prefix}"]`); if (opt) sel.value = prefix; }
+}
+
+// ── country change handler ───────────────────────────────────────────────────
+function onCountryChange(cc) {
+    const needsState = (cc === 'US' || cc === 'AU');
+    const stateHint = document.getElementById('stateCodeHint');
+    const stateLabel = document.getElementById('stateLabel');
+    const stateInput = document.getElementById('shippingState');
+    if (stateHint) stateHint.classList.toggle('hidden', !needsState);
+    if (stateLabel) stateLabel.textContent = needsState
+        ? (LANG === 'es' ? 'Estado (código 2 letras) *' : 'State code (2 letters) *')
+        : (LANG === 'es' ? 'Estado/Provincia' : 'State/Province');
+    if (stateInput) {
+        stateInput.placeholder = cc === 'US' ? 'GA' : (cc === 'AU' ? 'NSW' : (LANG === 'es' ? 'Comunidad Autónoma' : 'NY'));
+        stateInput.maxLength = needsState ? 3 : 10;
+    }
+    updatePhonePrefixForCountry(cc);
+    resetAddressValidation();
+    _zipFillLast = '';
+    const statusEl = document.getElementById('zipStatus');
+    if (statusEl) statusEl.classList.add('hidden');
+    if (wantPrint && cc) calculateShipping();
+}
+
+// ── form validation ──────────────────────────────────────────────────────────
 function validateForm() {
     const email = document.getElementById('customerEmail')?.value?.trim();
     if (!email || !email.includes('@')) {
@@ -438,32 +856,42 @@ function clearError() {
     if (el) el.classList.add('hidden');
 }
 
+// ── order data ───────────────────────────────────────────────────────────────
 function getOrderData() {
+    const addr = validatedAddress || getShippingAddress();
     return {
         preview_id: PREVIEW_ID,
         email: document.getElementById('customerEmail')?.value || '',
         want_pdf: wantPdf,
         pdf_format: document.querySelector('input[name="pdf_format"]:checked')?.value || 'carta',
         want_print: wantPrint,
-        shipping_name: document.getElementById('shippingName')?.value || '',
-        shipping_street: document.getElementById('shippingStreet')?.value || '',
-        shipping_city: document.getElementById('shippingCity')?.value || '',
-        shipping_state: document.getElementById('shippingState')?.value || '',
-        shipping_postal: document.getElementById('shippingPostal')?.value || '',
-        shipping_country: document.getElementById('shippingCountry')?.value || '',
-        shipping_phone: document.getElementById('customerPhone')?.value || '',
+        shipping_name: addr.name || document.getElementById('shippingName')?.value || '',
+        shipping_street: addr.street1 || document.getElementById('shippingStreet')?.value || '',
+        shipping_street2: addr.street2 || document.getElementById('shippingStreet2')?.value || '',
+        shipping_city: addr.city || document.getElementById('shippingCity')?.value || '',
+        shipping_state: addr.state_code || document.getElementById('shippingState')?.value || '',
+        shipping_postal: addr.postcode || document.getElementById('shippingPostal')?.value || '',
+        shipping_country: addr.country_code || document.getElementById('shippingCountry')?.value || '',
+        shipping_phone: getFullPhone() || document.getElementById('shippingPhone')?.value || '',
         shipping_method: selectedShippingMethod,
         shipping_cost: selectedShippingCost,
+        coupon_code: appliedCoupon || '',
         total_amount: getTotal()
     };
 }
 
+// ── PayPal ───────────────────────────────────────────────────────────────────
 function renderPayPalButtons() {
     if (typeof paypal_sdk === 'undefined') return;
     paypal_sdk.Buttons({
         style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'pay' },
-        onClick: function(data, actions) {
-            return validateForm() ? actions.resolve() : actions.reject();
+        onClick: async function(data, actions) {
+            if (!validateForm()) return actions.reject();
+            if (wantPrint && !addressValidated) {
+                const ok = await validateShippingAddress();
+                if (!ok) return actions.reject();
+            }
+            return actions.resolve();
         },
         createOrder: async function() {
             const resp = await fetch('/api/paypal/create-formats-order', {
@@ -475,7 +903,8 @@ function renderPayPalButtons() {
                     want_print: wantPrint,
                     shipping_method: wantPrint ? selectedShippingMethod : '',
                     shipping_country: wantPrint ? (document.getElementById('shippingCountry')?.value || '') : '',
-                    shipping_state: wantPrint ? (document.getElementById('shippingState')?.value || '') : ''
+                    shipping_state: wantPrint ? (document.getElementById('shippingState')?.value || '') : '',
+                    coupon_code: appliedCoupon || ''
                 })
             });
             const order = await resp.json();
@@ -505,10 +934,8 @@ function renderPayPalButtons() {
     }).render('#paypal-button-container');
     paypalButtonsRendered = true;
 }
-</script>
 
-<script src="{{ url_for('static', filename='js/photon_ac.js') }}"></script>
-<script>
+// ── DOMContentLoaded ─────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
     initPhotonAC({
         streetInput:  'shippingStreet',
@@ -519,13 +946,45 @@ document.addEventListener('DOMContentLoaded', function () {
         lang: '{{ lang }}'
     });
 
-    // Re-check payment section visibility whenever address fields change
+    const countrySelect = document.getElementById('shippingCountry');
+    if (countrySelect) {
+        countrySelect.addEventListener('change', () => onCountryChange(countrySelect.value));
+    }
+
+    const postalEl = document.getElementById('shippingPostal');
+    if (postalEl) {
+        postalEl.addEventListener('blur', () => {
+            zipAutoFill(postalEl.value.trim());
+            autoValidateAddress();
+        });
+        postalEl.addEventListener('input', () => {
+            const v = postalEl.value.replace(/\D/g,'');
+            const country = document.getElementById('shippingCountry')?.value || '';
+            if (country === 'US' && v.length === 5) zipAutoFill(v);
+        });
+    }
+
+    const stateEl = document.getElementById('shippingState');
+    if (stateEl) {
+        stateEl.addEventListener('blur', () => {
+            const country = document.getElementById('shippingCountry')?.value;
+            const state = stateEl.value.trim();
+            if ((country === 'US' || country === 'AU') && state && wantPrint && selectedShippingMethod) calculateShipping();
+        });
+    }
+
+    ['shippingName','shippingStreet','shippingStreet2','shippingCity','shippingState','shippingPostal','shippingPhone'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', resetAddressValidation);
+    });
+
     ['shippingName', 'shippingStreet', 'shippingCity', 'shippingPostal', 'shippingCountry'].forEach(function(id) {
         const el = document.getElementById(id);
-        if (el) el.addEventListener('input', function() { if (wantPrint) updatePaymentSection(); });
         if (el) el.addEventListener('change', function() { if (wantPrint) updatePaymentSection(); });
     });
 });
 </script>
+
+<script src="{{ url_for('static', filename='js/photon_ac.js') }}"></script>
 {% endif %}
 {% endblock %}

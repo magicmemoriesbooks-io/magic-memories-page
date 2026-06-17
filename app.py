@@ -13169,16 +13169,20 @@ def _quote_pb_shipping_for_method(country: str, state: str, shipping_method: str
     return ship_usd, None
 
 
-def _compute_formats_order_total(want_pdf: bool, want_print: bool, verified_ship_usd: float) -> float:
+def _compute_formats_order_total(want_pdf: bool, want_print: bool, verified_ship_usd: float, coupon_discount_pct: float = 0.0) -> float:
     """Compute expected order total from authoritative Config prices + verified shipping.
-    Launch discount applies to product prices only; shipping is never discounted."""
-    disc = 1.0 - (Config.LAUNCH_DISCOUNT_PCT / 100.0)
-    total = 0.0
+    Launch discount applies to product prices only; shipping is never discounted.
+    coupon_discount_pct is an additional % discount on the platform fee (after launch disc)."""
+    launch_disc = 1.0 - (Config.LAUNCH_DISCOUNT_PCT / 100.0)
+    platform_fee = 0.0
     if want_pdf:
-        total += round(Config.PERSONALIZED_PDF_PRICE / 100.0 * disc, 2)
+        platform_fee += round(Config.PERSONALIZED_PDF_PRICE / 100.0 * launch_disc, 2)
     if want_print:
-        total += round(Config.CP_PB_BASE_PRICE / 100.0 * disc, 2)
-        total += verified_ship_usd
+        platform_fee += round(Config.CP_PB_BASE_PRICE / 100.0 * launch_disc, 2)
+    if coupon_discount_pct > 0:
+        coupon_disc = round(platform_fee * coupon_discount_pct / 100, 2)
+        platform_fee = max(round(platform_fee - coupon_disc, 2), 0.01)
+    total = platform_fee + (verified_ship_usd if want_print else 0.0)
     return round(total, 2)
 
 
@@ -13206,8 +13210,19 @@ def paypal_create_formats_order():
                 return jsonify({'error': err}), 400
             verified_ship_usd = ship_usd
 
+        # Coupon validation (server-side)
+        coupon_code = (data.get('coupon_code') or '').strip().upper()
+        coupon_discount_pct = 0.0
+        if coupon_code:
+            _cpn = Coupon.query.filter_by(code=coupon_code, is_active=True).first()
+            if _cpn:
+                _max = _cpn.max_uses or 0
+                _used = _cpn.use_count or 0
+                if _max == 0 or _used < _max:
+                    coupon_discount_pct = float(_cpn.discount_pct or 0)
+
         # Server-side authoritative total
-        amount = _compute_formats_order_total(want_pdf, want_print, verified_ship_usd)
+        amount = _compute_formats_order_total(want_pdf, want_print, verified_ship_usd, coupon_discount_pct)
         if amount <= 0:
             return jsonify({'error': 'Invalid computed amount'}), 400
 
@@ -13272,8 +13287,19 @@ def paypal_capture_formats_order():
                 return jsonify({'error': err}), 400
             verified_ship_usd = ship_usd
 
+        # Coupon validation (server-side re-check at capture)
+        coupon_code_cap = (data.get('coupon_code') or '').strip().upper()
+        coupon_discount_pct_cap = 0.0
+        if coupon_code_cap:
+            _cpn_cap = Coupon.query.filter_by(code=coupon_code_cap, is_active=True).first()
+            if _cpn_cap:
+                _max_c = _cpn_cap.max_uses or 0
+                _used_c = _cpn_cap.use_count or 0
+                if _max_c == 0 or _used_c < _max_c:
+                    coupon_discount_pct_cap = float(_cpn_cap.discount_pct or 0)
+
         # --- Server-side expected total (authoritative) ---
-        expected_total = _compute_formats_order_total(want_pdf, want_print, verified_ship_usd)
+        expected_total = _compute_formats_order_total(want_pdf, want_print, verified_ship_usd, coupon_discount_pct_cap)
 
         preview_id = data.get('preview_id', '')
         if not _PREVIEW_ID_RE.match(preview_id):
@@ -13320,8 +13346,40 @@ def paypal_capture_formats_order():
             _fmt_fp['print'] = _fmt_print_price
         _fmt_payment_data_base['format_prices'] = _fmt_fp
         _fmt_payment_data_base['shipping_cost_usd'] = round(verified_ship_usd, 2)
-        _fmt_payment_data_base['discount_amount'] = 0.0
-        _fmt_payment_data_base['coupon_code'] = ''
+        _fmt_disc_amt = 0.0
+        if coupon_code_cap and coupon_discount_pct_cap > 0:
+            _platform_before = _compute_formats_order_total(want_pdf, want_print, 0.0, 0.0)
+            _platform_after  = _compute_formats_order_total(want_pdf, want_print, 0.0, coupon_discount_pct_cap)
+            _fmt_disc_amt = round(_platform_before - _platform_after, 2)
+        _fmt_payment_data_base['discount_amount'] = _fmt_disc_amt
+        _fmt_payment_data_base['coupon_code'] = coupon_code_cap or ''
+
+        # --- Record coupon usage ---
+        if coupon_code_cap and coupon_discount_pct_cap > 0:
+            try:
+                _cpn_rec = Coupon.query.filter_by(code=coupon_code_cap).first()
+                if _cpn_rec:
+                    _buyer_email_cpn = data.get('email', payer_email) or payer_email
+                    if _cpn_rec.coupon_type in ('influencer', 'referral') and _buyer_email_cpn:
+                        _existing = CouponUsage.query.filter_by(
+                            coupon_code=coupon_code_cap, buyer_email=_buyer_email_cpn, paypal_order_id=None
+                        ).first()
+                        if _existing:
+                            _existing.paypal_order_id = order_id
+                            db.session.commit()
+                        else:
+                            db.session.add(CouponUsage(coupon_code=coupon_code_cap, buyer_email=_buyer_email_cpn,
+                                paypal_order_id=order_id, discount_pct=_cpn_rec.discount_pct or 0))
+                            db.session.commit()
+                    else:
+                        db.session.add(CouponUsage(coupon_code=coupon_code_cap,
+                            buyer_email=data.get('email', payer_email) or payer_email,
+                            paypal_order_id=order_id, discount_pct=_cpn_rec.discount_pct or 0))
+                        _cpn_rec.use_count = (_cpn_rec.use_count or 0) + 1
+                        db.session.commit()
+                    print(f"[COUPON][FORMATS] Usage confirmed: {coupon_code_cap} order={order_id}")
+            except Exception as _cpn_err:
+                print(f"[COUPON][FORMATS] Error recording usage: {_cpn_err}")
 
         # --- Verify captured amount matches authoritative server total (tolerance $0.05) ---
         if abs(amount_paid - expected_total) > 0.05:
@@ -13384,8 +13442,8 @@ def paypal_capture_formats_order():
             story_data['product_type'] = 'cp_personalized'
             story_data['format_prices'] = _fmt_fp
             story_data['shipping_cost_usd'] = round(verified_ship_usd, 2)
-            story_data['discount_amount'] = 0.0
-            story_data['coupon_code'] = ''
+            story_data['discount_amount'] = _fmt_disc_amt
+            story_data['coupon_code'] = coupon_code_cap or ''
             with open(preview_file, 'w', encoding='utf-8') as f:
                 json.dump(story_data, f, ensure_ascii=False, indent=2)
 
