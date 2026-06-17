@@ -2276,6 +2276,46 @@ def api_story_open():
     return jsonify({'ok': True})
 
 
+@app.route('/api/story-completed', methods=['POST'])
+def api_story_completed():
+    """Record STORY_COMPLETED event — called by visor when user reaches last page for first time."""
+    data = request.get_json(silent=True) or {}
+    preview_id = (data.get('preview_id') or '').strip()
+    story_type = (data.get('story_type') or 'qs').strip()
+    if not preview_id:
+        return jsonify({'ok': False}), 400
+    if os.path.exists(STORY_EVENTS_FILE):
+        with open(STORY_EVENTS_FILE, 'r', encoding='utf-8') as _f:
+            for _line in _f:
+                try:
+                    _ev = json.loads(_line)
+                    if _ev.get('event_type') == 'STORY_COMPLETED' and _ev.get('preview_id') == preview_id:
+                        return jsonify({'ok': True, 'already': True})
+                except Exception:
+                    continue
+    customer_email = ''
+    _sj = os.path.join('story_previews', f'{preview_id}.json')
+    if os.path.exists(_sj):
+        try:
+            with open(_sj, 'r', encoding='utf-8') as _f:
+                _sd = json.load(_f)
+            customer_email = (_sd.get('customer_email') or '').strip().lower()
+        except Exception:
+            pass
+    event = {
+        'event_type': 'STORY_COMPLETED',
+        'preview_id': preview_id,
+        'customer_email': customer_email,
+        'story_type': story_type,
+        'ts': datetime.utcnow().isoformat(),
+        'ip': request.remote_addr or '',
+    }
+    os.makedirs('data', exist_ok=True)
+    with open(STORY_EVENTS_FILE, 'a', encoding='utf-8') as _f:
+        _f.write(json.dumps(event) + '\n')
+    return jsonify({'ok': True})
+
+
 @app.route('/api/generate-baby-preview', methods=['POST'])
 def generate_baby_preview_api():
     """Generate character preview with FLUX via Replicate (supports baby and kids)"""
@@ -9954,6 +9994,27 @@ def admin_crm_clientes():
         except Exception:
             return None
 
+    # Load engagement events for opened/completed badges
+    _opened_ids = set()
+    _completed_ids = set()
+    if os.path.exists(STORY_EVENTS_FILE):
+        try:
+            with open(STORY_EVENTS_FILE, 'r', encoding='utf-8') as _ef:
+                for _line in _ef:
+                    try:
+                        _ev = json.loads(_line.strip())
+                        _etype = _ev.get('event_type', '')
+                        _pid = _ev.get('preview_id', '')
+                        if _pid:
+                            if _etype == 'FIRST_STORY_OPEN':
+                                _opened_ids.add(_pid)
+                            elif _etype == 'STORY_COMPLETED':
+                                _completed_ids.add(_pid)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
     customers = {}
     for pf in _glob.glob('story_previews/*.json'):
         try:
@@ -10000,6 +10061,8 @@ def admin_crm_clientes():
                 'want_print': want_print,
                 'want_pdf': want_pdf,
                 'ebook_paid': ebook_paid,
+                'opened': pid in _opened_ids,
+                'completed': pid in _completed_ids,
             })
             c['total_amount'] += amount
             if purchase_date:
@@ -10158,7 +10221,11 @@ def admin_crm_timeline(email):
                 except Exception:
                     pass
 
-    # ── 3. FIRST_STORY_OPEN events ────────────────────────────────────────────
+    # ── 3. Visor engagement events (FIRST_STORY_OPEN, STORY_COMPLETED) ─────────
+    _story_event_icons = {
+        'FIRST_STORY_OPEN': ('👀', 'Primera apertura del cuento'),
+        'STORY_COMPLETED':  ('📚', 'Cuento completado'),
+    }
     if os.path.exists(STORY_EVENTS_FILE):
         with open(STORY_EVENTS_FILE, 'r', encoding='utf-8') as _sf:
             for line in _sf:
@@ -10169,12 +10236,14 @@ def admin_crm_timeline(email):
                     ev = json.loads(line)
                     if (ev.get('customer_email') or '').strip().lower() != email:
                         continue
-                    if ev.get('event_type') != 'FIRST_STORY_OPEN':
+                    _ev_type = ev.get('event_type', '')
+                    if _ev_type not in _story_event_icons:
                         continue
+                    _icon, _label = _story_event_icons[_ev_type]
                     ts = _dt.fromisoformat(ev['ts'][:19])
                     events.append({
-                        'ts': ts, 'icon': '👀',
-                        'label': 'Primera apertura del cuento',
+                        'ts': ts, 'icon': _icon,
+                        'label': _label,
                         'detail': '',
                         'preview_id': ev.get('preview_id', ''),
                         'approx': False, 'result': '',
