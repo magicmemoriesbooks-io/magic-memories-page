@@ -146,12 +146,18 @@ def _isabel_signature_html() -> str:
     </div>"""
 
 
-def _email_wrapper(title: str, content_html: str, to_email: str = '') -> str:
+def _email_wrapper(title: str, content_html: str, to_email: str = '', preheader: str = '') -> str:
     footer_email = f"<p style='margin:4px 0;'>Este email fue enviado a {to_email}</p>" if to_email else ""
+    _preheader_html = (
+        f'<span style="display:none;max-height:0;overflow:hidden;mso-hide:all;'
+        f'opacity:0;font-size:1px;color:transparent;line-height:0;">{preheader}</span>'
+        if preheader else ''
+    )
     return f"""<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
 <body style="font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:0;background-color:#f8f5ff;">
+{_preheader_html}
 <div style="max-width:600px;margin:0 auto;padding:20px;">
     <div style="background-color:#9333ea;background-image:linear-gradient(135deg,#9333ea,#ec4899);padding:30px;text-align:center;border-radius:20px 20px 0 0;">
         <img src="{LOGO_URL}" alt="Magic Memories Books" style="max-width:80px;height:auto;margin-bottom:12px;border-radius:12px;" />
@@ -3288,7 +3294,6 @@ def send_upsell_print_email(preview_id: str, to_email: str, child_name: str = ''
                 Just choose the format you prefer.
             </p>"""
         content = f"""
-        <span style="display:none;max-height:0;overflow:hidden;mso-hide:all;opacity:0;font-size:1px;color:transparent;">{preheader}</span>
         <p style="font-size:16px;color:#374151;line-height:1.8;margin-top:0;">Hello,</p>
         {body_paras}
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:32px auto;">
@@ -3372,7 +3377,6 @@ def send_upsell_print_email(preview_id: str, to_email: str, child_name: str = ''
                 Solo tienes que elegir el formato que prefieras.
             </p>"""
         content = f"""
-        <span style="display:none;max-height:0;overflow:hidden;mso-hide:all;opacity:0;font-size:1px;color:transparent;">{preheader}</span>
         <p style="font-size:16px;color:#374151;line-height:1.8;margin-top:0;">Hola,</p>
         {body_paras}
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:32px auto;">
@@ -3389,7 +3393,7 @@ def send_upsell_print_email(preview_id: str, to_email: str, child_name: str = ''
         <p style="font-size:16px;color:#374151;line-height:1.8;margin-bottom:0;">Un abrazo,</p>"""
 
     content += _isabel_signature_html()
-    html_body = _email_wrapper("Magic Memories Books", content, to_email)
+    html_body = _email_wrapper("Magic Memories Books", content, to_email, preheader=preheader)
 
     msg = MIMEMultipart('alternative')
     msg['Subject'] = subject
