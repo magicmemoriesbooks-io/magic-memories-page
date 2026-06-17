@@ -493,10 +493,27 @@
 </section>
 
 <div id="errorModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-2xl p-6 max-w-md w-full">
+    <!-- Normal error -->
+    <div id="errorModalNormal" class="bg-white rounded-2xl p-6 max-w-md w-full">
         <h3 id="errorModalTitle" class="font-bold text-red-600 text-lg mb-2">{% if lang == 'es' %}Error{% else %}Error{% endif %}</h3>
         <p id="errorMessage" class="text-gray-700 mb-4"></p>
         <button onclick="document.getElementById('errorModal').classList.add('hidden')" class="w-full py-2 bg-purple-500 text-white rounded-full hover:bg-purple-600">OK</button>
+    </div>
+    <!-- Rate limit: warm conversion popup -->
+    <div id="errorModalRateLimit" class="hidden bg-white rounded-3xl p-7 max-w-sm w-full shadow-2xl text-center">
+        <div class="text-5xl mb-3">✨</div>
+        <h3 class="font-bold text-purple-700 text-xl mb-3">{% if lang == 'es' %}¡La magia ya ha comenzado!{% else %}The magic has already begun!{% endif %}</h3>
+        <p id="errorMessageRateLimit" class="text-gray-600 text-sm leading-relaxed mb-3"></p>
+        <p class="text-xs text-indigo-500 font-semibold mb-1">📖 {% if lang == 'es' %}Disponible en digital, PDF imprimible e impreso.{% else %}Available as digital, printable PDF and printed book.{% endif %}</p>
+        <p class="text-xs text-gray-400 italic mb-5">{% if lang == 'es' %}Las personalizaciones gratuitas se renuevan periódicamente. Si no puedes terminar ahora, vuelve mañana.{% else %}Free personalizations refresh periodically. If you can't finish now, come back tomorrow.{% endif %}</p>
+        <div class="flex flex-col gap-2">
+            <a id="rateLimitViewBtn" href="#" class="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full font-bold text-sm hover:opacity-90 transition">
+                📖 {% if lang == 'es' %}Ver mi cuento →{% else %}View my story →{% endif %}
+            </a>
+            <button onclick="document.getElementById('errorModal').classList.add('hidden')" class="w-full py-2 text-gray-400 text-sm hover:text-gray-600 transition">
+                {% if lang == 'es' %}Entendido{% else %}Got it{% endif %}
+            </button>
+        </div>
     </div>
 </div>
 
@@ -714,6 +731,7 @@ document.getElementById('generateStoryBtn').addEventListener('click', async func
         const data = await response.json();
         
         if (data.success) {
+            if (data.preview_url) localStorage.setItem('mmb_last_preview_url', data.preview_url);
             window.location.href = data.preview_url;
         } else {
             showError(data.error || '{% if lang == "es" %}Error al generar el cuento{% else %}Error generating story{% endif %}', !!data.rate_limited);
@@ -728,17 +746,41 @@ document.getElementById('generateStoryBtn').addEventListener('click', async func
 });
 
 function showError(message, isRateLimit = false) {
-    const titleEl = document.getElementById('errorModalTitle');
-    if (titleEl) {
-        if (isRateLimit) {
-            titleEl.textContent = '{% if lang == "es" %}Límite de previsualizaciones{% else %}Preview limit reached{% endif %}';
-            titleEl.className = 'font-bold text-amber-600 text-lg mb-2';
-        } else {
+    const normalDiv = document.getElementById('errorModalNormal');
+    const rlDiv = document.getElementById('errorModalRateLimit');
+    if (isRateLimit) {
+        if (normalDiv) normalDiv.classList.add('hidden');
+        if (rlDiv) rlDiv.classList.remove('hidden');
+        // Build personalised message with child name
+        const nameEl = document.getElementById('child_name') || document.querySelector('input[name="child_name"]');
+        const childName = (nameEl && nameEl.value.trim()) ? nameEl.value.trim() : '';
+        const msgEl = document.getElementById('errorMessageRateLimit');
+        if (msgEl) {
+            const nameStr = childName
+                ? ('{% if lang == "es" %}Si te encanta cómo ha quedado <strong>' + childName + '</strong>, puedes continuar ahora y convertirla en un recuerdo único para siempre.{% else %}If you love how <strong>' + childName + '</strong> turned out, you can continue now and make it a unique memory forever.{% endif %}')
+                : '{% if lang == "es" %}Si te encanta cómo ha quedado tu historia, puedes continuar ahora y convertirla en un recuerdo único para siempre.{% else %}If you love how your story turned out, you can continue now and make it a unique memory forever.{% endif %}';
+            msgEl.innerHTML = '{% if lang == "es" %}Tu historia personalizada estará lista en minutos para que la revises. {% else %}Your personalised story will be ready in minutes for you to review. {% endif %}' + nameStr;
+        }
+        const viewBtn = document.getElementById('rateLimitViewBtn');
+        if (viewBtn) {
+            const lastUrl = localStorage.getItem('mmb_last_preview_url');
+            if (lastUrl) {
+                viewBtn.href = lastUrl;
+                viewBtn.classList.remove('hidden');
+            } else {
+                viewBtn.classList.add('hidden');
+            }
+        }
+    } else {
+        if (normalDiv) normalDiv.classList.remove('hidden');
+        if (rlDiv) rlDiv.classList.add('hidden');
+        const titleEl = document.getElementById('errorModalTitle');
+        if (titleEl) {
             titleEl.textContent = '{% if lang == "es" %}Error{% else %}Error{% endif %}';
             titleEl.className = 'font-bold text-red-600 text-lg mb-2';
         }
+        document.getElementById('errorMessage').textContent = message;
     }
-    document.getElementById('errorMessage').textContent = message;
     document.getElementById('errorModal').classList.remove('hidden');
 }
 

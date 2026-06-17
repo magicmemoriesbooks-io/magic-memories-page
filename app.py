@@ -22,10 +22,10 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 preview_rate_limits = {}
 email_rate_limits = {}
-PREVIEW_RATE_MAX = 4
-PREVIEW_RATE_WINDOW = 3 * 60 * 60
-EMAIL_RATE_MAX = 2
-EMAIL_RATE_WINDOW = 24 * 60 * 60
+PREVIEW_IP_MAX = 2
+PREVIEW_IP_WINDOW = 24 * 60 * 60
+PREVIEW_EMAIL_MAX = 1
+PREVIEW_EMAIL_WINDOW = 24 * 60 * 60
 _generation_progress = {}
 
 def _write_progress(preview_id, done, total):
@@ -64,44 +64,57 @@ def get_client_ip():
     return request.remote_addr or '0.0.0.0'
 
 def check_preview_rate_limit(ip):
-    now = time.time()
-    if ip not in preview_rate_limits:
-        preview_rate_limits[ip] = []
-    preview_rate_limits[ip] = [t for t in preview_rate_limits[ip] if now - t < PREVIEW_RATE_WINDOW]
-    remaining = PREVIEW_RATE_MAX - len(preview_rate_limits[ip])
-    return remaining > 0, max(0, remaining)
+    """DB-based: max 2 distinct previews per 24h per IP (Gunicorn-safe, survives restarts)."""
+    if not ip or ip == '0.0.0.0':
+        return True, PREVIEW_IP_MAX
+    try:
+        cutoff = datetime.utcnow() - timedelta(hours=24)
+        count = PreviewLead.query.filter(
+            PreviewLead.ip_address == ip,
+            PreviewLead.created_at >= cutoff
+        ).count()
+        remaining = max(0, PREVIEW_IP_MAX - count)
+        return remaining > 0, remaining
+    except Exception:
+        return True, PREVIEW_IP_MAX
 
 def record_preview_usage(ip):
-    if ip not in preview_rate_limits:
-        preview_rate_limits[ip] = []
-    preview_rate_limits[ip].append(time.time())
+    pass  # No-op: DB tracking via save_preview_lead
 
 def check_email_rate_limit(email):
+    """DB-based: max 1 distinct story per 24h per email (Gunicorn-safe, survives restarts)."""
     if not email:
-        return True, EMAIL_RATE_MAX
-    now = time.time()
-    key = email.lower().strip()
-    if key not in email_rate_limits:
-        email_rate_limits[key] = []
-    email_rate_limits[key] = [t for t in email_rate_limits[key] if now - t < EMAIL_RATE_WINDOW]
-    remaining = EMAIL_RATE_MAX - len(email_rate_limits[key])
-    return remaining > 0, max(0, remaining)
+        return True, PREVIEW_EMAIL_MAX
+    try:
+        cutoff = datetime.utcnow() - timedelta(hours=24)
+        count = PreviewLead.query.filter(
+            db.func.lower(PreviewLead.email) == email.strip().lower(),
+            PreviewLead.created_at >= cutoff
+        ).count()
+        remaining = max(0, PREVIEW_EMAIL_MAX - count)
+        return remaining > 0, remaining
+    except Exception:
+        return True, PREVIEW_EMAIL_MAX
 
 def record_email_usage(email):
-    if not email:
-        return
-    key = email.lower().strip()
-    if key not in email_rate_limits:
-        email_rate_limits[key] = []
-    email_rate_limits[key].append(time.time())
+    pass  # No-op: DB tracking via save_preview_lead
 
 def save_preview_lead(email, ip, story_id):
     try:
-        existing = PreviewLead.query.filter_by(email=email, story_id=story_id).first()
-        if not existing:
-            lead = PreviewLead(email=email, ip_address=ip, story_id=story_id)
-            db.session.add(lead)
-            db.session.commit()
+        email_key = (email or '').strip().lower()
+        if email_key:
+            existing = PreviewLead.query.filter_by(email=email_key, story_id=story_id).first()
+            if not existing:
+                lead = PreviewLead(email=email_key, ip_address=ip, story_id=story_id)
+                db.session.add(lead)
+                db.session.commit()
+        else:
+            # No email: track by IP+story_id so IP limit still applies
+            existing = PreviewLead.query.filter_by(ip_address=ip, story_id=story_id, email='').first()
+            if not existing:
+                lead = PreviewLead(email='', ip_address=ip, story_id=story_id)
+                db.session.add(lead)
+                db.session.commit()
     except Exception as e:
         db.session.rollback()
         print(f"[LEAD] Error saving preview lead: {e}")
@@ -2353,21 +2366,15 @@ def generate_baby_preview_api():
 
         if not data.get('admin_gift'):
             client_ip = get_client_ip()
-            allowed, remaining = check_preview_rate_limit(client_ip)
-            if not allowed:
-                lang = get_lang()
-                msg = '🎨 Has generado 4 previsualizaciones gratuitas en las últimas 3 horas. Cada ilustración se crea con inteligencia artificial y tiene un costo. Podrás generar de nuevo en unas horas, o si ya encontraste el cuento que te gusta, ¡puedes continuar con tu pedido ahora!' if lang == 'es' else "🎨 You've used your 4 free previews in the last 3 hours. Each illustration is AI-generated and has a cost. You can try again in a few hours — or if you found the story you love, go ahead and order!"
-                return jsonify({'success': False, 'error': msg, 'rate_limited': True}), 429
             user_email = data.get('user_email', '').strip()
+            allowed, _ = check_preview_rate_limit(client_ip)
+            if not allowed:
+                return jsonify({'success': False, 'error': 'rate_limited', 'rate_limited': True}), 429
             if user_email:
                 email_ok, _ = check_email_rate_limit(user_email)
                 if not email_ok:
-                    lang = get_lang()
-                    msg = '🎨 Ya generaste 2 previsualizaciones con este correo hoy. Puedes intentar de nuevo mañana, o si ya encontraste el cuento perfecto, ¡continúa con tu pedido!' if lang == 'es' else "🎨 You've already generated 2 previews with this email today. Try again tomorrow — or if you found the perfect story, go ahead and order!"
-                    return jsonify({'success': False, 'error': msg, 'rate_limited': True}), 429
-                save_preview_lead(user_email, client_ip, data.get('story_id', ''))
-                record_email_usage(user_email)
-            record_preview_usage(client_ip)
+                    return jsonify({'success': False, 'error': 'rate_limited', 'rate_limited': True}), 429
+            save_preview_lead(user_email, client_ip, data.get('story_id', ''))
 
         from services.replicate_service import generate_illustration_replicate, save_image_locally, get_unified_skin_description, get_gender_negative_prompt, FLUX_DEV_MODEL, FLUX_2_DEV_MODEL
         from services.fixed_stories import get_hair_description, get_eye_description, get_skin_tone, get_gender_child, STORIES
@@ -2711,21 +2718,14 @@ def regenerate_furry_preview():
         data = request.get_json()
 
         client_ip = get_client_ip()
-        allowed, remaining = check_preview_rate_limit(client_ip)
-        if not allowed:
-            lang = get_lang()
-            msg = '🎨 Has generado 4 previsualizaciones gratuitas en las últimas 3 horas. Cada ilustración se crea con inteligencia artificial y tiene un costo. Podrás generar de nuevo en unas horas, o si ya encontraste el cuento que te gusta, ¡puedes continuar con tu pedido ahora!' if lang == 'es' else "🎨 You've used your 4 free previews in the last 3 hours. Each illustration is AI-generated and has a cost. You can try again in a few hours — or if you found the story you love, go ahead and order!"
-            return jsonify({'success': False, 'error': msg, 'rate_limited': True}), 429
         user_email = data.get('user_email', '').strip()
+        # Regens don't count against daily limit (same email+story_id deduplicates in DB)
+        # but still check IP to prevent infinite regen loops from a single session
+        allowed, _ = check_preview_rate_limit(client_ip)
+        if not allowed:
+            return jsonify({'success': False, 'error': 'rate_limited', 'rate_limited': True}), 429
         if user_email:
-            email_ok, _ = check_email_rate_limit(user_email)
-            if not email_ok:
-                lang = get_lang()
-                msg = '🎨 Ya generaste 2 previsualizaciones con este correo hoy. Puedes intentar de nuevo mañana, o si ya encontraste el cuento perfecto, ¡continúa con tu pedido!' if lang == 'es' else "🎨 You've already generated 2 previews with this email today. Try again tomorrow — or if you found the perfect story, go ahead and order!"
-                return jsonify({'success': False, 'error': msg, 'rate_limited': True}), 429
             save_preview_lead(user_email, client_ip, data.get('story_id', ''))
-            record_email_usage(user_email)
-        record_preview_usage(client_ip)
 
         which = data.get('which', 'human')
         
@@ -3385,21 +3385,15 @@ def generate_fixed_story_api():
 
         if not data.get('admin_gift'):
             client_ip = get_client_ip()
-            allowed, remaining = check_preview_rate_limit(client_ip)
-            if not allowed:
-                lang = get_lang()
-                msg = '🎨 Has generado 4 previsualizaciones gratuitas en las últimas 3 horas. Cada ilustración se crea con inteligencia artificial y tiene un costo. Podrás generar de nuevo en unas horas, o si ya encontraste el cuento que te gusta, ¡puedes continuar con tu pedido ahora!' if lang == 'es' else "🎨 You've used your 4 free previews in the last 3 hours. Each illustration is AI-generated and has a cost. You can try again in a few hours — or if you found the story you love, go ahead and order!"
-                return jsonify({'success': False, 'error': msg, 'rate_limited': True}), 429
             user_email = data.get('user_email', '').strip()
+            allowed, _ = check_preview_rate_limit(client_ip)
+            if not allowed:
+                return jsonify({'success': False, 'error': 'rate_limited', 'rate_limited': True}), 429
             if user_email:
                 email_ok, _ = check_email_rate_limit(user_email)
                 if not email_ok:
-                    lang = get_lang()
-                    msg = '🎨 Ya generaste 2 previsualizaciones con este correo hoy. Puedes intentar de nuevo mañana, o si ya encontraste el cuento perfecto, ¡continúa con tu pedido!' if lang == 'es' else "🎨 You've already generated 2 previews with this email today. Try again tomorrow — or if you found the perfect story, go ahead and order!"
-                    return jsonify({'success': False, 'error': msg, 'rate_limited': True}), 429
-                save_preview_lead(user_email, client_ip, data.get('story_id', ''))
-                record_email_usage(user_email)
-            record_preview_usage(client_ip)
+                    return jsonify({'success': False, 'error': 'rate_limited', 'rate_limited': True}), 429
+            save_preview_lead(user_email, client_ip, data.get('story_id', ''))
 
         from services.fixed_stories import prepare_story, STORIES, get_static_illustrations
         
