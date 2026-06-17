@@ -842,12 +842,13 @@
     <div class="mmg-masonry">
       {% for item in gallery_items %}
         {% if item.type == 'image' %}
-        <div class="mmg-item" onclick="mmgOpen('{{ item.url }}','image')">
+        {% set is_lifestyle = 'lifestyle' in item.url %}
+        <div class="mmg-item{% if is_lifestyle %} mmg-portrait{% endif %}" onclick="mmgOpen('{{ item.url }}','image')">
           <img src="{{ item.url }}" alt="Magic Memories Book — libro personalizado real" loading="lazy">
           <div class="mmg-overlay"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35M11 8v6M8 11h6"/></svg></div>
         </div>
         {% elif item.type == 'video' %}
-        <div class="mmg-item mmg-video-item" onclick="mmgOpen('{{ item.url }}','video')">
+        <div class="mmg-item" onclick="mmgOpen('{{ item.url }}','video')">
           <video src="{{ item.url }}" muted loop playsinline preload="auto"{% if item.poster %} poster="{{ item.poster }}"{% endif %}></video>
           <div class="mmg-overlay">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
@@ -871,28 +872,34 @@
 
 <style>
 .mmg-masonry {
-  columns: 2;
-  column-gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: 220px;
+  grid-auto-flow: dense;
+  gap: 10px;
 }
-@media(min-width:640px){ .mmg-masonry { columns: 3; column-gap: 14px; } }
-@media(min-width:1024px){ .mmg-masonry { columns: 4; column-gap: 16px; } }
+@media(min-width:640px){
+  .mmg-masonry { grid-template-columns: repeat(3, 1fr); grid-auto-rows: 230px; gap: 12px; }
+}
+@media(min-width:1024px){
+  .mmg-masonry { grid-template-columns: repeat(4, 1fr); grid-auto-rows: 240px; gap: 14px; }
+}
 .mmg-item {
-  break-inside: avoid;
-  margin-bottom: 14px;
   border-radius: 12px;
   overflow: hidden;
   cursor: zoom-in;
   position: relative;
   background: #1a1a1a;
 }
+.mmg-portrait { grid-row: span 2; }
 .mmg-item img, .mmg-item video {
   width: 100%;
+  height: 100%;
   display: block;
-  transition: transform .4s ease;
-  max-height: 320px;
   object-fit: cover;
+  transition: transform .4s ease;
 }
-.mmg-item:hover img, .mmg-item:hover video { transform: scale(1.04); }
+.mmg-item:hover img, .mmg-item:hover video { transform: scale(1.05); }
 .mmg-overlay {
   position: absolute;
   inset: 0;
@@ -904,7 +911,6 @@
   opacity: 0;
 }
 .mmg-item:hover .mmg-overlay { background: rgba(0,0,0,0.28); opacity: 1; }
-.mmg-video-item video { max-height: 340px; object-fit: cover; }
 #mmg-lightbox.open { display:flex !important; }
 </style>
 
