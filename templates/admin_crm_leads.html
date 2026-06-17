@@ -8,7 +8,7 @@
   <div style="margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
     <div>
       <h1 style="font-size:20px;font-weight:800;color:#1e293b;margin:0 0 2px 0;">🎯 CRM — Leads</h1>
-      <p style="font-size:12px;color:#64748b;margin:0;">Usuarios que iniciaron una preview pero no completaron compra. Agrupados por persona.</p>
+      <p style="font-size:12px;color:#64748b;margin:0;">Personas que generaron una preview pero no completaron compra. Agrupadas por email.</p>
     </div>
     <a href="/admin" style="font-size:11px;color:#6366f1;text-decoration:none;font-weight:700;">← Panel Admin</a>
   </div>
@@ -28,7 +28,7 @@
     </div>
     <div style="background:white;border-radius:10px;padding:14px 16px;border:1px solid #e2e8f0;text-align:center;">
       <div style="font-size:24px;font-weight:800;color:#6366f1;">{{ total_leads_db }}</div>
-      <div style="font-size:10px;color:#64748b;font-weight:600;margin-top:2px;">PREVIEWS TOTALES</div>
+      <div style="font-size:10px;color:#64748b;font-weight:600;margin-top:2px;">PREVIEWS EN DB</div>
     </div>
     <div style="background:white;border-radius:10px;padding:14px 16px;border:1px solid #e2e8f0;text-align:center;">
       <div style="font-size:24px;font-weight:800;color:#16a34a;">{{ buyer_count }}</div>
@@ -40,14 +40,14 @@
     </div>
   </div>
 
-  <!-- Export + note -->
+  <!-- Info + export -->
   <div style="background:white;border-radius:10px;padding:12px 16px;border:1px solid #e2e8f0;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
     <span style="font-size:12px;color:#64748b;">
       <strong>{{ unique_emails }}</strong> persona{% if unique_emails != 1 %}s{% endif %} con previews sin compra
-      {% if buyer_count > 0 %} · <span style="color:#16a34a;">{{ buyer_count }} convertida{% if buyer_count != 1 %}s{% endif %} → aparecen en 👤 Clientes</span>{% endif %}
+      {% if buyer_count > 0 %} &nbsp;·&nbsp; <a href="/admin/crm/clientes" style="color:#16a34a;font-weight:700;text-decoration:none;">{{ buyer_count }} convertida{% if buyer_count != 1 %}s{% endif %} → ver en 👤 Clientes</a>{% endif %}
     </span>
     <a href="/admin/preview-leads/csv"
-       style="background:linear-gradient(135deg,#D4AF37,#B8860B);color:#fff;border:none;padding:7px 16px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">
+       style="background:linear-gradient(135deg,#D4AF37,#B8860B);color:#fff;padding:7px 16px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">
       Exportar CSV
     </a>
   </div>
@@ -59,18 +59,25 @@
     {% set card_id = 'lead-' ~ loop.index %}
     <div style="background:white;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.04);">
 
-      <!-- Header row (clickable to expand) -->
-      <div onclick="toggleLead('{{ card_id }}')" style="padding:16px 18px;display:flex;align-items:center;gap:14px;cursor:pointer;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background=''">
+      <!-- Header (clickable) -->
+      <div onclick="toggleLead('{{ card_id }}')" style="padding:16px 18px;display:flex;align-items:center;gap:14px;cursor:pointer;user-select:none;" onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background=''">
 
-        <!-- Avatar inicial -->
         <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#fde68a,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#92400e;flex-shrink:0;">
           {{ lg.email[0].upper() }}
         </div>
 
-        <!-- Email + badge -->
         <div style="flex:1;min-width:0;">
           <div style="font-size:14px;font-weight:800;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ lg.email }}</div>
           <div style="display:flex;align-items:center;gap:8px;margin-top:3px;flex-wrap:wrap;">
+            <!-- Child names from JSON enrichment -->
+            {% if lg.cuentos %}
+              {% set child_names = [] %}
+              {% for c in lg.cuentos %}{% if c.child_name and c.child_name not in child_names %}{% set _ = child_names.append(c.child_name) %}{% endif %}{% endfor %}
+              {% if child_names %}
+              <span style="font-size:12px;color:#475569;font-weight:700;">{{ child_names | join(', ') }}</span>
+              <span style="color:#cbd5e1;">·</span>
+              {% endif %}
+            {% endif %}
             <span style="font-size:11px;color:#64748b;">{{ lg.num_previews }} preview{% if lg.num_previews != 1 %}s{% endif %}</span>
             {% if lg.last_visit_str != '—' %}
             <span style="font-size:10px;color:#94a3b8;">· Última visita: {{ lg.last_visit_str }}</span>
@@ -78,57 +85,78 @@
           </div>
         </div>
 
-        <!-- Estado badge -->
         <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
           <span style="background:#fef9c3;color:#92400e;border:1px solid #fde68a;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">🟡 Lead activo</span>
-          <span id="{{ card_id }}-arrow" style="font-size:14px;color:#94a3b8;transition:transform 0.2s;">▼</span>
+          <span id="{{ card_id }}-arrow" style="font-size:13px;color:#94a3b8;transition:transform 0.2s;">▼</span>
         </div>
       </div>
 
       <!-- Detalle expandible -->
       <div id="{{ card_id }}" style="display:none;border-top:1px solid #f1f5f9;padding:16px 18px;background:#fafafa;">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;">
 
-          <!-- Story IDs -->
-          <div>
-            <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:6px;">Previews generadas</div>
-            {% if lg.story_ids %}
-            <div style="display:flex;flex-direction:column;gap:4px;">
-              {% for sid in lg.story_ids %}
-              <span style="background:#f0f4ff;color:#4f46e5;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:600;font-family:monospace;display:inline-block;">{{ sid }}</span>
-              {% endfor %}
+        <!-- Cuentos desde JSON (enriquecidos) -->
+        {% if lg.cuentos %}
+        <div style="margin-bottom:14px;">
+          <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:8px;">Cuentos generados</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            {% for c in lg.cuentos %}
+            <div style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <div style="flex:1;min-width:0;">
+                {% if c.child_name %}
+                <span style="font-size:13px;font-weight:700;color:#1e293b;">{{ c.child_name }}</span>
+                <span style="color:#cbd5e1;margin:0 4px;">·</span>
+                {% endif %}
+                <span style="background:#f0f4ff;color:#4f46e5;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;font-family:monospace;">{{ c.story_id or '—' }}</span>
+              </div>
+              <div style="font-size:11px;color:#94a3b8;white-space:nowrap;">{{ c.date_str }}</div>
+              <a href="/admin/preview/{{ c.preview_id }}"
+                 style="padding:4px 10px;background:#6366f1;color:white;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap;"
+                 title="Abrir en Cuentos Realizados">
+                Ver cuento →
+              </a>
             </div>
-            {% else %}
-            <span style="font-size:12px;color:#94a3b8;">—</span>
-            {% endif %}
+            {% endfor %}
           </div>
-
-          <!-- Fechas -->
-          <div>
-            <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:6px;">Visitas</div>
-            <div style="font-size:12px;color:#475569;margin-bottom:4px;">
-              <span style="color:#94a3b8;">Primera:</span> {{ lg.first_visit_str }}
-            </div>
-            <div style="font-size:12px;color:#475569;">
-              <span style="color:#94a3b8;">Última:</span> {{ lg.last_visit_str }}
-            </div>
+        </div>
+        {% elif lg.story_ids %}
+        <!-- Fallback: story_ids from DB only -->
+        <div style="margin-bottom:14px;">
+          <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:6px;">Story IDs (base de datos)</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;">
+            {% for sid in lg.story_ids %}
+            <span style="background:#f0f4ff;color:#4f46e5;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:600;font-family:monospace;">{{ sid }}</span>
+            {% endfor %}
           </div>
+        </div>
+        {% endif %}
 
-          <!-- IP + acciones -->
+        <!-- Metadatos -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
           <div>
-            <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:6px;">IP principal</div>
-            <div style="font-size:12px;color:#475569;font-family:monospace;margin-bottom:10px;">{{ lg.main_ip }}</div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;">Visitas</div>
+            <div style="font-size:12px;color:#475569;">Primera: <strong>{{ lg.first_visit_str }}</strong></div>
+            <div style="font-size:12px;color:#475569;margin-top:2px;">Última: <strong>{{ lg.last_visit_str }}</strong></div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;">IP principal</div>
+            <div style="font-size:12px;color:#475569;font-family:monospace;">{{ lg.main_ip }}</div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;">Acciones</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
               <a href="mailto:{{ lg.email }}"
                  style="padding:5px 12px;background:#6366f1;color:white;border-radius:7px;text-decoration:none;font-size:11px;font-weight:700;">
-                ✉ Enviar email
+                ✉ Email
+              </a>
+              <a href="/admin/crm/timeline/{{ lg.email }}"
+                 style="padding:5px 12px;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;border-radius:7px;text-decoration:none;font-size:11px;font-weight:700;">
+                📋 Timeline
               </a>
             </div>
           </div>
-
         </div>
-      </div>
 
+      </div>
     </div>
     {% endfor %}
   </div>

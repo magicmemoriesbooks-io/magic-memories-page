@@ -9789,22 +9789,51 @@ def admin_cuentos():
     import glob as glob_mod
     story_previews = []
     preview_files = glob_mod.glob('story_previews/*.json')
-    for pf in sorted(preview_files, key=os.path.getmtime, reverse=True)[:100]:
+
+    def _real_date(data, filepath):
+        """Return the real meaningful date: payment_date for paid, ctime for previews."""
+        pd = data.get('payment_date')
+        if pd:
+            try:
+                return pd[:16].replace('T', ' ')
+            except Exception:
+                pass
+        return datetime.fromtimestamp(os.path.getctime(filepath)).strftime('%Y-%m-%d %H:%M')
+
+    # Two-pass: read all, then sort by real date desc
+    _all_previews = []
+    for pf in preview_files:
         try:
+            pid = os.path.basename(pf).replace('.json', '')
+            if pid.upper().startswith('TEST_'):
+                continue
             with open(pf, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            pid = os.path.basename(pf).replace('.json', '')
-            story_previews.append({
-                'preview_id': pid,
-                'child_name': data.get('child_name', 'Unknown'),
-                'story_id': data.get('story_id', ''),
-                'customer_email': data.get('customer_email', ''),
-                'paid': data.get('paid', False),
-                'has_scenes': len(data.get('scenes', [])) > 0,
-                'created': datetime.fromtimestamp(os.path.getmtime(pf)).strftime('%Y-%m-%d %H:%M'),
-            })
+            _pd = data.get('payment_date')
+            if _pd:
+                try:
+                    _sort_ts = datetime.fromisoformat(_pd[:19]).timestamp()
+                except Exception:
+                    _sort_ts = os.path.getctime(pf)
+            else:
+                _sort_ts = os.path.getctime(pf)
+            _all_previews.append((_sort_ts, pf, data, pid))
         except Exception:
             pass
+
+    _all_previews.sort(key=lambda x: x[0], reverse=True)
+
+    for _sort_ts, pf, data, pid in _all_previews[:100]:
+        story_previews.append({
+            'preview_id': pid,
+            'child_name': data.get('child_name', 'Unknown'),
+            'story_id': data.get('story_id', ''),
+            'customer_email': data.get('customer_email', ''),
+            'paid': data.get('paid', False) or data.get('payment_status') == 'completed'
+                    or float(data.get('amount_paid') or 0) > 0,
+            'has_scenes': len(data.get('scenes', [])) > 0,
+            'created': _real_date(data, pf),
+        })
     return render_template('admin_cuentos.html', story_previews=story_previews)
 
 
@@ -10442,6 +10471,39 @@ def admin_crm_leads():
             if g['last_visit'] is None or lead.created_at > g['last_visit']:
                 g['last_visit'] = lead.created_at
 
+    # ── Enrich from story_previews JSONs ──────────────────────────────
+    # Build: email → list of {preview_id, child_name, story_id, date_str, payment_status}
+    _json_lookup = {}
+    for _pf in _glob.glob('story_previews/*.json'):
+        try:
+            _pid = os.path.basename(_pf).replace('.json', '')
+            if _pid.upper().startswith('TEST_'):
+                continue
+            with open(_pf, 'r', encoding='utf-8') as _jf:
+                _jd = json.load(_jf)
+            _jem = (_jd.get('customer_email') or '').strip().lower()
+            if not _jem or _jem in buyer_emails:
+                continue
+            _jpd = _jd.get('payment_date')
+            if _jpd:
+                _jdate = _jpd[:10]
+            else:
+                _jdate = datetime.fromtimestamp(os.path.getctime(_pf)).strftime('%Y-%m-%d')
+            if _jem not in _json_lookup:
+                _json_lookup[_jem] = []
+            _json_lookup[_jem].append({
+                'preview_id': _pid,
+                'child_name': _jd.get('child_name', ''),
+                'story_id': _jd.get('story_id', ''),
+                'date_str': _jdate,
+                'ctime': os.path.getctime(_pf),
+            })
+        except Exception:
+            pass
+    # Sort each email's cuentos by ctime desc
+    for _jem in _json_lookup:
+        _json_lookup[_jem].sort(key=lambda x: x['ctime'], reverse=True)
+
     # Build display list sorted by last_visit desc
     leads_grouped = []
     today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -10457,6 +10519,8 @@ def admin_crm_leads():
         lv = g['last_visit']
         if lv and lv >= today_start:
             today_count += 1
+        # Merge JSON enrichment
+        _json_cuentos = _json_lookup.get(em, [])
         leads_grouped.append({
             'email': em,
             'num_previews': len(g['previews']),
@@ -10464,6 +10528,7 @@ def admin_crm_leads():
             'first_visit_str': g['first_visit'].strftime('%d %b %Y') if g['first_visit'] else '—',
             'last_visit_str': lv.strftime('%d %b %Y') if lv else '—',
             'main_ip': main_ip,
+            'cuentos': _json_cuentos,  # enriched: preview_id, child_name, story_id, date_str
         })
 
     return render_template('admin_crm_leads.html',
