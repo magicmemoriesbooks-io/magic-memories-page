@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}CRM — Clientes{% endblock %}
+{% block content %}
+{% include 'admin_nav.html' %}
+<div style="background:#f8fafc;min-height:80vh;padding:24px 20px;font-family:'Quicksand','Segoe UI',sans-serif;">
+<div style="max-width:1200px;margin:0 auto;">
+
+  <div style="margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <div>
+      <h1 style="font-size:20px;font-weight:800;color:#1e293b;margin:0 0 2px 0;">👤 CRM — Clientes</h1>
+      <p style="font-size:12px;color:#64748b;margin:0;">Compradores reales agrupados por email. Excluye cuentos de prueba y admin_gift.</p>
+    </div>
+    <a href="/admin" style="font-size:11px;color:#6366f1;text-decoration:none;font-weight:700;">← Panel Admin</a>
+  </div>
+
+  <!-- CRM Tabs -->
+  <div style="display:flex;gap:4px;margin-bottom:20px;background:white;border-radius:10px;padding:6px;border:1px solid #e2e8f0;width:fit-content;">
+    <a href="/admin/crm/clientes" style="padding:7px 16px;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;background:#6366f1;color:white;">👤 Clientes</a>
+    <a href="/admin/crm" style="padding:7px 16px;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;color:#475569;">📧 Historial Emails</a>
+    <a href="/admin/crm/leads" style="padding:7px 16px;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;color:#475569;">🎯 Leads</a>
+  </div>
+
+  <!-- Stats -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px;">
+    <div style="background:white;border-radius:10px;padding:14px 16px;border:1px solid #e2e8f0;text-align:center;">
+      <div style="font-size:26px;font-weight:800;color:#6366f1;">{{ total }}</div>
+      <div style="font-size:10px;color:#64748b;font-weight:600;margin-top:2px;">CLIENTES ÚNICOS</div>
+    </div>
+    <div style="background:white;border-radius:10px;padding:14px 16px;border:1px solid #e2e8f0;text-align:center;">
+      <div style="font-size:26px;font-weight:800;color:#16a34a;">{{ customers|sum(attribute='num_stories') }}</div>
+      <div style="font-size:10px;color:#64748b;font-weight:600;margin-top:2px;">CUENTOS TOTALES</div>
+    </div>
+    <div style="background:white;border-radius:10px;padding:14px 16px;border:1px solid #e2e8f0;text-align:center;">
+      {% set total_rev = customers|sum(attribute='total_amount') %}
+      <div style="font-size:26px;font-weight:800;color:#0891b2;">${{ '%.2f'|format(total_rev) }}</div>
+      <div style="font-size:10px;color:#64748b;font-weight:600;margin-top:2px;">FACTURACIÓN TOTAL</div>
+    </div>
+  </div>
+
+  {% if customers %}
+  <div style="display:flex;flex-direction:column;gap:10px;">
+    {% for c in customers %}
+    <div style="background:white;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
+      <!-- Customer header -->
+      <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;cursor:pointer;"
+           onclick="toggleCustomer('{{ loop.index }}')">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:15px;flex-shrink:0;">
+            {{ c.email[0].upper() }}
+          </div>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:#1e293b;">{{ c.email }}</div>
+            <div style="font-size:11px;color:#64748b;margin-top:1px;">
+              Primera compra: {{ c.first_date_str }}
+              {% if c.first_date_str != c.last_date_str %} · Última: {{ c.last_date_str }}{% endif %}
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+          <div style="text-align:center;">
+            <div style="font-size:16px;font-weight:800;color:#1e293b;">{{ c.num_stories }}</div>
+            <div style="font-size:9px;color:#94a3b8;font-weight:600;">CUENTOS</div>
+          </div>
+          {% if c.total_amount > 0 %}
+          <div style="text-align:center;">
+            <div style="font-size:16px;font-weight:800;color:#16a34a;">${{ '%.2f'|format(c.total_amount) }}</div>
+            <div style="font-size:9px;color:#94a3b8;font-weight:600;">FACTURADO</div>
+          </div>
+          {% else %}
+          <div style="text-align:center;">
+            <div style="font-size:16px;font-weight:800;color:#94a3b8;">—</div>
+            <div style="font-size:9px;color:#94a3b8;font-weight:600;">FACTURADO</div>
+          </div>
+          {% endif %}
+          <a href="/admin/crm/timeline/{{ c.email }}"
+             style="background:#f3e8ff;color:#7c3aed;border:1px solid #ddd6fe;border-radius:7px;padding:6px 14px;font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap;"
+             onclick="event.stopPropagation()">🕒 Ver Timeline</a>
+          <span style="color:#cbd5e1;font-size:14px;" id="caret-{{ loop.index }}">▸</span>
+        </div>
+      </div>
+
+      <!-- Stories list (collapsible) -->
+      <div id="customer-{{ loop.index }}" style="display:none;border-top:1px solid #f1f5f9;padding:0 20px 16px 20px;">
+        <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px;">
+          {% for s in c.stories %}
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f8fafc;border-radius:8px;border:1px solid #f1f5f9;flex-wrap:wrap;gap:8px;">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:#1e293b;">
+                {% if s.child_name %}{{ s.child_name }}{% if s.story_name %} — {% endif %}{% endif %}
+                {% if s.story_name %}<span style="font-weight:500;color:#475569;">{{ s.story_name }}</span>{% endif %}
+              </div>
+              <div style="font-size:10px;color:#94a3b8;margin-top:2px;font-family:monospace;">{{ s.preview_id }}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              {% if s.ebook_paid %}
+              <span style="background:#dbeafe;color:#1d4ed8;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:600;">📱 eBook</span>
+              {% endif %}
+              {% if s.want_pdf %}
+              <span style="background:#fef9c3;color:#854d0e;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:600;">📄 PDF</span>
+              {% endif %}
+              {% if s.want_print %}
+              <span style="background:#dcfce7;color:#166534;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:600;">📦 Impreso</span>
+              {% endif %}
+              {% if s.amount > 0 %}
+              <span style="font-size:12px;font-weight:700;color:#16a34a;">${{ '%.2f'|format(s.amount) }}</span>
+              {% endif %}
+              <a href="/admin/cuentos?search={{ s.preview_id }}" target="_blank"
+                 style="font-size:10px;color:#6366f1;text-decoration:none;font-weight:700;">Ver →</a>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div style="background:white;border-radius:12px;border:1px solid #e2e8f0;padding:60px 24px;text-align:center;">
+    <div style="font-size:48px;margin-bottom:16px;">👤</div>
+    <div style="font-size:16px;font-weight:800;color:#1e293b;margin-bottom:8px;">Sin clientes todavía</div>
+    <div style="font-size:12px;color:#64748b;">Los compradores aparecerán aquí automáticamente.</div>
+  </div>
+  {% endif %}
+
+</div>
+</div>
+
+<script>
+function toggleCustomer(idx) {
+  const el = document.getElementById('customer-' + idx);
+  const caret = document.getElementById('caret-' + idx);
+  if (el.style.display === 'none') {
+    el.style.display = 'block';
+    caret.textContent = '▾';
+  } else {
+    el.style.display = 'none';
+    caret.textContent = '▸';
+  }
+}
+</script>
+{% endblock %}

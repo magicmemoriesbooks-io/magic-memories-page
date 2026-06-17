@@ -9895,6 +9895,191 @@ def admin_crm_email_preview(filename):
     return html, 200, {'Content-Type': 'text/html; charset=utf-8'}
 
 
+@app.route('/admin/crm/clientes')
+def admin_crm_clientes():
+    """CRM: clientes agrupados por email."""
+    if not check_admin_auth():
+        return redirect(url_for('admin_login_page'))
+    import glob as _glob
+    from datetime import datetime as _dt
+    customers = {}
+    for pf in _glob.glob('story_previews/*.json'):
+        try:
+            pid = os.path.basename(pf).replace('.json', '')
+            if pid.upper().startswith('TEST_'):
+                continue
+            with open(pf, 'r', encoding='utf-8') as _f:
+                d = json.load(_f)
+            email = (d.get('customer_email') or '').strip().lower()
+            if not email or '@' not in email:
+                continue
+            is_admin_gift = d.get('admin_gift', False) or d.get('payment_status') == 'admin_gift'
+            if is_admin_gift:
+                continue
+            is_paid = (d.get('payment_status') == 'completed' or
+                       float(d.get('amount_paid') or 0) > 0 or
+                       d.get('paid', False))
+            if not is_paid:
+                continue
+            file_date = _dt.fromtimestamp(os.path.getmtime(pf))
+            amount = float(d.get('amount_paid') or 0)
+            child_name = d.get('child_name', '')
+            story_name = d.get('story_name') or d.get('title', '')
+            want_print = d.get('want_print', False)
+            want_pdf = d.get('want_pdf', False) or d.get('pdf_paid', False)
+            ebook_paid = d.get('ebook_paid', False) or d.get('want_ebook', False)
+            if email not in customers:
+                customers[email] = {
+                    'email': email,
+                    'stories': [],
+                    'total_amount': 0.0,
+                    'first_date': file_date,
+                    'last_date': file_date,
+                }
+            c = customers[email]
+            c['stories'].append({
+                'preview_id': pid,
+                'child_name': child_name,
+                'story_name': story_name,
+                'amount': amount,
+                'date': file_date,
+                'want_print': want_print,
+                'want_pdf': want_pdf,
+                'ebook_paid': ebook_paid,
+            })
+            c['total_amount'] += amount
+            if file_date < c['first_date']:
+                c['first_date'] = file_date
+            if file_date > c['last_date']:
+                c['last_date'] = file_date
+        except Exception:
+            pass
+    customers_list = sorted(customers.values(), key=lambda x: x['last_date'], reverse=True)
+    for c in customers_list:
+        c['num_stories'] = len(c['stories'])
+        c['total_amount'] = round(c['total_amount'], 2)
+        c['first_date_str'] = c['first_date'].strftime('%d %b %Y')
+        c['last_date_str'] = c['last_date'].strftime('%d %b %Y')
+    return render_template('admin_crm_clientes.html', customers=customers_list, total=len(customers_list))
+
+
+@app.route('/admin/crm/timeline/<path:email>')
+def admin_crm_timeline(email):
+    """CRM: timeline de eventos para un cliente (por email)."""
+    if not check_admin_auth():
+        return redirect(url_for('admin_login_page'))
+    import glob as _glob
+    from datetime import datetime as _dt
+    from services.email_service import EMAIL_LOG_FILE
+    email = email.strip().lower()
+    events = []
+    for pf in _glob.glob('story_previews/*.json'):
+        try:
+            pid = os.path.basename(pf).replace('.json', '')
+            if pid.upper().startswith('TEST_'):
+                continue
+            with open(pf, 'r', encoding='utf-8') as _f:
+                d = json.load(_f)
+            if (d.get('customer_email') or '').strip().lower() != email:
+                continue
+            if d.get('admin_gift', False) or d.get('payment_status') == 'admin_gift':
+                continue
+            file_date = _dt.fromtimestamp(os.path.getmtime(pf))
+            child_name = d.get('child_name', '')
+            story_name = d.get('story_name') or d.get('title', '')
+            amount = float(d.get('amount_paid') or 0)
+            formats = []
+            if d.get('ebook_paid') or d.get('want_ebook'): formats.append('eBook')
+            if d.get('want_pdf') or d.get('pdf_paid'): formats.append('PDF')
+            if d.get('want_print'): formats.append('Libro impreso')
+            events.append({'ts': file_date, 'icon': '💳', 'label': 'Compra realizada',
+                           'detail': story_name or child_name, 'preview_id': pid, 'approx': True})
+            if amount > 0:
+                events.append({'ts': file_date, 'icon': '💵', 'label': f'Ingreso: ${amount:.2f} USD',
+                               'detail': '', 'preview_id': pid, 'approx': True})
+            if child_name or formats:
+                events.append({'ts': file_date, 'icon': '📚',
+                               'label': f'Cuento: {child_name}' if child_name else 'Cuento creado',
+                               'detail': ' · '.join(formats), 'preview_id': pid, 'approx': True})
+            if d.get('cp_submitted'):
+                events.append({'ts': file_date, 'icon': '📦', 'label': 'Pedido enviado a imprenta',
+                               'detail': d.get('cp_order_id', ''), 'preview_id': pid, 'approx': True})
+            if d.get('cp_tracking'):
+                events.append({'ts': file_date, 'icon': '🚚', 'label': 'Tracking recibido',
+                               'detail': str(d.get('cp_tracking', '')), 'preview_id': pid, 'approx': True})
+        except Exception:
+            pass
+    _icon_cat = {'delivery': '📧', 'followup': '💌', 'retention': '🔁', 'admin': '🔧'}
+    if os.path.exists(EMAIL_LOG_FILE):
+        with open(EMAIL_LOG_FILE, 'r', encoding='utf-8') as _ef:
+            for line in _ef:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    e = json.loads(line)
+                    if (e.get('to_email') or '').strip().lower() != email:
+                        continue
+                    ts_str = (e.get('ts') or '')[:19]
+                    if not ts_str:
+                        continue
+                    ts = _dt.fromisoformat(ts_str)
+                    label = e.get('label') or e.get('email_type', '')
+                    events.append({
+                        'ts': ts, 'icon': _icon_cat.get(e.get('category', ''), '📧'),
+                        'label': f'Email enviado: {label}',
+                        'detail': e.get('subject', ''), 'preview_id': e.get('preview_id', ''),
+                        'approx': False, 'result': e.get('result', ''),
+                    })
+                except Exception:
+                    pass
+    events.sort(key=lambda x: x['ts'])
+    for ev in events:
+        ev['ts_str'] = ev['ts'].strftime('%d %b %Y %H:%M')
+    return render_template('admin_crm_timeline.html', email=email, events=events)
+
+
+@app.route('/admin/crm/leads')
+def admin_crm_leads():
+    """CRM: Leads — usuarios que iniciaron preview pero no compraron."""
+    if not check_admin_auth():
+        return redirect(url_for('admin_login_page'))
+    import glob as _glob
+    buyer_emails = set()
+    for pf in _glob.glob('story_previews/*.json'):
+        try:
+            pid = os.path.basename(pf).replace('.json', '')
+            if pid.upper().startswith('TEST_'):
+                continue
+            with open(pf, 'r', encoding='utf-8') as _f:
+                d = json.load(_f)
+            is_admin_gift = d.get('admin_gift', False) or d.get('payment_status') == 'admin_gift'
+            if is_admin_gift:
+                continue
+            is_paid = (d.get('payment_status') == 'completed' or
+                       float(d.get('amount_paid') or 0) > 0 or
+                       d.get('paid', False))
+            if is_paid:
+                em = (d.get('customer_email') or '').strip().lower()
+                if em:
+                    buyer_emails.add(em)
+        except Exception:
+            pass
+    leads_all = PreviewLead.query.order_by(PreviewLead.created_at.desc()).limit(300).all()
+    total_leads_db = PreviewLead.query.count()
+    unique_emails = db.session.query(db.func.count(db.distinct(PreviewLead.email))).scalar() or 0
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_leads = PreviewLead.query.filter(PreviewLead.created_at >= today_start).count()
+    actual_leads = [l for l in leads_all if (l.email or '').strip().lower() not in buyer_emails]
+    return render_template('admin_crm_leads.html',
+        leads=actual_leads,
+        total_leads_db=total_leads_db,
+        unique_emails=unique_emails,
+        today_leads=today_leads,
+        buyer_count=len(buyer_emails),
+    )
+
+
 @app.route('/admin/retry-scenes/<preview_id>', methods=['POST'])
 def admin_retry_scenes(preview_id):
     if not check_admin_auth():
@@ -10330,16 +10515,7 @@ def admin_newsletter_send():
 
 @app.route('/admin/preview-leads')
 def admin_preview_leads():
-    if not check_admin_auth():
-        return redirect(url_for('admin_login_page'))
-    leads = PreviewLead.query.order_by(PreviewLead.created_at.desc()).limit(200).all()
-    total_leads = PreviewLead.query.count()
-    unique_emails = db.session.query(db.func.count(db.distinct(PreviewLead.email))).scalar() or 0
-    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-    today_leads = PreviewLead.query.filter(PreviewLead.created_at >= today_start).count()
-    newsletter_subscribers = NewsletterSubscriber.query.order_by(NewsletterSubscriber.subscribed_at.desc()).all()
-    newsletter_active = sum(1 for s in newsletter_subscribers if s.is_active)
-    return render_template('admin_preview_leads.html', leads=leads, total_leads=total_leads, unique_emails=unique_emails, today_leads=today_leads, newsletter_subscribers=newsletter_subscribers, newsletter_active=newsletter_active)
+    return redirect('/admin/crm/leads', 301)
 
 
 @app.route('/admin/preview-leads/csv')
@@ -10367,7 +10543,7 @@ def admin_delete_preview_lead(lead_id):
     if lead:
         db.session.delete(lead)
         db.session.commit()
-    return redirect(url_for('admin_preview_leads'))
+    return redirect('/admin/crm/leads')
 
 
 @app.route('/admin/preview-leads/delete-all', methods=['POST'])
@@ -10376,7 +10552,7 @@ def admin_delete_all_preview_leads():
         return redirect(url_for('admin_login_page'))
     PreviewLead.query.delete()
     db.session.commit()
-    return redirect(url_for('admin_preview_leads'))
+    return redirect('/admin/crm/leads')
 
 
 @app.route('/admin/uploaded-photos')

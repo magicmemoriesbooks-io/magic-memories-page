@@ -41,16 +41,24 @@
       </div>
     </div>
 
-    <a href="/admin/crm" class="mmadmin-item {% if request.path.startswith('/admin/crm') %}active{% endif %}">CRM</a>
+    <div class="mmadmin-dropdown">
+      <span class="mmadmin-item {% if request.path.startswith('/admin/crm') %}active{% endif %}">
+        CRM <span class="mmadmin-caret">▾</span>
+      </span>
+      <div class="mmadmin-menu">
+        <a href="/admin/crm/clientes">👤 Clientes</a>
+        <a href="/admin/crm">📧 Historial de Emails</a>
+        <a href="/admin/crm/leads">🎯 Leads</a>
+      </div>
+    </div>
 
     <div class="mmadmin-dropdown">
-      <span class="mmadmin-item {% if request.path in ['/admin/newsletter','/admin/coupons','/admin/preview-leads'] %}active{% endif %}">
+      <span class="mmadmin-item {% if request.path in ['/admin/newsletter','/admin/coupons'] %}active{% endif %}">
         Marketing <span class="mmadmin-caret">▾</span>
       </span>
       <div class="mmadmin-menu">
         <a href="/admin/newsletter">📧 Newsletter</a>
         <a href="/admin/coupons">🎟️ Cupones</a>
-        <a href="/admin/preview-leads">👀 Preview Leads</a>
       </div>
     </div>
 

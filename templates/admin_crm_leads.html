@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}CRM — Leads{% endblock %}
+{% block content %}
+{% include 'admin_nav.html' %}
+<div style="background:#f8fafc;min-height:80vh;padding:24px 20px;font-family:'Quicksand','Segoe UI',sans-serif;">
+<div style="max-width:1100px;margin:0 auto;">
+
+  <div style="margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <div>
+      <h1 style="font-size:20px;font-weight:800;color:#1e293b;margin:0 0 2px 0;">🎯 CRM — Leads</h1>
+      <p style="font-size:12px;color:#64748b;margin:0;">Usuarios que iniciaron una preview pero no completaron compra.</p>
+    </div>
+    <a href="/admin" style="font-size:11px;color:#6366f1;text-decoration:none;font-weight:700;">← Panel Admin</a>
+  </div>
+
+  <!-- CRM Tabs -->
+  <div style="display:flex;gap:4px;margin-bottom:20px;background:white;border-radius:10px;padding:6px;border:1px solid #e2e8f0;width:fit-content;">
+    <a href="/admin/crm/clientes" style="padding:7px 16px;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;color:#475569;">👤 Clientes</a>
+    <a href="/admin/crm" style="padding:7px 16px;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;color:#475569;">📧 Historial Emails</a>
+    <a href="/admin/crm/leads" style="padding:7px 16px;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;background:#6366f1;color:white;">🎯 Leads</a>
+  </div>
+
+  <!-- Stats -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px;">
+    <div style="background:white;border-radius:10px;padding:14px 16px;border:1px solid #e2e8f0;text-align:center;">
+      <div style="font-size:26px;font-weight:800;color:#6366f1;">{{ leads|length }}</div>
+      <div style="font-size:10px;color:#64748b;font-weight:600;margin-top:2px;">LEADS ACTIVOS</div>
+    </div>
+    <div style="background:white;border-radius:10px;padding:14px 16px;border:1px solid #e2e8f0;text-align:center;">
+      <div style="font-size:26px;font-weight:800;color:#16a34a;">{{ buyer_count }}</div>
+      <div style="font-size:10px;color:#64748b;font-weight:600;margin-top:2px;">CONVERTIDOS</div>
+    </div>
+    <div style="background:white;border-radius:10px;padding:14px 16px;border:1px solid #e2e8f0;text-align:center;">
+      <div style="font-size:26px;font-weight:800;color:#0891b2;">{{ unique_emails }}</div>
+      <div style="font-size:10px;color:#64748b;font-weight:600;margin-top:2px;">EMAILS ÚNICOS</div>
+    </div>
+    <div style="background:white;border-radius:10px;padding:14px 16px;border:1px solid #e2e8f0;text-align:center;">
+      <div style="font-size:26px;font-weight:800;color:#ea580c;">{{ today_leads }}</div>
+      <div style="font-size:10px;color:#64748b;font-weight:600;margin-top:2px;">HOY</div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div style="background:white;border-radius:10px;padding:12px 16px;border:1px solid #e2e8f0;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+    <span style="font-size:12px;color:#64748b;">Mostrando <strong>{{ leads|length }}</strong> leads sin compra de {{ total_leads_db }} totales en DB</span>
+    <div style="display:flex;gap:8px;">
+      <a href="/admin/preview-leads/csv"
+         style="background:linear-gradient(135deg,#D4AF37,#B8860B);color:#fff;border:none;padding:7px 16px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">
+        Exportar CSV
+      </a>
+      {% if leads %}
+      <form action="/admin/preview-leads/delete-all" method="POST" style="display:inline;"
+            onsubmit="return confirm('¿Eliminar TODOS los leads? Esta acción no se puede deshacer.');">
+        <button type="submit"
+                style="background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;border:none;padding:7px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">
+          Eliminar todos
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Table -->
+  {% if leads %}
+  <div style="background:white;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
+    <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead>
+        <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;">
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:#64748b;">EMAIL</th>
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:#64748b;">STORY ID</th>
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:#64748b;">IP</th>
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:#64748b;">FECHA</th>
+          <th style="padding:10px 8px;width:50px;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for lead in leads %}
+        <tr style="border-bottom:1px solid #f1f5f9;{% if loop.index is odd %}background:#fafafa;{% endif %}">
+          <td style="padding:10px 14px;font-weight:700;color:#1e293b;">{{ lead.email }}</td>
+          <td style="padding:10px 14px;">
+            {% if lead.story_id %}
+            <span style="background:#f0f4ff;color:#4f46e5;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:600;font-family:monospace;">{{ lead.story_id }}</span>
+            {% else %}
+            <span style="color:#cbd5e1;">—</span>
+            {% endif %}
+          </td>
+          <td style="padding:10px 14px;color:#64748b;font-size:11px;">{{ lead.ip_address or '—' }}</td>
+          <td style="padding:10px 14px;color:#64748b;font-size:11px;white-space:nowrap;">
+            {{ lead.created_at.strftime('%Y-%m-%d %H:%M') if lead.created_at else '—' }}
+          </td>
+          <td style="padding:10px 8px;text-align:center;">
+            <form action="/admin/preview-leads/delete/{{ lead.id }}" method="POST" style="display:inline;"
+                  onsubmit="return confirm('¿Eliminar este lead?');">
+              <button type="submit"
+                      style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:16px;font-weight:700;padding:2px 6px;border-radius:4px;"
+                      title="Eliminar">&times;</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+  {% else %}
+  <div style="background:white;border-radius:12px;border:1px solid #e2e8f0;padding:60px 24px;text-align:center;">
+    <div style="font-size:48px;margin-bottom:16px;">🎯</div>
+    <div style="font-size:16px;font-weight:800;color:#1e293b;margin-bottom:8px;">Sin leads activos</div>
+    <div style="font-size:12px;color:#64748b;">Todos los usuarios que iniciaron previews han completado una compra, o no hay registros aún.</div>
+  </div>
+  {% endif %}
+
+  {% if buyer_count > 0 %}
+  <div style="margin-top:12px;padding:10px 14px;background:#dcfce7;border-radius:8px;border:1px solid #bbf7d0;">
+    <span style="font-size:11px;color:#166534;font-weight:600;">✅ {{ buyer_count }} email(s) que iniciaron preview luego realizaron una compra — aparecen en 👤 Clientes, no aquí.</span>
+  </div>
+  {% endif %}
+
+</div>
+</div>
+{% endblock %}
