@@ -848,7 +848,7 @@
           <div class="mmg-overlay"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35M11 8v6M8 11h6"/></svg></div>
         </div>
         {% elif item.type == 'video' %}
-        <div class="mmg-item" onclick="mmgOpen('{{ item.url }}','video')">
+        <div class="mmg-item mmg-video-item" onclick="mmgOpen('{{ item.url }}','video')">
           <video src="{{ item.url }}" muted loop playsinline preload="auto"{% if item.poster %} poster="{{ item.poster }}"{% endif %}></video>
           <div class="mmg-overlay">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
@@ -920,7 +920,9 @@
   var cur = 0;
   document.querySelectorAll('.mmg-item').forEach(function(el, i){
     var type = el.classList.contains('mmg-video-item') ? 'video' : 'image';
-    var src = type==='image' ? el.querySelector('img').src : el.querySelector('video').src;
+    var mediaEl = type==='image' ? el.querySelector('img') : el.querySelector('video');
+    if (!mediaEl) return;
+    var src = mediaEl.src;
     items.push({type:type, src:src});
     // hover play for videos
     if(type==='video'){
