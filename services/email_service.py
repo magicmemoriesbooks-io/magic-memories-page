@@ -3016,10 +3016,10 @@ FOLLOW_UPS_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'lead_fo
 
 
 def register_purchase_for_follow_up(preview_id: str, email: str, child_name: str,
-                                    lang: str = 'es', story_name: str = '',
-                                    purchase_type: str = 'ebook'):
+                                    lang: str = 'es', story_name: str = ''):
     """Record a real purchase so the 24h/48h follow-up emails can be scheduled.
-    purchase_type: 'ebook' | 'pdf' | 'print'
+    purchase_type is NOT stored here — always read from story_previews/{id}.json
+    (single source of truth) at send time.
     """
     if not email or '@' not in email:
         return
@@ -3036,13 +3036,12 @@ def register_purchase_for_follow_up(preview_id: str, email: str, child_name: str
             'child_name': child_name or '',
             'story_name': story_name or '',
             'lang': lang or 'es',
-            'purchase_type': purchase_type or 'ebook',
             'purchased_at': __import__('datetime').datetime.now().isoformat(),
             'email_1_sent': False,
         }
         with open(FOLLOW_UPS_FILE, 'w', encoding='utf-8') as f:
             _json.dump(data, f, ensure_ascii=False, indent=2)
-        print(f"[LEAD] Registered follow-up for {email} (preview: {preview_id}, type: {purchase_type})")
+        print(f"[LEAD] Registered follow-up for {email} (preview: {preview_id})")
     except Exception as e:
         print(f"[LEAD] Error registering follow-up: {e}")
 
@@ -3173,84 +3172,123 @@ def send_feedback_email_24h(to_email: str, child_name: str = '', lang: str = 'es
 
 
 def send_upsell_print_email(preview_id: str, to_email: str, child_name: str = '',
-                            lang: str = 'es', story_name: str = '',
-                            purchase_type: str = 'ebook') -> bool:
-    """Send the 48h post-purchase upsell/retention email. 3 variants by purchase_type:
-    - 'ebook' : offer PDF + printed book  (Variant 1)
-    - 'pdf'   : offer printed book only   (Variant 2)
-    - 'print' : thank-you + referral CTA  (Variant 3)
-    Saves HTML body to email_bodies/ for CRM preview. Notifies admin on SMTP error."""
+                            lang: str = 'es', story_name: str = '') -> bool:
+    """Send the 48h upsell/retention email.
+    Purchase state is read directly from story_previews/{id}.json (single source of truth).
+    - want_print=True → SKIPPED_PRINT_CUSTOMER, no email sent
+    - want_pdf=True   → Variant 2: upsell printed book
+    - ebook only      → Variant 1: offer PDF + printed book
+    Saves HTML body to email log for CRM. Notifies admin on SMTP error."""
     if preview_id and _is_duplicate_send(preview_id, 'upsell_print'):
         print(f"[LEAD] SKIPPED_DUPLICATE upsell_print for {preview_id} — already sent in last 30 days")
         log_email('skipped_duplicate', to_email, 'upsell_print [duplicado omitido]', 'SKIPPED_DUPLICATE',
                   preview_id=preview_id, child_name=child_name, lang=lang)
         return True
 
-    name_str   = child_name.strip() if child_name.strip() else ''
-    story_str  = story_name.strip() if story_name.strip() else ''
-    first_name = name_str.split()[0] if name_str else ''
-    base_url   = 'https://magicmemoriesbooks.com'
-    formats_url = f"{base_url}/formats/{preview_id}"
-    is_print = purchase_type == 'print'
-    is_pdf   = purchase_type == 'pdf'
-    story_ref_es = f"<strong>{story_str}</strong>" if story_str else "el cuento personalizado"
-    story_ref_en = f"<strong>{story_str}</strong>" if story_str else "your personalized story"
-    variant_tag = f"v{'3' if is_print else '2' if is_pdf else '1'}"
+    # --- Read purchase state from single source of truth ---
+    want_print  = False
+    want_pdf    = False
+    story_title = (story_name or '').strip()
+    _child_name = (child_name or '').strip()
+    _lang       = lang or 'es'
+    try:
+        import os as _os2, json as _json2
+        _pf = _os2.path.join(_os2.path.dirname(_os2.path.dirname(__file__)),
+                             'story_previews', f'{preview_id}.json')
+        if _os2.path.exists(_pf):
+            with open(_pf, 'r', encoding='utf-8') as _f2:
+                _sd = _json2.load(_f2)
+            want_print  = bool(_sd.get('want_print') or _sd.get('cp_submitted'))
+            want_pdf    = bool(_sd.get('want_pdf')   or _sd.get('pdf_email_sent'))
+            if _sd.get('child_name'):
+                _child_name = _sd['child_name'].strip()
+            if _sd.get('lang'):
+                _lang = _sd['lang']
+            story_title = (_sd.get('story_name') or _sd.get('title') or story_title).strip()
+    except Exception as _e:
+        print(f"[LEAD] Could not read story_data for {preview_id}: {_e}")
 
-    if lang == 'en':
-        if is_print:
-            subject   = (f"{first_name}'s book is on its way \u2728" if first_name
-                         else "Your book is on its way \u2728")
-            cta_label = "Create a story for another child \u2192"
-            cta_url   = base_url
+    # --- Print customers: no upsell email ---
+    if want_print:
+        print(f"[LEAD] SKIPPED_PRINT_CUSTOMER {preview_id} — customer already has printed book")
+        log_email('upsell_print', to_email, 'upsell_print [cliente con libro impreso]',
+                  'SKIPPED_PRINT_CUSTOMER', preview_id=preview_id, child_name=_child_name, lang=_lang)
+        return True
+
+    first_name  = _child_name.split()[0] if _child_name else ''
+    base_url    = 'https://magicmemoriesbooks.com'
+    formats_url = f"{base_url}/formats/{preview_id}"
+    title_q     = f'&ldquo;{story_title}&rdquo;' if story_title else ''
+    variant_tag = 'v2' if want_pdf else 'v1'
+
+    # --- Build email content by variant and language ---
+    if _lang == 'en':
+        if want_pdf:
+            # V2 EN — has PDF, upsell printed book
+            subject   = (f"Can you picture {first_name}\u2019s story as a real book? \u2728" if first_name
+                         else "Can you picture your story as a real book? \u2728")
+            preheader = "Your story is ready to take the next step."
+            cta_label = "I want my printed book \u2192"
+            cta_url   = f"{formats_url}?focus=print"
+            title_line = (f'the PDF of {title_q}' if title_q else 'your personalized story PDF')
+            child_line = (f'{first_name}\u2019s story' if first_name else 'the story')
             body_paras = f"""
             <p style="font-size:16px;color:#374151;line-height:1.8;">
-                I just wanted to write and let you know that {story_ref_en}
-                is in production and will be in your hands soon.
+                A few days ago you received {title_line}.
             </p>
             <p style="font-size:16px;color:#374151;line-height:1.8;">
-                I hope it&rsquo;s as special for you as it has been for us to create it.
+                I was so happy to see {child_line} come to life.
             </p>
             <p style="font-size:16px;color:#374151;line-height:1.8;">
-                If you know anyone who would love their own personalized story &mdash;
-                a birthday, a special gift &mdash; I&rsquo;d be happy to help them too.
-            </p>"""
-        elif is_pdf:
-            subject   = (f"What if {first_name}'s story arrived at your door? \U0001f4ec" if first_name
-                         else "What if your story arrived at your door? \U0001f4ec")
-            cta_label = "I want the printed book \u2192"
-            cta_url   = formats_url
-            body_paras = f"""
-            <p style="font-size:16px;color:#374151;line-height:1.8;">
-                You already have the PDF of {story_ref_en} and can print it whenever you like.
+                I wanted to let you know that the story is also ready to become a printed book.
             </p>
             <p style="font-size:16px;color:#374151;line-height:1.8;">
-                But if you want something more special &mdash; a real book, hardcover,
-                that you can hold in your hands and keep on a shelf &mdash;
-                we&rsquo;ll print it and send it directly to your home.
+                No new generation needed.<br>
+                No repeat order.<br>
+                The story is already done.
             </p>
             <p style="font-size:16px;color:#374151;line-height:1.8;">
-                The story is already done. You just need to choose.
+                You just need to decide whether you&rsquo;d like to keep it as a book too.
+            </p>
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                Many parents tell us it&rsquo;s one of those keepsakes they end up treasuring for years.
             </p>"""
         else:
-            subject   = (f"{first_name}'s story can live in print too \U0001f4d6" if first_name
-                         else "Your story can live in print too \U0001f4d6")
-            cta_label = "See my options \u2192"
+            # V1 EN — ebook only, upsell PDF + printed book
+            subject   = (f"{first_name}\u2019s story can also live beyond the screen \U0001f4d6" if first_name
+                         else "Your story can also live beyond the screen \U0001f4d6")
+            preheader = "Your story is ready. Now you can keep it forever."
+            cta_label = "See options for my story \u2192"
             cta_url   = formats_url
+            title_line = (f'{title_q}' if title_q else 'your personalized story')
+            child_line = (f'{first_name}' if first_name else 'your little one')
             body_paras = f"""
             <p style="font-size:16px;color:#374151;line-height:1.8;">
-                Two days ago you received {story_ref_en} and I hope you&rsquo;ve enjoyed it together.
+                A few days ago you received {title_line} and I hope {child_line} enjoyed the adventure.
             </p>
             <p style="font-size:16px;color:#374151;line-height:1.8;">
-                I wanted to let you know something you might not have known: the story is already
-                ready to print &mdash; no new generation needed, no waiting.
+                There&rsquo;s something you might not know.
             </p>
-            <p style="font-size:16px;color:#374151;line-height:1.8;">You can choose what suits you best:</p>
-            <ul style="font-size:16px;color:#374151;line-height:2;padding-left:20px;">
-                <li><strong>&#x1F4C4; Printable PDF</strong> &mdash; Download instantly, print at home or any copy shop.</li>
-                <li><strong>&#x1F4DA; Hardcover printed book</strong> &mdash; We print and ship it directly to your home.</li>
-            </ul>"""
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                Because the story is already created, you can transform it into other formats
+                without having to generate it again.
+            </p>
+            <p style="font-size:16px;color:#374151;line-height:1.8;">You can choose:</p>
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                <strong>&#x1F4C4; Printable PDF</strong><br>
+                <span style="color:#6b7280;">Perfect for printing at home or any copy shop whenever you want.</span>
+            </p>
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                <strong>&#x1F4DA; Printed book</strong><br>
+                <span style="color:#6b7280;">A keepsake that can be treasured for years, given as a gift,
+                or become part of a family collection.</span>
+            </p>
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                The story is ready &mdash; no waiting, no extra steps.<br>
+                Just choose the format you prefer.
+            </p>"""
         content = f"""
+        <span style="display:none;max-height:0;overflow:hidden;mso-hide:all;opacity:0;font-size:1px;color:transparent;">{preheader}</span>
         <p style="font-size:16px;color:#374151;line-height:1.8;margin-top:0;">Hello,</p>
         {body_paras}
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:32px auto;">
@@ -3266,59 +3304,75 @@ def send_upsell_print_email(preview_id: str, to_email: str, child_name: str = ''
         </table>
         <p style="font-size:16px;color:#374151;line-height:1.8;margin-bottom:0;">Warm regards,</p>"""
     else:
-        if is_print:
-            subject   = (f"Gracias por el pedido de {first_name} \u2728" if first_name
-                         else "Gracias por tu pedido \u2728")
-            cta_label = "Crear un cuento para otro ni\u00f1o \u2192"
-            cta_url   = base_url
+        if want_pdf:
+            # V2 ES — tiene PDF, upsell libro impreso
+            subject   = (f"\u00bfTe imaginas el cuento de {first_name} convertido en un libro? \u2728" if first_name
+                         else "\u00bfTe imaginas tu cuento convertido en un libro? \u2728")
+            preheader = "Tu historia ya est\u00e1 lista para dar el siguiente paso."
+            cta_label = "Quiero mi libro impreso \u2192"
+            cta_url   = f"{formats_url}?focus=print"
+            title_line = (f'el PDF de {title_q}' if title_q else 'el PDF del cuento personalizado')
+            child_line = (f'la historia de {first_name}' if first_name else 'la historia')
             body_paras = f"""
             <p style="font-size:16px;color:#374151;line-height:1.8;">
-                Solo quer&iacute;a escribirte para decirte que {story_ref_es}
-                est&aacute; en producci&oacute;n y pronto llegar&aacute; a tus manos.
+                Hace unos d&iacute;as recibiste {title_line}.
             </p>
             <p style="font-size:16px;color:#374151;line-height:1.8;">
-                Espero que sea tan especial para vosotros como lo ha sido crearlo para nosotros.
+                Me hizo mucha ilusi&oacute;n ver c&oacute;mo {child_line} cobraba vida.
             </p>
             <p style="font-size:16px;color:#374151;line-height:1.8;">
-                Si conoces a alguien que le gustar&iacute;a tener su propio cuento personalizado &mdash;
-                un cumplea&ntilde;os, un regalo especial &mdash; estar&eacute; encantada de ayudarle.
-            </p>"""
-        elif is_pdf:
-            subject   = (f"\u00bfY si el cuento de {first_name} llegara a tu buz\u00f3n? \U0001f4ec" if first_name
-                         else "\u00bfY si tu cuento llegara a tu buz\u00f3n? \U0001f4ec")
-            cta_label = "Quiero el libro impreso \u2192"
-            cta_url   = formats_url
-            body_paras = f"""
-            <p style="font-size:16px;color:#374151;line-height:1.8;">
-                Ya tienes el PDF de {story_ref_es} y puedes imprimirlo cuando quieras.
+                Quer&iacute;a contarte que el cuento ya est&aacute; preparado tambi&eacute;n
+                para convertirse en un libro impreso.
             </p>
             <p style="font-size:16px;color:#374151;line-height:1.8;">
-                Pero si quieres algo m&aacute;s especial &mdash; un libro de verdad, con tapa dura,
-                que se pueda sostener en las manos y guardar en la estanter&iacute;a &mdash;
-                nosotros lo imprimimos y te lo enviamos a casa.
+                No hay que volver a generar nada.<br>
+                No hay que repetir el pedido.<br>
+                La historia ya est&aacute; lista.
             </p>
             <p style="font-size:16px;color:#374151;line-height:1.8;">
-                El cuento ya est&aacute; listo. Solo necesitas elegir.
+                Solo tienes que elegir si quieres conservarla tambi&eacute;n como libro.
+            </p>
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                Muchos padres nos cuentan que es uno de esos recuerdos que terminan
+                guardando durante a&ntilde;os.
             </p>"""
         else:
-            subject   = (f"El cuento de {first_name} tambi\u00e9n puede vivir en papel \U0001f4d6" if first_name
-                         else "Tu cuento tambi\u00e9n puede vivir en papel \U0001f4d6")
-            cta_label = "Ver mis opciones \u2192"
+            # V1 ES — solo ebook, upsell PDF + libro impreso
+            subject   = (f"El cuento de {first_name} tambi\u00e9n puede vivir fuera de la pantalla \U0001f4d6" if first_name
+                         else "Tu cuento tambi\u00e9n puede vivir fuera de la pantalla \U0001f4d6")
+            preheader = "Tu historia ya est\u00e1 lista. Ahora puedes conservarla para siempre."
+            cta_label = "Ver opciones para mi cuento \u2192"
             cta_url   = formats_url
+            title_line = (f'{title_q}' if title_q else 'el cuento')
+            child_line = (f'{first_name}' if first_name else 'el peque&ntilde;o')
             body_paras = f"""
             <p style="font-size:16px;color:#374151;line-height:1.8;">
-                Hace dos d&iacute;as recibiste {story_ref_es} y espero que lo hay&aacute;is disfrutado mucho.
+                Hace unos d&iacute;as recibiste {title_line} y espero que {child_line}
+                haya disfrutado de su aventura.
             </p>
             <p style="font-size:16px;color:#374151;line-height:1.8;">
-                Quer&iacute;a contarte algo que quiz&aacute;s no sab&iacute;as: el cuento ya est&aacute; listo
-                para imprimirlo tambi&eacute;n. Sin esperas ni generaciones nuevas.
+                Hay algo que quiz&aacute;s no sabes.
             </p>
-            <p style="font-size:16px;color:#374151;line-height:1.8;">Puedes elegir lo que m&aacute;s te guste:</p>
-            <ul style="font-size:16px;color:#374151;line-height:2;padding-left:20px;">
-                <li><strong>&#x1F4C4; PDF Imprimible</strong> &mdash; Lo descargas al instante e imprimes en casa o en cualquier copister&iacute;a.</li>
-                <li><strong>&#x1F4DA; Libro impreso con tapa dura</strong> &mdash; Lo imprimimos y te lo enviamos directamente a casa.</li>
-            </ul>"""
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                Como el cuento ya est&aacute; creado, puedes transformarlo en otros formatos
+                sin tener que volver a generarlo.
+            </p>
+            <p style="font-size:16px;color:#374151;line-height:1.8;">Puedes elegir:</p>
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                <strong>&#x1F4C4; PDF imprimible</strong><br>
+                <span style="color:#6b7280;">Perfecto para imprimir en casa o en cualquier copister&iacute;a cuando quieras.</span>
+            </p>
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                <strong>&#x1F4DA; Libro impreso</strong><br>
+                <span style="color:#6b7280;">Un recuerdo que puede guardarse durante a&ntilde;os, regalarse o formar
+                parte de una colecci&oacute;n familiar.</span>
+            </p>
+            <p style="font-size:16px;color:#374151;line-height:1.8;">
+                La historia ya est&aacute; preparada, as&iacute; que no hay esperas ni pasos adicionales.<br>
+                Solo tienes que elegir el formato que prefieras.
+            </p>"""
         content = f"""
+        <span style="display:none;max-height:0;overflow:hidden;mso-hide:all;opacity:0;font-size:1px;color:transparent;">{preheader}</span>
         <p style="font-size:16px;color:#374151;line-height:1.8;margin-top:0;">Hola,</p>
         {body_paras}
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:32px auto;">
@@ -3351,21 +3405,21 @@ def send_upsell_print_email(preview_id: str, to_email: str, child_name: str = ''
             server.sendmail(FROM_EMAIL, to_email, msg.as_string())
         print(f"[LEAD] 48h upsell email ({variant_tag}) sent to {to_email} (preview: {preview_id})")
         log_email('upsell_print', to_email, subject, 'SENT',
-                  preview_id=preview_id, child_name=child_name, lang=lang, body_html=html_body)
+                  preview_id=preview_id, child_name=_child_name, lang=_lang, body_html=html_body)
         return True
     except Exception as e:
         print(f"[LEAD] Failed to send 48h upsell email ({variant_tag}) to {to_email}: {e}")
         log_email('upsell_print', to_email, subject, 'ERROR',
-                  preview_id=preview_id, child_name=child_name, lang=lang, error=str(e))
+                  preview_id=preview_id, child_name=_child_name, lang=_lang, error=str(e))
         try:
-            _admin_subject = f"[ERROR] Email upsell 48h no enviado — {child_name} ({preview_id})"
+            _admin_subject = f"[ERROR] Email upsell 48h no enviado — {_child_name} ({preview_id})"
             _admin_content = f"""
             <p style="font-size:15px;color:#374151;">El email de upsell 48h <strong>no se pudo enviar</strong> al cliente.</p>
             <table style="font-size:13px;color:#374151;border-collapse:collapse;width:100%;">
               <tr><td style="padding:4px 8px;font-weight:600;">Preview ID:</td><td style="padding:4px 8px;font-family:monospace;">{preview_id}</td></tr>
-              <tr><td style="padding:4px 8px;font-weight:600;">Variante:</td><td style="padding:4px 8px;">{variant_tag} ({purchase_type})</td></tr>
+              <tr><td style="padding:4px 8px;font-weight:600;">Variante:</td><td style="padding:4px 8px;">{variant_tag}</td></tr>
               <tr><td style="padding:4px 8px;font-weight:600;">Cliente:</td><td style="padding:4px 8px;">{to_email}</td></tr>
-              <tr><td style="padding:4px 8px;font-weight:600;">Ni&#241;o/a:</td><td style="padding:4px 8px;">{child_name}</td></tr>
+              <tr><td style="padding:4px 8px;font-weight:600;">Ni&#241;o/a:</td><td style="padding:4px 8px;">{_child_name}</td></tr>
               <tr><td style="padding:4px 8px;font-weight:600;color:#dc2626;">Error:</td><td style="padding:4px 8px;font-family:monospace;color:#dc2626;">{e}</td></tr>
             </table>
             <p style="font-size:13px;color:#6b7280;margin-top:16px;">Puedes reenviarlo manualmente desde el CRM en /admin/crm</p>"""
@@ -3426,37 +3480,19 @@ def process_pending_follow_up_emails():
             # --- Email 2: 48h upsell (46–50h window, only after email 1 sent) ---
             elif entry.get('email_1_sent') and not entry.get('email_2_sent'):
                 if 46 <= elapsed_hours <= 50:
-                    # Skip if customer already bought PDF or print
-                    _already_upgraded = False
-                    try:
-                        import os as _os
-                        _pf = _os.path.join(_os.path.dirname(_os.path.dirname(__file__)),
-                                            'story_previews', f'{preview_id}.json')
-                        if _os.path.exists(_pf):
-                            with open(_pf, 'r', encoding='utf-8') as _f:
-                                _sd = _json.load(_f)
-                            _already_upgraded = bool(_sd.get('want_print') or _sd.get('want_pdf') or _sd.get('pdf_email_sent'))
-                    except Exception:
-                        pass
-                    if _already_upgraded:
+                    # send_upsell_print_email reads story_data internally (single source of truth)
+                    # and handles routing: SKIPPED_PRINT_CUSTOMER / V1 / V2
+                    ok = send_upsell_print_email(
+                        preview_id,
+                        entry.get('email', ''),
+                        entry.get('child_name', ''),
+                        entry.get('lang', 'es'),
+                        story_name=entry.get('story_name', ''),
+                    )
+                    if ok:
                         entry['email_2_sent'] = True
                         entry['email_2_sent_at'] = now.isoformat()
-                        entry['email_2_skipped'] = 'already_upgraded'
                         changed = True
-                        print(f"[LEAD] Skipped 48h upsell for {preview_id} — customer already upgraded")
-                    else:
-                        ok = send_upsell_print_email(
-                            preview_id,
-                            entry.get('email', ''),
-                            entry.get('child_name', ''),
-                            entry.get('lang', 'es'),
-                            story_name=entry.get('story_name', ''),
-                            purchase_type=entry.get('purchase_type', 'ebook'),
-                        )
-                        if ok:
-                            entry['email_2_sent'] = True
-                            entry['email_2_sent_at'] = now.isoformat()
-                            changed = True
 
         if changed:
             with open(FOLLOW_UPS_FILE, 'w', encoding='utf-8') as f:

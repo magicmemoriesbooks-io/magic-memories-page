@@ -4950,10 +4950,8 @@ def _dispatch_cart_item(item: dict, buyer_email: str, paypal_order_id: str, ship
         json.dump(story_data, f, ensure_ascii=False, indent=2)
     try:
         from services.email_service import register_purchase_for_follow_up as _reg_fu
-        _ptype = 'print' if story_data.get('want_print') else ('pdf' if story_data.get('want_pdf') else 'ebook')
         _reg_fu(preview_id, buyer_email, story_data.get('child_name', ''), story_data.get('lang', 'es'),
-                story_name=story_data.get('story_name', story_data.get('title', '')),
-                purchase_type=_ptype)
+                story_name=story_data.get('story_name', story_data.get('title', '')))
     except Exception as _fu_err:
         print(f"[LEAD] register_purchase_for_follow_up error: {_fu_err}")
     print(f"[CART-DISPATCH] Processing cart item: {product_type} for {preview_id}")
@@ -5220,10 +5218,8 @@ def process_payment(preview_id):
 
     try:
         from services.email_service import register_purchase_for_follow_up as _reg_fu
-        _ptype = 'print' if story_data.get('want_print') else ('pdf' if story_data.get('want_pdf') else 'ebook')
         _reg_fu(preview_id, email, story_data.get('child_name', ''), story_data.get('lang', 'es'),
-                story_name=story_data.get('story_name', story_data.get('title', '')),
-                purchase_type=_ptype)
+                story_name=story_data.get('story_name', story_data.get('title', '')))
     except Exception as _fu_err:
         print(f"[LEAD] register_purchase_for_follow_up error: {_fu_err}")
 
@@ -12973,7 +12969,7 @@ def paypal_capture_print_order():
                     _prf_lang = _prf_sd.get('lang', 'es')
                     _prf_story_name = _prf_sd.get('story_name', _prf_sd.get('title', ''))
             _reg_fu(pr.preview_id, pr.customer_email, pr.child_name, _prf_lang,
-                    story_name=_prf_story_name, purchase_type='print')
+                    story_name=_prf_story_name)
         except Exception as _fu_err:
             print(f"[LEAD] register_purchase_for_follow_up error: {_fu_err}")
         _po_is_qs = data.get('is_qs', False)
@@ -13339,10 +13335,8 @@ def paypal_capture_formats_order():
 
         try:
             from services.email_service import register_purchase_for_follow_up as _reg_fu
-            _ptype = 'print' if want_print else ('pdf' if want_pdf else 'ebook')
             _reg_fu(preview_id, buyer_email, child_name, lang,
-                    story_name=story_data.get('story_name', story_data.get('title', '')),
-                    purchase_type=_ptype)
+                    story_name=story_data.get('story_name', story_data.get('title', '')))
         except Exception as _fu_err:
             print(f"[LEAD] register_purchase_for_follow_up error: {_fu_err}")
 
