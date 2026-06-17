@@ -80,7 +80,11 @@
             <h2 style="font-size:22px; color:#1a1a1a; margin:0;">Cuento de {{ preview.child_name }}</h2>
             <p style="font-size:13px; color:#888; margin-top:4px;">{{ preview_id }}</p>
         </div>
+        {% if back_from == 'leads' %}
+        <a href="/admin/crm/leads" class="ap-btn ap-btn-back">&larr; Leads</a>
+        {% else %}
         <a href="/admin/cuentos" class="ap-btn ap-btn-back">&larr; Cuentos</a>
+        {% endif %}
     </div>
 
     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-bottom:20px;">

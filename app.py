@@ -8339,7 +8339,8 @@ def admin_view_preview(preview_id):
     with open(preview_path, 'r') as f:
         data = json.load(f)
     
-    return render_template('admin_preview.html', preview=data, preview_id=preview_id)
+    back_from = request.args.get('from', '')
+    return render_template('admin_preview.html', preview=data, preview_id=preview_id, back_from=back_from)
 
 
 @app.route('/admin/regenerate-scene/<preview_id>/<int:scene_num>', methods=['POST'])
@@ -10438,6 +10439,83 @@ def admin_crm_timeline(email):
                 except Exception:
                     pass
 
+    # ── 4. PreviewLead events (lead activity before purchase) ────────────────
+    _pl_records = PreviewLead.query.filter(
+        db.func.lower(PreviewLead.email) == email
+    ).order_by(PreviewLead.created_at).all()
+    for _lr in _pl_records:
+        if _lr.created_at:
+            events.append({
+                'ts': _lr.created_at, 'icon': '🎨',
+                'label': f'Preview generada: {_lr.story_id or "cuento"}',
+                'detail': '', 'preview_id': '',
+                'approx': False, 'result': 'LEAD',
+            })
+
+    # ── 5. Photo upload events ────────────────────────────────────────────────
+    _ph_logs = PhotoUploadLog.query.filter(
+        db.func.lower(PhotoUploadLog.email) == email
+    ).order_by(PhotoUploadLog.uploaded_at).all()
+    _ptype_map = {'human': 'humana', 'pet': 'mascota', 'child': 'niño'}
+    for _pl2 in _ph_logs:
+        if _pl2.uploaded_at:
+            _ptype_lbl = _ptype_map.get(_pl2.photo_type or '', _pl2.photo_type or '')
+            events.append({
+                'ts': _pl2.uploaded_at, 'icon': '📸',
+                'label': f'Subió foto ({_ptype_lbl})',
+                'detail': _pl2.story_id or '',
+                'preview_id': _pl2.preview_id or '',
+                'approx': False,
+                'result': 'DELETED' if _pl2.deleted_at else '',
+            })
+
+    # ── 6. Regen exhausted events (from lead JSONs matched by story_id) ───────
+    if _pl_records:
+        _lead_sids = {lr.story_id for lr in _pl_records if lr.story_id}
+        _first_visit_ts = min(
+            (lr.created_at.timestamp() for lr in _pl_records if lr.created_at), default=0
+        )
+        for _pf2 in _glob.glob('story_previews/*.json'):
+            try:
+                _pid2 = os.path.basename(_pf2).replace('.json', '')
+                _jd2 = json.load(open(_pf2))
+                _jem2 = (_jd2.get('customer_email') or '').strip().lower()
+                _js2 = _jd2.get('story_id', '')
+                _ct2 = os.path.getctime(_pf2)
+                _match = (_jem2 == email) or (
+                    _js2 in _lead_sids and abs(_ct2 - _first_visit_ts) < 86400 * 14
+                )
+                if not _match:
+                    continue
+                # Pre-payment preview regeneration
+                if _jd2.get('regeneration_used'):
+                    events.append({
+                        'ts': _dt.utcfromtimestamp(_ct2), 'icon': '🔄',
+                        'label': 'Usó regeneración de preview',
+                        'detail': '', 'preview_id': _pid2, 'approx': True, 'result': '',
+                    })
+                # Post-payment scene regens (Quick Stories)
+                for _sk, _sv in (_jd2.get('scene_regenerations') or {}).items():
+                    if int(_sv) >= 2:
+                        events.append({
+                            'ts': _EPOCH, 'icon': '🔄',
+                            'label': f'Agotó intentos: escena {_sk}',
+                            'detail': f'{_sv} regeneraciones (límite 2)',
+                            'preview_id': _pid2, 'approx': True, 'result': '',
+                        })
+                # Post-payment page regens (Illustrated books)
+                for _pk, _pv in (_jd2.get('page_regenerations') or {}).items():
+                    if int(_pv) >= 2:
+                        events.append({
+                            'ts': _EPOCH, 'icon': '🔄',
+                            'label': f'Agotó intentos: página {_pk}',
+                            'detail': f'{_pv} regeneraciones (límite 2)',
+                            'preview_id': _pid2, 'approx': True, 'result': '',
+                        })
+            except Exception:
+                pass
+
+    back_from = request.args.get('from', 'clientes')
     events.sort(key=lambda x: x['ts'])
     for ev in events:
         _d = ev['ts']
@@ -10445,7 +10523,7 @@ def admin_crm_timeline(email):
             ev['ts_str'] = 'Fecha desconocida'
         else:
             ev['ts_str'] = _d.strftime('%d %b %Y   %H:%M')
-    return render_template('admin_crm_timeline.html', email=email, events=events)
+    return render_template('admin_crm_timeline.html', email=email, events=events, back_from=back_from)
 
 
 @app.route('/admin/crm/leads')
@@ -10540,6 +10618,15 @@ def admin_crm_leads():
         except Exception:
             pass
 
+    # Build photo-upload email set for badge
+    _photo_emails = set()
+    try:
+        for _pe in PhotoUploadLog.query.with_entities(PhotoUploadLog.email).distinct().all():
+            if _pe.email:
+                _photo_emails.add(_pe.email.strip().lower())
+    except Exception:
+        pass
+
     # Build display list sorted by last_visit desc
     leads_grouped = []
     today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -10581,6 +10668,7 @@ def admin_crm_leads():
             'last_visit_str': lv.strftime('%d %b %Y') if lv else '—',
             'main_ip': main_ip,
             'cuentos': _json_cuentos,  # enriched: preview_id, child_name, story_id, date_str
+            'has_photo': em in _photo_emails,
         })
 
     return render_template('admin_crm_leads.html',

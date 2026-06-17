@@ -18,6 +18,7 @@
     <a href="/admin/crm/clientes" style="padding:7px 16px;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;color:#475569;">👤 Clientes</a>
     <a href="/admin/crm" style="padding:7px 16px;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;color:#475569;">📧 Historial Emails</a>
     <a href="/admin/crm/leads" style="padding:7px 16px;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;background:#6366f1;color:white;">🎯 Leads</a>
+    <a href="/admin/uploaded-photos" style="padding:7px 16px;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;color:#475569;">📸 Fotos</a>
   </div>
 
   <!-- Stats bar -->
@@ -62,8 +63,13 @@
       <!-- Header (clickable) -->
       <div onclick="toggleLead('{{ card_id }}')" style="padding:16px 18px;display:flex;align-items:center;gap:14px;cursor:pointer;user-select:none;" onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background=''">
 
-        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#fde68a,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#92400e;flex-shrink:0;">
-          {{ lg.email[0].upper() }}
+        <div style="position:relative;flex-shrink:0;">
+          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#fde68a,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#92400e;">
+            {{ lg.email[0].upper() }}
+          </div>
+          {% if lg.has_photo %}
+          <div title="Subió foto" style="position:absolute;bottom:-2px;right:-2px;background:white;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:11px;border:1px solid #e2e8f0;line-height:1;">📸</div>
+          {% endif %}
         </div>
 
         <div style="flex:1;min-width:0;">
@@ -109,9 +115,9 @@
                 <span style="background:#f0f4ff;color:#4f46e5;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;font-family:monospace;">{{ c.story_id or '—' }}</span>
               </div>
               <div style="font-size:11px;color:#94a3b8;white-space:nowrap;">{{ c.date_str }}</div>
-              <a href="/admin/preview/{{ c.preview_id }}"
+              <a href="/admin/preview/{{ c.preview_id }}?from=leads"
                  style="padding:4px 10px;background:#6366f1;color:white;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap;"
-                 title="Abrir en Cuentos Realizados">
+                 title="Abrir cuento (vuelve aquí con ← Leads)">
                 Ver cuento →
               </a>
             </div>
@@ -148,7 +154,7 @@
                  style="padding:5px 12px;background:#6366f1;color:white;border-radius:7px;text-decoration:none;font-size:11px;font-weight:700;">
                 ✉ Email
               </a>
-              <a href="/admin/crm/timeline/{{ lg.email }}"
+              <a href="/admin/crm/timeline/{{ lg.email }}?from=leads"
                  style="padding:5px 12px;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;border-radius:7px;text-decoration:none;font-size:11px;font-weight:700;">
                 📋 Timeline
               </a>

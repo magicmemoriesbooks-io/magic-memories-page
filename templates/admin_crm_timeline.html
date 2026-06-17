@@ -7,7 +7,11 @@
 
   <div style="margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
     <div>
+      {% if back_from == 'leads' %}
+      <a href="/admin/crm/leads" style="font-size:11px;color:#6366f1;text-decoration:none;font-weight:700;">← Leads</a>
+      {% else %}
       <a href="/admin/crm/clientes" style="font-size:11px;color:#6366f1;text-decoration:none;font-weight:700;">← Clientes</a>
+      {% endif %}
       <h1 style="font-size:20px;font-weight:800;color:#1e293b;margin:6px 0 2px 0;">🕒 Timeline</h1>
       <p style="font-size:13px;color:#475569;margin:0;font-weight:600;">{{ email }}</p>
     </div>
@@ -49,6 +53,10 @@
               <span style="background:#fee2e2;color:#dc2626;border-radius:4px;padding:2px 6px;font-size:9px;font-weight:700;">ERROR</span>
               {% elif ev.result == 'SENT' %}
               <span style="background:#dcfce7;color:#16a34a;border-radius:4px;padding:2px 6px;font-size:9px;font-weight:700;">ENVIADO</span>
+              {% elif ev.result == 'LEAD' %}
+              <span style="background:#fef9c3;color:#92400e;border-radius:4px;padding:2px 6px;font-size:9px;font-weight:700;">LEAD</span>
+              {% elif ev.result == 'DELETED' %}
+              <span style="background:#f1f5f9;color:#64748b;border-radius:4px;padding:2px 6px;font-size:9px;font-weight:700;">ELIMINADA</span>
               {% endif %}
               <span style="font-size:10px;color:#94a3b8;">{{ ev.ts_str[12:] if ev.ts_str|length > 11 else '' }}</span>
             </div>
@@ -70,8 +78,9 @@
   <div style="margin-top:24px;padding:14px 16px;background:white;border-radius:10px;border:1px solid #e2e8f0;">
     <div style="font-size:10px;color:#94a3b8;font-weight:600;">LEYENDA</div>
     <div style="margin-top:6px;font-size:11px;color:#64748b;display:flex;gap:16px;flex-wrap:wrap;">
-      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#6366f1;margin-right:4px;vertical-align:middle;"></span>Evento exacto (email log)</span>
-      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#e2e8f0;border:2px solid #94a3b8;margin-right:4px;vertical-align:middle;"></span>Fecha aproximada <strong>≈</strong> (basada en el archivo del cuento)</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#6366f1;margin-right:4px;vertical-align:middle;"></span>Evento exacto</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#e2e8f0;border:2px solid #94a3b8;margin-right:4px;vertical-align:middle;"></span>Fecha aproximada <strong>≈</strong></span>
+      <span>🎨 Preview generada &nbsp; 📸 Foto subida &nbsp; 🔄 Regeneración &nbsp; 📧 Email enviado &nbsp; 💳 Compra</span>
     </div>
   </div>
 
@@ -79,7 +88,7 @@
   <div style="background:white;border-radius:12px;border:1px solid #e2e8f0;padding:60px 24px;text-align:center;">
     <div style="font-size:48px;margin-bottom:16px;">🕒</div>
     <div style="font-size:16px;font-weight:800;color:#1e293b;margin-bottom:8px;">Sin eventos registrados</div>
-    <div style="font-size:12px;color:#64748b;">No se encontraron cuentos pagados ni emails para <strong>{{ email }}</strong>.</div>
+    <div style="font-size:12px;color:#64748b;">No se encontraron eventos registrados para <strong>{{ email }}</strong>.</div>
   </div>
   {% endif %}
 
