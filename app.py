@@ -5303,8 +5303,16 @@ def process_payment(preview_id):
         story_data['product_type'] = _pt_d
 
     client_ip = get_client_ip()
-    preview_rate_limits.pop(client_ip, None)
-    print(f"[RATE LIMIT] Cleared for IP {client_ip} after payment")
+    try:
+        cutoff = datetime.utcnow() - timedelta(hours=24)
+        PreviewLead.query.filter(
+            PreviewLead.ip_address == client_ip,
+            PreviewLead.created_at >= cutoff
+        ).delete(synchronize_session=False)
+        db.session.commit()
+        print(f"[RATE LIMIT] Cleared DB records for IP {client_ip} after payment")
+    except Exception:
+        db.session.rollback()
     
     story_data['want_print'] = bool(want_print)
     formats = data.get('formats', [])
@@ -8255,12 +8263,23 @@ def admin_dashboard():
 
 @app.route('/admin/reset-rate-limits', methods=['POST'])
 def admin_reset_rate_limits():
-    """Clear all preview rate limits (useful for testing)."""
+    """Clear all preview rate limits from DB (useful for testing)."""
     if not check_admin_auth():
         return jsonify({'error': 'Not authorized'}), 403
-    preview_rate_limits.clear()
-    email_rate_limits.clear()
-    return jsonify({'success': True, 'message': 'Rate limits cleared (IP + email)'})
+    try:
+        data = request.get_json() or {}
+        ip_filter = data.get('ip')  # optional: only clear a specific IP
+        cutoff = datetime.utcnow() - timedelta(hours=24)
+        q = PreviewLead.query.filter(PreviewLead.created_at >= cutoff)
+        if ip_filter:
+            q = q.filter(PreviewLead.ip_address == ip_filter)
+        deleted = q.delete(synchronize_session=False)
+        db.session.commit()
+        scope = f'IP {ip_filter}' if ip_filter else 'todos'
+        return jsonify({'success': True, 'message': f'Rate limits borrados en DB ({scope}): {deleted} registros'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @app.route('/admin/send-test-feedback-email', methods=['POST'])
