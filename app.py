@@ -14652,6 +14652,140 @@ def admin_enable_abandonment_scheduler():
 
 
 # ───────────────────────────────────────────────
+# ISABEL CAMPAIGN — bulk send + status
+# ───────────────────────────────────────────────
+
+@app.route('/admin/lead-campaign/isabel/send-all', methods=['POST'])
+def admin_isabel_campaign_send_all():
+    """Bulk-send Isabel's one-time campaign to all unconverted leads. Admin only."""
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    import glob as _g, json as _j
+    from services.email_service import send_isabel_campaign_email, _is_duplicate_send
+
+    story_dir = os.path.join(os.path.dirname(__file__), 'story_previews')
+    _ET = 'lead_campaign_isabel'
+
+    # Build purchased set
+    purchased_emails = set()
+    if os.path.isdir(story_dir):
+        for pf in _g.glob(os.path.join(story_dir, '*.json')):
+            try:
+                with open(pf, 'r', encoding='utf-8') as _f:
+                    sd = _j.load(_f)
+                if sd.get('paid') or sd.get('ebook_paid') or sd.get('pdf_paid') \
+                   or sd.get('payment_status') == 'completed' \
+                   or float(sd.get('amount_paid') or sd.get('customer_total_usd') or 0) > 0:
+                    em = (sd.get('customer_email') or '').strip().lower()
+                    if em:
+                        purchased_emails.add(em)
+            except Exception:
+                pass
+
+    # Build story info index (lang + child_name) by email and story_id
+    info_by_email = {}   # email → {child_name, lang}
+    info_by_sid   = {}   # story_id → {child_name, lang}
+    if os.path.isdir(story_dir):
+        for pf in _g.glob(os.path.join(story_dir, '*.json')):
+            try:
+                with open(pf, 'r', encoding='utf-8') as _f:
+                    sd = _j.load(_f)
+                entry = {'child_name': sd.get('child_name', ''),
+                         'lang': sd.get('lang', 'es')}
+                em = (sd.get('customer_email') or '').strip().lower()
+                if em and em not in info_by_email:
+                    info_by_email[em] = entry
+                sid = sd.get('story_id', '')
+                if sid and sid not in info_by_sid:
+                    info_by_sid[sid] = entry
+            except Exception:
+                pass
+
+    # Query all leads with email
+    leads_all = PreviewLead.query.filter(PreviewLead.email != '').all()
+    seen_emails = set()
+    sent, skipped_purchased, skipped_dupe, failed = 0, 0, 0, 0
+    recipients = []
+
+    for lead in leads_all:
+        em = (lead.email or '').strip().lower()
+        if not em or '@' not in em or em in seen_emails:
+            continue
+        seen_emails.add(em)
+
+        if em in purchased_emails:
+            skipped_purchased += 1
+            continue
+        if _is_duplicate_send(preview_id=em, email_type=_ET, days=365):
+            skipped_dupe += 1
+            continue
+
+        info = info_by_email.get(em) or info_by_sid.get(lead.story_id or '', {})
+        child_name = info.get('child_name', '')
+        lang       = info.get('lang', 'es')
+
+        ok = send_isabel_campaign_email(em, child_name, lang)
+        if ok:
+            sent += 1
+            recipients.append({'email': em, 'name': child_name, 'lang': lang})
+        else:
+            failed += 1
+
+    return jsonify({
+        'ok': True,
+        'sent': sent,
+        'skipped_purchased': skipped_purchased,
+        'skipped_already_sent': skipped_dupe,
+        'failed': failed,
+        'recipients': recipients
+    })
+
+
+@app.route('/admin/lead-campaign/isabel/stats')
+def admin_isabel_campaign_stats():
+    """Return open/click stats for the Isabel campaign. Admin only."""
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    import json as _j
+    log_path = os.path.join('data', 'email_log.jsonl')
+    sent, opens, clicks_gallery, clicks_ig, clicks_cta = 0, 0, 0, 0, 0
+    click_total = 0
+    if os.path.exists(log_path):
+        with open(log_path, 'r', encoding='utf-8') as _f:
+            for line in _f:
+                try:
+                    e = _j.loads(line)
+                    if e.get('email_type') != 'lead_campaign_isabel':
+                        continue
+                    cat = e.get('category', '')
+                    if cat == 'sent':
+                        sent += 1
+                    elif cat == 'tracking':
+                        opens += 1
+                    elif cat == 'click':
+                        link = e.get('link_name', '')
+                        click_total += 1
+                        if link == 'galeria':
+                            clicks_gallery += 1
+                        elif link == 'instagram':
+                            clicks_ig += 1
+                        elif link == 'continuar':
+                            clicks_cta += 1
+                except Exception:
+                    pass
+    return jsonify({
+        'sent': sent,
+        'opens': opens,
+        'open_rate': round(opens / sent * 100, 1) if sent else 0,
+        'clicks_total': click_total,
+        'clicks_cta': clicks_cta,
+        'clicks_gallery': clicks_gallery,
+        'clicks_instagram': clicks_ig,
+        'ctr': round(click_total / sent * 100, 1) if sent else 0
+    })
+
+
+# ───────────────────────────────────────────────
 # EMAIL TRACKING — open pixel + click redirect
 # ───────────────────────────────────────────────
 import base64 as _b64
