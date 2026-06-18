@@ -710,68 +710,6 @@
 </section>
 
 
-<!-- ══════════════════════════════════════════════════════
-     6. REVIEWS
-══════════════════════════════════════════════════════ -->
-<section id="opiniones" class="py-20 px-6" style="background:#FAFAF8;scroll-margin-top:80px;">
-  <div class="max-w-6xl mx-auto">
-    <div class="text-center mb-14">
-      <div class="section-label">{% if lang == 'es' %}Lo que dicen{% else %}What they say{% endif %}</div>
-      <h2 class="section-title">{% if lang == 'es' %}Historias que enamoran{% else %}Stories that inspire love{% endif %}</h2>
-      <div class="flex items-center justify-center gap-2 mt-2">
-        <span style="color:#F59E0B;font-size:18px;">★★★★★</span>
-        <span style="font-family:'Quicksand',sans-serif;font-size:14px;color:#9ca3af;">{% if lang == 'es' %}Más de {{ stories_count }} cuentos mágicos creados{% else %}Over {{ stories_count }} magical stories created{% endif %}</span>
-      </div>
-    </div>
-  </div>
-
-  <div style="overflow:hidden;width:100%;padding:4px 0 20px;">
-    <div class="testimonial-marquee">
-      {% set testimonials = [
-        {'name':'María G.','country':'🇪🇸','cover':'cover_star_guardian.jpg','spine':'#5B4FCF',
-         'es':'Mi hija no podía creer que ella era la protagonista. ¡Lo leemos todas las noches!',
-         'en':'My daughter couldn\'t believe she was the star. We read it every night!'},
-        {'name':'Carlos R.','country':'🇲🇽','cover':'cover_birthday_celebration.jpg','spine':'#B8860B',
-         'es':'El mejor regalo de cumpleaños. Lo imprimí y lo llevé a la fiesta en 20 minutos.',
-         'en':'The best birthday gift. I printed it and took it to the party in 20 minutes.'},
-        {'name':'Ana P.','country':'🇺🇸','cover':'cover_furry_love.jpg','spine':'#f59e0b',
-         'es':'Incluimos a nuestra perrita Luna y el resultado fue increíble. Un recuerdo para toda la vida.',
-         'en':'We included our dog Luna and the result was incredible. A memory for a lifetime.'},
-        {'name':'Laura M.','country':'🇦🇪','cover':'cover_chronicles_valley.jpg','spine':'#0369a1',
-         'es':'Llegó a tiempo para Navidad. La calidad del libro es increíble, parece de librería.',
-         'en':'It arrived in time for Christmas. The book quality is incredible, looks like a bookstore book.'},
-        {'name':'Pedro S.','country':'🇦🇷','cover':'cover_dragon_friend.jpg','spine':'#16a34a',
-         'es':'Mi hijo se emociona cada vez que ve su nombre en el cuento. Vale cada centavo.',
-         'en':'My son gets excited every time he sees his name in the story. Worth every penny.'},
-        {'name':'Diana L.','country':'🇨🇴','cover':'cover_baby_soft_world.jpg','spine':'#15134A',
-         'es':'Lo regalé en un baby shower y fue el regalo más original de todos.',
-         'en':'I gave it as a baby shower gift and it was the most original gift of all.'},
-        {'name':'Roberto K.','country':'🇧🇷','cover':'cover_space_astronaut.jpg','spine':'#1d4ed8',
-         'es':'Las ilustraciones parecen de película Disney. Mi hija dice que es su libro favorito.',
-         'en':'The illustrations look like a Disney movie. My daughter says it\'s her favorite book.'},
-        {'name':'Javier T.','country':'🇵🇪','cover':'cover_magic_chef.jpg','spine':'#dc2626',
-         'es':'Mi esposa lloró de la emoción al verlo. Un regalo que no se olvida.',
-         'en':'My wife cried with emotion when she saw it. A gift you never forget.'}
-      ] %}
-      {% for t in testimonials + testimonials %}
-      <div class="tcard">
-        <div style="color:#F59E0B;font-size:13px;margin-bottom:10px;">★★★★★</div>
-        <p style="font-family:'Quicksand',sans-serif;font-size:13px;color:#374151;line-height:1.65;margin-bottom:14px;font-style:italic;">"{{ t.es if lang == 'es' else t.en }}"</p>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div class="book-3d-mini" style="--spine:{{ t.spine }};">
-            <div class="book-3d-spine"></div>
-            <img src="{{ url_for('static', filename='images/' + t.cover) }}" alt="{{ t.name }}" style="width:100%;height:100%;object-fit:cover;border-radius:0 3px 3px 0;">
-          </div>
-          <div>
-            <div style="font-family:'Quicksand',sans-serif;font-size:13px;color:#0F0E2A;font-weight:700;">{{ t.country }} {{ t.name }}</div>
-            <div style="font-family:'Quicksand',sans-serif;font-size:11px;color:#9ca3af;">{% if lang == 'es' %}Compra verificada{% else %}Verified purchase{% endif %}</div>
-          </div>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-</section>
 
 
 <!-- ══════════════════════════════════════════════════════
