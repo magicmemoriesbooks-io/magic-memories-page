@@ -53,6 +53,7 @@ _EMAIL_TYPE_META = {
     'admin_error':          {'category': 'admin',      'label': 'Admin: error'},
     'admin_other':          {'category': 'admin',      'label': 'Admin: notificación'},
     'skipped_duplicate':    {'category': 'system',     'label': 'Duplicado omitido'},
+    'lead_abandonment':     {'category': 'retention',  'label': 'Abandono de lead'},
 }
 
 def log_email(email_type: str, to_email: str, subject: str, result: str,
@@ -3510,3 +3511,218 @@ def process_pending_follow_up_emails():
                 _json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"[LEAD] Error in process_pending_follow_up_emails: {e}")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# LEAD ABANDONMENT EMAIL
+# ──────────────────────────────────────────────────────────────────────────────
+
+def send_lead_abandonment_email(to_email: str, child_name: str, story_url: str, lang: str = 'es') -> bool:
+    """Sends the abandonment recovery email to a lead who started but didn't purchase."""
+    name_display = child_name.strip() if child_name and child_name.strip() else 'Peque'
+
+    if lang == 'es':
+        subject = "No queríamos que te perdieras esto... ¡Mira lo que hemos pensado! ✨"
+        wrapper_title = "✨ Tu historia sigue esperándote"
+        preheader = f"Asegura la historia de {name_display} por solo $6 o $9 — su historia queda guardada para siempre."
+
+        content = f"""
+        <h2 style="color:#7c3aed;margin-top:0;font-size:22px;">Hola 👋</h2>
+        <p style="font-size:16px;color:#374151;line-height:1.6;">
+            Hace un tiempo entraste a <strong>Magic Memories Books</strong> para crear algo muy especial
+            para <strong>{name_display}</strong>. Y sabemos perfectamente cómo funciona el día a día:
+            entra una llamada, el niño/a te reclama, o simplemente surgen dudas y lo dejas para después.
+            <strong>¡Es completamente normal!</strong>
+        </p>
+        <p style="font-size:16px;color:#374151;line-height:1.6;">
+            Pero no queríamos que la historia de <strong>{name_display}</strong> se perdiera en el olvido.
+            Por eso hemos pensado en algo perfecto para ti.
+        </p>
+
+        {_info_box(f'''
+            <h3 style="margin-top:0;color:#7c3aed;font-size:18px;">📖 Asegura su historia por solo $6 o $9 — sin prisas</h3>
+            <p style="color:#374151;font-size:15px;line-height:1.6;margin:0 0 12px;">
+                Es una inversión casi simbólica, pero con una ventaja enorme:
+            </p>
+            <p style="color:#374151;font-size:15px;line-height:1.6;margin:0;background:#fff;padding:12px 16px;border-radius:8px;border-left:3px solid #9333ea;">
+                <strong>Al comprar el eBook, la historia de {name_display} queda guardada para siempre en tu cuenta.</strong>
+                Recibes el eBook digital al instante y a partir de ahí, tú decides cuándo y cómo quieres el resto.
+            </p>
+        ''')}
+
+        <div style="margin:24px 0;">
+            <p style="font-size:15px;color:#374151;font-weight:700;margin-bottom:12px;">¿Y qué más puedes pedir después?</p>
+            <table style="width:100%;border-collapse:collapse;">
+                <tr>
+                    <td style="padding:10px 12px;background:#f3e8ff;border-radius:8px;margin-bottom:8px;display:block;">
+                        <span style="color:#9333ea;font-weight:700;">📄 PDF imprimible</span><br>
+                        <span style="color:#374151;font-size:14px;">Descárgalo y llévalo a cualquier copistería o imprímelo en casa cuando quieras.</span>
+                    </td>
+                </tr>
+            </table>
+            <div style="height:8px;"></div>
+            <table style="width:100%;border-collapse:collapse;">
+                <tr>
+                    <td style="padding:10px 12px;background:#f0fdf4;border-radius:8px;display:block;">
+                        <span style="color:#16a34a;font-weight:700;">📚 Libro físico impreso en tapa dura</span><br>
+                        <span style="color:#374151;font-size:14px;">Pídelo cuando mejor te venga: el próximo mes, para su cumpleaños, o cuando tú decidas.</span>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        {_alert_box(f'''
+            <p style="margin:0;color:#92400e;font-size:15px;line-height:1.6;">
+                Hoy solo pagas el eBook. El PDF y el libro impreso están disponibles en tu cuenta cuando los necesites.
+                <strong>La historia de {name_display} no desaparece.</strong>
+            </p>
+        ''')}
+
+        <p style="font-size:16px;color:#374151;line-height:1.6;margin-top:24px;">
+            <strong>¿Pero puedo fiarme?</strong> Es la pregunta más honesta que puedes hacerte.
+            Por eso queremos mostrarte familias reales que ya han recibido sus cuentos:
+        </p>
+
+        {_success_box(f'''
+            <p style="margin:0 0 10px;color:#374151;font-size:15px;">
+                📸 <strong>Galería de clientes reales:</strong><br>
+                <a href="https://magicmemoriesbooks.com/#galeria" style="color:#9333ea;font-weight:600;">magicmemoriesbooks.com/#galeria</a>
+            </p>
+            <p style="margin:0;color:#374151;font-size:15px;">
+                📱 <strong>Instagram:</strong>
+                <a href="https://instagram.com/magicmemoriesbooks" style="color:#9333ea;font-weight:600;">@magicmemoriesbooks</a>
+            </p>
+            <p style="margin:10px 0 0;color:#6b7280;font-size:13px;">
+                Fotografías reales de niños, familias y libros entregados. Verás que la magia que imaginas es completamente real.
+            </p>
+        ''')}
+
+        <p style="font-size:15px;color:#374151;line-height:1.6;">
+            🎁 Y como parte de nuestro lanzamiento, seguimos manteniendo el
+            <strong>10% de descuento de apertura</strong> durante estos primeros días.
+        </p>
+
+        {_cta_button(f"✨ Continuar con el cuento de {name_display} →", story_url)}
+
+        <p style="font-size:14px;color:#6b7280;text-align:center;">
+            Si el botón no funciona, copia este enlace: <br>
+            <a href="{story_url}" style="color:#9333ea;word-break:break-all;">{story_url}</a>
+        </p>
+
+        <p style="font-size:15px;color:#374151;line-height:1.6;margin-top:24px;">
+            Nos hace mucha ilusión que <strong>{name_display}</strong> pueda verse como protagonista de su propia historia.
+            Si tienes cualquier duda, responde este email — somos personas reales y te contestamos personalmente.
+        </p>
+        <p style="font-size:15px;color:#374151;"><strong>Un abrazo,<br>El equipo de Magic Memories Books 💛</strong></p>
+        """
+    else:
+        subject = "We didn't want you to miss this... Here's what we thought! ✨"
+        wrapper_title = "✨ Your story is still waiting"
+        preheader = f"Save {name_display}'s story for just $6 or $9 — kept forever in your account."
+
+        content = f"""
+        <h2 style="color:#7c3aed;margin-top:0;font-size:22px;">Hi 👋</h2>
+        <p style="font-size:16px;color:#374151;line-height:1.6;">
+            A while ago you started creating something very special for <strong>{name_display}</strong> at Magic Memories Books.
+            We know exactly how everyday life works: a call comes in, your little one needs you, or doubts pop up
+            and you leave it for later. <strong>Completely normal!</strong>
+        </p>
+        <p style="font-size:16px;color:#374151;line-height:1.6;">
+            But we didn't want <strong>{name_display}</strong>'s story to be forgotten.
+            So we thought of something perfect for you.
+        </p>
+
+        {_info_box(f'''
+            <h3 style="margin-top:0;color:#7c3aed;font-size:18px;">📖 Save their story for just $6 or $9 — no rush</h3>
+            <p style="color:#374151;font-size:15px;line-height:1.6;margin:0 0 12px;">
+                It's a small investment, but with a huge advantage:
+            </p>
+            <p style="color:#374151;font-size:15px;line-height:1.6;margin:0;background:#fff;padding:12px 16px;border-radius:8px;border-left:3px solid #9333ea;">
+                <strong>By purchasing the eBook, {name_display}'s story is saved forever in your account.</strong>
+                You get the digital eBook instantly — and from then on, you choose when and how you want the rest.
+            </p>
+        ''')}
+
+        <div style="margin:24px 0;">
+            <p style="font-size:15px;color:#374151;font-weight:700;margin-bottom:12px;">What else can you order later?</p>
+            <div style="padding:10px 12px;background:#f3e8ff;border-radius:8px;margin-bottom:8px;">
+                <span style="color:#9333ea;font-weight:700;">📄 Printable PDF</span><br>
+                <span style="color:#374151;font-size:14px;">Download it and print at home or at any copy shop whenever you like.</span>
+            </div>
+            <div style="padding:10px 12px;background:#f0fdf4;border-radius:8px;">
+                <span style="color:#16a34a;font-weight:700;">📚 Hardcover printed book</span><br>
+                <span style="color:#374151;font-size:14px;">Order it when you're ready — next month, for their birthday, whenever you decide.</span>
+            </div>
+        </div>
+
+        {_alert_box(f'''
+            <p style="margin:0;color:#92400e;font-size:15px;line-height:1.6;">
+                Today you only pay for the eBook. The PDF and printed book are available in your account whenever you need them.
+                <strong>{name_display}'s story won't disappear.</strong>
+            </p>
+        ''')}
+
+        <p style="font-size:16px;color:#374151;line-height:1.6;margin-top:24px;">
+            <strong>But can I trust you?</strong> That's the most honest question you can ask.
+            That's why we want to show you real families who have already received their books:
+        </p>
+
+        {_success_box(f'''
+            <p style="margin:0 0 10px;color:#374151;font-size:15px;">
+                📸 <strong>Real customer gallery:</strong><br>
+                <a href="https://magicmemoriesbooks.com/#galeria" style="color:#9333ea;font-weight:600;">magicmemoriesbooks.com/#galeria</a>
+            </p>
+            <p style="margin:0;color:#374151;font-size:15px;">
+                📱 <strong>Instagram:</strong>
+                <a href="https://instagram.com/magicmemoriesbooks" style="color:#9333ea;font-weight:600;">@magicmemoriesbooks</a>
+            </p>
+            <p style="margin:10px 0 0;color:#6b7280;font-size:13px;">
+                Real photos of children, families and delivered books. The magic you imagine is completely real.
+            </p>
+        ''')}
+
+        <p style="font-size:15px;color:#374151;line-height:1.6;">
+            🎁 As part of our launch, we're still offering a
+            <strong>10% opening discount</strong> for these first days.
+        </p>
+
+        {_cta_button(f"✨ Continue {name_display}'s story →", story_url)}
+
+        <p style="font-size:14px;color:#6b7280;text-align:center;">
+            If the button doesn't work, copy this link: <br>
+            <a href="{story_url}" style="color:#9333ea;word-break:break-all;">{story_url}</a>
+        </p>
+
+        <p style="font-size:15px;color:#374151;line-height:1.6;margin-top:24px;">
+            We'd love for <strong>{name_display}</strong> to see themselves as the hero of their own story.
+            If you have any questions, reply to this email — we're real people and we'll answer personally.
+        </p>
+        <p style="font-size:15px;color:#374151;"><strong>Warm regards,<br>The Magic Memories Books team 💛</strong></p>
+        """
+
+    html_content = _email_wrapper(wrapper_title, content, to_email, preheader=preheader)
+
+    try:
+        import smtplib as _smtp_ab
+        from email.mime.multipart import MIMEMultipart as _MMP_ab
+        from email.mime.text import MIMEText as _MMT_ab
+        msg = _MMP_ab('alternative')
+        msg['Subject'] = subject
+        msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
+        msg['To'] = to_email
+        msg.attach(_MMT_ab(html_content, 'html'))
+        with _smtp_ab.SMTP(SMTP_HOST, SMTP_PORT) as server:
+            server.ehlo()
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.sendmail(FROM_EMAIL, [to_email], msg.as_string())
+        log_email('lead_abandonment', to_email, subject, 'SENT',
+                  preview_id=to_email, child_name=name_display, lang=lang,
+                  body_html=html_content)
+        print(f"[ABANDONMENT] ✅ Sent to {to_email} ({name_display})")
+        return True
+    except Exception as e:
+        log_email('lead_abandonment', to_email, subject, f'ERROR: {e}',
+                  preview_id=to_email, child_name=name_display, lang=lang)
+        print(f"[ABANDONMENT] ❌ Failed for {to_email}: {e}")
+        return False

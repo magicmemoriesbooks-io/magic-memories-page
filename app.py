@@ -529,6 +529,97 @@ def scheduled_lead_follow_up_emails():
 
 scheduler.add_job(func=scheduled_lead_follow_up_emails, trigger="interval", hours=1, id='lead_follow_up_emails')
 
+
+def scheduled_lead_abandonment_emails():
+    """Hourly job: send abandonment recovery email to leads 24h–30d old who haven't purchased."""
+    try:
+        from datetime import datetime as _dt, timedelta as _td
+        from services.email_service import send_lead_abandonment_email, _is_duplicate_send
+        import json as _json_ab, glob as _glob_ab, os as _os_ab
+
+        now = _dt.utcnow()
+        window_start = now - _td(days=30)
+        window_end   = now - _td(hours=24)
+
+        candidates = (
+            PreviewLead.query
+            .filter(PreviewLead.email != '',
+                    PreviewLead.created_at >= window_start,
+                    PreviewLead.created_at <= window_end)
+            .order_by(PreviewLead.created_at.desc())
+            .all()
+        )
+
+        # Build set of emails that have already purchased (story JSON has paid=True)
+        purchased_emails = set()
+        story_dir = _os_ab.path.join(_os_ab.path.dirname(__file__), 'story_previews')
+        if _os_ab.path.isdir(story_dir):
+            for jf in _glob_ab.glob(_os_ab.path.join(story_dir, '*.json')):
+                try:
+                    with open(jf, 'r', encoding='utf-8') as _f:
+                        sd = _json_ab.load(_f)
+                    if sd.get('paid') or sd.get('ebook_paid') or sd.get('pdf_paid'):
+                        em = (sd.get('customer_email') or '').strip().lower()
+                        if em:
+                            purchased_emails.add(em)
+                except Exception:
+                    pass
+
+        # Build child_name + story_url lookup from story JSONs (keyed by story_id)
+        story_info = {}  # story_id -> {child_name, lang}
+        if _os_ab.path.isdir(story_dir):
+            for jf in _glob_ab.glob(_os_ab.path.join(story_dir, '*.json')):
+                try:
+                    with open(jf, 'r', encoding='utf-8') as _f:
+                        sd = _json_ab.load(_f)
+                    sid = sd.get('story_id', '')
+                    if sid and sid not in story_info:
+                        story_info[sid] = {
+                            'child_name': sd.get('child_name', ''),
+                            'lang': sd.get('lang', 'es'),
+                        }
+                except Exception:
+                    pass
+
+        seen_emails = set()
+        sent_count = 0
+        for lead in candidates:
+            em = (lead.email or '').strip().lower()
+            if not em or '@' not in em:
+                continue
+            if em in seen_emails:
+                continue
+            seen_emails.add(em)
+
+            if em in purchased_emails:
+                continue
+
+            if _is_duplicate_send(preview_id=em, email_type='lead_abandonment', days=60):
+                continue
+
+            info      = story_info.get(lead.story_id or '', {})
+            child_name = info.get('child_name', '')
+            lang       = info.get('lang', 'es')
+            if lead.story_id:
+                story_url = f"https://magicmemoriesbooks.com/personalize-story?story={lead.story_id}"
+            else:
+                story_url = "https://magicmemoriesbooks.com/express-catalog"
+
+            ok = send_lead_abandonment_email(em, child_name, story_url, lang)
+            if ok:
+                sent_count += 1
+
+        if sent_count:
+            print(f"[ABANDONMENT] Sent {sent_count} abandonment email(s)")
+    except Exception as e:
+        print(f"[ABANDONMENT] Scheduler error: {e}")
+
+
+# NOTE: abandonment email scheduler is OFF by default.
+# Enable from admin: POST /admin/lead-abandonment/toggle  {"enable": true}
+# Or run manually:  POST /admin/lead-abandonment/run-now
+_ABANDONMENT_SCHEDULER_ENABLED = False
+
 # Only start the scheduler in ONE Gunicorn worker using an exclusive file lock.
 # Without this, each of the N workers starts its own scheduler → N duplicate emails/jobs.
 import fcntl as _fcntl
@@ -14504,6 +14595,66 @@ def admin_self_update():
 
     threading.Thread(target=_do_update, daemon=True).start()
     return jsonify({'ok': True, 'msg': 'Descargando archivos de GitHub y reiniciando en ~10s'})
+
+
+@app.route('/admin/lead-abandonment/test', methods=['POST'])
+def admin_test_abandonment_email():
+    """Send a test abandonment email to a specific address. Auth: admin session."""
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    data = request.get_json() or {}
+    email = data.get('email', '').strip()
+    child_name = data.get('child_name', '').strip()
+    lang = data.get('lang', 'es')
+    if not email or '@' not in email:
+        return jsonify({'error': 'email requerido'}), 400
+    story_url = data.get('story_url', 'https://magicmemoriesbooks.com/express-catalog')
+    try:
+        from services.email_service import send_lead_abandonment_email
+        ok = send_lead_abandonment_email(email, child_name, story_url, lang)
+        return jsonify({'ok': ok, 'email': email, 'child_name': child_name or 'Peque'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/lead-abandonment/run-now', methods=['POST'])
+def admin_run_abandonment_emails():
+    """Manually trigger the abandonment email batch. Auth: admin session."""
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    try:
+        scheduled_lead_abandonment_emails()
+        return jsonify({'ok': True, 'msg': 'Lote de abandono procesado'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/lead-abandonment/enable', methods=['POST'])
+def admin_enable_abandonment_scheduler():
+    """Enable the hourly abandonment email scheduler. Auth: admin session."""
+    global _ABANDONMENT_SCHEDULER_ENABLED
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    data = request.get_json() or {}
+    enable = data.get('enable', True)
+    _ABANDONMENT_SCHEDULER_ENABLED = bool(enable)
+    if enable:
+        try:
+            if not scheduler.get_job('lead_abandonment_emails'):
+                scheduler.add_job(func=scheduled_lead_abandonment_emails,
+                                  trigger="interval", hours=1,
+                                  id='lead_abandonment_emails')
+            msg = '✅ Scheduler de abandono ACTIVADO (cada hora)'
+        except Exception as e:
+            msg = f'Error activando scheduler: {e}'
+    else:
+        try:
+            if scheduler.get_job('lead_abandonment_emails'):
+                scheduler.remove_job('lead_abandonment_emails')
+            msg = '⏸ Scheduler de abandono DESACTIVADO'
+        except Exception as e:
+            msg = f'Error desactivando scheduler: {e}'
+    return jsonify({'ok': True, 'enabled': _ABANDONMENT_SCHEDULER_ENABLED, 'msg': msg})
 
 
 if __name__ == '__main__':
