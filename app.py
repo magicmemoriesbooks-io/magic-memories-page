@@ -980,13 +980,7 @@ def privacy():
 
 @app.route('/story-selection')
 def story_selection():
-    child_name = request.args.get('name', '')
-    child_gender = request.args.get('gender', 'female')
-    is_change_mode = request.args.get('change') == '1'
-    return render_template('story_selection.html', 
-                          child_name=child_name, 
-                          child_gender=child_gender,
-                          is_change_mode=is_change_mode)
+    return redirect('/#precios', code=301)
 
 @app.route('/express-catalog')
 def express_catalog():
