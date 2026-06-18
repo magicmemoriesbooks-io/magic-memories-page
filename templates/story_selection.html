@@ -409,12 +409,12 @@
                         <span class="price-val-cell">$6</span>
                     </div>
                     <div class="price-row">
-                        <span class="price-name-cell">🖨️ PDF {% if lang == 'es' %}imprimible{% else %}printable{% endif %} 8.5"×8.5" + {% if lang == 'es' %}instrucciones{% else %}instructions{% endif %}</span>
-                        <span class="price-val-cell">$15</span>
+                        <span class="price-name-cell">🖨️ PDF {% if lang == 'es' %}imprimible{% else %}printable{% endif %} A4 + {% if lang == 'es' %}instrucciones{% else %}instructions{% endif %}</span>
+                        <span class="price-val-cell">$13</span>
                     </div>
                     <div class="price-row">
                         <span class="price-name-cell">📚 {% if lang == 'es' %}Cuento impreso y enviado a tu puerta{% else %}Printed book shipped to your door{% endif %} 21×21 cm</span>
-                        <span class="price-val-cell">$15<span style="font-size:10px;font-weight:600;opacity:0.6;">+</span></span>
+                        <span class="price-val-cell">$15<span style="font-size:10px;font-weight:600;opacity:0.6;">+ {% if lang == 'es' %}envío{% else %}ship{% endif %}</span></span>
                     </div>
                 </div>
                 <a href="{{ url_for('story_selection_express') }}" class="block-cta cta-gold">
@@ -479,12 +479,16 @@
                         <span class="price-val-cell">$9</span>
                     </div>
                     <div class="price-row">
+                        <span class="price-name-cell">🖨️ PDF {% if lang == 'es' %}imprimible{% else %}printable{% endif %} A4 + Carta</span>
+                        <span class="price-val-cell">$24</span>
+                    </div>
+                    <div class="price-row">
                         <span class="price-name-cell">📚 {% if lang == 'es' %}Libro tapa dura enviado a tu puerta{% else %}Hardcover book shipped to your door{% endif %} A4</span>
-                        <span class="price-val-cell">$30<span style="font-size:10px;font-weight:600;opacity:0.6;">+ envío</span></span>
+                        <span class="price-val-cell">$26<span style="font-size:10px;font-weight:600;opacity:0.6;">+ {% if lang == 'es' %}envío{% else %}ship{% endif %}</span></span>
                     </div>
                 </div>
                 <a href="{{ url_for('story_selection_universos') }}" class="block-cta cta-purple">
-                    {% if lang == 'es' %}Crear mi Universo Ilustrado →{% else %}Create my Illustrated Universe →{% endif %}
+                    {% if lang == 'es' %}Crear mi Cuento FotoMágico →{% else %}Create my Photo Magic Story →{% endif %}
                 </a>
             </div>
         </div>
@@ -546,7 +550,7 @@
                     </div>
                 </div>
                 <h3 style="font-family:'Playfair Display',serif;font-size:15px;color:#B8860B;font-weight:700;">{% if lang == 'es' %}Paga Seguro{% else %}Pay Securely{% endif %}</h3>
-                <p style="font-family:'Quicksand',sans-serif;font-size:12px;color:#666;line-height:1.5;">{% if lang == 'es' %}Desde $6 eBook, desde $15 PDF imprimible, desde $15 libro impreso.{% else %}From $6 eBook, from $15 printable PDF, from $15 printed book.{% endif %}</p>
+                <p style="font-family:'Quicksand',sans-serif;font-size:12px;color:#666;line-height:1.5;">{% if lang == 'es' %}Desde $6 eBook · $13 PDF · $15 libro impreso.{% else %}From $6 eBook · $13 PDF · $15 printed book.{% endif %}</p>
             </div>
 
             <div class="hiw-step" id="selStep4" style="position:relative;">
