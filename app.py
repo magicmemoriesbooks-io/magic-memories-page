@@ -314,9 +314,16 @@ def scheduled_ebook_expiry_check():
                         base_url = os.environ.get('SITE_DOMAIN', 'magicmemoriesbooks.com')
                         renew_url = f'https://{base_url}/renew-ebook/{preview_id}'
                         from services.email_service import send_ebook_expiry_warning_email
+                        from config import Config as _Cfg
+                        # Price: use what was offered at purchase time, or fall back to story-type default
+                        _fp = sd.get('format_prices') or {}
+                        _ebook_price = float(_fp.get('ebook') or 0)
+                        if not _ebook_price:
+                            _is_universos = sd.get('story_id', '').startswith(('universo', 'illustrated', 'haz_tu_historia'))
+                            _ebook_price = _Cfg.UNIVERSOS_EBOOK_PRICE / 100.0 if _is_universos else _Cfg.EBOOK_BASE_PRICE / 100.0
                         days_left = max(1, (expiry_dt - now).days)
                         result = send_ebook_expiry_warning_email(customer_email, child_name, days_left, renew_url, lang,
-                                                                        preview_id=preview_id)
+                                                                        preview_id=preview_id, ebook_price=_ebook_price)
                         if result.get('success'):
                             sd['expiry_warning_sent'] = True
                             with open(fpath, 'w', encoding='utf-8') as f:
