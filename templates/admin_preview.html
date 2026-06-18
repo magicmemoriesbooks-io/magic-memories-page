@@ -270,10 +270,7 @@
     {% set all_images = preview.scene_paths or preview.images or preview.original_scene_paths %}
     {% if preview.scenes or all_images %}
     <div class="ap-card">
-        <div class="ap-card-header ap-hdr-scenes" style="display:flex;align-items:center;justify-content:space-between;">
-            <span>Escenas del Cuento</span>
-            <button class="ap-btn" style="font-size:12px;padding:4px 12px;background:#6366f1;" onclick="adminResetRegen('{{ preview_id }}')">🔁 Resetear reintentos</button>
-        </div>
+        <div class="ap-card-header ap-hdr-scenes">Escenas del Cuento</div>
         <div class="ap-card-body">
             {% if preview.scenes %}
             <div class="ap-scene-grid">
@@ -314,9 +311,7 @@
             <span>Páginas del Cuento ({{ preview.pages|length }})</span>
             <div style="display:flex;gap:8px;align-items:center;">
                 <button class="ap-btn ap-btn-reset" style="font-size:12px;padding:5px 14px;" onclick="adminResetPdf('{{ preview_id }}', this)">🔄 Resetear PDF y eBook</button>
-                <button class="ap-btn" style="font-size:12px;padding:5px 14px;background:#6366f1;" id="btn-reset-regen" onclick="adminResetRegen('{{ preview_id }}')">🔁 Resetear reintentos</button>
                 <span id="reset-pdf-msg" style="display:none;font-size:12px;padding:4px 10px;border-radius:6px;"></span>
-                <span id="reset-regen-msg" style="display:none;font-size:12px;padding:4px 10px;border-radius:6px;"></span>
             </div>
         </div>
         <div class="ap-card-body">
@@ -623,26 +618,6 @@ function adminRegenPage(previewId, pageIdx, btn) {
         setTimeout(function() { btn.innerHTML = '↺ Regenerar'; btn.style.background = ''; btn.disabled = false; }, 3000);
     });
 }
-function adminResetRegen(previewId) {
-    var btn = document.getElementById('btn-reset-regen');
-    var msg = document.getElementById('reset-regen-msg');
-    if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Reseteando...'; }
-    fetch('/admin/reset-regen-counts/' + previewId, { method: 'POST' })
-    .then(r => r.json())
-    .then(d => {
-        if (d.success) {
-            if (msg) { msg.style.display = 'inline-block'; msg.style.background = '#dcfce7'; msg.style.color = '#166534'; msg.innerHTML = '✅ Reintentos reseteados'; }
-        } else {
-            if (msg) { msg.style.display = 'inline-block'; msg.style.background = '#fee2e2'; msg.style.color = '#991b1b'; msg.innerHTML = '❌ ' + (d.error || 'Error'); }
-        }
-        if (btn) { btn.disabled = false; btn.innerHTML = '🔁 Resetear reintentos'; }
-    })
-    .catch(() => {
-        if (msg) { msg.style.display = 'inline-block'; msg.style.background = '#fee2e2'; msg.style.color = '#991b1b'; msg.innerHTML = '❌ Error de conexión'; }
-        if (btn) { btn.disabled = false; btn.innerHTML = '🔁 Resetear reintentos'; }
-    });
-}
-
 function adminResetPdf(previewId, btn) {
     if (!confirm('¿Resetear PDF y eBook? Las imágenes ya regeneradas se mantendrán. El PDF y el visor se regenerarán la próxima vez que el cliente confirme impresión.')) return;
     var msg = document.getElementById('reset-pdf-msg');
