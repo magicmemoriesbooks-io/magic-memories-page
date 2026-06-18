@@ -9522,6 +9522,27 @@ def admin_update_shipping(preview_id):
     return jsonify({"success": True, "message": "Dirección actualizada", "address": shipping_address})
 
 
+@app.route('/admin/reset-regen-counts/<preview_id>', methods=['POST'])
+def admin_reset_regen_counts(preview_id):
+    """Reset all regeneration counters so testing can proceed without limits."""
+    if not check_admin_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+    preview_file = f'story_previews/{preview_id}.json'
+    if not os.path.exists(preview_file):
+        preview_file = f'generations/previews/{preview_id}.json'
+    if not os.path.exists(preview_file):
+        return jsonify({'success': False, 'error': 'Preview not found'}), 404
+    with open(preview_file, 'r', encoding='utf-8') as f:
+        story_data = json.load(f)
+    story_data['regeneration_used']  = False
+    story_data['scene_regenerations'] = {}
+    story_data['page_regenerations']  = {}
+    with open(preview_file, 'w', encoding='utf-8') as f:
+        json.dump(story_data, f, ensure_ascii=False, indent=2)
+    production_logger.info(f"[ADMIN] Regen counts reset for {preview_id}")
+    return jsonify({'success': True})
+
+
 @app.route('/admin/reset-compose/<preview_id>', methods=['POST'])
 def admin_reset_compose(preview_id):
     """Reset book_composing flag so a stuck compose task can be re-triggered."""
