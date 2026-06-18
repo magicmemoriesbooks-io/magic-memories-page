@@ -2106,7 +2106,7 @@ def send_ebook_expiry_warning_email(to_email: str, child_name: str, days_remaini
         return {'success': False}
 
     _site = _os_el.environ.get('SITE_DOMAIN', 'magicmemoriesbooks.com')
-    _catalog_url = f'https://{_site}/#cuentos'
+    _catalog_url = f'https://{_site}/#catalogo'
     _price_str   = f'${ebook_price:.0f}' if ebook_price == int(ebook_price) else f'${ebook_price:.2f}'
     _days_word   = f"{days_remaining} día{'s' if days_remaining != 1 else ''}" if lang == 'es' else f"{days_remaining} day{'s' if days_remaining != 1 else ''}"
     _child       = child_name or ('tu protagonista' if lang == 'es' else 'your little hero')
@@ -2146,7 +2146,7 @@ def send_ebook_expiry_warning_email(to_email: str, child_name: str, days_remaini
   <div style="font-size:13px;font-weight:800;color:#4c1d95;margin-bottom:4px;">📄 Colección PDF "imprime en casa"</div>
   <div style="font-size:13px;color:#374151;line-height:1.6;">
     Elige cualquier historia, descárgala en PDF al instante e imprímela las veces que quieras.
-    Cada cuento nuevo cuesta mucho menos que el primero — y puedes tener contenido fresco cada semana.
+    Cada cuento nuevo enriquecerá su biblioteca y despertará aún más su imaginación — y puedes tener contenido fresco cada semana.
   </div>
 </div>
 
