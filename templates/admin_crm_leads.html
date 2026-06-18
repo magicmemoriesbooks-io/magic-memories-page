@@ -51,15 +51,15 @@
       <button onclick="loadCampaignStats()" style="background:#7c3aed;color:white;border:none;padding:7px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">🔄 Ver estadísticas</button>
     </div>
 
-    <!-- Stats row -->
-    <div id="isabel-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:16px;display:none;">
+    <!-- Aggregate stats row -->
+    <div id="isabel-stats" style="display:none;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px;margin-bottom:16px;">
       <div style="background:white;border-radius:8px;padding:10px 12px;text-align:center;border:1px solid #ddd6fe;">
         <div id="stat-sent" style="font-size:22px;font-weight:800;color:#6d28d9;">—</div>
         <div style="font-size:9px;color:#64748b;font-weight:700;margin-top:2px;">ENVIADOS</div>
       </div>
       <div style="background:white;border-radius:8px;padding:10px 12px;text-align:center;border:1px solid #ddd6fe;">
         <div id="stat-opens" style="font-size:22px;font-weight:800;color:#059669;">—</div>
-        <div style="font-size:9px;color:#64748b;font-weight:700;margin-top:2px;">APERTURAS</div>
+        <div style="font-size:9px;color:#64748b;font-weight:700;margin-top:2px;">ABRIERON</div>
       </div>
       <div style="background:white;border-radius:8px;padding:10px 12px;text-align:center;border:1px solid #ddd6fe;">
         <div id="stat-openrate" style="font-size:22px;font-weight:800;color:#0284c7;">—</div>
@@ -67,12 +67,34 @@
       </div>
       <div style="background:white;border-radius:8px;padding:10px 12px;text-align:center;border:1px solid #ddd6fe;">
         <div id="stat-clicks" style="font-size:22px;font-weight:800;color:#ea580c;">—</div>
-        <div style="font-size:9px;color:#64748b;font-weight:700;margin-top:2px;">CLICS CTA</div>
+        <div style="font-size:9px;color:#64748b;font-weight:700;margin-top:2px;">CLICS TOTAL</div>
       </div>
       <div style="background:white;border-radius:8px;padding:10px 12px;text-align:center;border:1px solid #ddd6fe;">
-        <div id="stat-ctr" style="font-size:22px;font-weight:800;color:#be185d;">—</div>
-        <div style="font-size:9px;color:#64748b;font-weight:700;margin-top:2px;">CTR</div>
+        <div id="stat-purchased" style="font-size:22px;font-weight:800;color:#16a34a;">—</div>
+        <div style="font-size:9px;color:#64748b;font-weight:700;margin-top:2px;">COMPRARON</div>
       </div>
+      <div style="background:white;border-radius:8px;padding:10px 12px;text-align:center;border:1px solid #ddd6fe;">
+        <div id="stat-conv" style="font-size:22px;font-weight:800;color:#be185d;">—</div>
+        <div style="font-size:9px;color:#64748b;font-weight:700;margin-top:2px;">CONVERSIÓN</div>
+      </div>
+    </div>
+
+    <!-- Per-recipient table -->
+    <div id="isabel-table-wrap" style="display:none;margin-bottom:16px;overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="background:#ede9fe;color:#4c1d95;">
+            <th style="padding:7px 10px;text-align:left;font-weight:800;border-radius:6px 0 0 6px;">Email</th>
+            <th style="padding:7px 8px;text-align:left;font-weight:800;">Nombre</th>
+            <th style="padding:7px 8px;text-align:center;font-weight:800;">Lang</th>
+            <th style="padding:7px 8px;text-align:center;font-weight:800;">Enviado</th>
+            <th style="padding:7px 8px;text-align:center;font-weight:800;">Abrió</th>
+            <th style="padding:7px 8px;text-align:center;font-weight:800;">Clics</th>
+            <th style="padding:7px 8px;text-align:center;font-weight:800;border-radius:0 6px 6px 0;">Compra</th>
+          </tr>
+        </thead>
+        <tbody id="isabel-tbody"></tbody>
+      </table>
     </div>
 
     <!-- Send button -->
@@ -237,14 +259,43 @@ function loadCampaignStats() {
   fetch('/admin/lead-campaign/isabel/stats')
     .then(r => r.json())
     .then(d => {
-      document.getElementById('stat-sent').textContent     = d.sent;
-      document.getElementById('stat-opens').textContent    = d.opens;
-      document.getElementById('stat-openrate').textContent = d.open_rate + '%';
-      document.getElementById('stat-clicks').textContent   = d.clicks_cta;
-      document.getElementById('stat-ctr').textContent      = d.ctr + '%';
+      // Aggregate row
+      document.getElementById('stat-sent').textContent      = d.sent;
+      document.getElementById('stat-opens').textContent     = d.real_opens !== undefined ? d.real_opens : d.opens;
+      document.getElementById('stat-openrate').textContent  = d.open_rate + '%';
+      document.getElementById('stat-clicks').textContent    = d.clicks_total;
+      document.getElementById('stat-purchased').textContent = d.purchased;
+      document.getElementById('stat-conv').textContent      = d.conversion_rate + '%';
       document.getElementById('isabel-stats').style.display = 'grid';
+
+      // Per-recipient table
+      const tbody = document.getElementById('isabel-tbody');
+      const LINK_ICONS = {galeria:'📸', instagram:'📱', continuar:'✨'};
+      const rows = (d.recipients || []).map(r => {
+        const langFlag = r.lang && r.lang.startsWith('en') ? '🇬🇧' : '🇪🇸';
+        const sentTs   = r.sent_at ? r.sent_at.slice(11,16) : '—';
+        const openCell = r.opened_at
+          ? `<span style="color:#16a34a;font-weight:700;" title="${r.opened_at}">👁️ ${r.opened_at.slice(11,16)}</span>`
+          : `<span style="color:#d1d5db;">—</span>`;
+        const clickLinks = (r.clicks || []).map(c => LINK_ICONS[c.link] || '🔗').join(' ') || '—';
+        const buyCell = r.purchased
+          ? `<span style="color:#16a34a;font-weight:800;" title="${r.purchased_at||''}">💰 SÍ</span>`
+          : `<span style="color:#d1d5db;">—</span>`;
+        const rowBg = r.purchased ? '#f0fdf4' : (r.opened_at ? '#faf5ff' : 'white');
+        return `<tr style="border-bottom:1px solid #f1f5f9;background:${rowBg};">
+          <td style="padding:7px 10px;color:#374151;font-family:monospace;font-size:11px;">${r.email}</td>
+          <td style="padding:7px 8px;color:#374151;font-weight:600;">${r.child_name || '—'}</td>
+          <td style="padding:7px 8px;text-align:center;">${langFlag}</td>
+          <td style="padding:7px 8px;text-align:center;color:#6d28d9;font-size:11px;">${sentTs}</td>
+          <td style="padding:7px 8px;text-align:center;">${openCell}</td>
+          <td style="padding:7px 8px;text-align:center;font-size:14px;">${clickLinks}</td>
+          <td style="padding:7px 8px;text-align:center;">${buyCell}</td>
+        </tr>`;
+      });
+      tbody.innerHTML = rows.join('');
+      document.getElementById('isabel-table-wrap').style.display = rows.length ? 'block' : 'none';
     })
-    .catch(() => alert('Error cargando stats'));
+    .catch(e => alert('Error cargando stats: ' + e));
 }
 
 function sendIsabelCampaign() {
