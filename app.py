@@ -6597,7 +6597,7 @@ def regenerate_quick_scene(preview_id, scene_num):
     scene_key = str(scene_num)
     current_count = regen_counts.get(scene_key, 0)
     
-    if current_count >= 2:
+    if current_count >= 2 and not is_testing_mode_active():
         lang = story_data.get('lang', 'es')
         error_msg = 'Has alcanzado el límite de 2 regeneraciones para esta escena' if lang == 'es' else 'You have reached the limit of 2 regenerations for this scene'
         return jsonify({'success': False, 'error': error_msg}), 400
@@ -6814,7 +6814,7 @@ def regenerate_quick_closing(preview_id):
     regen_counts = story_data.get('scene_regenerations', {})
     current_count = regen_counts.get('closing', 0)
 
-    if current_count >= 2:
+    if current_count >= 2 and not is_testing_mode_active():
         error_msg = 'Has alcanzado el límite de 2 regeneraciones para la página de cierre' if lang == 'es' else 'You have reached the limit of 2 regenerations for the closing page'
         return jsonify({'success': False, 'error': error_msg}), 400
 
@@ -6947,9 +6947,9 @@ def regenerate_page(preview_id, page_num):
     page_key = str(page_num)
     current_count = regen_counts.get(page_key, 0)
     
-    if current_count >= 2:
+    if current_count >= 2 and not is_testing_mode_active():
         return jsonify({
-            'success': False, 
+            'success': False,
             'error': 'Has alcanzado el límite de 2 regeneraciones para esta página'
         }), 400
     
@@ -7435,7 +7435,7 @@ def request_story_change(preview_id):
     if story_data.get('email_sent'):
         return jsonify({'success': False, 'error': 'Cannot change story after email has been sent'}), 400
     
-    if story_data.get('regeneration_used'):
+    if story_data.get('regeneration_used') and not is_testing_mode_active():
         return jsonify({'success': False, 'error': 'You have already used your change opportunity'}), 400
     
     story_data['regeneration_used'] = True
@@ -8219,6 +8219,20 @@ ADMIN_PASSWORD = _load_admin_password()
 def check_admin_auth():
     """Check if admin is authenticated via session."""
     return session.get('admin_logged_in', False)
+
+_TESTING_MODE_FILE = 'data/testing_mode.json'
+
+def is_testing_mode_active():
+    """Return True if admin has enabled 4-hour testing mode (no regen limits)."""
+    try:
+        if not os.path.exists(_TESTING_MODE_FILE):
+            return False
+        with open(_TESTING_MODE_FILE, 'r') as f:
+            d = json.load(f)
+        import time
+        return d.get('expires_at', 0) > time.time()
+    except Exception:
+        return False
 
 @app.route('/admin')
 def admin_login_page():
@@ -9520,6 +9534,41 @@ def admin_update_shipping(preview_id):
         json.dump(story_data, f, ensure_ascii=False, indent=2)
     
     return jsonify({"success": True, "message": "Dirección actualizada", "address": shipping_address})
+
+
+@app.route('/admin/enable-testing-mode', methods=['POST'])
+def admin_enable_testing_mode():
+    """Enable 4-hour testing mode: skip all regeneration limits globally."""
+    if not check_admin_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+    import time
+    hours = int(request.json.get('hours', 4)) if request.json else 4
+    expires_at = time.time() + hours * 3600
+    os.makedirs('data', exist_ok=True)
+    with open(_TESTING_MODE_FILE, 'w') as f:
+        json.dump({'expires_at': expires_at, 'hours': hours}, f)
+    import datetime
+    expire_str = datetime.datetime.fromtimestamp(expires_at).strftime('%H:%M')
+    production_logger.info(f"[ADMIN] Testing mode enabled for {hours}h (expires {expire_str})")
+    return jsonify({'success': True, 'expires_at': expires_at, 'expire_str': expire_str})
+
+
+@app.route('/admin/testing-mode-status', methods=['GET'])
+def admin_testing_mode_status():
+    """Check if testing mode is currently active."""
+    if not check_admin_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+    import time
+    active = is_testing_mode_active()
+    remaining = 0
+    if active:
+        try:
+            with open(_TESTING_MODE_FILE, 'r') as f:
+                d = json.load(f)
+            remaining = max(0, int(d.get('expires_at', 0) - time.time()))
+        except Exception:
+            pass
+    return jsonify({'active': active, 'remaining_seconds': remaining})
 
 
 @app.route('/admin/reset-regen-counts/<preview_id>', methods=['POST'])
