@@ -2096,7 +2096,8 @@ def send_newsletter_blast(to_email: str, subject: str, content: str, unsubscribe
         return {'success': False, 'error': str(e)}
 
 
-def send_ebook_expiry_warning_email(to_email: str, child_name: str, days_remaining: int, renew_url: str, lang: str = 'es'):
+def send_ebook_expiry_warning_email(to_email: str, child_name: str, days_remaining: int, renew_url: str, lang: str = 'es',
+                                    preview_id: str = ''):
     if not SMTP_USER or not SMTP_PASSWORD:
         return {'success': False}
     try:
@@ -2139,9 +2140,13 @@ def send_ebook_expiry_warning_email(to_email: str, child_name: str, days_remaini
             server.login(SMTP_USER, SMTP_PASSWORD)
             server.sendmail(FROM_EMAIL, to_email, msg.as_string())
         print(f"[EMAIL] Expiry warning sent to {to_email} ({days_remaining} days)")
+        log_email('ebook_expiry', to_email, subject, 'SENT',
+                  child_name=child_name, preview_id=preview_id, lang=lang)
         return {'success': True}
     except Exception as e:
         print(f"[EMAIL] Expiry warning failed: {e}")
+        log_email('ebook_expiry', to_email, f'[FAIL] Aviso vencimiento eBook {child_name}', 'ERROR',
+                  child_name=child_name, preview_id=preview_id, lang=lang, error=str(e))
         return {'success': False, 'error': str(e)}
 
 
