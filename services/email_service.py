@@ -2169,6 +2169,7 @@ def send_ebook_expiry_warning_email(to_email: str, child_name: str, days_remaini
     <strong>⏰ Recordatorio:</strong> tu eBook de regalo de <strong>{_child}</strong> vence en {_days_word}.
     Si quieres conservarlo, <a href="{renew_url}" style="color:#7c3aed;font-weight:700;text-decoration:none;">compra acceso permanente por {_price_str} aquí</a>.
     Si no, el link simplemente dejará de funcionar — sin cargos.
+    <br><span style="color:#78716c;font-size:11px;">Si el link no te lleva a la plataforma de pago, escríbenos a <a href="mailto:contacto@magicmemoriesbooks.com" style="color:#7c3aed;">contacto@magicmemoriesbooks.com</a> y te lo resolvemos enseguida.</span>
   </div>
 </div>
 
@@ -2236,6 +2237,7 @@ def send_ebook_expiry_warning_email(to_email: str, child_name: str, days_remaini
     <strong>⏰ Reminder:</strong> <strong>{_child}</strong>'s gift eBook expires in {_days_word}.
     To keep it, <a href="{renew_url}" style="color:#7c3aed;font-weight:700;text-decoration:none;">purchase permanent access for {_price_str} here</a>.
     If not, the link will simply stop working — no charges.
+    <br><span style="color:#78716c;font-size:11px;">If the link doesn't take you to the payment page, write to us at <a href="mailto:contacto@magicmemoriesbooks.com" style="color:#7c3aed;">contacto@magicmemoriesbooks.com</a> and we'll sort it out right away.</span>
   </div>
 </div>
 
