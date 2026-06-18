@@ -41,6 +41,52 @@
     </div>
   </div>
 
+  <!-- ── Campaña Isabel ───────────────────────────────────────────── -->
+  <div id="isabel-campaign-panel" style="background:linear-gradient(135deg,#faf5ff,#f3e8ff);border:2px solid #c4b5fd;border-radius:14px;padding:20px 22px;margin-bottom:20px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+      <div>
+        <h3 style="margin:0 0 4px;font-size:15px;font-weight:800;color:#4c1d95;">💌 Campaña Isabel — Re-engagement</h3>
+        <p style="margin:0;font-size:12px;color:#6d28d9;">Email one-time · detecta idioma por lead · excluye compradores y ya enviados</p>
+      </div>
+      <button onclick="loadCampaignStats()" style="background:#7c3aed;color:white;border:none;padding:7px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">🔄 Ver estadísticas</button>
+    </div>
+
+    <!-- Stats row -->
+    <div id="isabel-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:16px;display:none;">
+      <div style="background:white;border-radius:8px;padding:10px 12px;text-align:center;border:1px solid #ddd6fe;">
+        <div id="stat-sent" style="font-size:22px;font-weight:800;color:#6d28d9;">—</div>
+        <div style="font-size:9px;color:#64748b;font-weight:700;margin-top:2px;">ENVIADOS</div>
+      </div>
+      <div style="background:white;border-radius:8px;padding:10px 12px;text-align:center;border:1px solid #ddd6fe;">
+        <div id="stat-opens" style="font-size:22px;font-weight:800;color:#059669;">—</div>
+        <div style="font-size:9px;color:#64748b;font-weight:700;margin-top:2px;">APERTURAS</div>
+      </div>
+      <div style="background:white;border-radius:8px;padding:10px 12px;text-align:center;border:1px solid #ddd6fe;">
+        <div id="stat-openrate" style="font-size:22px;font-weight:800;color:#0284c7;">—</div>
+        <div style="font-size:9px;color:#64748b;font-weight:700;margin-top:2px;">OPEN RATE</div>
+      </div>
+      <div style="background:white;border-radius:8px;padding:10px 12px;text-align:center;border:1px solid #ddd6fe;">
+        <div id="stat-clicks" style="font-size:22px;font-weight:800;color:#ea580c;">—</div>
+        <div style="font-size:9px;color:#64748b;font-weight:700;margin-top:2px;">CLICS CTA</div>
+      </div>
+      <div style="background:white;border-radius:8px;padding:10px 12px;text-align:center;border:1px solid #ddd6fe;">
+        <div id="stat-ctr" style="font-size:22px;font-weight:800;color:#be185d;">—</div>
+        <div style="font-size:9px;color:#64748b;font-weight:700;margin-top:2px;">CTR</div>
+      </div>
+    </div>
+
+    <!-- Send button -->
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <button onclick="sendIsabelCampaign()"
+        id="btn-send-campaign"
+        style="background:linear-gradient(135deg,#7c3aed,#9333ea);color:white;border:none;padding:10px 22px;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,0.3);">
+        🚀 Enviar campaña a todos los leads
+      </button>
+      <span id="campaign-status" style="font-size:12px;color:#6d28d9;font-weight:600;"></span>
+    </div>
+    <div id="campaign-result" style="display:none;margin-top:14px;background:white;border-radius:10px;padding:12px 16px;border:1px solid #ddd6fe;font-size:12px;color:#374151;"></div>
+  </div>
+
   <!-- Info + export -->
   <div style="background:white;border-radius:10px;padding:12px 16px;border:1px solid #e2e8f0;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
     <span style="font-size:12px;color:#64748b;">
@@ -185,6 +231,73 @@ function toggleLead(id) {
   const open = panel.style.display !== 'none';
   panel.style.display = open ? 'none' : 'block';
   if (arrow) arrow.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+function loadCampaignStats() {
+  fetch('/admin/lead-campaign/isabel/stats')
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('stat-sent').textContent     = d.sent;
+      document.getElementById('stat-opens').textContent    = d.opens;
+      document.getElementById('stat-openrate').textContent = d.open_rate + '%';
+      document.getElementById('stat-clicks').textContent   = d.clicks_cta;
+      document.getElementById('stat-ctr').textContent      = d.ctr + '%';
+      document.getElementById('isabel-stats').style.display = 'grid';
+    })
+    .catch(() => alert('Error cargando stats'));
+}
+
+function sendIsabelCampaign() {
+  if (!confirm('¿Enviar campaña a TODOS los leads no compradores? Esta acción no se puede deshacer.')) return;
+  const btn = document.getElementById('btn-send-campaign');
+  const status = document.getElementById('campaign-status');
+  const result = document.getElementById('campaign-result');
+  btn.disabled = true;
+  btn.textContent = '⏳ Enviando...';
+  status.textContent = 'Procesando leads, espera…';
+  result.style.display = 'none';
+
+  fetch('/admin/lead-campaign/isabel/send-all', {method: 'POST',
+    headers: {'Content-Type': 'application/json'}})
+    .then(r => r.json())
+    .then(d => {
+      btn.textContent = '✅ Campaña enviada';
+      status.textContent = '';
+      result.style.display = 'block';
+      result.innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:10px;">
+          <div style="text-align:center;padding:8px;background:#f0fdf4;border-radius:8px;">
+            <div style="font-size:20px;font-weight:800;color:#16a34a;">${d.sent}</div>
+            <div style="font-size:10px;color:#64748b;font-weight:700;">ENVIADOS</div>
+          </div>
+          <div style="text-align:center;padding:8px;background:#fef9c3;border-radius:8px;">
+            <div style="font-size:20px;font-weight:800;color:#92400e;">${d.skipped_purchased}</div>
+            <div style="font-size:10px;color:#64748b;font-weight:700;">YA COMPRARON</div>
+          </div>
+          <div style="text-align:center;padding:8px;background:#f1f5f9;border-radius:8px;">
+            <div style="font-size:20px;font-weight:800;color:#475569;">${d.skipped_already_sent}</div>
+            <div style="font-size:10px;color:#64748b;font-weight:700;">YA ENVIADO</div>
+          </div>
+          <div style="text-align:center;padding:8px;background:#fef2f2;border-radius:8px;">
+            <div style="font-size:20px;font-weight:800;color:#dc2626;">${d.failed}</div>
+            <div style="font-size:10px;color:#64748b;font-weight:700;">FALLIDOS</div>
+          </div>
+        </div>
+        ${d.recipients && d.recipients.length > 0 ? `
+        <div style="font-size:11px;color:#374151;font-weight:700;margin-bottom:6px;">Destinatarios (${d.recipients.length}):</div>
+        <div style="max-height:140px;overflow-y:auto;font-size:11px;color:#374151;">
+          ${d.recipients.map(r => `<div style="padding:3px 0;border-bottom:1px solid #f1f5f9;">
+            ${r.lang === 'en' ? '🇬🇧' : '🇪🇸'} ${r.email}${r.name ? ' · <strong>' + r.name + '</strong>' : ''}
+          </div>`).join('')}
+        </div>` : ''}
+      `;
+      loadCampaignStats();
+    })
+    .catch(err => {
+      btn.disabled = false;
+      btn.textContent = '🚀 Enviar campaña a todos los leads';
+      status.textContent = '❌ Error: ' + err;
+    });
 }
 </script>
 {% endblock %}
