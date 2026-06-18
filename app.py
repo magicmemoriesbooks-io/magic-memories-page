@@ -14657,5 +14657,74 @@ def admin_enable_abandonment_scheduler():
     return jsonify({'ok': True, 'enabled': _ABANDONMENT_SCHEDULER_ENABLED, 'msg': msg})
 
 
+# ───────────────────────────────────────────────
+# EMAIL TRACKING — open pixel + click redirect
+# ───────────────────────────────────────────────
+import base64 as _b64
+
+@app.route('/email/open/<email_b64>/<email_type>')
+def email_open_pixel(email_b64, email_type):
+    """1×1 transparent GIF pixel for email open tracking."""
+    try:
+        padding = 4 - len(email_b64) % 4
+        to_email = _b64.urlsafe_b64decode(email_b64 + '=' * (padding % 4)).decode('utf-8')
+        import json as _j, os as _o
+        from datetime import datetime as _dt
+        log_path = _o.path.join('data', 'email_log.jsonl')
+        _o.makedirs('data', exist_ok=True)
+        entry = {
+            'ts': _dt.now().isoformat(timespec='seconds'),
+            'to_email': to_email,
+            'email_type': email_type,
+            'category': 'tracking',
+            'label': 'Apertura de email',
+            'result': 'opened',
+            'event': 'open',
+        }
+        with open(log_path, 'a', encoding='utf-8') as _f:
+            _f.write(_j.dumps(entry, ensure_ascii=False) + '\n')
+    except Exception:
+        pass
+    # 1×1 transparent GIF
+    pixel = (b'\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x80\x00\x00'
+             b'\xff\xff\xff\x00\x00\x00\x21\xf9\x04\x00\x00\x00\x00\x00'
+             b'\x2c\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02\x44\x01\x00\x3b')
+    from flask import Response as _Resp
+    return _Resp(pixel, mimetype='image/gif', headers={
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+    })
+
+
+@app.route('/email/click/<email_b64>/<email_type>/<link_name>')
+def email_click_tracker(email_b64, email_type, link_name):
+    """Log email click and redirect to destination."""
+    dest = request.args.get('dest', 'https://magicmemoriesbooks.com')
+    try:
+        padding = 4 - len(email_b64) % 4
+        to_email = _b64.urlsafe_b64decode(email_b64 + '=' * (padding % 4)).decode('utf-8')
+        import json as _j, os as _o
+        from datetime import datetime as _dt
+        log_path = _o.path.join('data', 'email_log.jsonl')
+        _o.makedirs('data', exist_ok=True)
+        entry = {
+            'ts': _dt.now().isoformat(timespec='seconds'),
+            'to_email': to_email,
+            'email_type': email_type,
+            'category': 'tracking',
+            'label': 'Clic en email',
+            'result': 'clicked',
+            'event': 'click',
+            'link_name': link_name,
+            'dest': dest,
+        }
+        with open(log_path, 'a', encoding='utf-8') as _f:
+            _f.write(_j.dumps(entry, ensure_ascii=False) + '\n')
+    except Exception:
+        pass
+    return redirect(dest)
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
