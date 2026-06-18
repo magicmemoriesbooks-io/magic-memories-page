@@ -3517,9 +3517,32 @@ def process_pending_follow_up_emails():
 # LEAD ABANDONMENT EMAIL
 # ──────────────────────────────────────────────────────────────────────────────
 
+def _make_email_track_token(email: str) -> str:
+    """URL-safe base64 token from email address (no padding)."""
+    import base64 as _b64e
+    return _b64e.urlsafe_b64encode(email.encode('utf-8')).rstrip(b'=').decode('ascii')
+
+
+def _tracked_url(base_url: str, token: str, email_type: str, link_name: str, dest: str) -> str:
+    """Build a click-tracking redirect URL."""
+    from urllib.parse import quote as _q
+    return f"{base_url}/email/click/{token}/{email_type}/{link_name}?dest={_q(dest, safe='')}"
+
+
 def send_lead_abandonment_email(to_email: str, child_name: str, story_url: str, lang: str = 'es') -> bool:
     """Sends the abandonment recovery email to a lead who started but didn't purchase."""
     name_display = child_name.strip() if child_name and child_name.strip() else 'Peque'
+
+    _SITE = 'https://magicmemoriesbooks.com'
+    _tok  = _make_email_track_token(to_email)
+    _et   = 'lead_abandonment'
+
+    # Tracked versions of all links
+    _story_url_t    = _tracked_url(_SITE, _tok, _et, 'story',     story_url)
+    _gallery_url_t  = _tracked_url(_SITE, _tok, _et, 'galeria',   f'{_SITE}/#galeria')
+    _ig_url_t       = _tracked_url(_SITE, _tok, _et, 'instagram', 'https://instagram.com/magicmemoriesbooks')
+    _pixel_tag      = (f'<img src="{_SITE}/email/open/{_tok}/{_et}" '
+                       f'width="1" height="1" style="display:block;border:0;" alt="" />')
 
     if lang == 'es':
         subject = "No queríamos que te perdieras esto... ¡Mira lo que hemos pensado! ✨"
@@ -3586,11 +3609,11 @@ def send_lead_abandonment_email(to_email: str, child_name: str, story_url: str, 
         {_success_box(f'''
             <p style="margin:0 0 10px;color:#374151;font-size:15px;">
                 📸 <strong>Galería de clientes reales:</strong><br>
-                <a href="https://magicmemoriesbooks.com/#galeria" style="color:#9333ea;font-weight:600;">magicmemoriesbooks.com/#galeria</a>
+                <a href="{_gallery_url_t}" style="color:#9333ea;font-weight:600;">magicmemoriesbooks.com/#galeria</a>
             </p>
             <p style="margin:0;color:#374151;font-size:15px;">
                 📱 <strong>Instagram:</strong>
-                <a href="https://instagram.com/magicmemoriesbooks" style="color:#9333ea;font-weight:600;">@magicmemoriesbooks</a>
+                <a href="{_ig_url_t}" style="color:#9333ea;font-weight:600;">@magicmemoriesbooks</a>
             </p>
             <p style="margin:10px 0 0;color:#6b7280;font-size:13px;">
                 Fotografías reales de niños, familias y libros entregados. Verás que la magia que imaginas es completamente real.
@@ -3602,11 +3625,11 @@ def send_lead_abandonment_email(to_email: str, child_name: str, story_url: str, 
             <strong>10% de descuento de apertura</strong> durante estos primeros días.
         </p>
 
-        {_cta_button(f"✨ Continuar con el cuento de {name_display} →", story_url)}
+        {_cta_button(f"✨ Continuar con el cuento de {name_display} →", _story_url_t)}
 
         <p style="font-size:14px;color:#6b7280;text-align:center;">
             Si el botón no funciona, copia este enlace: <br>
-            <a href="{story_url}" style="color:#9333ea;word-break:break-all;">{story_url}</a>
+            <a href="{_story_url_t}" style="color:#9333ea;word-break:break-all;">{story_url}</a>
         </p>
 
         <p style="font-size:15px;color:#374151;line-height:1.6;margin-top:24px;">
@@ -3670,11 +3693,11 @@ def send_lead_abandonment_email(to_email: str, child_name: str, story_url: str, 
         {_success_box(f'''
             <p style="margin:0 0 10px;color:#374151;font-size:15px;">
                 📸 <strong>Real customer gallery:</strong><br>
-                <a href="https://magicmemoriesbooks.com/#galeria" style="color:#9333ea;font-weight:600;">magicmemoriesbooks.com/#galeria</a>
+                <a href="{_gallery_url_t}" style="color:#9333ea;font-weight:600;">magicmemoriesbooks.com/#galeria</a>
             </p>
             <p style="margin:0;color:#374151;font-size:15px;">
                 📱 <strong>Instagram:</strong>
-                <a href="https://instagram.com/magicmemoriesbooks" style="color:#9333ea;font-weight:600;">@magicmemoriesbooks</a>
+                <a href="{_ig_url_t}" style="color:#9333ea;font-weight:600;">@magicmemoriesbooks</a>
             </p>
             <p style="margin:10px 0 0;color:#6b7280;font-size:13px;">
                 Real photos of children, families and delivered books. The magic you imagine is completely real.
@@ -3686,11 +3709,11 @@ def send_lead_abandonment_email(to_email: str, child_name: str, story_url: str, 
             <strong>10% opening discount</strong> for these first days.
         </p>
 
-        {_cta_button(f"✨ Continue {name_display}'s story →", story_url)}
+        {_cta_button(f"✨ Continue {name_display}'s story →", _story_url_t)}
 
         <p style="font-size:14px;color:#6b7280;text-align:center;">
             If the button doesn't work, copy this link: <br>
-            <a href="{story_url}" style="color:#9333ea;word-break:break-all;">{story_url}</a>
+            <a href="{_story_url_t}" style="color:#9333ea;word-break:break-all;">{story_url}</a>
         </p>
 
         <p style="font-size:15px;color:#374151;line-height:1.6;margin-top:24px;">
@@ -3701,6 +3724,8 @@ def send_lead_abandonment_email(to_email: str, child_name: str, story_url: str, 
         """
 
     html_content = _email_wrapper(wrapper_title, content, to_email, preheader=preheader)
+    # Inject open-tracking pixel just before </body>
+    html_content = html_content.replace('</body>', f'{_pixel_tag}\n</body>', 1)
 
     try:
         import smtplib as _smtp_ab
