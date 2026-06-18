@@ -210,7 +210,7 @@
 
         {% endif %}
 
-        {% set _wants_visor = story_data.ebook_paid or story_data.want_ebook or story_data.product_type == 'ebook' or _is_gift_visor %}
+        {% set _wants_visor = (story_data.ebook_paid or story_data.want_ebook or story_data.product_type == 'ebook' or _is_gift_visor) and not story_data.admin_gift %}
         {% if _wants_visor %}
         {% if _visor_url %}
         <div class="mb-6 text-center">
@@ -1467,7 +1467,7 @@ function requestDifferentStory() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                window.location.href = data.redirect_url || '/story-selection';
+                window.location.href = data.redirect_url || '/#precios';
             } else {
                 alert(data.error || '{% if lang == "es" %}Error al procesar. Intenta de nuevo.{% else %}Error processing. Please try again.{% endif %}');
             }
