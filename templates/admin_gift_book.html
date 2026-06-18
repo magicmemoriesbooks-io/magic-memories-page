@@ -8,8 +8,17 @@
     
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
         <h2 style="font-family: 'Quicksand', sans-serif; font-weight: 700; color: #1a1a1a; margin: 0; font-size: 22px;">🎁 Generar Libro Regalo</h2>
+        <button id="btn-testing-mode" onclick="enableTestingMode()"
+            style="background: #7c3aed; color: white; border: none; border-radius: 8px; padding: 8px 18px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+            🧪 Activar modo prueba (4h)
+        </button>
     </div>
-    
+
+    <div id="testing-mode-banner" style="display:none; background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; border-radius: 10px; padding: 10px 18px; margin-bottom: 16px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 10px;">
+        🧪 Modo prueba activo — sin límites de reintentos hasta las <span id="testing-expire-time" style="font-size:15px; font-weight:800;"></span>
+        &nbsp;<span id="testing-countdown" style="opacity:0.85; font-weight:400;"></span>
+    </div>
+
     <p style="color: #64748B; font-size: 13px; margin-bottom: 20px;">Genera un libro personalizado sin pasar por la plataforma de pago. Los PDFs se generarán para descarga directa.</p>
 
     {% if gift_previews %}
@@ -50,7 +59,7 @@
                             {% if gp.scenes_generating or gp.book_scenes_ready or gp.pages_composed %}
                             <a href="/order-complete/{{ gp.preview_id }}" style="padding: 3px 8px; background: #6366F1; color: white; border-radius: 5px; text-decoration: none; font-size: 11px; margin-left: 4px;">Ver</a>
                             {% endif %}
-                            {% if gp.has_lulu_folder %}
+                            {% if gp.has_pdf_access %}
                             <a href="/admin/gift-download/{{ gp.preview_id }}" style="padding: 3px 8px; background: #10B981; color: white; border-radius: 5px; text-decoration: none; font-size: 11px; margin-left: 4px;">Descargar PDFs</a>
                             {% endif %}
                         </td>
@@ -234,4 +243,80 @@
         
     </div>
 </div>
+
+<script>
+var _testingExpiresAt = 0;
+var _countdownInterval = null;
+
+function enableTestingMode() {
+    var btn = document.getElementById('btn-testing-mode');
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Activando...';
+    fetch('/admin/enable-testing-mode', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({hours: 4})
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            _testingExpiresAt = d.expires_at;
+            showTestingBanner(d.expire_str);
+            btn.innerHTML = '✅ Modo prueba activo';
+            btn.style.background = '#16a34a';
+        } else {
+            btn.innerHTML = '🧪 Activar modo prueba (4h)';
+            btn.disabled = false;
+            alert('Error: ' + (d.error || 'desconocido'));
+        }
+    })
+    .catch(() => {
+        btn.innerHTML = '🧪 Activar modo prueba (4h)';
+        btn.disabled = false;
+    });
+}
+
+function showTestingBanner(expireStr) {
+    var banner = document.getElementById('testing-mode-banner');
+    banner.style.display = 'flex';
+    document.getElementById('testing-expire-time').textContent = expireStr;
+    if (_countdownInterval) clearInterval(_countdownInterval);
+    _countdownInterval = setInterval(function() {
+        var remaining = _testingExpiresAt - (Date.now() / 1000);
+        if (remaining <= 0) {
+            clearInterval(_countdownInterval);
+            banner.style.display = 'none';
+            var btn = document.getElementById('btn-testing-mode');
+            btn.innerHTML = '🧪 Activar modo prueba (4h)';
+            btn.style.background = '#7c3aed';
+            btn.disabled = false;
+            return;
+        }
+        var h = Math.floor(remaining / 3600);
+        var m = Math.floor((remaining % 3600) / 60);
+        var s = Math.floor(remaining % 60);
+        document.getElementById('testing-countdown').textContent =
+            '(' + (h > 0 ? h + 'h ' : '') + m + 'm ' + s + 's restantes)';
+    }, 1000);
+}
+
+// On load: check if testing mode is already active
+(function() {
+    fetch('/admin/testing-mode-status')
+    .then(r => r.json())
+    .then(d => {
+        if (d.active && d.remaining_seconds > 0) {
+            _testingExpiresAt = (Date.now() / 1000) + d.remaining_seconds;
+            var expireDate = new Date(_testingExpiresAt * 1000);
+            var hh = String(expireDate.getHours()).padStart(2,'0');
+            var mm = String(expireDate.getMinutes()).padStart(2,'0');
+            showTestingBanner(hh + ':' + mm);
+            var btn = document.getElementById('btn-testing-mode');
+            btn.innerHTML = '✅ Modo prueba activo';
+            btn.style.background = '#16a34a';
+        }
+    })
+    .catch(function(){});
+})();
+</script>
 {% endblock %}
