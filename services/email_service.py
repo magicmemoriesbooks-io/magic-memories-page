@@ -2097,49 +2097,169 @@ def send_newsletter_blast(to_email: str, subject: str, content: str, unsubscribe
 
 
 def send_ebook_expiry_warning_email(to_email: str, child_name: str, days_remaining: int, renew_url: str, lang: str = 'es',
-                                    preview_id: str = ''):
+                                    preview_id: str = '', ebook_price: float = 6.0):
+    """
+    Aviso de vencimiento del eBook de regalo — el gancho es el vencimiento,
+    pero la propuesta principal es crecer la biblioteca con más cuentos.
+    """
     if not SMTP_USER or not SMTP_PASSWORD:
         return {'success': False}
+
+    _site = _os_el.environ.get('SITE_DOMAIN', 'magicmemoriesbooks.com')
+    _catalog_url = f'https://{_site}/#cuentos'
+    _price_str   = f'${ebook_price:.0f}' if ebook_price == int(ebook_price) else f'${ebook_price:.2f}'
+    _days_word   = f"{days_remaining} día{'s' if days_remaining != 1 else ''}" if lang == 'es' else f"{days_remaining} day{'s' if days_remaining != 1 else ''}"
+    _child       = child_name or ('tu protagonista' if lang == 'es' else 'your little hero')
+
     try:
         if lang == 'es':
-            subject = f"📖 Tu eBook de {child_name} vence en {days_remaining} día{'s' if days_remaining != 1 else ''}"
-            content = f"""
-        <h2 style="color:#7c3aed;">¡Tu eBook vence pronto!</h2>
-        <p style="color:#374151;font-size:15px;line-height:1.6;">
-            Hola, tu acceso de regalo al eBook de <strong>{child_name}</strong> vence en 
-            <strong style="color:#dc2626;">{days_remaining} día{'s' if days_remaining != 1 else ''}</strong>.
-        </p>
-        <p style="color:#374151;font-size:14px;line-height:1.6;margin-top:8px;">
-            Para seguir disfrutando del cuento interactivo con música y narración, puedes comprar acceso permanente por solo <strong>$7 USD</strong>.
-        </p>
-        {_cta_button("✨ Comprar acceso permanente — $7", renew_url)}
-        <p style="color:#6b7280;font-size:12px;">Si ya no te interesa, no hay problema. El link del cuento dejará de funcionar cuando expire.</p>
+            subject  = f"📖 Quedan {_days_word} para que el eBook de {_child} expire · ¿Y si hacemos otro cuento?"
+            preheader = f"Haz crecer su biblioteca personalizada — desde {_price_str} por historia."
+            content  = f"""
+<!-- preheader -->
+<div style="display:none;max-height:0;overflow:hidden;color:transparent;">{preheader}</div>
+
+<h2 style="color:#7c3aed;font-size:20px;margin-bottom:8px;">
+  ¿Cómo va esa lectura, {_child.split()[0] if _child else 'protagonista'}? 📖
+</h2>
+<p style="color:#374151;font-size:15px;line-height:1.7;margin-top:0;">
+  Esperamos que estén disfrutando muchísimo de su cuento. Antes de que se nos pase, te avisamos:
+  el acceso de regalo al eBook interactivo de <strong>{_child}</strong> vence en
+  <strong style="color:#dc2626;">{_days_word}</strong> — ¡aprovéchalo antes!
+</p>
+<p style="color:#6b7280;font-size:13px;line-height:1.6;margin-top:-4px;">
+  Si quieres conservarlo para siempre, puedes comprar acceso permanente por solo
+  <strong>{_price_str} USD</strong> — una vez y ya es tuyo para siempre.
+</p>
+
+<div style="margin:20px 0 8px 0;height:1px;background:#f1e8ff;"></div>
+
+<h3 style="color:#4c1d95;font-size:15px;margin-bottom:6px;">
+  💡 Ahora que ya conoces la magia… ¿armamos una pequeña biblioteca?
+</h3>
+<p style="color:#374151;font-size:14px;line-height:1.7;">
+  Tenemos más de 20 historias distintas donde <strong>{_child}</strong> siempre es el héroe.
+  Aquí van dos ideas para que la colección crezca sin gastar una fortuna:
+</p>
+
+<div style="background:#faf5ff;border-left:3px solid #7c3aed;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;">
+  <div style="font-size:13px;font-weight:800;color:#4c1d95;margin-bottom:4px;">📄 Colección PDF "imprime en casa"</div>
+  <div style="font-size:13px;color:#374151;line-height:1.6;">
+    Elige cualquier historia, descárgala en PDF al instante e imprímela las veces que quieras.
+    Cada cuento nuevo cuesta mucho menos que el primero — y puedes tener contenido fresco cada semana.
+  </div>
+</div>
+
+<div style="background:#f0fdf4;border-left:3px solid #16a34a;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;">
+  <div style="font-size:13px;font-weight:800;color:#166534;margin-bottom:4px;">📱 Prueba digital → luego imprime tu favorito</div>
+  <div style="font-size:13px;color:#374151;line-height:1.6;">
+    Crea los próximos cuentos en formato eBook para ir descubriendo cuál es el preferido de {_child.split()[0] if _child else 'tu pequeño/a'}.
+    Cuando den con su historia favorita, ese es el que mandan a imprimir en tapa dura. ¡Tú decides cuándo dar el salto al papel!
+  </div>
+</div>
+
+<p style="color:#374151;font-size:13px;line-height:1.7;margin-top:12px;">
+  Desde chefs valientes hasta astronautas y exploradores, hay una aventura perfecta para cada etapa de su crecimiento. ¿Cuál será el próximo capítulo de su colección?
+</p>
+
+{_cta_button("✨ Explorar el catálogo y crear otro cuento", _catalog_url)}
+
+<div style="margin-top:20px;padding:12px 16px;background:#fef9c3;border-radius:8px;border:1px solid #fde68a;">
+  <div style="font-size:12px;color:#92400e;line-height:1.6;">
+    <strong>⏰ Recordatorio:</strong> tu eBook de regalo de <strong>{_child}</strong> vence en {_days_word}.
+    Si quieres conservarlo, <a href="{renew_url}" style="color:#7c3aed;font-weight:700;text-decoration:none;">compra acceso permanente por {_price_str} aquí</a>.
+    Si no, el link simplemente dejará de funcionar — sin cargos.
+  </div>
+</div>
+
+<p style="color:#374151;font-size:14px;line-height:1.7;margin-top:18px;">
+  Gracias por dejarnos crear momentos inolvidables junto a tu familia. 💜
+</p>
+<p style="color:#7c3aed;font-size:14px;font-weight:700;margin:0;">
+  Un abrazo mágico,<br>
+  <span style="font-weight:400;color:#374151;">El equipo de Magic Memories Books</span>
+</p>
+<p style="color:#9ca3af;font-size:12px;font-style:italic;margin-top:6px;">Tu hijo/a es el héroe de la historia ✨</p>
             """
         else:
-            subject = f"📖 Your {child_name}'s eBook expires in {days_remaining} day{'s' if days_remaining != 1 else ''}"
-            content = f"""
-        <h2 style="color:#7c3aed;">Your eBook is expiring soon!</h2>
-        <p style="color:#374151;font-size:15px;line-height:1.6;">
-            Hello, your gift access to <strong>{child_name}</strong>'s eBook expires in 
-            <strong style="color:#dc2626;">{days_remaining} day{'s' if days_remaining != 1 else ''}</strong>.
-        </p>
-        <p style="color:#374151;font-size:14px;line-height:1.6;margin-top:8px;">
-            To keep enjoying the interactive storybook with music and narration, you can buy permanent access for just <strong>$7 USD</strong>.
-        </p>
-        {_cta_button("✨ Buy permanent access — $7", renew_url)}
-        <p style="color:#6b7280;font-size:12px;">If you're not interested, no worries. The link will stop working when it expires.</p>
+            subject  = f"📖 {_child}'s eBook expires in {_days_word} · Ready for another adventure?"
+            preheader = f"Grow their personal library — from {_price_str} per story."
+            content  = f"""
+<!-- preheader -->
+<div style="display:none;max-height:0;overflow:hidden;color:transparent;">{preheader}</div>
+
+<h2 style="color:#7c3aed;font-size:20px;margin-bottom:8px;">
+  How's the reading going? 📖
+</h2>
+<p style="color:#374151;font-size:15px;line-height:1.7;margin-top:0;">
+  We hope you're both enjoying the story! Just a heads-up: the gift eBook access for
+  <strong>{_child}</strong> expires in <strong style="color:#dc2626;">{_days_word}</strong> — enjoy it while you can!
+</p>
+<p style="color:#6b7280;font-size:13px;line-height:1.6;margin-top:-4px;">
+  To keep it forever, you can purchase permanent access for just <strong>{_price_str} USD</strong> — one-time payment, yours for life.
+</p>
+
+<div style="margin:20px 0 8px 0;height:1px;background:#f1e8ff;"></div>
+
+<h3 style="color:#4c1d95;font-size:15px;margin-bottom:6px;">
+  💡 Now that you've seen the magic… what about a personal library?
+</h3>
+<p style="color:#374151;font-size:14px;line-height:1.7;">
+  We have over 20 different stories where <strong>{_child}</strong> is always the hero.
+  Here are two ideas to grow the collection without breaking the bank:
+</p>
+
+<div style="background:#faf5ff;border-left:3px solid #7c3aed;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;">
+  <div style="font-size:13px;font-weight:800;color:#4c1d95;margin-bottom:4px;">📄 "Print at home" PDF collection</div>
+  <div style="font-size:13px;color:#374151;line-height:1.6;">
+    Pick any story, download it as a PDF instantly, and print it as many times as you like.
+    Each new story costs much less than the first — and you can have fresh content every week.
+  </div>
+</div>
+
+<div style="background:#f0fdf4;border-left:3px solid #16a34a;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;">
+  <div style="font-size:13px;font-weight:800;color:#166534;margin-bottom:4px;">📱 Try digital → then print your favourite</div>
+  <div style="font-size:13px;color:#374151;line-height:1.6;">
+    Build a digital library with the next stories and find out which one {_child.split()[0] if _child else 'your little one'} loves most.
+    Once you find their all-time favourite, that's the one you send to print in hardcover. You pick the perfect moment!
+  </div>
+</div>
+
+<p style="color:#374151;font-size:13px;line-height:1.7;margin-top:12px;">
+  From brave little chefs to astronauts and explorers, there's a perfect adventure for every stage of growing up. What will the next chapter in their collection be?
+</p>
+
+{_cta_button("✨ Explore the catalogue & create another story", _catalog_url)}
+
+<div style="margin-top:20px;padding:12px 16px;background:#fef9c3;border-radius:8px;border:1px solid #fde68a;">
+  <div style="font-size:12px;color:#92400e;line-height:1.6;">
+    <strong>⏰ Reminder:</strong> <strong>{_child}</strong>'s gift eBook expires in {_days_word}.
+    To keep it, <a href="{renew_url}" style="color:#7c3aed;font-weight:700;text-decoration:none;">purchase permanent access for {_price_str} here</a>.
+    If not, the link will simply stop working — no charges.
+  </div>
+</div>
+
+<p style="color:#374151;font-size:14px;line-height:1.7;margin-top:18px;">
+  Thank you for letting us create unforgettable moments with your family. 💜
+</p>
+<p style="color:#7c3aed;font-size:14px;font-weight:700;margin:0;">
+  A magical hug,<br>
+  <span style="font-weight:400;color:#374151;">The Magic Memories Books team</span>
+</p>
+<p style="color:#9ca3af;font-size:12px;font-style:italic;margin-top:6px;">Your child is the hero of the story ✨</p>
             """
+
         body_html = _email_wrapper("✨ Magic Memories Books ✨", content, to_email)
         msg = MIMEMultipart('alternative')
         msg['Subject'] = subject
-        msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
-        msg['To'] = to_email
+        msg['From']    = f"{FROM_NAME} <{FROM_EMAIL}>"
+        msg['To']      = to_email
         msg.attach(MIMEText(body_html, 'html', 'utf-8'))
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
             server.starttls()
             server.login(SMTP_USER, SMTP_PASSWORD)
             server.sendmail(FROM_EMAIL, to_email, msg.as_string())
-        print(f"[EMAIL] Expiry warning sent to {to_email} ({days_remaining} days)")
+        print(f"[EMAIL] Expiry warning sent to {to_email} ({days_remaining} days, {_price_str})")
         log_email('ebook_expiry', to_email, subject, 'SENT',
                   child_name=child_name, preview_id=preview_id, lang=lang)
         return {'success': True}
