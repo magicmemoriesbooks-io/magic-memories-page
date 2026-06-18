@@ -3517,6 +3517,213 @@ def process_pending_follow_up_emails():
 # LEAD ABANDONMENT EMAIL
 # ──────────────────────────────────────────────────────────────────────────────
 
+def send_isabel_campaign_email(to_email: str, child_name: str = '', lang: str = 'es') -> bool:
+    """One-time re-engagement email from Isabel with her personal copy. Bilingual ES/EN."""
+    is_en = (lang or 'es').strip().lower().startswith('en')
+    _fallback = 'your protagonist' if is_en else 'tu protagonista'
+    name_display = child_name.strip() if child_name and child_name.strip() else _fallback
+
+    _SITE = 'https://magicmemoriesbooks.com'
+    _tok  = __import__('base64').urlsafe_b64encode(to_email.encode('utf-8')).rstrip(b'=').decode()
+    _et   = 'lead_campaign_isabel'
+
+    from urllib.parse import quote as _q
+    _gallery_t = f"{_SITE}/email/click/{_tok}/{_et}/galeria?dest={_q(f'{_SITE}/#galeria', safe='')}"
+    _ig_t      = f"{_SITE}/email/click/{_tok}/{_et}/instagram?dest={_q('https://www.instagram.com/magicmemoriesbooks/', safe='')}"
+    _cta_t     = f"{_SITE}/email/click/{_tok}/{_et}/continuar?dest={_q(f'{_SITE}/#precios', safe='')}"
+    _pixel     = f'<img src="{_SITE}/email/open/{_tok}/{_et}" width="1" height="1" style="display:block;border:0;" alt="" />'
+
+    subject = (f"{name_display.capitalize()}'s story is waiting for you ✨" if is_en
+               else f"El cuento de {name_display} te está esperando ✨")
+
+    # ── Signature card ──────────────────────────────────────────────────────
+    signature_card = f"""
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;border-top:2px solid #ede5f8;padding-top:20px;">
+      <tr>
+        <td style="padding:0;">
+          <table cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="padding-right:16px;vertical-align:middle;">
+                <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#9333ea);display:flex;align-items:center;justify-content:center;font-size:22px;text-align:center;line-height:52px;">👩‍💼</div>
+              </td>
+              <td style="vertical-align:middle;">
+                <p style="margin:0;font-size:16px;font-weight:800;color:#2d1a4a;font-family:'Quicksand',sans-serif;">Isabel Ojeda</p>
+                <p style="margin:2px 0 0;font-size:12px;color:#7c3aed;font-weight:700;letter-spacing:0.3px;">Fundadora · Magic Memories Books</p>
+                <p style="margin:6px 0 0;font-size:12px;color:#6b7280;">
+                  🌐 <a href="{_SITE}" style="color:#9333ea;text-decoration:none;">magicmemoriesbooks.com</a>
+                  &nbsp;·&nbsp;
+                  📱 <a href="https://instagram.com/magicmemoriesbooks" style="color:#9333ea;text-decoration:none;">@magicmemoriesbooks</a>
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+    """
+
+    if is_en:
+        _ebook_box = _info_box(f'''
+            <p style="margin:0 0 8px;color:#7c3aed;font-size:17px;font-weight:800;">💜 The easiest way to start is with the digital eBook.</p>
+            <p style="margin:0;color:#374151;font-size:15px;line-height:1.6;">
+                From just <strong>$6 or $9</strong>, you receive the story instantly and
+                the story stays saved in your account forever.
+            </p>
+        ''')
+        _social_box = _success_box(f'''
+            <p style="margin:0 0 10px;font-size:15px;color:#374151;">
+                📸 <strong>Customer gallery:</strong><br>
+                <a href="{_gallery_t}" style="color:#9333ea;font-weight:600;">magicmemoriesbooks.com/#galeria</a>
+            </p>
+            <p style="margin:0;font-size:15px;color:#374151;">
+                📱 <strong>Instagram:</strong>
+                <a href="{_ig_t}" style="color:#9333ea;font-weight:600;">@magicmemoriesbooks</a>
+            </p>
+            <p style="margin:8px 0 0;font-size:13px;color:#6b7280;">
+                Real children, real books and real families enjoying their stories.
+            </p>
+        ''')
+        content = f"""
+    <h2 style="color:#7c3aed;margin-top:0;font-size:20px;font-weight:700;">Hi 👋</h2>
+    <p style="font-size:16px;color:#374151;line-height:1.7;">I'm Isabel, the founder of Magic Memories Books.</p>
+    <p style="font-size:16px;color:#374151;line-height:1.7;">
+        While other families are already reading their personalized stories, I thought maybe
+        <strong>{name_display}</strong>'s got left halfway.
+    </p>
+    <p style="font-size:16px;color:#374151;line-height:1.7;">And that would be a shame.</p>
+    <p style="font-size:16px;color:#374151;line-height:1.7;">
+        Because in less than 10 minutes, it can become a memory you'll keep for years.
+    </p>
+    {_ebook_box}
+    <p style="font-size:15px;color:#374151;line-height:1.7;margin-top:20px;">
+        That means later, whenever you want, you can also order:
+    </p>
+    <div style="margin:12px 0 20px;">
+        <div style="padding:10px 16px;background:#f3e8ff;border-radius:10px;margin-bottom:8px;font-size:15px;color:#374151;">
+            📄 <strong>The printable PDF</strong>
+        </div>
+        <div style="padding:10px 16px;background:#f0fdf4;border-radius:10px;font-size:15px;color:#374151;">
+            📚 <strong>The printed physical book</strong>
+        </div>
+    </div>
+    <p style="font-size:15px;color:#6b7280;font-style:italic;">Without starting over.</p>
+    <p style="font-size:16px;color:#374151;line-height:1.7;margin-top:24px;font-weight:700;">Still have doubts about us?</p>
+    <p style="font-size:15px;color:#374151;line-height:1.7;">
+        I completely understand.<br>
+        That's why we prefer to show you real families instead of making promises.
+    </p>
+    {_social_box}
+    <p style="font-size:15px;color:#374151;line-height:1.7;margin-top:20px;">
+        🎁 Plus, we're keeping our <strong>10% launch discount</strong>.
+    </p>
+    <p style="font-size:15px;color:#374151;line-height:1.7;">
+        If you liked what you saw when you started personalizing the story,
+        I think you'll love seeing it finished.
+    </p>
+    {_cta_button("✨ Continue my story →", _cta_t)}
+    <p style="font-size:14px;color:#6b7280;text-align:center;margin-top:8px;">
+        Or visit: <a href="{_cta_t}" style="color:#9333ea;">{_SITE}/#precios</a>
+    </p>
+    <p style="font-size:15px;color:#374151;line-height:1.7;margin-top:28px;">Warmly,</p>
+    {signature_card}
+    """
+    else:
+        _ebook_box = _info_box(f'''
+            <p style="margin:0 0 8px;color:#7c3aed;font-size:17px;font-weight:800;">💜 La forma más sencilla de empezar es con el eBook digital.</p>
+            <p style="margin:0;color:#374151;font-size:15px;line-height:1.6;">
+                Desde solo <strong>$6 o $9</strong>, recibes el cuento al instante y, además,
+                la historia queda guardada para siempre en tu cuenta.
+            </p>
+        ''')
+        _social_box = _success_box(f'''
+            <p style="margin:0 0 10px;font-size:15px;color:#374151;">
+                📸 <strong>Galería de clientes:</strong><br>
+                <a href="{_gallery_t}" style="color:#9333ea;font-weight:600;">magicmemoriesbooks.com/#galeria</a>
+            </p>
+            <p style="margin:0;font-size:15px;color:#374151;">
+                📱 <strong>Instagram:</strong>
+                <a href="{_ig_t}" style="color:#9333ea;font-weight:600;">@magicmemoriesbooks</a>
+            </p>
+            <p style="margin:8px 0 0;font-size:13px;color:#6b7280;">
+                Niños reales, libros reales y familias reales disfrutando de sus historias.
+            </p>
+        ''')
+        content = f"""
+    <h2 style="color:#7c3aed;margin-top:0;font-size:20px;font-weight:700;">Hola 👋</h2>
+    <p style="font-size:16px;color:#374151;line-height:1.7;">Soy Isabel, la fundadora de Magic Memories Books.</p>
+    <p style="font-size:16px;color:#374151;line-height:1.7;">
+        Mientras otras familias ya están leyendo sus cuentos personalizados, pensé que quizá
+        el de <strong>{name_display}</strong> se quedó a medio camino.
+    </p>
+    <p style="font-size:16px;color:#374151;line-height:1.7;">Y sería una pena.</p>
+    <p style="font-size:16px;color:#374151;line-height:1.7;">
+        Porque en menos de 10 minutos, puede convertirse en un recuerdo que puedes
+        conservar durante años.
+    </p>
+    {_ebook_box}
+    <p style="font-size:15px;color:#374151;line-height:1.7;margin-top:20px;">
+        Eso significa que más adelante, cuando quieras, podrás pedir también:
+    </p>
+    <div style="margin:12px 0 20px;">
+        <div style="padding:10px 16px;background:#f3e8ff;border-radius:10px;margin-bottom:8px;font-size:15px;color:#374151;">
+            📄 <strong>El PDF imprimible</strong>
+        </div>
+        <div style="padding:10px 16px;background:#f0fdf4;border-radius:10px;font-size:15px;color:#374151;">
+            📚 <strong>El libro físico impreso</strong>
+        </div>
+    </div>
+    <p style="font-size:15px;color:#6b7280;font-style:italic;">Sin tener que empezar de nuevo.</p>
+    <p style="font-size:16px;color:#374151;line-height:1.7;margin-top:24px;font-weight:700;">
+        ¿Todavía tienes dudas sobre nosotros?
+    </p>
+    <p style="font-size:15px;color:#374151;line-height:1.7;">
+        Te entiendo perfectamente.<br>
+        Por eso preferimos enseñarte familias reales en lugar de hacer promesas.
+    </p>
+    {_social_box}
+    <p style="font-size:15px;color:#374151;line-height:1.7;margin-top:20px;">
+        🎁 Además, seguimos manteniendo nuestro <strong>10% de descuento de lanzamiento</strong>.
+    </p>
+    <p style="font-size:15px;color:#374151;line-height:1.7;">
+        Si te gustó lo que viste cuando empezaste a personalizar el cuento,
+        creo que te encantará verlo terminado.
+    </p>
+    {_cta_button("✨ Continuar mi cuento →", _cta_t)}
+    <p style="font-size:14px;color:#6b7280;text-align:center;margin-top:8px;">
+        O visita: <a href="{_cta_t}" style="color:#9333ea;">{_SITE}/#precios</a>
+    </p>
+    <p style="font-size:15px;color:#374151;line-height:1.7;margin-top:28px;">Un abrazo,</p>
+    {signature_card}
+    """
+
+    html_content = _email_wrapper("✨ Tu cuento te está esperando", content, to_email,
+                                  preheader=f"El cuento de {name_display} sigue guardado — asegúralo desde $6.")
+    html_content = html_content.replace('</body>', f'{_pixel}\n</body>', 1)
+
+    try:
+        import smtplib as _s
+        from email.mime.multipart import MIMEMultipart as _MM
+        from email.mime.text import MIMEText as _MT
+        msg = _MM('alternative')
+        msg['Subject'] = subject
+        msg['From'] = f"Isabel de Magic Memories Books <{FROM_EMAIL}>"
+        msg['To'] = to_email
+        msg.attach(_MT(html_content, 'html'))
+        with _s.SMTP(SMTP_HOST, SMTP_PORT) as srv:
+            srv.ehlo(); srv.starttls()
+            srv.login(SMTP_USER, SMTP_PASSWORD)
+            srv.sendmail(FROM_EMAIL, [to_email], msg.as_string())
+        log_email('lead_campaign_isabel', to_email, subject, 'SENT',
+                  preview_id=to_email, child_name=name_display, body_html=html_content)
+        print(f"[CAMPAIGN-ISABEL] ✅ Sent to {to_email} ({name_display})")
+        return True
+    except Exception as e:
+        log_email('lead_campaign_isabel', to_email, subject, f'ERROR: {e}',
+                  preview_id=to_email, child_name=name_display)
+        print(f"[CAMPAIGN-ISABEL] ❌ Failed for {to_email}: {e}")
+        return False
+
+
 def _make_email_track_token(email: str) -> str:
     """URL-safe base64 token from email address (no padding)."""
     import base64 as _b64e
