@@ -14743,45 +14743,123 @@ def admin_isabel_campaign_send_all():
 
 @app.route('/admin/lead-campaign/isabel/stats')
 def admin_isabel_campaign_stats():
-    """Return open/click stats for the Isabel campaign. Admin only."""
+    """Return per-recipient open/click/purchase stats for the Isabel campaign."""
     if not session.get('admin_logged_in'):
         return jsonify({'error': 'Unauthorized'}), 401
-    import json as _j
+    import json as _j, glob as _g
     log_path = os.path.join('data', 'email_log.jsonl')
-    sent, opens, clicks_gallery, clicks_ig, clicks_cta = 0, 0, 0, 0, 0
-    click_total = 0
+    _ET = 'lead_campaign_isabel'
+
+    # ── Parse log into per-recipient buckets ──────────────────────────────
+    by_email = {}   # email → {sent_at, opened_at, clicks:[{link,ts}], child_name, lang}
     if os.path.exists(log_path):
         with open(log_path, 'r', encoding='utf-8') as _f:
             for line in _f:
                 try:
                     e = _j.loads(line)
-                    if e.get('email_type') != 'lead_campaign_isabel':
+                    if e.get('email_type') != _ET:
                         continue
+                    em = (e.get('to_email') or '').strip().lower()
+                    if not em:
+                        continue
+                    if em not in by_email:
+                        by_email[em] = {
+                            'email': em,
+                            'child_name': e.get('child_name', ''),
+                            'lang': e.get('lang', 'es'),
+                            'sent_at': None,
+                            'opened_at': None,
+                            'clicks': [],
+                            'purchased': False,
+                            'purchased_at': None,
+                        }
+                    rec = by_email[em]
+                    ev = e.get('event', '')
                     cat = e.get('category', '')
-                    if cat == 'sent':
-                        sent += 1
-                    elif cat == 'tracking':
-                        opens += 1
-                    elif cat == 'click':
-                        link = e.get('link_name', '')
-                        click_total += 1
-                        if link == 'galeria':
-                            clicks_gallery += 1
-                        elif link == 'instagram':
-                            clicks_ig += 1
-                        elif link == 'continuar':
-                            clicks_cta += 1
+                    ts = e.get('ts', '')
+                    if ev == 'open':
+                        if rec['opened_at'] is None:
+                            rec['opened_at'] = ts
+                    elif ev == 'click':
+                        rec['clicks'].append({'link': e.get('link_name', ''), 'ts': ts})
+                    elif cat == 'other' and not ev:
+                        # sent entry (logged via log_email)
+                        if rec['sent_at'] is None:
+                            rec['sent_at'] = ts
+                        if not rec['child_name'] and e.get('child_name'):
+                            rec['child_name'] = e['child_name']
+                        if e.get('lang'):
+                            rec['lang'] = e['lang']
                 except Exception:
                     pass
+
+    # ── Cross-reference purchases ──────────────────────────────────────────
+    # An email counts as "purchased after campaign" if they have a paid story
+    # AND their purchase timestamp is after their campaign send_at.
+    story_dir = os.path.join(os.path.dirname(__file__), 'story_previews')
+    if os.path.isdir(story_dir):
+        for pf in _g.glob(os.path.join(story_dir, '*.json')):
+            try:
+                with open(pf, 'r', encoding='utf-8') as _f:
+                    sd = _j.load(_f)
+                em = (sd.get('customer_email') or '').strip().lower()
+                if em not in by_email:
+                    continue
+                is_paid = (sd.get('paid') or sd.get('ebook_paid') or sd.get('pdf_paid')
+                           or sd.get('payment_status') == 'completed'
+                           or float(sd.get('amount_paid') or sd.get('customer_total_usd') or 0) > 0)
+                if is_paid:
+                    paid_at = sd.get('paid_at') or sd.get('created_at') or ''
+                    rec = by_email[em]
+                    sent_at = rec.get('sent_at') or ''
+                    # Mark as purchased-after-campaign if paid_at >= sent_at (or no timestamps to compare)
+                    if not rec['purchased'] and (not sent_at or not paid_at or paid_at >= sent_at):
+                        rec['purchased'] = True
+                        rec['purchased_at'] = paid_at
+            except Exception:
+                pass
+
+    # ── Aggregate totals ───────────────────────────────────────────────────
+    recipients = list(by_email.values())
+    sent_count  = sum(1 for r in recipients if r['sent_at'])
+    opens_count = sum(1 for r in recipients if r['opened_at'])
+    # Deduplicate bots: ignore opens that fired <5s after send (email preview bots)
+    real_opens  = 0
+    for r in recipients:
+        if r['opened_at'] and r['sent_at']:
+            try:
+                from datetime import datetime as _dtt
+                diff = (_dtt.fromisoformat(r['opened_at']) - _dtt.fromisoformat(r['sent_at'])).total_seconds()
+                if diff > 5:
+                    real_opens += 1
+            except Exception:
+                real_opens += 1
+        elif r['opened_at']:
+            real_opens += 1
+    click_total  = sum(len(r['clicks']) for r in recipients)
+    clicks_cta   = sum(sum(1 for c in r['clicks'] if c['link'] == 'continuar') for r in recipients)
+    clicks_gal   = sum(sum(1 for c in r['clicks'] if c['link'] == 'galeria') for r in recipients)
+    clicks_ig    = sum(sum(1 for c in r['clicks'] if c['link'] == 'instagram') for r in recipients)
+    purchased    = sum(1 for r in recipients if r['purchased'])
+
+    # Sort: purchased first, then opened, then clicked, then sent
+    def _sort_key(r):
+        return (not r['purchased'], not r['opened_at'], not r['clicks'], not r['sent_at'])
+    recipients.sort(key=_sort_key)
+
     return jsonify({
-        'sent': sent,
-        'opens': opens,
-        'open_rate': round(opens / sent * 100, 1) if sent else 0,
+        'sent': sent_count,
+        'opens': opens_count,
+        'real_opens': real_opens,
+        'open_rate': round(real_opens / sent_count * 100, 1) if sent_count else 0,
         'clicks_total': click_total,
         'clicks_cta': clicks_cta,
-        'clicks_gallery': clicks_gallery,
+        'clicks_gallery': clicks_gal,
         'clicks_instagram': clicks_ig,
-        'ctr': round(click_total / sent * 100, 1) if sent else 0
+        'ctr': round(click_total / sent_count * 100, 1) if sent_count else 0,
+        'purchased': purchased,
+        'conversion_rate': round(purchased / sent_count * 100, 1) if sent_count else 0,
+        'recipients': recipients,
     })
 
 
