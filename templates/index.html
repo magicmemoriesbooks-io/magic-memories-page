@@ -667,27 +667,27 @@
   <div class="relative w-full overflow-hidden">
     <div class="marquee-track">
       {% set covers = [
-        ('cover_dragon_garden.jpg','El Jardín del Dragón','Dragon Garden','universos_catalog'),
-        ('cover_magic_chef.jpg','El Chef Mágico','The Magic Chef','universos_catalog'),
-        ('cover_space_astronaut.jpg','Astronauta Espacial','Space Astronaut','express_catalog'),
-        ('cover_baby_soft_world.jpg','Mundo Suave','Soft World','express_catalog'),
-        ('cover_baby_puppy_love.jpg','Mi Perrito','My Puppy','express_catalog'),
-        ('cover_superhero_light.jpg','Superhéroe de la Luz','Superhero of Light','express_catalog'),
-        ('cover_star_guardian.jpg','Secreto Estelar','Star Secret','express_catalog'),
-        ('cover_furry_love.jpg','Tu Amor Peludo','Your Furry Love','universos_catalog'),
-        ('cover_furry_love_adventure.jpg','Aventura Peluda','Furry Adventure','universos_catalog'),
-        ('cover_magic_inventor.jpg','El Inventor Mágico','Magic Inventor','universos_catalog'),
-        ('cover_birthday_celebration.jpg','Cumpleaños Mágico','Magic Birthday','express_catalog'),
-        ('cover_zebra_stripes.jpg','La Cebra Única','Unique Zebra','express_catalog'),
-        ('cover_dog_forever.jpg','Mi Perro Para Siempre','My Dog Forever','express_catalog'),
-        ('cover_dragon_friend.jpg','Amigo Dragón','Dragon Friend','express_catalog'),
-        ('cover_chronicles_valley.jpg','El Mundo Secreto','The Secret World','express_catalog'),
-        ('cover_sunset_map.jpg','Mapa del Atardecer','Sunset Map','express_catalog'),
-        ('cover_centinela_aurora.jpg','Centinela de la Aurora','Aurora Sentinel','universos_catalog')
+        ('cover_dragon_garden.jpg','El Jardín del Dragón','Dragon Garden','universos_catalog',''),
+        ('cover_magic_chef.jpg','El Chef Mágico','The Magic Chef','universos_catalog',''),
+        ('cover_space_astronaut.jpg','Astronauta Espacial','Space Astronaut','express_catalog','aventuras'),
+        ('cover_baby_soft_world.jpg','Mundo Suave','Soft World','express_catalog','bebe'),
+        ('cover_baby_puppy_love.jpg','Mi Perrito','My Puppy','express_catalog','bebe'),
+        ('cover_superhero_light.jpg','Superhéroe de la Luz','Superhero of Light','express_catalog','aventuras'),
+        ('cover_star_guardian.jpg','Secreto Estelar','Star Secret','express_catalog','aventuras'),
+        ('cover_furry_love.jpg','Tu Amor Peludo','Your Furry Love','universos_catalog',''),
+        ('cover_furry_love_adventure.jpg','Aventura Peluda','Furry Adventure','universos_catalog',''),
+        ('cover_magic_inventor.jpg','El Inventor Mágico','Magic Inventor','universos_catalog',''),
+        ('cover_birthday_celebration.jpg','Cumpleaños Mágico','Magic Birthday','express_catalog','cumple'),
+        ('cover_zebra_stripes.jpg','La Cebra Única','Unique Zebra','express_catalog','aventuras'),
+        ('cover_dog_forever.jpg','Mi Perro Para Siempre','My Dog Forever','express_catalog','aventuras'),
+        ('cover_dragon_friend.jpg','Amigo Dragón','Dragon Friend','express_catalog','aventuras'),
+        ('cover_chronicles_valley.jpg','El Mundo Secreto','The Secret World','express_catalog','aventuras'),
+        ('cover_sunset_map.jpg','Mapa del Atardecer','Sunset Map','express_catalog','aventuras'),
+        ('cover_centinela_aurora.jpg','Centinela de la Aurora','Aurora Sentinel','universos_catalog','')
       ] %}
-      {% for filename, name_es, name_en, route in covers %}
+      {% for filename, name_es, name_en, route, anchor in covers %}
       <div class="gallery-item flex-shrink-0 mx-2">
-        <a href="{{ url_for(route) }}" style="display:block;width:164px;border-radius:14px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.09);position:relative;text-decoration:none;transition:box-shadow .25s,transform .25s;" class="group" title="{{ name_es if lang == 'es' else name_en }}">
+        <a href="{{ url_for(route) }}{% if anchor %}#{{ anchor }}{% endif %}" style="display:block;width:164px;border-radius:14px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.09);position:relative;text-decoration:none;transition:box-shadow .25s,transform .25s;" class="group" title="{{ name_es if lang == 'es' else name_en }}">
           <img src="{{ url_for('static', filename='images/' + filename) }}" alt="{{ name_es if lang == 'es' else name_en }}" class="w-full aspect-square object-cover" loading="lazy" style="transition:transform .35s;">
           <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(15,14,42,.88),transparent);opacity:0;transition:opacity .3s;" class="group-hover:opacity-100 flex items-end justify-center pb-3">
             <span style="color:#fff;font-family:'Quicksand',sans-serif;font-size:12px;font-weight:700;text-align:center;padding:0 8px;">{{ name_es if lang == 'es' else name_en }}</span>
@@ -695,9 +695,9 @@
         </a>
       </div>
       {% endfor %}
-      {% for filename, name_es, name_en, route in covers %}
+      {% for filename, name_es, name_en, route, anchor in covers %}
       <div class="gallery-item flex-shrink-0 mx-2">
-        <a href="{{ url_for(route) }}" style="display:block;width:164px;border-radius:14px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.09);position:relative;text-decoration:none;transition:box-shadow .25s,transform .25s;" class="group" title="{{ name_es if lang == 'es' else name_en }}">
+        <a href="{{ url_for(route) }}{% if anchor %}#{{ anchor }}{% endif %}" style="display:block;width:164px;border-radius:14px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.09);position:relative;text-decoration:none;transition:box-shadow .25s,transform .25s;" class="group" title="{{ name_es if lang == 'es' else name_en }}">
           <img src="{{ url_for('static', filename='images/' + filename) }}" alt="{{ name_es if lang == 'es' else name_en }}" class="w-full aspect-square object-cover" loading="lazy" style="transition:transform .35s;">
           <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(15,14,42,.88),transparent);opacity:0;transition:opacity .3s;" class="group-hover:opacity-100 flex items-end justify-center pb-3">
             <span style="color:#fff;font-family:'Quicksand',sans-serif;font-size:12px;font-weight:700;text-align:center;padding:0 8px;">{{ name_es if lang == 'es' else name_en }}</span>
