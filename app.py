@@ -315,7 +315,8 @@ def scheduled_ebook_expiry_check():
                         renew_url = f'https://{base_url}/renew-ebook/{preview_id}'
                         from services.email_service import send_ebook_expiry_warning_email
                         days_left = max(1, (expiry_dt - now).days)
-                        result = send_ebook_expiry_warning_email(customer_email, child_name, days_left, renew_url, lang)
+                        result = send_ebook_expiry_warning_email(customer_email, child_name, days_left, renew_url, lang,
+                                                                        preview_id=preview_id)
                         if result.get('success'):
                             sd['expiry_warning_sent'] = True
                             with open(fpath, 'w', encoding='utf-8') as f:
