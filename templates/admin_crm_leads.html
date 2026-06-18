@@ -79,7 +79,24 @@
       </div>
     </div>
 
-    <!-- Per-recipient table -->
+    <!-- Convertidos (compraron tras el email) -->
+    <div id="isabel-converted-wrap" style="display:none;margin-bottom:12px;background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:10px 14px;">
+      <div style="font-size:11px;font-weight:800;color:#16a34a;margin-bottom:8px;">💰 Compraron después del email</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="color:#166534;">
+            <th style="padding:5px 10px;text-align:left;font-weight:700;">Email</th>
+            <th style="padding:5px 8px;text-align:left;font-weight:700;">Nombre</th>
+            <th style="padding:5px 8px;text-align:center;font-weight:700;">Lang</th>
+            <th style="padding:5px 8px;text-align:center;font-weight:700;">Enviado</th>
+            <th style="padding:5px 8px;text-align:center;font-weight:700;">Estado</th>
+          </tr>
+        </thead>
+        <tbody id="isabel-converted-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- Leads pendientes -->
     <div id="isabel-table-wrap" style="display:none;margin-bottom:16px;overflow-x:auto;">
       <table style="width:100%;border-collapse:collapse;font-size:12px;">
         <thead>
@@ -89,24 +106,40 @@
             <th style="padding:7px 8px;text-align:center;font-weight:800;">Lang</th>
             <th style="padding:7px 8px;text-align:center;font-weight:800;">Enviado</th>
             <th style="padding:7px 8px;text-align:center;font-weight:800;">Abrió</th>
-            <th style="padding:7px 8px;text-align:center;font-weight:800;">Clics</th>
-            <th style="padding:7px 8px;text-align:center;font-weight:800;border-radius:0 6px 6px 0;">Compra</th>
+            <th style="padding:7px 8px;text-align:center;font-weight:800;border-radius:0 6px 6px 0;">Clics</th>
           </tr>
         </thead>
         <tbody id="isabel-tbody"></tbody>
       </table>
     </div>
 
-    <!-- Send button -->
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-      <button onclick="sendIsabelCampaign()"
-        id="btn-send-campaign"
-        style="background:linear-gradient(135deg,#7c3aed,#9333ea);color:white;border:none;padding:10px 22px;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,0.3);">
-        🚀 Enviar campaña a todos los leads
-      </button>
-      <span id="campaign-status" style="font-size:12px;color:#6d28d9;font-weight:600;"></span>
+    <!-- Auto-send notice + one-off form -->
+    <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+      <!-- Auto status badge -->
+      <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:10px 16px;flex:0 0 auto;">
+        <div style="font-size:12px;font-weight:800;color:#16a34a;">✅ Automático ACTIVO</div>
+        <div style="font-size:11px;color:#4ade80;margin-top:2px;">Nuevos leads reciben este email a las 3h</div>
+      </div>
+      <!-- Send to specific email -->
+      <div style="flex:1;min-width:260px;">
+        <div style="font-size:11px;font-weight:700;color:#6d28d9;margin-bottom:6px;">Enviar a un email específico:</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <input id="one-email-input" type="email" placeholder="email@ejemplo.com"
+            style="flex:1;min-width:160px;padding:8px 12px;border:1.5px solid #c4b5fd;border-radius:8px;font-size:12px;outline:none;" />
+          <input id="one-name-input" type="text" placeholder="Nombre (opcional)"
+            style="width:110px;padding:8px 12px;border:1.5px solid #c4b5fd;border-radius:8px;font-size:12px;outline:none;" />
+          <select id="one-lang-input" style="padding:8px 10px;border:1.5px solid #c4b5fd;border-radius:8px;font-size:12px;background:white;">
+            <option value="es">🇪🇸 ES</option>
+            <option value="en">🇬🇧 EN</option>
+          </select>
+          <button onclick="sendIsabelOne()"
+            style="background:#7c3aed;color:white;border:none;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">
+            ✉ Enviar
+          </button>
+        </div>
+        <div id="one-send-status" style="font-size:11px;margin-top:6px;color:#6d28d9;font-weight:600;"></div>
+      </div>
     </div>
-    <div id="campaign-result" style="display:none;margin-top:14px;background:white;border-radius:10px;padding:12px 16px;border:1px solid #ddd6fe;font-size:12px;color:#374151;"></div>
   </div>
 
   <!-- Info + export -->
@@ -268,20 +301,26 @@ function loadCampaignStats() {
       document.getElementById('stat-conv').textContent      = d.conversion_rate + '%';
       document.getElementById('isabel-stats').style.display = 'grid';
 
-      // Per-recipient table
-      const tbody = document.getElementById('isabel-tbody');
+      // Per-recipient table — leads (not purchased) only
       const LINK_ICONS = {galeria:'📸', instagram:'📱', continuar:'✨'};
-      const rows = (d.recipients || []).map(r => {
-        const langFlag = r.lang && r.lang.startsWith('en') ? '🇬🇧' : '🇪🇸';
-        const sentTs   = r.sent_at ? r.sent_at.slice(11,16) : '—';
-        const openCell = r.opened_at
-          ? `<span style="color:#16a34a;font-weight:700;" title="${r.opened_at}">👁️ ${r.opened_at.slice(11,16)}</span>`
+      const allR = d.recipients || [];
+      const leads     = allR.filter(r => !r.purchased);
+      const converted = allR.filter(r => r.purchased);
+
+      function buildRow(r, showBuyCol) {
+        const langFlag  = r.lang && r.lang.startsWith('en') ? '🇬🇧' : '🇪🇸';
+        const sentTs    = r.sent_at ? r.sent_at.slice(11,16) : '—';
+        // Filter bot opens (fired <5s after send)
+        let realOpen = null;
+        if (r.opened_at && r.sent_at) {
+          const diff = (new Date(r.opened_at) - new Date(r.sent_at)) / 1000;
+          if (diff > 5) realOpen = r.opened_at;
+        } else if (r.opened_at) { realOpen = r.opened_at; }
+        const openCell  = realOpen
+          ? `<span style="color:#16a34a;font-weight:700;" title="${realOpen}">👁️ ${realOpen.slice(11,16)}</span>`
           : `<span style="color:#d1d5db;">—</span>`;
         const clickLinks = (r.clicks || []).map(c => LINK_ICONS[c.link] || '🔗').join(' ') || '—';
-        const buyCell = r.purchased
-          ? `<span style="color:#16a34a;font-weight:800;" title="${r.purchased_at||''}">💰 SÍ</span>`
-          : `<span style="color:#d1d5db;">—</span>`;
-        const rowBg = r.purchased ? '#f0fdf4' : (r.opened_at ? '#faf5ff' : 'white');
+        const rowBg = realOpen ? '#faf5ff' : 'white';
         return `<tr style="border-bottom:1px solid #f1f5f9;background:${rowBg};">
           <td style="padding:7px 10px;color:#374151;font-family:monospace;font-size:11px;">${r.email}</td>
           <td style="padding:7px 8px;color:#374151;font-weight:600;">${r.child_name || '—'}</td>
@@ -289,13 +328,52 @@ function loadCampaignStats() {
           <td style="padding:7px 8px;text-align:center;color:#6d28d9;font-size:11px;">${sentTs}</td>
           <td style="padding:7px 8px;text-align:center;">${openCell}</td>
           <td style="padding:7px 8px;text-align:center;font-size:14px;">${clickLinks}</td>
-          <td style="padding:7px 8px;text-align:center;">${buyCell}</td>
         </tr>`;
-      });
-      tbody.innerHTML = rows.join('');
-      document.getElementById('isabel-table-wrap').style.display = rows.length ? 'block' : 'none';
+      }
+
+      const tbody = document.getElementById('isabel-tbody');
+      tbody.innerHTML = leads.map(r => buildRow(r, false)).join('');
+
+      // Converted section
+      const convWrap = document.getElementById('isabel-converted-wrap');
+      const convBody = document.getElementById('isabel-converted-tbody');
+      if (converted.length > 0) {
+        convBody.innerHTML = converted.map(r => {
+          const langFlag = r.lang && r.lang.startsWith('en') ? '🇬🇧' : '🇪🇸';
+          const sentTs   = r.sent_at ? r.sent_at.slice(11,16) : '—';
+          return `<tr style="border-bottom:1px solid #d1fae5;background:#f0fdf4;">
+            <td style="padding:6px 10px;color:#374151;font-family:monospace;font-size:11px;">${r.email}</td>
+            <td style="padding:6px 8px;color:#374151;font-weight:600;">${r.child_name || '—'}</td>
+            <td style="padding:6px 8px;text-align:center;">${langFlag}</td>
+            <td style="padding:6px 8px;text-align:center;color:#6d28d9;font-size:11px;">${sentTs}</td>
+            <td style="padding:6px 8px;text-align:center;color:#16a34a;font-weight:800;">💰 Compró</td>
+          </tr>`;
+        }).join('');
+        convWrap.style.display = 'block';
+      } else {
+        convWrap.style.display = 'none';
+      }
+
+      document.getElementById('isabel-table-wrap').style.display = leads.length ? 'block' : 'none';
     })
     .catch(e => alert('Error cargando stats: ' + e));
+}
+
+function sendIsabelOne() {
+  const email = document.getElementById('one-email-input').value.trim();
+  const name  = document.getElementById('one-name-input').value.trim();
+  const lang  = document.getElementById('one-lang-input').value;
+  const st    = document.getElementById('one-send-status');
+  if (!email || !email.includes('@')) { st.textContent = '❌ Email inválido'; return; }
+  st.textContent = '⏳ Enviando…';
+  fetch('/admin/lead-campaign/isabel/send-one', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({email, child_name: name, lang})
+  }).then(r => r.json()).then(d => {
+    st.textContent = d.ok ? `✅ Enviado a ${d.email}` : `❌ Error: ${JSON.stringify(d)}`;
+    if (d.ok) { document.getElementById('one-email-input').value = ''; document.getElementById('one-name-input').value = ''; }
+  }).catch(e => { st.textContent = '❌ ' + e; });
 }
 
 function sendIsabelCampaign() {
