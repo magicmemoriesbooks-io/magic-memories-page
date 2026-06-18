@@ -128,12 +128,12 @@
             </div>
         </div>
         {% set story_template = story_data.story_template|default(story_data.story_id|default('')) %}
-        {% if 'furry_love' in story_template %}
+        {% if 'furry_love' in story_template or story_template == 'star_keeper_illustrated' %}
         <div class="flex justify-center mt-3">
             <button type="button" id="regenerateCoverBtn" onclick="regenerateCover('{{ preview_id }}')"
                 class="px-4 py-2 text-sm text-amber-600 border border-amber-200 rounded-full hover:bg-amber-50 transition-colors flex items-center gap-2">
                 <span id="regenCoverIcon">🔄</span>
-                <span id="regenCoverText">{% if lang == 'es' %}Regenerar Portada{% else %}Regenerate Cover{% endif %}</span>
+                <span id="regenCoverText">{% if lang == 'es' %}Regenerar Portada{% else %}Regenerate Cover {% endif %}</span>
             </button>
         </div>
         {% endif %}
@@ -226,7 +226,7 @@
             <div>
                 <p class="text-amber-800 font-medium">{% if lang == 'es' %}¿No te gusta esta historia?{% else %}Don't like this story?{% endif %}</p>
                 <p class="text-amber-700 text-sm mt-1">
-                    {% if lang == 'es' %}Puedes <a href="/story-selection" class="underline font-medium">regresar y elegir otra historia</a> diferente para personalizar.{% else %}You can <a href="/story-selection" class="underline font-medium">go back and choose a different story</a> to personalize.{% endif %}
+                    {% if lang == 'es' %}Puedes <a href="/#precios" class="underline font-medium">regresar y elegir otra historia</a> diferente para personalizar.{% else %}You can <a href="/#precios" class="underline font-medium">go back and choose a different story</a> to personalize.{% endif %}
                 </p>
             </div>
         </div>
