@@ -773,16 +773,17 @@
     <!-- Rate limit: warm conversion popup -->
     <div id="errorModalRateLimit" class="hidden bg-white rounded-3xl p-7 max-w-sm w-full shadow-2xl text-center">
         <div class="text-5xl mb-3">✨</div>
-        <h3 class="font-bold text-amber-600 text-xl mb-3">{% if lang == 'es' %}¡La magia ya ha comenzado!{% else %}The magic has already begun!{% endif %}</h3>
-        <p id="errorMessageRateLimit" class="text-gray-600 text-sm leading-relaxed mb-3"></p>
-        <p class="text-xs text-amber-500 font-semibold mb-1">📖 {% if lang == 'es' %}Disponible en digital, PDF imprimible e impreso.{% else %}Available as digital, printable PDF and printed book.{% endif %}</p>
-        <p class="text-xs text-gray-400 italic mb-5">{% if lang == 'es' %}Las personalizaciones gratuitas se renuevan periódicamente. Si no puedes terminar ahora, vuelve mañana.{% else %}Free personalizations refresh periodically. If you can't finish now, come back tomorrow.{% endif %}</p>
+        <h3 class="font-bold text-amber-600 text-xl mb-3">{% if lang == 'es' %}¡Ya usaste tus personalizaciones de hoy!{% else %}You've used your free previews for today!{% endif %}</h3>
+        <p id="errorMessageRateLimit" class="text-gray-600 text-sm leading-relaxed mb-5"></p>
         <div class="flex flex-col gap-2">
-            <a id="rateLimitViewBtn" href="#" class="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-bold text-sm hover:opacity-90 transition">
-                📖 {% if lang == 'es' %}Ver mi cuento →{% else %}View my story →{% endif %}
+            <a id="rateLimitViewBtn" href="#" class="hidden w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-bold text-sm hover:opacity-90 transition">
+                ✨ {% if lang == 'es' %}Ver mi cuento anterior →{% else %}View my previous story →{% endif %}
             </a>
+            <button onclick="document.getElementById('errorModal').classList.add('hidden')" class="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-bold text-sm hover:opacity-90 transition">
+                ✨ {% if lang == 'es' %}Ver preview del cuento{% else %}View story preview{% endif %}
+            </button>
             <button onclick="document.getElementById('errorModal').classList.add('hidden')" class="w-full py-2 text-gray-400 text-sm hover:text-gray-600 transition">
-                {% if lang == 'es' %}Entendido{% else %}Got it{% endif %}
+                {% if lang == 'es' %}Volver mañana{% else %}Come back tomorrow{% endif %}
             </button>
         </div>
     </div>
@@ -1415,10 +1416,11 @@ function showError(message, isRateLimit = false) {
         const childName = (nameEl && nameEl.value.trim()) ? nameEl.value.trim() : (typeof childNameGlobal !== 'undefined' ? childNameGlobal : '');
         const msgEl = document.getElementById('errorMessageRateLimit');
         if (msgEl) {
-            const nameStr = childName
-                ? ('{% if lang == "es" %}Si te encanta cómo ha quedado <strong>' + childName + '</strong>, puedes continuar ahora y convertirla en un recuerdo único para siempre.{% else %}If you love how <strong>' + childName + '</strong> turned out, you can continue now and make it a unique memory forever.{% endif %}')
-                : '{% if lang == "es" %}Si te encanta cómo ha quedado tu historia, puedes continuar ahora y convertirla en un recuerdo único para siempre.{% else %}If you love how your story turned out, you can continue now and make it a unique memory forever.{% endif %}';
-            msgEl.innerHTML = '{% if lang == "es" %}Tu historia personalizada estará lista en minutos para que la revises. {% else %}Your personalised story will be ready in minutes for you to review. {% endif %}' + nameStr;
+            if (childName) {
+                msgEl.innerHTML = '{% if lang == "es" %}Has usado tus 3 personalizaciones gratuitas de hoy para <strong>' + childName + '</strong>. Si te gusta cómo quedó, cierra este aviso y dale a <strong>\"Ver Preview del Cuento\"</strong>. Las personalizaciones se renuevan mañana.{% else %}You\'ve used your 3 free personalizations for today for <strong>' + childName + '</strong>. Happy with the result? Close this and click <strong>\"View Story Preview\"</strong>. Free personalizations refresh tomorrow.{% endif %}';
+            } else {
+                msgEl.innerHTML = '{% if lang == "es" %}Has usado tus 3 personalizaciones gratuitas de hoy. Si te gusta cómo quedó el personaje, cierra este aviso y dale a <strong>\"Ver Preview del Cuento\"</strong>. Las personalizaciones se renuevan mañana.{% else %}You\'ve used your 3 free personalizations for today. Happy with the result? Close this and click <strong>\"View Story Preview\"</strong>. Free personalizations refresh tomorrow.{% endif %}';
+            }
         }
         const viewBtn = document.getElementById('rateLimitViewBtn');
         if (viewBtn) {
