@@ -340,6 +340,67 @@ def _ensure_spark_reference() -> str:
     return ''
 
 
+def _ensure_sweetie_reference() -> str:
+    """Generate SWEETIE cake companion reference image once and cache it as a static asset.
+    SWEETIE: adorable round rainbow layered cake character with eyes, mouth, arms and legs.
+    """
+    sweetie_path = 'static/assets/sweetie_reference.png'
+    if os.path.exists(sweetie_path):
+        return sweetie_path
+    print("[MAGIC CHEF] Generating SWEETIE reference image (first time only)...")
+    try:
+        sweetie_prompt = (
+            "Disney Pixar 3D style illustration. A single adorable round rainbow layered cake character named SWEETIE, "
+            "whole round cake (not a slice), multiple colorful layers (pink, blue, yellow, green), "
+            "big expressive cartoon eyes on the front face of the cake, a friendly wide smiling mouth, "
+            "small adorable chubby arms and legs sticking out from the sides, bouncy cheerful pose. "
+            "Centered in frame, full character visible from top to bottom. "
+            "Plain soft pink magical background with golden sparkles and tiny floating stars. "
+            "Clean studio lighting, pure illustration only, NO text, NO watermarks."
+        )
+        image_url = generate_with_flux2_dev(sweetie_prompt, aspect_ratio="1:1")
+        from services.replicate_service import save_image_locally as _sil
+        os.makedirs('static/assets', exist_ok=True)
+        result_path = _sil(image_url, sweetie_path)
+        if result_path and os.path.exists(sweetie_path):
+            print(f"[MAGIC CHEF] SWEETIE reference saved: {sweetie_path}")
+            return sweetie_path
+    except Exception as e:
+        print(f"[MAGIC CHEF] SWEETIE reference generation failed: {e}")
+    return ''
+
+
+def _ensure_bolt_reference() -> str:
+    """Generate BOLT robot companion reference image once and cache it as a static asset.
+    BOLT: small round copper-colored robot with spherical body, big glowing blue eyes, antenna.
+    """
+    bolt_path = 'static/assets/bolt_reference.png'
+    if os.path.exists(bolt_path):
+        return bolt_path
+    print("[MAGIC INVENTOR] Generating BOLT reference image (first time only)...")
+    try:
+        bolt_prompt = (
+            "Disney Pixar 3D style illustration. A single small round copper-colored robot named BOLT, "
+            "small chubby spherical body with copper patina finish, two large glowing bright blue LED eyes, "
+            "two short articulated metallic arms with rounded hands, two short stumpy metallic legs, "
+            "small antenna on top of head with a blinking blue light, rivets and small gear details visible on body, "
+            "friendly cheerful pose with one arm raised in a wave, sweet gentle expression. "
+            "Centered in frame, full character visible from top to bottom. "
+            "Plain warm golden workshop background with soft copper tones and floating gears. "
+            "Clean studio lighting, pure illustration only, NO text, NO watermarks."
+        )
+        image_url = generate_with_flux2_dev(bolt_prompt, aspect_ratio="1:1")
+        from services.replicate_service import save_image_locally as _sil
+        os.makedirs('static/assets', exist_ok=True)
+        result_path = _sil(image_url, bolt_path)
+        if result_path and os.path.exists(bolt_path):
+            print(f"[MAGIC INVENTOR] BOLT reference saved: {bolt_path}")
+            return bolt_path
+    except Exception as e:
+        print(f"[MAGIC INVENTOR] BOLT reference generation failed: {e}")
+    return ''
+
+
 def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                                    child_age: int, traits: dict,
                                    child_photo_path: str = '') -> dict:
@@ -459,30 +520,110 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
             SWEETIE_CAKE_INLINE
         )
         from services.fixed_stories import get_hair_strict
-        
+        from services.replicate_service import get_gender_negative_prompt as _chef_neg_fn
+
+        gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
+        age_display = f"{child_age} year old" if child_age and child_age > 0 else "6 year old"
+        human_photo_path = traits.get('human_photo_path', child_photo_path or '')
         outfit_desc = chef_get_outfit_desc(gender)
-        if has_photo:
-            hair_desc = "hair as in the reference photo"
-            actual_eye = get_eye_description(traits)
-            eye_desc = f"{actual_eye}, face exactly as in the reference photo{glasses_desc}"
-            skin_tone = "as in the reference photo"
-            char_physical = f"{hair_desc}, {eye_desc}"
-            hair_strict_text = "PHOTO REFERENCE: Match the child's exact face, skin, eye color and hair from the reference photo."
+
+        sweetie_path = _ensure_sweetie_reference()
+        sweetie_ok = sweetie_path and os.path.exists(sweetie_path)
+
+        output_dir = 'generated/previews'
+        os.makedirs(output_dir, exist_ok=True)
+
+        chef_neg = _chef_neg_fn(gender)
+
+        if human_photo_path and os.path.exists(human_photo_path):
+            kontext_prompt = (
+                f"Convert the {age_display} {gender_word} in @image1 into a high-quality 3D animated children's book character. "
+                f"Preserve the exact face, eye color, skin tone, and hair — identical likeness. "
+                f"OUTFIT: {outfit_desc}. "
+                f"BACKGROUND: soft pink magical kitchen atmosphere with golden sparkles, plain studio — no kitchen scene. "
+                f"POSE: standing, full body visible from head to feet, confident joyful smile, both hands on hips."
+            )
+            print(f"[MAGIC CHEF PREVIEW] Step 1 — Kontext portrait | photo={human_photo_path} | age={child_age}")
+            portrait_url = generate_with_flux_kontext(kontext_prompt, human_photo_path, aspect_ratio="3:4")
+            portrait_path = save_image_locally(portrait_url, f'{output_dir}/chef_portrait_{uuid.uuid4().hex[:8]}.png')
+            print(f"[MAGIC CHEF PREVIEW] Portrait saved: {portrait_path}")
+
+            chef_ref_note = (
+                f"The child in @image1 is {age_display}. "
+                f"@image1={gender_word} character — copy face, eye color, hair, skin, and outfit exactly. "
+                "@image2=adorable round rainbow layered cake character SWEETIE — copy appearance exactly. "
+                f"Two distinct characters: @image1 is a fully human {gender_word}, @image2 is an animated cake character."
+            )
+            chef_cover_scene = (
+                f"Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), face and appearance as in @image1, confident joyful smile. "
+                f"OUTFIT: {SWEETIE_HAT_INLINE}, and an elegant white chef jacket with golden buttons. "
+                f"COMPANION: @image2 (SWEETIE) floats happily beside the child, frosting swirling around. "
+                f"ACTION: {gender_word} stands in center of magical kitchen with both hands on hips, smiling proudly. "
+                f"SETTING: Magical pink kitchen WIDE VIEW, sparkles hearts and golden stars, floating magical desserts everywhere, rainbow cakes, glowing star cookies, swirling colorful ice creams, centered composition for book cover. "
+                f"ATMOSPHERE: Sweet magical invitation, pink and golden warmth. "
+                f"STRICT: Only ONE {gender_word}, only ONE cake character SWEETIE (@image2), the {gender_word} is a fully human child: no animal features, no tail. "
+                f"ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {CHEF_STYLE_BASE}"
+            )
+            photo_refs = [portrait_path, sweetie_path] if sweetie_ok else [portrait_path]
+            print(f"[MAGIC CHEF PREVIEW] Step 2 — FLUX 2 Dev cover | portrait={portrait_path} | sweetie={sweetie_ok}")
+            cov_url = generate_with_flux2_dev(
+                f"{chef_ref_note}\n{chef_cover_scene}",
+                aspect_ratio="3:4",
+                photo_ref_paths=photo_refs,
+                image_prompt_strength=0.95,
+                negative_prompt=chef_neg
+            )
         else:
             hair_desc = get_hair_description(traits)
             hair_strict_text = get_hair_strict(traits)
             eye_desc = get_eye_description(traits)
             skin_tone = get_unified_skin_description(traits.get('skin_tone', 'light'))
-            char_physical = f"{hair_desc}, {eye_desc}, {skin_tone} skin{glasses_desc}"
-        gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
-        age_display = f"{child_age} year old" if child_age and child_age > 0 else "6 year old"
-        
-        # Use FRONT_COVER schema, adapted for preview context
-        prompt = f"Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), {char_physical}, confident joyful smile. OUTFIT: {SWEETIE_HAT_INLINE}, and an elegant white chef jacket with golden buttons. COMPANION: {SWEETIE_CAKE_INLINE}. ACTION: {gender_word} stands in center of magical kitchen with both hands on hips, smiling proudly. SWEETIE floats happily beside the child, frosting swirling around. SETTING: Magical pink kitchen WIDE VIEW, sparkles hearts and golden stars, floating magical desserts everywhere, rainbow cakes, glowing star cookies, swirling colorful ice creams, centered composition for book cover. ATMOSPHERE: Sweet magical invitation, pink and golden warmth. STRICT: Only ONE {gender_word}, only ONE cake character SWEETIE, the {gender_word} is a fully human child: no animal features, no tail. {hair_strict_text} ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {CHEF_STYLE_BASE}"
-        
-        print(f"[PERSONALIZED PREVIEW] {story_id}, age={child_age}, has_photo={has_photo}, glasses={bool(glasses)}")
-        print(f"[PERSONALIZED PREVIEW] Using FRONT_COVER schema + FLUX 2 Dev")
-        
+            if sweetie_ok:
+                chef_nophoto_prompt = (
+                    f"@image1 = adorable round rainbow layered cake character SWEETIE — copy @image1 appearance exactly.\n"
+                    f"Draw a single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, "
+                    f"confident joyful smile, both hands on hips{glasses_desc}. OUTFIT: {SWEETIE_HAT_INLINE}, and an elegant white chef jacket with golden buttons.\n"
+                    f"COMPANION: @image1 (SWEETIE) floats happily beside the child, frosting swirling around. "
+                    f"ACTION: {gender_word} stands in center of magical kitchen with both hands on hips, smiling proudly. "
+                    f"SETTING: Magical pink kitchen WIDE VIEW, sparkles hearts and golden stars, floating magical desserts everywhere, rainbow cakes, glowing star cookies, swirling colorful ice creams, centered composition for book cover. "
+                    f"ATMOSPHERE: Sweet magical invitation, pink and golden warmth. "
+                    f"STRICT: Only ONE {gender_word}, only ONE cake character SWEETIE (@image1), the {gender_word} is a fully human child: no animal features, no tail. {hair_strict_text} "
+                    f"ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {CHEF_STYLE_BASE}"
+                )
+                photo_refs_nophoto = [sweetie_path]
+            else:
+                chef_nophoto_prompt = (
+                    f"Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin{glasses_desc}, confident joyful smile. "
+                    f"OUTFIT: {SWEETIE_HAT_INLINE}, and an elegant white chef jacket with golden buttons. "
+                    f"COMPANION: {SWEETIE_CAKE_INLINE}. "
+                    f"ACTION: {gender_word} stands in center of magical kitchen with both hands on hips, smiling proudly. SWEETIE floats happily beside the child, frosting swirling around. "
+                    f"SETTING: Magical pink kitchen WIDE VIEW, sparkles hearts and golden stars, floating magical desserts everywhere, rainbow cakes, glowing star cookies, swirling colorful ice creams, centered composition for book cover. "
+                    f"ATMOSPHERE: Sweet magical invitation, pink and golden warmth. "
+                    f"STRICT: Only ONE {gender_word}, only ONE cake character SWEETIE, the {gender_word} is a fully human child: no animal features, no tail. {hair_strict_text} "
+                    f"ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {CHEF_STYLE_BASE}"
+                )
+                photo_refs_nophoto = None
+            print(f"[MAGIC CHEF PREVIEW] FLUX 2 Dev cover (no photo) | gender={gender_word} | age={age_display}")
+            cov_url = generate_with_flux2_dev(
+                chef_nophoto_prompt,
+                aspect_ratio="3:4",
+                photo_ref_paths=photo_refs_nophoto,
+                image_prompt_strength=0.85,
+                negative_prompt=chef_neg
+            )
+
+        cover_path = save_image_locally(cov_url, f'{output_dir}/chef_cover_{uuid.uuid4().hex[:8]}.png')
+        print(f"[MAGIC CHEF PREVIEW] Cover generated: {cover_path}")
+        result = {
+            'success': True,
+            'image_url': f'/{cover_path}',
+            'story_id': story_id,
+            'child_age': child_age
+        }
+        if human_photo_path and os.path.exists(human_photo_path) and 'portrait_path' in dir():
+            result['kontext_portrait'] = f'/{portrait_path}'
+        return result
+
     elif story_id == 'magic_inventor_illustrated':
         from services.personalized_books.magic_inventor_prompts import (
             get_outfit_desc as inventor_get_outfit_desc,
@@ -490,29 +631,110 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
             BOLT_INLINE as INVENTOR_BOLT_INLINE
         )
         from services.fixed_stories import get_hair_strict
-        
+        from services.replicate_service import get_gender_negative_prompt as _inv_neg_fn
+
+        gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
+        age_display = f"{child_age} year old" if child_age and child_age > 0 else "6 year old"
+        human_photo_path = traits.get('human_photo_path', child_photo_path or '')
         outfit_desc = inventor_get_outfit_desc(gender)
-        if has_photo:
-            hair_desc = "hair as in the reference photo"
-            actual_eye = get_eye_description(traits)
-            eye_desc = f"{actual_eye}, face exactly as in the reference photo{glasses_desc}"
-            skin_desc = "as in the reference photo"
-            char_physical = f"{hair_desc}, {eye_desc}"
-            hair_strict_text = "PHOTO REFERENCE: Match the child's exact face, skin, eye color and hair from the reference photo."
+
+        bolt_path = _ensure_bolt_reference()
+        bolt_ok = bolt_path and os.path.exists(bolt_path)
+
+        output_dir = 'generated/previews'
+        os.makedirs(output_dir, exist_ok=True)
+
+        inv_neg = _inv_neg_fn(gender)
+
+        if human_photo_path and os.path.exists(human_photo_path):
+            kontext_prompt = (
+                f"Convert the {age_display} {gender_word} in @image1 into a high-quality 3D animated children's book character. "
+                f"Preserve the exact face, eye color, skin tone, and hair — identical likeness. "
+                f"OUTFIT: {outfit_desc}. "
+                f"BACKGROUND: warm golden magical workshop atmosphere with copper tones and floating gears, plain studio — no full scene. "
+                f"POSE: standing, full body visible from head to feet, confident joyful smile, holding a glowing wrench upward."
+            )
+            print(f"[MAGIC INVENTOR PREVIEW] Step 1 — Kontext portrait | photo={human_photo_path} | age={child_age}")
+            portrait_url = generate_with_flux_kontext(kontext_prompt, human_photo_path, aspect_ratio="3:4")
+            portrait_path = save_image_locally(portrait_url, f'{output_dir}/inventor_portrait_{uuid.uuid4().hex[:8]}.png')
+            print(f"[MAGIC INVENTOR PREVIEW] Portrait saved: {portrait_path}")
+
+            inv_ref_note = (
+                f"The child in @image1 is {age_display}. "
+                f"@image1={gender_word} character — copy face, eye color, hair, skin, and outfit exactly. "
+                "@image2=small round copper robot BOLT — copy appearance exactly. "
+                f"Two distinct characters: @image1 is a fully human {gender_word}, @image2 is a small copper robot."
+            )
+            inv_cover_scene = (
+                f"Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), face and appearance as in @image1, confident joyful smile, holding a glowing wrench. "
+                f"OUTFIT: {outfit_desc}. "
+                f"COMPANION: @image2 (BOLT) stands beside the child, waving with one arm, blue eyes bright and friendly. "
+                f"ACTION: {gender_word} stands in center of workshop facing viewer, holding glowing wrench up with pride. "
+                f"SETTING: Magical inventor workshop WIDE VIEW, floating golden gears, crystal tubes with colorful liquids, warm golden light, sparkles, centered composition for book cover. "
+                f"ATMOSPHERE: Adventure invitation, warm golden, friendship and creativity. "
+                f"STRICT: Only ONE {gender_word}, only ONE small robot BOLT (@image2), the {gender_word} is a fully human child: no mechanical parts, no robot features on {gender_word}. "
+                f"ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {INVENTOR_STYLE_BASE}"
+            )
+            photo_refs = [portrait_path, bolt_path] if bolt_ok else [portrait_path]
+            print(f"[MAGIC INVENTOR PREVIEW] Step 2 — FLUX 2 Dev cover | portrait={portrait_path} | bolt={bolt_ok}")
+            cov_url = generate_with_flux2_dev(
+                f"{inv_ref_note}\n{inv_cover_scene}",
+                aspect_ratio="3:4",
+                photo_ref_paths=photo_refs,
+                image_prompt_strength=0.95,
+                negative_prompt=inv_neg
+            )
         else:
             hair_desc = get_hair_description(traits)
             hair_strict_text = get_hair_strict(traits)
             eye_desc = get_eye_description(traits)
             skin_desc = get_unified_skin_description(traits.get('skin_tone', 'light'))
-            char_physical = f"{hair_desc}, {eye_desc}, {skin_desc} skin{glasses_desc}"
-        gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
-        age_display = f"{child_age} year old" if child_age and child_age > 0 else "6 year old"
-        
-        prompt = f"Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), {char_physical}, confident joyful smile, holding a glowing wrench. OUTFIT: {outfit_desc}. COMPANION: {INVENTOR_BOLT_INLINE}. ACTION: {gender_word} stands in center of workshop facing viewer, holding glowing wrench up with pride. BOLT stands beside the child, waving with one arm, blue eyes bright and friendly. SETTING: Magical inventor workshop WIDE VIEW, floating golden gears, crystal tubes with colorful liquids, warm golden light, sparkles. ATMOSPHERE: Adventure invitation, warm golden, friendship and creativity. STRICT: Only ONE {gender_word}, only ONE small robot BOLT, the {gender_word} is a fully human child: no mechanical parts, no robot features on {gender_word}. {hair_strict_text} ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {INVENTOR_STYLE_BASE}"
-        
-        print(f"[PERSONALIZED PREVIEW] {story_id}, age={child_age}, has_photo={has_photo}, glasses={bool(glasses)}")
-        print(f"[PERSONALIZED PREVIEW] Using FRONT_COVER schema + FLUX 2 Dev")
-        
+            if bolt_ok:
+                inv_nophoto_prompt = (
+                    f"@image1 = small round copper robot BOLT — copy @image1 appearance exactly.\n"
+                    f"Draw a single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_desc} skin, "
+                    f"confident joyful smile, holding a glowing wrench upward{glasses_desc}. OUTFIT: {outfit_desc}.\n"
+                    f"COMPANION: @image1 (BOLT) stands beside the {gender_word}, waving with one arm, blue eyes bright and friendly. "
+                    f"ACTION: {gender_word} stands in center of workshop facing viewer, holding glowing wrench up with pride. "
+                    f"SETTING: Magical inventor workshop WIDE VIEW, floating golden gears, crystal tubes with colorful liquids, warm golden light, sparkles, centered composition for book cover. "
+                    f"ATMOSPHERE: Adventure invitation, warm golden, friendship and creativity. "
+                    f"STRICT: Only ONE {gender_word}, only ONE small robot BOLT (@image1), the {gender_word} is a fully human child: no mechanical parts, no robot features on {gender_word}. {hair_strict_text} "
+                    f"ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {INVENTOR_STYLE_BASE}"
+                )
+                photo_refs_nophoto = [bolt_path]
+            else:
+                inv_nophoto_prompt = (
+                    f"Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_desc} skin{glasses_desc}, confident joyful smile, holding a glowing wrench. "
+                    f"OUTFIT: {outfit_desc}. "
+                    f"COMPANION: {INVENTOR_BOLT_INLINE}. "
+                    f"ACTION: {gender_word} stands in center of workshop facing viewer, holding glowing wrench up with pride. BOLT stands beside the child, waving with one arm, blue eyes bright and friendly. "
+                    f"SETTING: Magical inventor workshop WIDE VIEW, floating golden gears, crystal tubes with colorful liquids, warm golden light, sparkles, centered composition for book cover. "
+                    f"ATMOSPHERE: Adventure invitation, warm golden, friendship and creativity. "
+                    f"STRICT: Only ONE {gender_word}, only ONE small robot BOLT, the {gender_word} is a fully human child: no mechanical parts, no robot features on {gender_word}. {hair_strict_text} "
+                    f"ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {INVENTOR_STYLE_BASE}"
+                )
+                photo_refs_nophoto = None
+            print(f"[MAGIC INVENTOR PREVIEW] FLUX 2 Dev cover (no photo) | gender={gender_word} | age={age_display}")
+            cov_url = generate_with_flux2_dev(
+                inv_nophoto_prompt,
+                aspect_ratio="3:4",
+                photo_ref_paths=photo_refs_nophoto,
+                image_prompt_strength=0.85,
+                negative_prompt=inv_neg
+            )
+
+        cover_path = save_image_locally(cov_url, f'{output_dir}/inventor_cover_{uuid.uuid4().hex[:8]}.png')
+        print(f"[MAGIC INVENTOR PREVIEW] Cover generated: {cover_path}")
+        result = {
+            'success': True,
+            'image_url': f'/{cover_path}',
+            'story_id': story_id,
+            'child_age': child_age
+        }
+        if human_photo_path and os.path.exists(human_photo_path) and 'portrait_path' in dir():
+            result['kontext_portrait'] = f'/{portrait_path}'
+        return result
+
     elif story_id == 'star_keeper_illustrated':
         from services.personalized_books.star_keeper_prompts import (
             get_outfit_desc as keeper_get_outfit_desc,
