@@ -22,7 +22,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 preview_rate_limits = {}
 email_rate_limits = {}
-PREVIEW_IP_MAX = 2
+PREVIEW_IP_MAX = 3
 PREVIEW_IP_WINDOW = 24 * 60 * 60
 PREVIEW_EMAIL_MAX = 1
 PREVIEW_EMAIL_WINDOW = 24 * 60 * 60
@@ -3635,13 +3635,6 @@ def generate_fixed_story_api():
         if not data.get('admin_gift'):
             client_ip = get_client_ip()
             user_email = data.get('user_email', '').strip()
-            allowed, _ = check_preview_rate_limit(client_ip)
-            if not allowed:
-                return jsonify({'success': False, 'error': 'rate_limited', 'rate_limited': True}), 429
-            if user_email:
-                email_ok, _ = check_email_rate_limit(user_email)
-                if not email_ok:
-                    return jsonify({'success': False, 'error': 'rate_limited', 'rate_limited': True}), 429
             save_preview_lead(user_email, client_ip, data.get('story_id', ''))
 
         from services.fixed_stories import prepare_story, STORIES, get_static_illustrations
