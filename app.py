@@ -64,7 +64,7 @@ def get_client_ip():
     return request.remote_addr or '0.0.0.0'
 
 def check_preview_rate_limit(ip):
-    """DB-based: max 2 distinct previews per 24h per IP (Gunicorn-safe, survives restarts)."""
+    """DB-based: max 3 character generations per 24h per IP (Gunicorn-safe, survives restarts)."""
     try:
         import json as _json, os as _os, time as _time
         if _os.path.exists('data/testing_mode.json'):
@@ -2619,10 +2619,6 @@ def generate_baby_preview_api():
             allowed, _ = check_preview_rate_limit(client_ip)
             if not allowed:
                 return jsonify({'success': False, 'error': 'rate_limited', 'rate_limited': True}), 429
-            if user_email:
-                email_ok, _ = check_email_rate_limit(user_email)
-                if not email_ok:
-                    return jsonify({'success': False, 'error': 'rate_limited', 'rate_limited': True}), 429
             save_preview_lead(user_email, client_ip, data.get('story_id', ''))
 
         from services.replicate_service import generate_illustration_replicate, save_image_locally, get_unified_skin_description, get_gender_negative_prompt, FLUX_DEV_MODEL, FLUX_2_DEV_MODEL
@@ -3633,9 +3629,7 @@ def generate_fixed_story_api():
         data = request.get_json()
 
         if not data.get('admin_gift'):
-            client_ip = get_client_ip()
-            user_email = data.get('user_email', '').strip()
-            save_preview_lead(user_email, client_ip, data.get('story_id', ''))
+            pass  # Story generation is always free — no rate limit, no lead save here
 
         from services.fixed_stories import prepare_story, STORIES, get_static_illustrations
         
