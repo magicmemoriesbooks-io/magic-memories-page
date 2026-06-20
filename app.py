@@ -22,9 +22,12 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 preview_rate_limits = {}
 email_rate_limits = {}
-PREVIEW_IP_MAX = 3
-PREVIEW_IP_WINDOW = 24 * 60 * 60
-PREVIEW_EMAIL_MAX = 1
+STORY_GEN_MAX    = 3   # max generations per email+story/24h (1 initial + 2 regens)
+EMAIL_STORY_MAX  = 2   # max different stories per email/24h
+IP_ABUSE_MAX     = 20  # anti-abuse threshold per IP/24h
+# Legacy aliases kept so existing references don't break
+PREVIEW_IP_MAX   = STORY_GEN_MAX
+PREVIEW_EMAIL_MAX = EMAIL_STORY_MAX
 PREVIEW_EMAIL_WINDOW = 24 * 60 * 60
 _generation_progress = {}
 
@@ -63,76 +66,96 @@ def get_client_ip():
         return forwarded.split(',')[0].strip()
     return request.remote_addr or '0.0.0.0'
 
-def check_preview_rate_limit(ip):
-    """DB-based: max 3 character generations per 24h per IP (Gunicorn-safe, survives restarts)."""
+def _is_testing_mode():
     try:
-        import json as _json, os as _os, time as _time
-        if _os.path.exists('data/testing_mode.json'):
+        import json as _j, os as _o, time as _t
+        if _o.path.exists('data/testing_mode.json'):
             with open('data/testing_mode.json') as _f:
-                _d = _json.load(_f)
-            if _d.get('expires_at', 0) > _time.time():
-                return True, PREVIEW_IP_MAX
+                _d = _j.load(_f)
+            return _d.get('expires_at', 0) > _t.time()
     except Exception:
         pass
-    if not ip or ip == '0.0.0.0':
-        return True, PREVIEW_IP_MAX
+    return False
+
+def check_generation_allowed(email, story_id, ip):
+    """
+    Returns (allowed: bool, reason: str)
+    reason: 'ok' | 'story_limit' | 'new_story_limit' | 'ip_abuse'
+
+    Rule 1 — per story:   max STORY_GEN_MAX   generations per email+story/24h
+    Rule 2 — per email:   max EMAIL_STORY_MAX  different stories per email/24h
+    Rule 3 — anti-abuse:  max IP_ABUSE_MAX     generations per IP/24h
+    """
+    if _is_testing_mode():
+        return True, 'ok'
+
+    cutoff = datetime.utcnow() - timedelta(hours=24)
+
+    # Rule 3 — IP anti-abuse (no email required)
+    if ip and ip != '0.0.0.0':
+        try:
+            ip_count = PreviewLead.query.filter(
+                PreviewLead.ip_address == ip,
+                PreviewLead.created_at >= cutoff
+            ).count()
+            if ip_count >= IP_ABUSE_MAX:
+                return False, 'ip_abuse'
+        except Exception:
+            pass
+
+    if not email:
+        return True, 'ok'
+
+    email_key = email.strip().lower()
+
     try:
-        cutoff = datetime.utcnow() - timedelta(hours=24)
-        count = PreviewLead.query.filter(
-            PreviewLead.ip_address == ip,
+        # Rule 1 — max generations for this specific story
+        if story_id:
+            story_count = PreviewLead.query.filter(
+                db.func.lower(PreviewLead.email) == email_key,
+                PreviewLead.story_id == story_id,
+                PreviewLead.created_at >= cutoff
+            ).count()
+            if story_count >= STORY_GEN_MAX:
+                return False, 'story_limit'
+
+        # Rule 2 — max different stories today
+        distinct_rows = db.session.query(PreviewLead.story_id).filter(
+            db.func.lower(PreviewLead.email) == email_key,
             PreviewLead.created_at >= cutoff
-        ).count()
-        remaining = max(0, PREVIEW_IP_MAX - count)
-        return remaining > 0, remaining
+        ).distinct().all()
+        distinct_story_ids = {r[0] for r in distinct_rows if r[0]}
+
+        if story_id not in distinct_story_ids:
+            # Attempting a NEW story
+            if len(distinct_story_ids) >= EMAIL_STORY_MAX:
+                return False, 'new_story_limit'
     except Exception:
-        return True, PREVIEW_IP_MAX
+        pass
+
+    return True, 'ok'
+
+# Legacy wrappers kept for any remaining references
+def check_preview_rate_limit(ip):
+    allowed, _ = check_generation_allowed('', '', ip)
+    return allowed, IP_ABUSE_MAX
 
 def record_preview_usage(ip):
-    pass  # No-op: DB tracking via save_preview_lead
+    pass
 
 def check_email_rate_limit(email):
-    """DB-based: max 1 distinct story per 24h per email (Gunicorn-safe, survives restarts)."""
-    try:
-        import json as _json, os as _os, time as _time
-        if _os.path.exists('data/testing_mode.json'):
-            with open('data/testing_mode.json') as _f:
-                _d = _json.load(_f)
-            if _d.get('expires_at', 0) > _time.time():
-                return True, PREVIEW_EMAIL_MAX
-    except Exception:
-        pass
-    if not email:
-        return True, PREVIEW_EMAIL_MAX
-    try:
-        cutoff = datetime.utcnow() - timedelta(hours=24)
-        count = PreviewLead.query.filter(
-            db.func.lower(PreviewLead.email) == email.strip().lower(),
-            PreviewLead.created_at >= cutoff
-        ).count()
-        remaining = max(0, PREVIEW_EMAIL_MAX - count)
-        return remaining > 0, remaining
-    except Exception:
-        return True, PREVIEW_EMAIL_MAX
+    return True, EMAIL_STORY_MAX
 
 def record_email_usage(email):
-    pass  # No-op: DB tracking via save_preview_lead
+    pass
 
 def save_preview_lead(email, ip, story_id):
+    """Save one row per generation attempt (no deduplication — each call counts)."""
     try:
         email_key = (email or '').strip().lower()
-        if email_key:
-            existing = PreviewLead.query.filter_by(email=email_key, story_id=story_id).first()
-            if not existing:
-                lead = PreviewLead(email=email_key, ip_address=ip, story_id=story_id)
-                db.session.add(lead)
-                db.session.commit()
-        else:
-            # No email: track by IP+story_id so IP limit still applies
-            existing = PreviewLead.query.filter_by(ip_address=ip, story_id=story_id, email='').first()
-            if not existing:
-                lead = PreviewLead(email='', ip_address=ip, story_id=story_id)
-                db.session.add(lead)
-                db.session.commit()
+        lead = PreviewLead(email=email_key, ip_address=ip, story_id=story_id)
+        db.session.add(lead)
+        db.session.commit()
     except Exception as e:
         db.session.rollback()
         print(f"[LEAD] Error saving preview lead: {e}")
@@ -2616,10 +2639,11 @@ def generate_baby_preview_api():
         if not data.get('admin_gift'):
             client_ip = get_client_ip()
             user_email = data.get('user_email', '').strip()
-            allowed, _ = check_preview_rate_limit(client_ip)
+            story_id   = data.get('story_id', '')
+            allowed, reason = check_generation_allowed(user_email, story_id, client_ip)
             if not allowed:
-                return jsonify({'success': False, 'error': 'rate_limited', 'rate_limited': True}), 429
-            save_preview_lead(user_email, client_ip, data.get('story_id', ''))
+                return jsonify({'success': False, 'error': 'rate_limited', 'rate_limited': True, 'reason': reason}), 429
+            save_preview_lead(user_email, client_ip, story_id)
 
         from services.replicate_service import generate_illustration_replicate, save_image_locally, get_unified_skin_description, get_gender_negative_prompt, FLUX_DEV_MODEL, FLUX_2_DEV_MODEL
         from services.fixed_stories import get_hair_description, get_eye_description, get_skin_tone, get_gender_child, STORIES
@@ -2962,15 +2986,14 @@ def regenerate_furry_preview():
     try:
         data = request.get_json()
 
-        client_ip = get_client_ip()
+        client_ip  = get_client_ip()
         user_email = data.get('user_email', '').strip()
-        # Regens don't count against daily limit (same email+story_id deduplicates in DB)
-        # but still check IP to prevent infinite regen loops from a single session
-        allowed, _ = check_preview_rate_limit(client_ip)
+        story_id   = data.get('story_id', '')
+        allowed, reason = check_generation_allowed(user_email, story_id, client_ip)
         if not allowed:
-            return jsonify({'success': False, 'error': 'rate_limited', 'rate_limited': True}), 429
+            return jsonify({'success': False, 'error': 'rate_limited', 'rate_limited': True, 'reason': reason}), 429
         if user_email:
-            save_preview_lead(user_email, client_ip, data.get('story_id', ''))
+            save_preview_lead(user_email, client_ip, story_id)
 
         which = data.get('which', 'human')
         
