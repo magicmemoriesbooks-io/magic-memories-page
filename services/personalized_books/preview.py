@@ -549,19 +549,16 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
             print(f"[MAGIC CHEF PREVIEW] Portrait saved: {portrait_path}")
 
             chef_ref_note = (
-                f"The child in @image1 is {age_display}. "
-                f"@image1={gender_word} character — copy face, eye color, hair, skin, and outfit exactly. "
-                "@image2=adorable round rainbow layered cake character SWEETIE — copy appearance exactly. "
-                f"Two distinct characters: @image1 is a fully human {gender_word}, @image2 is an animated cake character."
+                f"@image1 = {age_display} {gender_word} character — copy face, skin tone, hair, and outfit from @image1 exactly. "
+                f"@image2 = adorable round rainbow layered cake character SWEETIE — copy @image2 appearance exactly. "
+                f"Two distinct characters: @image1 is a fully human {gender_word}, @image2 is an animated cake."
             )
             chef_cover_scene = (
-                f"Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), face and appearance as in @image1, confident joyful smile. "
-                f"OUTFIT: {SWEETIE_HAT_INLINE}, and an elegant white chef jacket with golden buttons. "
-                f"COMPANION: @image2 (SWEETIE) floats happily beside the child, frosting swirling around. "
-                f"ACTION: {gender_word} stands in center of magical kitchen with both hands on hips, smiling proudly. "
+                f"ACTION: @image1 stands in center of magical kitchen with both hands on hips, smiling proudly. "
+                f"@image2 (SWEETIE) floats happily beside @image1, frosting swirling around. "
                 f"SETTING: Magical pink kitchen WIDE VIEW, sparkles hearts and golden stars, floating magical desserts everywhere, rainbow cakes, glowing star cookies, swirling colorful ice creams, centered composition for book cover. "
                 f"ATMOSPHERE: Sweet magical invitation, pink and golden warmth. "
-                f"STRICT: Only ONE {gender_word}, only ONE cake character SWEETIE (@image2), the {gender_word} is a fully human child: no animal features, no tail. "
+                f"STRICT: Only ONE child character (@image1), only ONE cake character SWEETIE (@image2), @image1 is 100% human child: no animal features, no tail. "
                 f"ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {CHEF_STYLE_BASE}"
             )
             photo_refs = [portrait_path, sweetie_path] if sweetie_ok else [portrait_path]
@@ -660,19 +657,16 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
             print(f"[MAGIC INVENTOR PREVIEW] Portrait saved: {portrait_path}")
 
             inv_ref_note = (
-                f"The child in @image1 is {age_display}. "
-                f"@image1={gender_word} character — copy face, eye color, hair, skin, and outfit exactly. "
-                "@image2=small round copper robot BOLT — copy appearance exactly. "
+                f"@image1 = {age_display} {gender_word} character — copy face, skin tone, hair, and outfit from @image1 exactly. "
+                f"@image2 = small round copper robot BOLT — copy @image2 appearance exactly. "
                 f"Two distinct characters: @image1 is a fully human {gender_word}, @image2 is a small copper robot."
             )
             inv_cover_scene = (
-                f"Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), face and appearance as in @image1, confident joyful smile, holding a glowing wrench. "
-                f"OUTFIT: {outfit_desc}. "
-                f"COMPANION: @image2 (BOLT) stands beside the child, waving with one arm, blue eyes bright and friendly. "
-                f"ACTION: {gender_word} stands in center of workshop facing viewer, holding glowing wrench up with pride. "
+                f"ACTION: @image1 stands in center of workshop facing viewer, holding a glowing wrench up with pride. "
+                f"@image2 (BOLT) stands beside @image1, waving with one arm, blue eyes bright and friendly. "
                 f"SETTING: Magical inventor workshop WIDE VIEW, floating golden gears, crystal tubes with colorful liquids, warm golden light, sparkles, centered composition for book cover. "
                 f"ATMOSPHERE: Adventure invitation, warm golden, friendship and creativity. "
-                f"STRICT: Only ONE {gender_word}, only ONE small robot BOLT (@image2), the {gender_word} is a fully human child: no mechanical parts, no robot features on {gender_word}. "
+                f"STRICT: Only ONE child character (@image1), only ONE small robot BOLT (@image2), @image1 is 100% human child: no mechanical parts, no robot features on @image1. "
                 f"ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {INVENTOR_STYLE_BASE}"
             )
             photo_refs = [portrait_path, bolt_path] if bolt_ok else [portrait_path]
