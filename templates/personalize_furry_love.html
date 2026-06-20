@@ -779,8 +779,8 @@
             <a id="rateLimitViewBtn" href="#" class="hidden w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-bold text-sm hover:opacity-90 transition">
                 ✨ {% if lang == 'es' %}Ver mi cuento anterior →{% else %}View my previous story →{% endif %}
             </a>
-            <button onclick="document.getElementById('errorModal').classList.add('hidden')" class="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-bold text-sm hover:opacity-90 transition">
-                ✨ {% if lang == 'es' %}Ver preview del cuento{% else %}View story preview{% endif %}
+            <button id="rateLimitStoryBtn" onclick="document.getElementById('errorModal').classList.add('hidden')" class="hidden w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-bold text-sm hover:opacity-90 transition">
+                ✨ {% if lang == 'es' %}Entendido, ver preview del cuento{% else %}Got it, view story preview{% endif %}
             </button>
             <button onclick="document.getElementById('errorModal').classList.add('hidden')" class="w-full py-2 text-gray-400 text-sm hover:text-gray-600 transition">
                 {% if lang == 'es' %}Volver mañana{% else %}Come back tomorrow{% endif %}
@@ -1415,12 +1415,21 @@ function showError(message, isRateLimit = false) {
         const nameEl = document.getElementById('child_name') || document.querySelector('input[name="child_name"]');
         const childName = (nameEl && nameEl.value.trim()) ? nameEl.value.trim() : (typeof childNameGlobal !== 'undefined' ? childNameGlobal : '');
         const msgEl = document.getElementById('errorMessageRateLimit');
-        if (msgEl) {
-            if (childName) {
-                msgEl.innerHTML = '{% if lang == "es" %}Has usado tus 3 personalizaciones gratuitas de hoy para <strong>' + childName + '</strong>. Si te gusta cómo quedó, cierra este aviso y dale a <strong>\"Ver Preview del Cuento\"</strong>. Las personalizaciones se renuevan mañana.{% else %}You\'ve used your 3 free personalizations for today for <strong>' + childName + '</strong>. Happy with the result? Close this and click <strong>\"View Story Preview\"</strong>. Free personalizations refresh tomorrow.{% endif %}';
-            } else {
-                msgEl.innerHTML = '{% if lang == "es" %}Has usado tus 3 personalizaciones gratuitas de hoy. Si te gusta cómo quedó el personaje, cierra este aviso y dale a <strong>\"Ver Preview del Cuento\"</strong>. Las personalizaciones se renuevan mañana.{% else %}You\'ve used your 3 free personalizations for today. Happy with the result? Close this and click <strong>\"View Story Preview\"</strong>. Free personalizations refresh tomorrow.{% endif %}';
+        const storyBtn = document.getElementById('rateLimitStoryBtn');
+        if (characterGenerated) {
+            if (msgEl) {
+                msgEl.innerHTML = childName
+                    ? '{% if lang == "es" %}Has usado tus 3 personalizaciones de hoy para <strong>' + childName + '</strong>. Tu personaje ya está listo — cierra este aviso y dale a <strong>\"Ver Preview del Cuento\"</strong> para continuar.{% else %}You\'ve used your 3 free personalizations for today for <strong>' + childName + '</strong>. Your character is ready — close this and click <strong>\"View Story Preview\"</strong> to continue.{% endif %}'
+                    : '{% if lang == "es" %}Has usado tus 3 personalizaciones de hoy. Tu personaje ya está listo — cierra este aviso y dale a <strong>\"Ver Preview del Cuento\"</strong> para continuar.{% else %}You\'ve used your 3 free personalizations for today. Your character is ready — close this and click <strong>\"View Story Preview\"</strong> to continue.{% endif %}';
             }
+            if (storyBtn) storyBtn.classList.remove('hidden');
+        } else {
+            if (msgEl) {
+                msgEl.innerHTML = childName
+                    ? '{% if lang == "es" %}Has agotado tus 3 personalizaciones gratuitas de hoy. Vuelve mañana para crear la historia de <strong>' + childName + '</strong> — las personalizaciones se renuevan cada 24h.{% else %}You\'ve used your 3 free personalizations for today. Come back tomorrow to create <strong>' + childName + '</strong>\'s story — free personalizations refresh every 24h.{% endif %}'
+                    : '{% if lang == "es" %}Has agotado tus 3 personalizaciones gratuitas de hoy. Las personalizaciones se renuevan cada 24h.{% else %}You\'ve used your 3 free personalizations for today. Free personalizations refresh every 24h.{% endif %}';
+            }
+            if (storyBtn) storyBtn.classList.add('hidden');
         }
         const viewBtn = document.getElementById('rateLimitViewBtn');
         if (viewBtn) {
