@@ -499,20 +499,31 @@
         <p id="errorMessage" class="text-gray-700 mb-4"></p>
         <button onclick="document.getElementById('errorModal').classList.add('hidden')" class="w-full py-2 bg-purple-500 text-white rounded-full hover:bg-purple-600">OK</button>
     </div>
-    <!-- Rate limit: warm conversion popup -->
-    <div id="errorModalRateLimit" class="hidden bg-white rounded-3xl p-7 max-w-sm w-full shadow-2xl text-center">
+    <!-- Modal 1: story_limit — 4th generation of same story -->
+    <div id="errorModalStoryLimit" class="hidden bg-white rounded-3xl p-7 max-w-sm w-full shadow-2xl text-center">
         <div class="text-5xl mb-3">✨</div>
-        <h3 class="font-bold text-purple-700 text-xl mb-3">{% if lang == 'es' %}¡Ya usaste tus personalizaciones de hoy!{% else %}You've used your free previews for today!{% endif %}</h3>
-        <p id="errorMessageRateLimit" class="text-gray-600 text-sm leading-relaxed mb-5"></p>
+        <h3 class="font-bold text-purple-700 text-xl mb-3">{% if lang == 'es' %}¡Ya usaste las personalizaciones de esta historia!{% else %}You've used all personalizations for this story!{% endif %}</h3>
+        <p id="errorMsgStoryLimit" class="text-gray-600 text-sm leading-relaxed mb-5"></p>
         <div class="flex flex-col gap-2">
-            <a id="rateLimitViewBtn" href="#" class="hidden w-full py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full font-bold text-sm hover:opacity-90 transition">
-                ✨ {% if lang == 'es' %}Ver mi cuento anterior →{% else %}View my previous story →{% endif %}
-            </a>
-            <button id="rateLimitStoryBtn" onclick="document.getElementById('errorModal').classList.add('hidden')" class="hidden w-full py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full font-bold text-sm hover:opacity-90 transition">
-                ✨ {% if lang == 'es' %}Entendido, ver preview del cuento{% else %}Got it, view story preview{% endif %}
+            <button onclick="document.getElementById('errorModal').classList.add('hidden')" class="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full font-bold text-sm hover:opacity-90 transition">
+                📖 {% if lang == 'es' %}Ver Preview del Cuento{% else %}View Story Preview{% endif %}
             </button>
             <button onclick="document.getElementById('errorModal').classList.add('hidden')" class="w-full py-2 text-gray-400 text-sm hover:text-gray-600 transition">
-                {% if lang == 'es' %}Volver mañana{% else %}Come back tomorrow{% endif %}
+                {% if lang == 'es' %}Entendido{% else %}Got it{% endif %}
+            </button>
+        </div>
+    </div>
+    <!-- Modal 2: new_story_limit — 3rd different story today -->
+    <div id="errorModalDayLimit" class="hidden bg-white rounded-3xl p-7 max-w-sm w-full shadow-2xl text-center">
+        <div class="text-5xl mb-3">✨</div>
+        <h3 class="font-bold text-purple-700 text-xl mb-3">{% if lang == 'es' %}¡Ya disfrutaste de tus personalizaciones gratuitas de hoy!{% else %}You've used your free personalizations for today!{% endif %}</h3>
+        <p class="text-gray-600 text-sm leading-relaxed mb-5">{% if lang == 'es' %}Hoy ya has utilizado las personalizaciones gratuitas disponibles en Magic Memories Books. Si alguno de los cuentos que has creado te ha gustado, puedes seguir revisándolo cuando quieras y convertirlo en un recuerdo único para siempre.<br><br>📖 Tus cuentos seguirán disponibles para continuar con ellos.<br><br>💜 Mañana tendrás nuevas personalizaciones gratuitas para explorar más historias.{% else %}You've used all your free personalizations today. Any stories you've already created are still available to review and purchase whenever you like.<br><br>📖 Your stories will remain available.<br><br>💜 New free personalizations will be available tomorrow.{% endif %}</p>
+        <div class="flex flex-col gap-2">
+            <a id="dayLimitViewBtn" href="#" class="hidden w-full py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full font-bold text-sm hover:opacity-90 transition">
+                📖 {% if lang == 'es' %}Ver mi último cuento{% else %}View my last story{% endif %}
+            </a>
+            <button onclick="document.getElementById('errorModal').classList.add('hidden')" class="w-full py-2 text-gray-400 text-sm hover:text-gray-600 transition">
+                {% if lang == 'es' %}Entendido{% else %}Got it{% endif %}
             </button>
         </div>
     </div>
@@ -665,7 +676,7 @@ async function generateCharacterPreview(referenceImage) {
             storyBtn.classList.add('gradient-magic', 'text-white', 'hover:shadow-lg');
             document.getElementById('storyBtnText').textContent = '{% if lang == "es" %}✨ Ver Preview del Cuento{% else %}✨ View Story Preview{% endif %}';
         } else {
-            showError(data.error || '{% if lang == "es" %}Error al generar la imagen{% else %}Error generating image{% endif %}', !!data.rate_limited);
+            showError(data.error || '{% if lang == "es" %}Error al generar la imagen{% else %}Error generating image{% endif %}', !!data.rate_limited, data.reason || '');
         }
     } catch (error) {
         showError('{% if lang == "es" %}Error de conexión{% else %}Connection error{% endif %}');
@@ -735,7 +746,7 @@ document.getElementById('generateStoryBtn').addEventListener('click', async func
             if (data.preview_url) localStorage.setItem('mmb_last_preview_url', data.preview_url);
             window.location.href = data.preview_url;
         } else {
-            showError(data.error || '{% if lang == "es" %}Error al generar el cuento{% else %}Error generating story{% endif %}', !!data.rate_limited);
+            showError(data.error || '{% if lang == "es" %}Error al generar el cuento{% else %}Error generating story{% endif %}', !!data.rate_limited, data.reason || '');
             document.getElementById('summaryContent').classList.remove('hidden');
             document.getElementById('generatingContent').classList.add('hidden');
         }
@@ -746,45 +757,34 @@ document.getElementById('generateStoryBtn').addEventListener('click', async func
     }
 });
 
-function showError(message, isRateLimit = false) {
-    const normalDiv = document.getElementById('errorModalNormal');
-    const rlDiv = document.getElementById('errorModalRateLimit');
-    if (isRateLimit) {
-        if (normalDiv) normalDiv.classList.add('hidden');
-        if (rlDiv) rlDiv.classList.remove('hidden');
-        // Build personalised message with child name
-        const nameEl = document.getElementById('child_name') || document.querySelector('input[name="child_name"]');
-        const childName = (nameEl && nameEl.value.trim()) ? nameEl.value.trim() : '';
-        const msgEl = document.getElementById('errorMessageRateLimit');
-        const storyBtn = document.getElementById('rateLimitStoryBtn');
-        if (characterGenerated) {
-            if (msgEl) {
-                msgEl.innerHTML = childName
-                    ? '{% if lang == "es" %}Has usado tus 3 personalizaciones de hoy para <strong>' + childName + '</strong>. Tu personaje ya está listo — cierra este aviso y dale a <strong>\"Ver Preview del Cuento\"</strong> para continuar.{% else %}You\'ve used your 3 free personalizations for today for <strong>' + childName + '</strong>. Your character is ready — close this and click <strong>\"View Story Preview\"</strong> to continue.{% endif %}'
-                    : '{% if lang == "es" %}Has usado tus 3 personalizaciones de hoy. Tu personaje ya está listo — cierra este aviso y dale a <strong>\"Ver Preview del Cuento\"</strong> para continuar.{% else %}You\'ve used your 3 free personalizations for today. Your character is ready — close this and click <strong>\"View Story Preview\"</strong> to continue.{% endif %}';
-            }
-            if (storyBtn) storyBtn.classList.remove('hidden');
-        } else {
-            if (msgEl) {
-                msgEl.innerHTML = childName
-                    ? '{% if lang == "es" %}Has agotado tus 3 personalizaciones gratuitas de hoy. Vuelve mañana para crear la historia de <strong>' + childName + '</strong> — las personalizaciones se renuevan cada 24h.{% else %}You\'ve used your 3 free personalizations for today. Come back tomorrow to create <strong>' + childName + '</strong>\'s story — free personalizations refresh every 24h.{% endif %}'
-                    : '{% if lang == "es" %}Has agotado tus 3 personalizaciones gratuitas de hoy. Las personalizaciones se renuevan cada 24h.{% else %}You\'ve used your 3 free personalizations for today. Free personalizations refresh every 24h.{% endif %}';
-            }
-            if (storyBtn) storyBtn.classList.add('hidden');
-        }
-        const viewBtn = document.getElementById('rateLimitViewBtn');
+function showError(message, isRateLimit = false, reason = '') {
+    const normalDiv     = document.getElementById('errorModalNormal');
+    const storyLimitDiv = document.getElementById('errorModalStoryLimit');
+    const dayLimitDiv   = document.getElementById('errorModalDayLimit');
+    if (normalDiv)     normalDiv.classList.add('hidden');
+    if (storyLimitDiv) storyLimitDiv.classList.add('hidden');
+    if (dayLimitDiv)   dayLimitDiv.classList.add('hidden');
+
+    if (isRateLimit && reason === 'new_story_limit') {
+        if (dayLimitDiv) dayLimitDiv.classList.remove('hidden');
+        const viewBtn = document.getElementById('dayLimitViewBtn');
         if (viewBtn) {
             const lastUrl = localStorage.getItem('mmb_last_preview_url');
-            if (lastUrl) {
-                viewBtn.href = lastUrl;
-                viewBtn.classList.remove('hidden');
-            } else {
-                viewBtn.classList.add('hidden');
-            }
+            if (lastUrl) { viewBtn.href = lastUrl; viewBtn.classList.remove('hidden'); }
+            else { viewBtn.classList.add('hidden'); }
+        }
+    } else if (isRateLimit) {
+        if (storyLimitDiv) storyLimitDiv.classList.remove('hidden');
+        const nameEl = document.getElementById('child_name') || document.querySelector('input[name="child_name"]');
+        const childName = (nameEl && nameEl.value.trim()) ? nameEl.value.trim() : '';
+        const msgEl = document.getElementById('errorMsgStoryLimit');
+        if (msgEl) {
+            msgEl.innerHTML = childName
+                ? '{% if lang == "es" %}Has usado tus 3 personalizaciones gratuitas para <strong>' + childName + '</strong> en esta historia. Si te gusta cómo quedó, pulsa "Ver Preview del Cuento" para continuar revisando la portada, el texto y el resultado final.<br><br>💜 Todavía puedes explorar otra historia diferente hoy si lo deseas.{% else %}You\'ve used your 3 free personalizations for <strong>' + childName + '</strong> in this story. Happy with the result? Click "View Story Preview" to continue.<br><br>💜 You can still explore a different story today.{% endif %}'
+                : '{% if lang == "es" %}Has usado tus 3 personalizaciones gratuitas para esta historia. Si te gusta cómo quedó, pulsa "Ver Preview del Cuento" para continuar.<br><br>💜 Todavía puedes explorar otra historia diferente hoy si lo deseas.{% else %}You\'ve used your 3 free personalizations for this story. Happy with the result? Click "View Story Preview" to continue.<br><br>💜 You can still explore a different story today.{% endif %}';
         }
     } else {
         if (normalDiv) normalDiv.classList.remove('hidden');
-        if (rlDiv) rlDiv.classList.add('hidden');
         const titleEl = document.getElementById('errorModalTitle');
         if (titleEl) {
             titleEl.textContent = '{% if lang == "es" %}Error{% else %}Error{% endif %}';
