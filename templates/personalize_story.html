@@ -56,8 +56,16 @@
             <div class="flex items-start gap-3 p-4 bg-pink-50 rounded-xl">
                 <span class="text-2xl">📧</span>
                 <div>
-                    <h3 class="font-bold text-pink-800">{% if lang == 'es' %}PDF Digital Incluido{% else %}Digital PDF Included{% endif %}</h3>
-                    <p class="text-pink-700 text-sm">{% if lang == 'es' %}Además del libro impreso, recibirás por email un PDF digital de alta calidad que podrás leer en cualquier dispositivo o convertir fácilmente a EPUB/eBook.{% else %}In addition to the printed book, you'll receive a high-quality digital PDF via email that you can read on any device or easily convert to EPUB/eBook.{% endif %}</p>
+                    <h3 class="font-bold text-pink-800">{% if lang == 'es' %}eBook de regalo{% else %}Free eBook with your order{% endif %}</h3>
+                    <p class="text-pink-700 text-sm">{% if lang == 'es' %}Si adquieres el libro impreso y el PDF imprimible, recibirás un eBook interactivo de regalo para leer en cualquier dispositivo.{% else %}If you purchase the printed book and the printable PDF, you'll receive an interactive eBook as a gift, readable on any device.{% endif %}</p>
+                </div>
+            </div>
+
+            <div class="flex items-start gap-3 p-4 bg-indigo-50 rounded-xl border border-indigo-200">
+                <span class="text-2xl">✨</span>
+                <div>
+                    <h3 class="font-bold text-indigo-800">{% if lang == 'es' %}Vista Previa Gratuita{% else %}Free Character Preview{% endif %}</h3>
+                    <p class="text-indigo-700 text-sm">{% if lang == 'es' %}Cada historia incluye <strong>3 personalizaciones gratuitas</strong> (entre "Ver Preview del Personaje" y "Regenerar") para ajustar pelo, ojos y tono de piel. Puedes explorar hasta <strong>2 historias diferentes por día</strong>.{% else %}Each story includes <strong>3 free personalizations</strong> (between "View Character Preview" and "Regenerate") to adjust hair, eyes, and skin tone. You can explore up to <strong>2 different stories per day</strong>.{% endif %}</p>
                 </div>
             </div>
             
@@ -780,8 +788,8 @@ function showError(message, isRateLimit = false, reason = '') {
         const msgEl = document.getElementById('errorMsgStoryLimit');
         if (msgEl) {
             msgEl.innerHTML = childName
-                ? '{% if lang == "es" %}Has usado tus 3 personalizaciones gratuitas para <strong>' + childName + '</strong> en esta historia. Si te gusta cómo quedó, pulsa "Ver Preview del Cuento" para continuar revisando la portada, el texto y el resultado final.<br><br>💜 Todavía puedes explorar otra historia diferente hoy si lo deseas.{% else %}You\'ve used your 3 free personalizations for <strong>' + childName + '</strong> in this story. Happy with the result? Click "View Story Preview" to continue.<br><br>💜 You can still explore a different story today.{% endif %}'
-                : '{% if lang == "es" %}Has usado tus 3 personalizaciones gratuitas para esta historia. Si te gusta cómo quedó, pulsa "Ver Preview del Cuento" para continuar.<br><br>💜 Todavía puedes explorar otra historia diferente hoy si lo deseas.{% else %}You\'ve used your 3 free personalizations for this story. Happy with the result? Click "View Story Preview" to continue.<br><br>💜 You can still explore a different story today.{% endif %}';
+                ? '{% if lang == "es" %}Has usado tus 3 personalizaciones gratuitas para <strong>' + childName + '</strong> en esta historia. Si te gusta el resultado, pulsa "Ver Preview del Cuento" para continuar y ver la portada, el texto y el cuento completo antes de decidir.{% else %}You\'ve used your 3 free personalizations for <strong>' + childName + '</strong> in this story. Happy with the result? Click "View Story Preview" to continue and review the cover, text, and full story before deciding.{% endif %}'
+                : '{% if lang == "es" %}Has usado tus 3 personalizaciones gratuitas para esta historia. Si te gusta el resultado, pulsa "Ver Preview del Cuento" para continuar y ver la portada, el texto y el cuento completo antes de decidir.{% else %}You\'ve used your 3 free personalizations for this story. Happy with the result? Click "View Story Preview" to continue and review the cover, text, and full story before deciding.{% endif %}';
         }
     } else {
         if (normalDiv) normalDiv.classList.remove('hidden');
