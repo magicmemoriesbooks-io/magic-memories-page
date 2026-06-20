@@ -3864,6 +3864,11 @@ def _tracked_url(base_url: str, token: str, email_type: str, link_name: str, des
 
 
 def send_lead_abandonment_email(to_email: str, child_name: str, story_url: str, lang: str = 'es') -> bool:
+    """DEPRECATED — removed. Returns False without sending."""
+    return False
+
+
+def _send_lead_abandonment_email_removed(to_email: str, child_name: str, story_url: str, lang: str = 'es') -> bool:
     """Sends the abandonment recovery email to a lead who started but didn't purchase."""
     name_display = child_name.strip() if child_name and child_name.strip() else 'Peque'
 
