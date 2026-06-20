@@ -65,6 +65,15 @@ def get_client_ip():
 
 def check_preview_rate_limit(ip):
     """DB-based: max 2 distinct previews per 24h per IP (Gunicorn-safe, survives restarts)."""
+    try:
+        import json as _json, os as _os, time as _time
+        if _os.path.exists('data/testing_mode.json'):
+            with open('data/testing_mode.json') as _f:
+                _d = _json.load(_f)
+            if _d.get('expires_at', 0) > _time.time():
+                return True, PREVIEW_IP_MAX
+    except Exception:
+        pass
     if not ip or ip == '0.0.0.0':
         return True, PREVIEW_IP_MAX
     try:
@@ -83,6 +92,15 @@ def record_preview_usage(ip):
 
 def check_email_rate_limit(email):
     """DB-based: max 1 distinct story per 24h per email (Gunicorn-safe, survives restarts)."""
+    try:
+        import json as _json, os as _os, time as _time
+        if _os.path.exists('data/testing_mode.json'):
+            with open('data/testing_mode.json') as _f:
+                _d = _json.load(_f)
+            if _d.get('expires_at', 0) > _time.time():
+                return True, PREVIEW_EMAIL_MAX
+    except Exception:
+        pass
     if not email:
         return True, PREVIEW_EMAIL_MAX
     try:
