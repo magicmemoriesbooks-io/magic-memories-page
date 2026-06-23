@@ -441,11 +441,13 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
 
         dg_scene = DG_FRONT_COVER.get('prompt', '').replace('{style}', DG_STYLE_BASE)
         dg_neg = _dg_neg_fn(gender)
+        eye_desc = get_eye_description(traits)
 
         if human_photo_path and os.path.exists(human_photo_path):
             kontext_prompt = (
                 f"Convert the {age_display} {gender_word} in @image1 into a high-quality 3D animated children's book character. "
-                f"Preserve the exact face, eye color, skin tone, and hair — identical likeness. "
+                f"Preserve the exact face, skin tone, and hair — identical likeness. "
+                f"Eye color: {eye_desc} — render this exact eye color. "
                 f"OUTFIT: {outfit_desc}. "
                 f"BACKGROUND: soft magical garden atmosphere with golden sparkles, plain studio — no dragon, no scenery. "
                 f"POSE: standing, full body visible from head to feet, joyful adventurous smile, arms relaxed at sides."
@@ -534,11 +536,13 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
         os.makedirs(output_dir, exist_ok=True)
 
         chef_neg = _chef_neg_fn(gender)
+        eye_desc = get_eye_description(traits)
 
         if human_photo_path and os.path.exists(human_photo_path):
             kontext_prompt = (
                 f"Convert the {age_display} {gender_word} in @image1 into a high-quality 3D animated children's book character. "
-                f"Preserve the exact face, eye color, skin tone, and hair — identical likeness. "
+                f"Preserve the exact face, skin tone, and hair — identical likeness. "
+                f"Eye color: {eye_desc} — render this exact eye color. "
                 f"OUTFIT: {outfit_desc}. "
                 f"BACKGROUND: soft pink magical kitchen atmosphere with golden sparkles, plain studio — no kitchen scene. "
                 f"POSE: standing, full body visible from head to feet, confident joyful smile, both hands on hips."
@@ -642,11 +646,13 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
         os.makedirs(output_dir, exist_ok=True)
 
         inv_neg = _inv_neg_fn(gender)
+        eye_desc = get_eye_description(traits)
 
         if human_photo_path and os.path.exists(human_photo_path):
             kontext_prompt = (
                 f"Convert the {age_display} {gender_word} in @image1 into a high-quality 3D animated children's book character. "
-                f"Preserve the exact face, eye color, skin tone, and hair — identical likeness. "
+                f"Preserve the exact face, skin tone, and hair — identical likeness. "
+                f"Eye color: {eye_desc} — render this exact eye color. "
                 f"OUTFIT: {outfit_desc}. "
                 f"BACKGROUND: warm golden magical workshop atmosphere with copper tones and floating gears, plain studio — no full scene. "
                 f"POSE: standing, full body visible from head to feet, confident joyful smile, holding a glowing wrench upward."
@@ -752,12 +758,14 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
 
         sk_scene = SK_FRONT_COVER.get('prompt', '').replace('{style}', KEEPER_STYLE_BASE)
         sk_neg = _sk_neg_fn(gender)
+        eye_desc = get_eye_description(traits)
 
         if human_photo_path and os.path.exists(human_photo_path):
             # Step 1: Kontext — clean portrait (face preserved, Pixar style, plain bg)
             kontext_prompt = (
                 f"Convert the {age_display} {gender_word} in @image1 into a high-quality 3D animated children's book character. "
-                f"Preserve the exact face, eye color, skin tone, and hair — identical likeness. "
+                f"Preserve the exact face, skin tone, and hair — identical likeness. "
+                f"Eye color: {eye_desc} — render this exact eye color. "
                 f"OUTFIT: {outfit_desc}. "
                 f"BACKGROUND: deep midnight blue with subtle silver star sparkles, plain studio — no lighthouse, no ocean, no scenery. "
                 f"POSE: standing, full body visible from head to feet, brave adventurous smile, arms relaxed at sides."
@@ -852,11 +860,13 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
 
         ca_scene = CA_FRONT_COVER.get('prompt', '').replace('{style}', AURORA_STYLE_BASE)
         ca_neg = _ca_neg_fn(gender)
+        eye_desc = get_eye_description(traits)
 
         if human_photo_path and os.path.exists(human_photo_path):
             kontext_prompt = (
                 f"Convert the {age_display} {gender_word} in @image1 into a high-quality 3D animated children's book character. "
-                f"Preserve the exact face, eye color, skin tone, and hair — identical likeness. "
+                f"Preserve the exact face, skin tone, and hair — identical likeness. "
+                f"Eye color: {eye_desc} — render this exact eye color. "
                 f"OUTFIT: {outfit_desc}. "
                 f"BACKGROUND: deep midnight blue with subtle aurora colors, plain studio — no fox, no compass, no scenery. "
                 f"POSE: standing, full body visible from head to feet, brave adventurous smile, arms relaxed at sides."
