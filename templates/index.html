@@ -420,7 +420,26 @@
         {% endif %}
       </p>
 
-      <!-- CTAs -->
+      <!-- Magic Help — turquesa, mismo estilo que btn-gold -->
+      <div class="fade-up d4" style="display:flex;flex-direction:column;align-items:flex-start;gap:5px;margin-bottom:16px;">
+        <a href="{{ url_for('community_stories_list') }}?utm_source=hero&utm_medium=banner&utm_campaign=solidarios"
+           style="display:inline-flex;align-items:center;gap:8px;
+                  background:#1a8ab5;color:#fff;
+                  font-family:'Quicksand',sans-serif;font-weight:800;font-size:16px;
+                  padding:15px 30px;border-radius:50px;
+                  text-decoration:none;white-space:nowrap;
+                  box-shadow:0 8px 28px rgba(26,138,181,.4);
+                  transition:transform .2s,box-shadow .2s;"
+           onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 14px 36px rgba(26,138,181,.55)'"
+           onmouseout="this.style.transform='';this.style.boxShadow='0 8px 28px rgba(26,138,181,.4)'">
+          ❤️ {% if lang == 'es' %}Cuento Gratis: Ayuda Mágica{% else %}Free Story: Magic Help{% endif %}
+        </a>
+        <span style="font-family:'Quicksand',sans-serif;font-size:14px;color:#888;text-align:center;">
+          {% if lang == 'es' %}Cuento ilustrado para ayudar a los niños después de terremotos.{% else %}Illustrated story to help children after earthquakes.{% endif %}
+        </span>
+      </div>
+
+      <!-- CTAs — igual que antes -->
       <div class="fade-up d4" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;">
         <div style="display:flex;flex-direction:column;align-items:center;gap:5px;">
           <a href="{{ url_for('express_catalog') }}" class="btn-gold" style="white-space:nowrap;">

@@ -54,6 +54,7 @@ _EMAIL_TYPE_META = {
     'admin_other':          {'category': 'admin',      'label': 'Admin: notificación'},
     'skipped_duplicate':    {'category': 'system',     'label': 'Duplicado omitido'},
     'lead_abandonment':     {'category': 'retention',  'label': 'Abandono de lead'},
+    'community_story':      {'category': 'community',  'label': 'Cuento Solidario'},
 }
 
 def log_email(email_type: str, to_email: str, subject: str, result: str,
@@ -286,9 +287,15 @@ def send_story_email_with_attachments(
         age_group = story_data.get('age_group', 'baby')
     
     is_personalized_book = age_group in ['personalized', 'haz_tu_historia']
+    is_community = (age_group == 'community')
     safe_name = child_name.replace(' ', '_').replace("'", "")
-    
-    if lang == 'es':
+
+    if is_community:
+        if lang == 'es':
+            subject = f"Tu cuento solidario ya está listo — {story_name}"
+        else:
+            subject = f"Your free storybook is ready — {story_name}"
+    elif lang == 'es':
         if is_personalized_book:
             subject = f"📚 ¡Tu libro ilustrado para {child_name} está listo!"
         else:
@@ -301,14 +308,23 @@ def send_story_email_with_attachments(
     
     attachments_list = ""
     if pdf_digital_path:
-        label = "Tu libro digital de 26 páginas" if lang == 'es' else "Your 26-page digital book"
-        attachments_list += f'<li style="padding:4px 0;color:#374151;">📄 <strong>{safe_name}_digital.pdf</strong> - {label}</li>'
-    if pdf_printable_path:
+        if is_community:
+            _pdf_label = "Cuento solidario (PDF)" if lang == 'es' else "Storybook PDF"
+            _pdf_fname = "cuento_solidario.pdf" if lang == 'es' else "storybook.pdf"
+            attachments_list += f'<li style="padding:4px 0;color:#374151;">📖 <strong>{_pdf_fname}</strong> - {_pdf_label}</li>'
+        else:
+            label = "Tu libro digital de 26 páginas" if lang == 'es' else "Your 26-page digital book"
+            attachments_list += f'<li style="padding:4px 0;color:#374151;">📄 <strong>{safe_name}_digital.pdf</strong> - {label}</li>'
+    if pdf_printable_path and not is_community:
         label = "Para llevar a imprenta" if lang == 'es' else "For printing"
         attachments_list += f'<li style="padding:4px 0;color:#374151;">🖨️ <strong>{safe_name}_imprimible.pdf</strong> - {label}</li>'
     if instructions_path:
-        label = "Instrucciones de impresión" if lang == 'es' else "Printing instructions"
-        attachments_list += f'<li style="padding:4px 0;color:#374151;">📋 <strong>{label}</strong></li>'
+        if is_community:
+            _instr_label = "Instrucciones de impresión" if lang == 'es' else "Printing Instructions"
+            attachments_list += f'<li style="padding:4px 0;color:#374151;">🖨️ <strong>{_instr_label}</strong></li>'
+        else:
+            label = "Instrucciones de impresión" if lang == 'es' else "Printing instructions"
+            attachments_list += f'<li style="padding:4px 0;color:#374151;">📋 <strong>{label}</strong></li>'
     
     attach_title = "📎 Archivos adjuntos:" if lang == 'es' else "📎 Attached files:"
     attachments_html = ""
@@ -346,7 +362,10 @@ def send_story_email_with_attachments(
         read_online_html += f'<p style="color:#6b7280;font-size:12px;text-align:center;margin-top:-15px;">{device_hint}</p>'
         read_online_text = f"\n{btn_label}: {ebook_url}\n"
 
-    if is_personalized_book and (is_pdf_purchase or pdf_printable_path):
+    if is_community:
+        extra_sections_html = read_online_html
+        extra_sections_text = read_online_text
+    elif is_personalized_book and (is_pdf_purchase or pdf_printable_path):
         if lang == 'es':
             extra_sections_html = f"""
                 {_success_box('''
@@ -433,7 +452,26 @@ def send_story_email_with_attachments(
             """
         extra_sections_text = f"""{read_online_text}"""
     
-    if lang == 'es':
+    if is_community:
+        if lang == 'es':
+            greeting = "❤️ Tu cuento solidario ya está listo"
+            ready_msg = ("Gracias por apoyar esta iniciativa solidaria de Magic Memories Books.<br>"
+                         "Adjuntamos el cuento en formato PDF listo para imprimir y el documento "
+                         "con las instrucciones de impresión.")
+            save_warning = ('<p style="margin:0;color:#92400e;font-size:14px;"><strong>⚠️ Importante:</strong>'
+                            ' Descarga y guarda los archivos adjuntos en tu dispositivo.</p>'
+                            if attachments_list else '')
+            thanks = ("Este cuento forma parte del proyecto solidario de Magic Memories Books "
+                      "para ayudar a niños y familias mediante cuentos infantiles gratuitos.")
+        else:
+            greeting = "❤️ Your free storybook is ready"
+            ready_msg = ("Thank you for supporting this Magic Memories Books community initiative.<br>"
+                         "Your printable PDF and printing instructions are attached.")
+            save_warning = ('<p style="margin:0;color:#92400e;font-size:14px;"><strong>⚠️ Important:</strong>'
+                            ' Download and save the attached files to your device.</p>'
+                            if attachments_list else '')
+            thanks = "This free storybook is part of the Magic Memories Books Community Stories project."
+    elif lang == 'es':
         greeting = "¡Hola!"
         book_type = "Tu libro ilustrado personalizado" if is_personalized_book else "Tu cuento personalizado"
         ready_msg = f'{book_type} <strong>"{story_name}"</strong> para <strong>{child_name}</strong> está listo.'
@@ -448,19 +486,40 @@ def send_story_email_with_attachments(
     
     warning_html = _alert_box(save_warning) if save_warning else ''
     
-    content_inner = f"""
-        <h2 style="color:#7c3aed;text-align:center;margin-top:0;">{greeting}</h2>
-        <p style="font-size:16px;color:#374151;text-align:center;">{ready_msg}</p>
-        {attachments_html}
-        {warning_html}
-        {extra_sections_html}
-        {_newsletter_invite_html(lang)}
-        <p style="color:#7c3aed;font-weight:bold;text-align:center;">{thanks}</p>
-    """
+    if is_community:
+        content_inner = f"""
+            <h2 style="color:#7c3aed;text-align:center;margin-top:0;">{greeting}</h2>
+            <p style="font-size:16px;color:#374151;text-align:center;">{ready_msg}</p>
+            {attachments_html}
+            {warning_html}
+            {extra_sections_html}
+            <p style="color:#7c3aed;font-weight:bold;text-align:center;">{thanks}</p>
+        """
+    else:
+        content_inner = f"""
+            <h2 style="color:#7c3aed;text-align:center;margin-top:0;">{greeting}</h2>
+            <p style="font-size:16px;color:#374151;text-align:center;">{ready_msg}</p>
+            {attachments_html}
+            {warning_html}
+            {extra_sections_html}
+            {_newsletter_invite_html(lang)}
+            <p style="color:#7c3aed;font-weight:bold;text-align:center;">{thanks}</p>
+        """
     
     html_body = _email_wrapper("✨ Magic Memories Books ✨", content_inner, to_email)
     
-    text_body = f"""{greeting}
+    if is_community:
+        _plain_intro = ready_msg.replace('<br>', '\n')
+        text_body = f"""{greeting}
+
+{_plain_intro}
+{extra_sections_text}
+
+{thanks}
+Magic Memories Books
+"""
+    else:
+        text_body = f"""{greeting}
 
 {book_type} "{story_name}" {"para" if lang == "es" else "for"} {child_name} {"está listo" if lang == "es" else "is ready"}.
 {extra_sections_text}
@@ -509,7 +568,9 @@ Magic Memories Books
         attached_count = 0
         
         if pdf_digital_path and os.path.exists(pdf_digital_path):
-            if attach_file(msg, pdf_digital_path, f"{safe_name}_digital.pdf"):
+            _digi_fname = (("cuento_solidario.pdf" if lang == 'es' else "storybook.pdf")
+                           if is_community else f"{safe_name}_digital.pdf")
+            if attach_file(msg, pdf_digital_path, _digi_fname):
                 attached_count += 1
         
         if pdf_printable_path and os.path.exists(pdf_printable_path):
@@ -4090,3 +4151,7 @@ def _send_lead_abandonment_email_removed(to_email: str, child_name: str, story_u
                   preview_id=to_email, child_name=name_display, lang=lang)
         print(f"[ABANDONMENT] ❌ Failed for {to_email}: {e}")
         return False
+
+# send_community_story_email removed — community stories now use
+# send_story_email_with_attachments() from the commercial MMB flow.
+

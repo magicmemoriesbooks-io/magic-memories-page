@@ -349,3 +349,107 @@ class PhotoUploadLog(db.Model):
 
     def __repr__(self):
         return f'<PhotoUploadLog {self.filename}>'
+
+
+class CommunityStory(db.Model):
+    """Solidarity storybook — free, cause-driven, bilingual."""
+    __tablename__ = 'community_stories'
+
+    id = db.Column(db.Integer, primary_key=True)
+    slug = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    title_es = db.Column(db.String(200), nullable=False)
+    title_en = db.Column(db.String(200), nullable=False)
+    description_es = db.Column(db.Text)
+    description_en = db.Column(db.Text)
+    cause = db.Column(db.String(100))
+    status = db.Column(db.String(20), default='draft')  # draft/published/hidden/archived
+    content_version = db.Column(db.Integer, default=1)
+    cover_image = db.Column(db.String(255))
+    default_child_name_es = db.Column(db.String(50), default='Valeria')
+    default_child_name_en = db.Column(db.String(50), default='Valeria')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    pages = db.relationship('CommunityStoryPage', backref='story',
+                            order_by='CommunityStoryPage.page_number', lazy='dynamic')
+    downloads = db.relationship('CommunityDownload', backref='story', lazy='dynamic')
+
+    def __repr__(self):
+        return f'<CommunityStory {self.slug}>'
+
+
+class CommunityStoryPage(db.Model):
+    """One illustrated page inside a CommunityStory."""
+    __tablename__ = 'community_story_pages'
+
+    id = db.Column(db.Integer, primary_key=True)
+    story_id = db.Column(db.Integer, db.ForeignKey('community_stories.id'),
+                         nullable=False, index=True)
+    page_number = db.Column(db.Integer, nullable=False)
+    image_file = db.Column(db.String(255))
+    text_top_es = db.Column(db.Text)
+    text_top_en = db.Column(db.Text)
+    text_center_es = db.Column(db.Text)
+    text_center_en = db.Column(db.Text)
+    text_bottom_es = db.Column(db.Text)
+    text_bottom_en = db.Column(db.Text)
+    font = db.Column(db.String(100), default='Quicksand')
+    font_size = db.Column(db.Integer, default=18)
+    font_color = db.Column(db.String(20), default='#FFFFFF')
+    text_alignment = db.Column(db.String(10), default='center')
+    text_box_x = db.Column(db.Float, default=0.05)
+    text_box_y = db.Column(db.Float, default=0.72)
+    text_box_width = db.Column(db.Float, default=0.90)
+    text_box_height = db.Column(db.Float, default=0.24)
+
+    def __repr__(self):
+        return f'<CommunityStoryPage story={self.story_id} page={self.page_number}>'
+
+
+class CommunityDownload(db.Model):
+    """One download request — carries access token for viewer + PDF."""
+    __tablename__ = 'community_downloads'
+
+    id = db.Column(db.Integer, primary_key=True)
+    story_id = db.Column(db.Integer, db.ForeignKey('community_stories.id'),
+                         nullable=False, index=True)
+    email = db.Column(db.String(255), nullable=False, index=True)
+    child_name = db.Column(db.String(50))
+    adult_name = db.Column(db.String(100))
+    pdf_format = db.Column(db.String(10), default='A4')
+    download_token = db.Column(db.String(36), unique=True, nullable=False, index=True)
+    language = db.Column(db.String(5), default='es')
+    ip = db.Column(db.String(50))
+    user_agent = db.Column(db.String(500))
+    how_found_us = db.Column(db.String(100))
+    downloader_type = db.Column(db.String(50))
+    campaign_source = db.Column(db.String(100), default='unknown')
+    utm_source = db.Column(db.String(100))
+    utm_medium = db.Column(db.String(100))
+    utm_campaign = db.Column(db.String(100))
+    utm_content = db.Column(db.String(100))
+    referrer_url = db.Column(db.String(500))
+    completed_download = db.Column(db.Boolean, default=False)
+    times_downloaded = db.Column(db.Integer, default=0)
+    pdf_generated = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<CommunityDownload {self.email} story={self.story_id}>'
+
+
+class CommunitySubscriber(db.Model):
+    """Email subscriber who opted in via a Community Story."""
+    __tablename__ = 'community_subscribers'
+
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    language = db.Column(db.String(5), default='es')
+    active = db.Column(db.Boolean, default=True)
+    source_story = db.Column(db.String(100))
+    source_campaign = db.Column(db.String(100))
+    consent_version = db.Column(db.Integer, default=1)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<CommunitySubscriber {self.email}>'

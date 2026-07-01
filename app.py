@@ -6,11 +6,11 @@ import atexit
 import threading
 import time
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory, send_file, abort, flash
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory, send_file, abort, flash, make_response
 import logging
 from werkzeug.utils import secure_filename
 from config import Config
-from models import db, Order, StoryTemplate, RealStoryOrder, RealStoryCharacter, RealStoryPet, NewsletterSubscriber, PreviewLead, PrintOrderRequest, StoryBackup, Coupon, CouponLead, CouponUsage, PhotoUploadLog
+from models import db, Order, StoryTemplate, RealStoryOrder, RealStoryCharacter, RealStoryPet, NewsletterSubscriber, PreviewLead, PrintOrderRequest, StoryBackup, Coupon, CouponLead, CouponUsage, PhotoUploadLog, CommunityStory, CommunityDownload, CommunitySubscriber, CommunityStoryPage
 from translations import TRANSLATIONS, STORY_TEMPLATES, get_translation
 from apscheduler.schedulers.background import BackgroundScheduler
 from services.task_queue import task_queue, production_logger, get_or_create_tracker
@@ -7918,6 +7918,8 @@ with app.app_context():
     _safe_ddl("ALTER TABLE coupon_usages ADD COLUMN IF NOT EXISTS discount_pct INTEGER DEFAULT 0")
     _safe_ddl("ALTER TABLE coupon_usages ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()")
     _safe_ddl("ALTER TABLE coupon_usages ALTER COLUMN email DROP NOT NULL")
+    _safe_ddl("ALTER TABLE community_stories ADD COLUMN IF NOT EXISTS description_es TEXT")
+    _safe_ddl("ALTER TABLE community_stories ADD COLUMN IF NOT EXISTS description_en TEXT")
     print("[MIGRATION] Coupon table columns ensured")
     # Seed MAGIC15 coupon on startup if it doesn't exist
     try:
@@ -7955,6 +7957,37 @@ with app.app_context():
             print("[COUPON] APERTURA10 inauguration coupon seeded")
     except Exception as _se2:
         print(f"[COUPON] APERTURA10 seed warning: {_se2}")
+    # Seed community stories (no-op if already present)
+    try:
+        from services.community_stories_service import (
+            seed_venezuela_story, prepare_community_visor_qs)
+        seed_venezuela_story()
+        prepare_community_visor_qs()
+    except Exception as _cs_seed_e:
+        print(f"[COMMUNITY] Seed warning: {_cs_seed_e}")
+    # Hide old underscore-slug duplicate if both exist
+    try:
+        _old = CommunityStory.query.filter_by(slug='venezuela_terremoto').first()
+        _new = CommunityStory.query.filter_by(slug='venezuela-terremoto').first()
+        if _old and _new:
+            # Reassign any downloads from old to new, then hide old
+            db.session.execute(
+                db.text('UPDATE community_downloads SET story_id=:nid WHERE story_id=:oid'),
+                {'nid': _new.id, 'oid': _old.id}
+            )
+            _old.status = 'hidden'
+            db.session.commit()
+            print(f'[COMMUNITY] Hid old duplicate id={_old.id}, downloads moved to id={_new.id}')
+        elif _old and not _new:
+            _old.slug = 'venezuela-terremoto'
+            db.session.commit()
+            print('[COMMUNITY] Migrated slug: venezuela_terremoto → venezuela-terremoto')
+    except Exception as _slug_e:
+        db.session.rollback()
+        print(f'[COMMUNITY] Slug migration warning: {_slug_e}')
+    # Add new columns to community_downloads if missing
+    _safe_ddl("ALTER TABLE community_downloads ADD COLUMN IF NOT EXISTS adult_name VARCHAR(100)")
+    _safe_ddl("ALTER TABLE community_downloads ADD COLUMN IF NOT EXISTS pdf_format VARCHAR(10) DEFAULT 'A4'")
     # Runtime migration: add columns that may be missing on older VPS databases
     try:
         from sqlalchemy import text as _sa_text
@@ -14988,6 +15021,436 @@ def email_click_tracker(email_b64, email_type, link_name):
     except Exception:
         pass
     return redirect(dest)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# COMMUNITY STORIES — Cuentos Solidarios
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route('/cuentos-solidarios')
+def community_stories_list():
+    lang = request.args.get('lang', session.get('lang', 'es'))
+    stories = CommunityStory.query.filter_by(status='published').order_by(CommunityStory.created_at.desc()).all()
+    return render_template('community_stories_list.html', stories=stories, lang=lang)
+
+
+@app.route('/cuentos-solidarios/<slug>')
+def community_story_detail(slug):
+    story = CommunityStory.query.filter_by(slug=slug).first_or_404()
+    if story.status not in ('published', 'hidden'):
+        abort(404)
+    lang = session.get('lang', 'es')
+    preview_pages = list(story.pages.filter(CommunityStoryPage.page_number <= 4))
+    return render_template('community_story_detail.html',
+                           story=story, lang=lang,
+                           preview_pages=preview_pages)
+
+
+@app.route('/api/community-story/<slug>/generate', methods=['POST'])
+def api_community_story_generate(slug):
+    """
+    JSON API: validate form data, create download record, send email with PDF attached.
+    Returns: {success: true, token, redirect_url} or {error: key} with HTTP 400.
+    """
+    story = CommunityStory.query.filter_by(slug=slug, status='published').first_or_404()
+
+    data = request.get_json(silent=True) or {}
+
+    email_raw        = (data.get('email') or '').strip().lower()
+    adult_name_raw   = (data.get('adult_name') or '').strip()[:80]
+    pdf_format_raw   = (data.get('pdf_format') or 'A4').strip().upper().replace('CARTA', 'LETTER')
+    if pdf_format_raw not in ('A4', 'LETTER'):
+        pdf_format_raw = 'A4'
+    story_lang       = (data.get('story_lang') or 'es')
+    how_found_us     = (data.get('how_found_us') or '').strip()
+    downloader_type  = (data.get('downloader_type') or '').strip()
+    subscribe_future = bool(data.get('subscribe_future', False))
+    utm_source   = (data.get('utm_source') or '').strip() or None
+    utm_medium   = (data.get('utm_medium') or '').strip() or None
+    utm_campaign = (data.get('utm_campaign') or '').strip() or None
+    utm_content  = (data.get('utm_content') or '').strip() or None
+
+    _ALLOWED_HOW_FOUND = {
+        'instagram', 'tiktok', 'facebook', 'whatsapp', 'google',
+        'amigo_familiar', 'escuela', 'colegio', 'iglesia',
+        'psicologo', 'ong', 'noticias', 'otro',
+    }
+    _ALLOWED_DL_TYPE = {
+        'padre_madre', 'abuelo_abuela', 'tio_tia', 'hermano_hermana',
+        'docente', 'voluntario_ong',
+        'trabajador_social', 'psicologo', 'periodista', 'otro', '',
+    }
+
+    # Server-side validation
+    if not email_raw or '@' not in email_raw:
+        return jsonify({'error': 'email_invalid'}), 400
+    if not how_found_us or how_found_us not in _ALLOWED_HOW_FOUND:
+        return jsonify({'error': 'how_found_us_required'}), 400
+    if downloader_type and downloader_type not in _ALLOWED_DL_TYPE:
+        return jsonify({'error': 'invalid_downloader_type'}), 400
+
+    token = str(uuid.uuid4())
+    dl = CommunityDownload(
+        story_id=story.id,
+        email=email_raw,
+        adult_name=adult_name_raw or None,
+        pdf_format=pdf_format_raw,
+        download_token=token,
+        language=story_lang,
+        ip=get_client_ip(),
+        user_agent=request.headers.get('User-Agent', '')[:499],
+        how_found_us=how_found_us or None,
+        downloader_type=downloader_type or None,
+        campaign_source=utm_campaign or utm_source or 'unknown',
+        utm_source=utm_source,
+        utm_medium=utm_medium,
+        utm_campaign=utm_campaign,
+        utm_content=utm_content,
+        referrer_url=request.referrer or '',
+        completed_download=False,
+        pdf_generated=False,
+    )
+    try:
+        db.session.add(dl)
+        db.session.commit()
+    except Exception as _e:
+        db.session.rollback()
+        print(f'[COMMUNITY] DB error: {_e}')
+        return jsonify({'error': 'generic'}), 500
+
+    # Upsert subscriber ONLY when opt-in checkbox checked
+    if subscribe_future:
+        try:
+            existing_sub = CommunitySubscriber.query.filter_by(email=email_raw).first()
+            if not existing_sub:
+                sub = CommunitySubscriber(
+                    email=email_raw,
+                    language=story_lang,
+                    source_story=story.slug,
+                    source_campaign=dl.campaign_source,
+                    consent_version=1,
+                )
+                db.session.add(sub)
+                db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+    base_url     = request.host_url.rstrip('/')
+    viewer_url   = f"{base_url}{url_for('community_viewer', token=token)}"
+    pdf_url      = f"{base_url}{url_for('community_download_pdf', token=token)}"
+    download_url = f"{base_url}{url_for('community_download_page', token=token)}"
+    story_title  = story.title_es if story_lang == 'es' else story.title_en
+    safe_title   = re.sub(r'[^\w\s-]', '', story.title_es).strip().replace(' ', '_')
+    pdf_filename = f"cuento_solidario_{safe_title}.pdf"
+
+    # Send email with PDF attached in background thread
+    _story_id   = story.id
+    _story_lang = story_lang
+    _story_slug = story.slug
+
+    _adult_name_thread = adult_name_raw
+    _pdf_format_thread = pdf_format_raw
+
+    def _send_with_pdf():
+        try:
+            import traceback
+            from services.community_stories_service import get_community_pdf_image_list
+            from services.pdf_service import create_print_pdf_from_images, generate_print_instructions_pdf
+            from services.email_service import send_story_email_with_attachments
+
+            _out_dir = os.path.join('generations', 'community_pdfs', token)
+            os.makedirs(_out_dir, exist_ok=True)
+
+            _fmt_sfx = 'LETTER' if (_pdf_format_thread or '').upper() in ('LETTER', 'CARTA') else 'A4'
+            _pdf_path   = os.path.join(_out_dir, f'cuento_{_story_lang}_{_fmt_sfx}.pdf')
+            _instr_path = os.path.join(_out_dir, f'instrucciones_{_story_lang}_{_fmt_sfx}.pdf')
+
+            _img_list = get_community_pdf_image_list(_story_slug, _story_lang)
+            create_print_pdf_from_images(_img_list, _pdf_path,
+                                         print_format=_pdf_format_thread,
+                                         draw_trim_marks=True)
+            generate_print_instructions_pdf(_instr_path, language=_story_lang,
+                                            print_format=_pdf_format_thread)
+
+            _recipient = (_adult_name_thread or '').strip() or \
+                         ('ti' if _story_lang == 'es' else 'you')
+            send_story_email_with_attachments(
+                to_email=email_raw,
+                story_data={
+                    'child_name': _recipient,
+                    'story_name': story_title,
+                    'lang':       _story_lang,
+                    'age_group':  'community',
+                },
+                pdf_digital_path=_pdf_path,
+                instructions_path=_instr_path,
+                visor_url=viewer_url,
+            )
+
+            with app.app_context():
+                _dl = CommunityDownload.query.filter_by(download_token=token).first()
+                if _dl:
+                    _dl.pdf_generated = True
+                    try:
+                        db.session.commit()
+                    except Exception:
+                        db.session.rollback()
+        except Exception as _e:
+            import traceback as _tb
+            print(f'[COMMUNITY EMAIL] Error sending with PDF: {_e}')
+            _tb.print_exc()
+
+    threading.Thread(target=_send_with_pdf, daemon=True).start()
+
+    return jsonify({
+        'success': True,
+        'token': token,
+        'redirect_url': download_url,
+    })
+
+
+@app.route('/community-download/<token>')
+def community_download_page(token):
+    """Access page: shows viewer + PDF links. noindex to protect personal tokens."""
+    dl = CommunityDownload.query.filter_by(download_token=token).first_or_404()
+    story = CommunityStory.query.get_or_404(dl.story_id)
+    if story.status not in ('published', 'hidden'):
+        abort(404)
+
+    lang        = dl.language
+    story_title = story.title_es if lang == 'es' else story.title_en
+    base_url    = request.host_url.rstrip('/')
+    viewer_url  = f"{base_url}{url_for('community_viewer', token=token)}"
+    pdf_url     = f"{base_url}{url_for('community_download_pdf', token=token)}"
+
+    pdf_format  = getattr(dl, 'pdf_format', None) or 'A4'
+    adult_name  = getattr(dl, 'adult_name', None) or ''
+    resp = make_response(render_template(
+        'community_download.html',
+        story=story, story_title=story_title,
+        email=dl.email,
+        viewer_url=viewer_url, pdf_url=pdf_url,
+        token=token, lang=lang,
+        pdf_format=pdf_format,
+        adult_name=adult_name,
+    ))
+    resp.headers['X-Robots-Tag'] = 'noindex, nofollow'
+    return resp
+
+
+@app.route('/community-viewer/<token>')
+def community_viewer(token):
+    dl = CommunityDownload.query.filter_by(download_token=token).first_or_404()
+    story = CommunityStory.query.get_or_404(dl.story_id)
+    lang = dl.language
+
+    if story.status not in ('published', 'hidden'):
+        abort(404)
+
+    if not dl.completed_download:
+        dl.completed_download = True
+        dl.times_downloaded = (dl.times_downloaded or 0) + 1
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+    # Redirect to the MMB visor_qs (music + TTS narration + page-flip)
+    visor_id = f'venezuela-terremoto-{lang}'
+    return redirect(f'/visor_qs/?id={visor_id}')
+
+
+@app.route('/community-download/<token>/pdf')
+def community_download_pdf(token):
+    dl = CommunityDownload.query.filter_by(download_token=token).first_or_404()
+    story = CommunityStory.query.get_or_404(dl.story_id)
+
+    if story.status not in ('published', 'hidden'):
+        abort(404)
+
+    from services.community_stories_service import get_community_pdf_image_list
+    from services.pdf_service import create_print_pdf_from_images
+
+    lang       = dl.language
+    pdf_format = getattr(dl, 'pdf_format', None) or 'A4'
+    _fmt_sfx   = 'LETTER' if (pdf_format or '').upper() in ('LETTER', 'CARTA') else 'A4'
+
+    _out_dir  = os.path.join('generations', 'community_pdfs', token)
+    os.makedirs(_out_dir, exist_ok=True)
+    _pdf_path = os.path.join(_out_dir, f'cuento_{lang}_{_fmt_sfx}.pdf')
+
+    try:
+        if not os.path.exists(_pdf_path):
+            _img_list = get_community_pdf_image_list(story.slug, lang)
+            create_print_pdf_from_images(_img_list, _pdf_path, skip_sanitize=True,
+                                         print_format=pdf_format,
+                                         draw_trim_marks=True)
+    except Exception as _pdf_e:
+        print(f'[COMMUNITY PDF] Error: {_pdf_e}')
+        abort(500)
+
+    try:
+        dl.pdf_generated = True
+        dl.completed_download = True
+        dl.times_downloaded = (dl.times_downloaded or 0) + 1
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
+    story_title = story.title_en if lang == 'en' else story.title_es
+    safe_title  = re.sub(r'[^\w\s-]', '', story_title).strip().replace(' ', '_')
+    filename    = f"solidarity_story_{safe_title}.pdf" if lang == 'en' else f"cuento_solidario_{safe_title}.pdf"
+
+    resp = make_response(send_file(
+        _pdf_path,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=filename,
+    ))
+    resp.headers['X-Robots-Tag'] = 'noindex, nofollow'
+    return resp
+
+
+# ── Admin: Community Stories ──────────────────────────────────────────────────
+
+def _require_admin():
+    """Returns True if the current session is authenticated as admin."""
+    return session.get('admin_logged_in', False)
+
+
+@app.route('/admin/community-stories')
+def admin_community_stories():
+    if not _require_admin():
+        return redirect(url_for('admin_login'))
+
+    from datetime import timedelta
+    now = datetime.utcnow()
+    today = now.date()
+    cutoff_7d  = now - timedelta(days=7)
+    cutoff_30d = now - timedelta(days=30)
+
+    stories = CommunityStory.query.order_by(CommunityStory.created_at.desc()).all()
+    recent_downloads = (CommunityDownload.query
+                        .order_by(CommunityDownload.created_at.desc())
+                        .limit(50).all())
+    subscribers = (CommunitySubscriber.query
+                   .order_by(CommunitySubscriber.created_at.desc())
+                   .limit(100).all())
+
+    total_downloads    = CommunityDownload.query.count()
+    downloads_today    = CommunityDownload.query.filter(
+        db.func.date(CommunityDownload.created_at) == today).count()
+    downloads_7d       = CommunityDownload.query.filter(
+        CommunityDownload.created_at >= cutoff_7d).count()
+    downloads_30d      = CommunityDownload.query.filter(
+        CommunityDownload.created_at >= cutoff_30d).count()
+    unique_emails      = db.session.query(
+        db.func.count(db.func.distinct(CommunityDownload.email))).scalar() or 0
+    completed_count    = CommunityDownload.query.filter_by(completed_download=True).count()
+    pdf_count          = CommunityDownload.query.filter_by(pdf_generated=True).count()
+
+    stats = {
+        'total_stories':     len(stories),
+        'total_downloads':   total_downloads,
+        'total_subscribers': CommunitySubscriber.query.count(),
+        'downloads_today':   downloads_today,
+        'downloads_7d':      downloads_7d,
+        'downloads_30d':     downloads_30d,
+        'unique_emails':     unique_emails,
+        'completed_count':   completed_count,
+        'pdf_count':         pdf_count,
+    }
+
+    return render_template('admin_community_stories.html',
+                           stories=stories,
+                           recent_downloads=recent_downloads,
+                           subscribers=subscribers,
+                           stats=stats)
+
+
+@app.route('/admin/community-stories/<slug>/preview')
+def admin_community_story_preview(slug):
+    if not _require_admin():
+        return redirect(url_for('admin_login'))
+    story = CommunityStory.query.filter_by(slug=slug).first_or_404()
+
+    from services.community_stories_service import resolve_child_name
+    child_name = resolve_child_name('', story.default_child_name_es)
+    token = str(uuid.uuid4())
+    dl = CommunityDownload(
+        story_id=story.id,
+        email='admin-preview@magicmemoriesbooks.com',
+        child_name=child_name,
+        download_token=token,
+        language='es',
+        campaign_source='admin_preview',
+    )
+    db.session.add(dl)
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+    return redirect(url_for('community_viewer', token=token))
+
+
+@app.route('/admin/community-stories/export-csv')
+def admin_community_stories_export_csv():
+    if not _require_admin():
+        return redirect(url_for('admin_login'))
+    import csv as _csv
+    import io as _io
+    downloads = CommunityDownload.query.order_by(CommunityDownload.created_at.desc()).all()
+    buf = _io.StringIO()
+    writer = _csv.writer(buf)
+    writer.writerow([
+        'id', 'email', 'child_name', 'story_slug', 'language',
+        'how_found_us', 'downloader_type', 'campaign_source',
+        'utm_source', 'utm_medium', 'utm_campaign',
+        'subscribe_future', 'completed_download', 'times_downloaded',
+        'pdf_generated', 'created_at',
+    ])
+    for dl in downloads:
+        _story = CommunityStory.query.get(dl.story_id)
+        writer.writerow([
+            dl.id, dl.email, dl.child_name or '',
+            _story.slug if _story else dl.story_id,
+            dl.language, dl.how_found_us or '', dl.downloader_type or '',
+            dl.campaign_source or '',
+            dl.utm_source or '', dl.utm_medium or '', dl.utm_campaign or '',
+            '', dl.completed_download, dl.times_downloaded, dl.pdf_generated,
+            dl.created_at.isoformat() if dl.created_at else '',
+        ])
+    buf.seek(0)
+    from flask import Response
+    return Response(
+        buf.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=community_downloads.csv'},
+    )
+
+
+@app.route('/admin/preview-cuento/<slug>')
+def admin_preview_cuento(slug):
+    """Admin flipbook preview — no token needed."""
+    import os, re
+    base = f'static/images/community_stories/{slug.replace("-", "_")}'
+    if not os.path.isdir(base):
+        abort(404)
+    # Collect pageNN_preview.png or pageNN/scene.png as fallback
+    pages = []
+    for d in sorted(os.listdir(base)):
+        m = re.match(r'^page(\d+)$', d)
+        if not m:
+            continue
+        n = int(m.group(1))
+        preview = f'{base}/page{m.group(1)}_preview.png'
+        scene   = f'{base}/{d}/scene.png'
+        if os.path.exists(preview):
+            pages.append((n, '/' + preview))
+        elif os.path.exists(scene):
+            pages.append((n, '/' + scene))
+    pages.sort()
+    return render_template('admin_story_flipbook.html', slug=slug, pages=pages)
 
 
 if __name__ == '__main__':
