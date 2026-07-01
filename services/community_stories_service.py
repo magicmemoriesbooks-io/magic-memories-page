@@ -388,8 +388,8 @@ PAGE_CATALOG = [
         'bot_es':   None,
         'top_en':   None,
         'bot_en':   None,
-        'narr_es':  '',
-        'narr_en':  '',
+        'narr_es':  '¿Por qué tiembla la Tierra?',
+        'narr_en':  'Why Does the Earth Shake?',
         'bot_spec': None,
         'render':   False,
     },
@@ -414,8 +414,18 @@ PAGE_CATALOG = [
         'bot_es':   None,
         'top_en':   None,
         'bot_en':   None,
-        'narr_es':  '',
-        'narr_en':  '',
+        'narr_es':  ('Tú sabes, mi amor... Dentro de cada persona hay una luz inmensa que nunca deja de brillar. '
+                     'Tal vez no puedes verla, pero si te tomas un momento y escuchas con calma, '
+                     'la sentirás en lo profundo de tu corazón. '
+                     'Cuando sentimos miedo, esa luz nos recuerda que siempre podemos encontrar calma, '
+                     'esperanza y la fuerza para seguir adelante. '
+                     'Muchas personas llaman a esta fortaleza interior fe. '
+                     'En momentos como este, más que nunca, puedes refugiarte en ella, '
+                     'sabiendo que te traerá consuelo, serenidad y esperanza. '
+                     'En este cuento, no solo descubrirás por qué la Tierra a veces tiembla. '
+                     'También entenderás que esa luz vive en cada persona que ayuda, '
+                     'acompaña, protege y da una mano cuando más la necesitamos.'),
+        'narr_en':  (_PORTADILLA_EN_TITLE + ' ' + ' '.join(_PORTADILLA_EN_PARAS)),
         'bot_spec': None,
         'render':   True,
     },
@@ -782,8 +792,8 @@ PAGE_CATALOG = [
         'bot_es':   None,
         'top_en':   None,
         'bot_en':   None,
-        'narr_es':  '',
-        'narr_en':  '',
+        'narr_es':  _PIZARRA_ES_TEXT,
+        'narr_en':  _PIZARRA_EN_TEXT,
         'bot_spec': None,
         'render':   True,
     },
@@ -807,8 +817,36 @@ PAGE_CATALOG = [
         'bot_es':   None,
         'top_en':   None,
         'bot_en':   None,
-        'narr_es':  '',
-        'narr_en':  '',
+        'narr_es':  ('Un mensaje para ti, que acompañas y cuidas a un niño. '
+                     'Este cuento nació con un solo deseo: ayudar a los niños a comprender que, '
+                     'incluso después de los momentos más difíciles, siempre existe esperanza. '
+                     'Cuando un niño dibuja para otro niño, ocurre algo maravilloso. '
+                     'No solo comparte colores o una sonrisa; también le dice, sin palabras: '
+                     '"No estás solo. Estoy contigo." '
+                     'Si decides compartir su dibujo con el hashtag NiñosValientes, '
+                     'ayudarás a que ese mensaje llegue mucho más lejos '
+                     'y otros pequeños descubran que también pueden sentirse acompañados. '
+                     'Recuerda que ningún libro, ninguna historia y ningún dibujo '
+                     'pueden sustituir el amor de una persona. '
+                     'Tu presencia, tu paciencia y tu cariño son el refugio más importante '
+                     'para que un niño vuelva a sentirse seguro. '
+                     'Gracias por formar parte de esta cadena de esperanza. '
+                     'Con todo nuestro cariño, Magic Memories Books, by Isabel Ojeda.'),
+        'narr_en':  ('A message for you, who accompanies and cares for a child. '
+                     'This story was born with a single wish: to help children understand that, '
+                     'even after the most difficult moments, there is always hope. '
+                     'When a child draws for another child, something wonderful happens. '
+                     'They are not just sharing colors or a smile; they are also saying, without words: '
+                     '"You are not alone. I am with you." '
+                     'If you decide to share their drawing with the hashtag BraveChildren, '
+                     'you will help that message reach much further, '
+                     'and other little ones will discover they too can feel accompanied. '
+                     'Remember that no book, no story, and no drawing '
+                     'can replace the love of a person. '
+                     'Your presence, your patience, and your care are the most important refuge '
+                     'for a child to feel safe again. '
+                     'Thank you for being part of this chain of hope. '
+                     'With all our love, Magic Memories Books, by Isabel Ojeda.'),
         'bot_spec': None,
         'render':   False,
     },
@@ -1033,7 +1071,7 @@ def prepare_community_visor_qs():
     _BASE      = os.path.abspath('static/images/community_stories/venezuela_terremoto')
     _VISOR_DIR = os.path.abspath('generations/visor_qs')
     _MUSIC     = 'venezuela_terremoto_bg.mp3'
-    _VERSION   = '8'  # jul 2026: safety_measures page added, calm_returns removed
+    _VERSION   = '10'  # jul 2026: parents guide narration updated with real text
 
     bake_community_en_images()
 

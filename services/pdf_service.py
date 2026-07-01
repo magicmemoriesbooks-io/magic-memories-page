@@ -3213,7 +3213,7 @@ def generate_print_instructions_pdf(output_path, language='es', print_format='A4
     return output_path
 
 
-def create_pdf_from_images(image_paths, output_path, skip_sanitize=False):
+def create_pdf_from_images(image_paths, output_path, skip_sanitize=False, print_format='A4'):
     """
     Create PDF directly from pre-generated image files.
     
@@ -3225,16 +3225,20 @@ def create_pdf_from_images(image_paths, output_path, skip_sanitize=False):
         image_paths: List of paths to image files (in page order)
         output_path: Output PDF path
         skip_sanitize: If True, skip Ghostscript sanitization
+        print_format: 'A4' (default) or 'LETTER' for US Letter
     
     Returns:
         Output path
     """
     from PIL import Image
+    from reportlab.lib.pagesizes import letter as _letter
     
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
-    page_width, page_height = A4
-    c = canvas.Canvas(output_path, pagesize=A4)
+    _fmt = (print_format or 'A4').upper().replace('CARTA', 'LETTER')
+    _pagesize = _letter if _fmt == 'LETTER' else A4
+    page_width, page_height = _pagesize
+    c = canvas.Canvas(output_path, pagesize=_pagesize)
     
     set_pdf_metadata(c, "Magic Memories Book")
     
@@ -3268,6 +3272,64 @@ def create_pdf_from_images(image_paths, output_path, skip_sanitize=False):
         sanitize_pdf_with_ghostscript(output_path)
     
     print(f"[PDF] Created from {len(image_paths)} images: {output_path}")
+    return output_path
+
+
+def create_print_pdf_from_images(image_paths, output_path, print_format='A4',
+                                  draw_trim_marks=True, skip_sanitize=False):
+    """
+    Create a print-quality PDF from pre-baked full-page images.
+
+    Uses the exact same print pipeline as the 24 commercial Quick Stories:
+    - Canvas size = trim + 3 mm bleed on all sides (QUICK_STORY_CP_A4_W/H or LETTER)
+    - Each image scaled with ImageOps.fit() to fill the full bleed area (no white margins)
+    - Bleed edge softening via _apply_bleed_blur()
+    - L-shaped crop marks at all 4 corners via _TrimCanvas (when draw_trim_marks=True)
+
+    This is the single print pipeline for image-list PDFs. Community Stories and any
+    future product delivering pre-baked pages should call this function — never
+    create_pdf_from_images() — so that all print improvements propagate automatically.
+
+    Args:
+        image_paths: Ordered list of image file paths (relative to project root)
+        output_path: Destination PDF path
+        print_format: 'A4' (default, 216x303mm with bleed) or 'LETTER' (221.9x285.4mm)
+        draw_trim_marks: Draw L-shaped crop marks (default True). Set False for Cloudprinter.
+        skip_sanitize: Skip Ghostscript sanitization (default False)
+
+    Returns:
+        output_path
+    """
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    _fmt = (print_format or 'A4').upper().replace('CARTA', 'LETTER')
+    if _fmt == 'LETTER':
+        pw, ph = QUICK_STORY_CP_LETTER_W, QUICK_STORY_CP_LETTER_H
+    else:
+        pw, ph = QUICK_STORY_CP_A4_W, QUICK_STORY_CP_A4_H
+
+    if draw_trim_marks:
+        c = _TrimCanvas(output_path, pagesize=(pw, ph), pw=pw, ph=ph)
+    else:
+        c = canvas.Canvas(output_path, pagesize=(pw, ph))
+
+    set_pdf_metadata(c, "Magic Memories Books")
+
+    for i, img_path in enumerate(image_paths):
+        path = img_path.lstrip('/') if img_path.startswith('/') else img_path
+        if not _draw_full_page_image(c, path, pw, ph):
+            c.setFillColor(HexColor('#FFFEF5'))
+            c.rect(0, 0, pw, ph, fill=True)
+        if i < len(image_paths) - 1:
+            c.showPage()
+
+    c.save()
+
+    if not skip_sanitize:
+        sanitize_pdf_with_ghostscript(output_path)
+
+    print(f"[PDF] Print PDF ({_fmt}, bleed+marks={draw_trim_marks}) "
+          f"created from {len(image_paths)} images: {output_path}")
     return output_path
 
 
