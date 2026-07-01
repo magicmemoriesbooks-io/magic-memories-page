@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Preview: {{ slug }}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f0e1a; font-family: 'Segoe UI', sans-serif; color: #f0f0f0; }
+
+  .topbar {
+    background: #1a1a2e;
+    padding: 14px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-title { font-size: 15px; font-weight: 700; color: #f8fafc; }
+  .topbar-sub   { font-size: 12px; color: rgba(255,255,255,.4); margin-top: 2px; }
+  .counter      { font-size: 13px; color: rgba(255,255,255,.6); white-space: nowrap; }
+
+  .nav-btn {
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.15);
+    color: #f8fafc; font-size: 13px; font-weight: 700;
+    padding: 8px 18px; border-radius: 20px; cursor: pointer;
+    transition: background .2s;
+  }
+  .nav-btn:hover { background: rgba(255,255,255,.2); }
+  .nav-btn:disabled { opacity: .3; cursor: default; }
+
+  .viewer {
+    display: flex; align-items: center; justify-content: center;
+    min-height: calc(100vh - 62px);
+    padding: 24px 16px;
+  }
+  .page-wrap {
+    position: relative;
+    max-width: 480px; width: 100%;
+  }
+  .page-img {
+    width: 100%; border-radius: 8px;
+    box-shadow: 0 8px 40px rgba(0,0,0,.7);
+    display: block;
+  }
+  .page-label {
+    position: absolute; bottom: 12px; right: 14px;
+    background: rgba(0,0,0,.55); color: #fff;
+    font-size: 11px; padding: 3px 8px; border-radius: 10px;
+  }
+
+  .thumb-strip {
+    background: #13122a;
+    border-top: 1px solid rgba(255,255,255,.08);
+    padding: 12px 16px;
+    display: flex; gap: 8px; overflow-x: auto;
+    justify-content: center; flex-wrap: wrap;
+  }
+  .thumb {
+    width: 52px; height: 70px; object-fit: cover;
+    border-radius: 4px; cursor: pointer; opacity: .55;
+    border: 2px solid transparent;
+    transition: opacity .2s, border-color .2s;
+    flex-shrink: 0;
+  }
+  .thumb.active { opacity: 1; border-color: #3b82f6; }
+  .thumb:hover  { opacity: .85; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <div class="topbar-title">📖 Preview — {{ slug }}</div>
+    <div class="topbar-sub">{{ pages|length }} páginas · Solo admin</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <button class="nav-btn" id="btnPrev" onclick="go(-1)">← Ant</button>
+    <span class="counter" id="counter">1 / {{ pages|length }}</span>
+    <button class="nav-btn" id="btnNext" onclick="go(1)">Sig →</button>
+  </div>
+</div>
+
+<div class="viewer">
+  <div class="page-wrap">
+    <img id="mainImg" class="page-img" src="" alt="página">
+    <span class="page-label" id="pageLabel"></span>
+  </div>
+</div>
+
+<div class="thumb-strip" id="thumbStrip">
+  {% for n, url in pages %}
+  <img class="thumb" src="{{ url }}" alt="p{{n}}" title="Página {{n}}" onclick="goTo({{loop.index0}})">
+  {% endfor %}
+</div>
+
+<script>
+const pages = {{ pages | tojson }};
+let cur = 0;
+
+function render() {
+  const [n, url] = pages[cur];
+  document.getElementById('mainImg').src = url;
+  document.getElementById('pageLabel').textContent = 'Pág ' + n;
+  document.getElementById('counter').textContent = (cur+1) + ' / ' + pages.length;
+  document.getElementById('btnPrev').disabled = cur === 0;
+  document.getElementById('btnNext').disabled = cur === pages.length - 1;
+  document.querySelectorAll('.thumb').forEach((t,i) => t.classList.toggle('active', i===cur));
+  // scroll thumb into view
+  const thumbs = document.querySelectorAll('.thumb');
+  if (thumbs[cur]) thumbs[cur].scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+}
+
+function go(d) { cur = Math.max(0, Math.min(pages.length-1, cur+d)); render(); }
+function goTo(i) { cur = i; render(); }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(1);
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   go(-1);
+});
+
+render();
+</script>
+</body>
+</html>

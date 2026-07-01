@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block meta_description %}¡Tu cuento solidario está listo! Lee online o descarga el PDF gratis.{% endblock %}
+
+{% block content %}
+<style>
+.cst-wrap {
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #fff1f5 0%, #ede9fe 100%);
+  padding: 48px 24px;
+}
+.cst-card {
+  background: #fff;
+  border-radius: 28px;
+  padding: 52px 48px;
+  max-width: 520px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 12px 60px rgba(157,23,77,.14);
+  border: 1px solid #f0e6f6;
+}
+.cst-icon { font-size: 64px; margin-bottom: 20px; }
+.cst-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 30px;
+  color: #9d174d;
+  margin: 0 0 12px;
+}
+.cst-sub {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 16px;
+  color: #5C5C7A;
+  line-height: 1.65;
+  margin-bottom: 32px;
+}
+.cst-name {
+  color: #ec4899;
+  font-weight: 800;
+}
+.cst-btn-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.cst-btn-primary {
+  display: block;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #ec4899, #9333ea);
+  color: #fff;
+  border-radius: 50px;
+  text-decoration: none;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  transition: all .2s;
+}
+.cst-btn-primary:hover { opacity: .9; transform: translateY(-2px); }
+.cst-btn-secondary {
+  display: block;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: #fff;
+  border-radius: 50px;
+  text-decoration: none;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  transition: all .2s;
+}
+.cst-btn-secondary:hover { opacity: .9; transform: translateY(-2px); }
+.cst-email-note {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 13px;
+  color: #9CA3AF;
+  line-height: 1.5;
+}
+@media (max-width: 540px) {
+  .cst-card { padding: 36px 24px; }
+}
+</style>
+
+<div class="cst-wrap">
+  <div class="cst-card">
+    <div class="cst-icon">📖❤️</div>
+    <h1 class="cst-title">
+      {% if lang == 'es' %}¡Tu cuento está listo!{% else %}Your story is ready!{% endif %}
+    </h1>
+    <p class="cst-sub">
+      {% if lang == 'es' %}
+        Hemos preparado el cuento <strong>«{{ story_title }}»</strong>
+        para <span class="cst-name">{{ child_name }}</span>.
+        Léelo aquí mismo o descárgalo en PDF. También te hemos enviado el enlace a
+        <strong>{{ email }}</strong>.
+      {% else %}
+        We've prepared the story <strong>"{{ story_title }}"</strong>
+        for <span class="cst-name">{{ child_name }}</span>.
+        Read it right here or download the PDF. We've also sent the link to
+        <strong>{{ email }}</strong>.
+      {% endif %}
+    </p>
+
+    <div class="cst-btn-row">
+      <a href="{{ viewer_url }}" class="cst-btn-primary">
+        📖 {% if lang == 'es' %}Leer el cuento ahora{% else %}Read the story now{% endif %}
+      </a>
+      <a href="{{ pdf_url }}" class="cst-btn-secondary">
+        ⬇️ {% if lang == 'es' %}Descargar PDF{% else %}Download PDF{% endif %}
+      </a>
+    </div>
+
+    <p class="cst-email-note">
+      {% if lang == 'es' %}
+        Si el email no llega en 5 minutos, revisa tu carpeta de spam.
+        El cuento es completamente gratuito — sin anuncios ni pagos.
+      {% else %}
+        If the email doesn't arrive within 5 minutes, check your spam folder.
+        The story is completely free — no ads, no payments.
+      {% endif %}
+    </p>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Cloudprinter — Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+{% include 'admin_nav.html' %}
+<div class="max-w-2xl mx-auto px-4 py-10">
+
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">🖨️ Test Conexión Cloudprinter</h1>
+            <p class="text-sm text-gray-500 mt-1">Verifica que la API de Cloudprinter responde correctamente.</p>
+        </div>
+        <a href="/admin/dashboard" class="text-sm text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg px-4 py-2 bg-white">← Volver</a>
+    </div>
+
+    <!-- Resultado principal -->
+    <div class="bg-white rounded-2xl shadow-sm border {% if result.connection_success %}border-green-200{% else %}border-red-200{% endif %} p-8 mb-6">
+        <div class="flex items-center gap-4 mb-6">
+            <div class="w-16 h-16 rounded-full flex items-center justify-center text-3xl
+                {% if result.connection_success %}bg-green-100{% else %}bg-red-100{% endif %}">
+                {% if result.connection_success %}✅{% else %}❌{% endif %}
+            </div>
+            <div>
+                <div class="text-xl font-bold {% if result.connection_success %}text-green-700{% else %}text-red-700{% endif %}">
+                    {% if result.connection_success %}Conectado{% else %}Error de conexión{% endif %}
+                </div>
+                <div class="text-sm text-gray-500 mt-1">{{ result.message }}</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4">
+            <div class="bg-gray-50 rounded-xl p-4">
+                <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Entorno</div>
+                <div class="flex items-center gap-2">
+                    {% if result.sandbox_mode %}
+                    <span class="inline-block bg-amber-100 text-amber-800 text-sm font-bold px-3 py-1 rounded-full">🧪 SANDBOX</span>
+                    <span class="text-xs text-gray-500">Modo de pruebas — no se generan pedidos reales</span>
+                    {% else %}
+                    <span class="inline-block bg-green-100 text-green-800 text-sm font-bold px-3 py-1 rounded-full">🚀 PRODUCCIÓN</span>
+                    <span class="text-xs text-gray-500">Pedidos reales activos</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="bg-gray-50 rounded-xl p-4">
+                <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">URL de API</div>
+                <code class="text-sm text-gray-700 break-all">{{ result.api_base }}</code>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botón de reintento -->
+    <div class="text-center">
+        <a href="/admin/test-cp-connection"
+           class="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition shadow-sm">
+            🔄 Probar conexión nuevamente
+        </a>
+        <p class="text-xs text-gray-400 mt-3">La prueba hace una llamada real al endpoint <code>/orders/quote</code> de Cloudprinter.</p>
+    </div>
+
+</div>
+</body>
+</html>

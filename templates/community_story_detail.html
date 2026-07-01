@@ -1,0 +1,477 @@
+{% extends "base.html" %}
+{% block meta_description %}{{ story.title_es if lang == 'es' else story.title_en }} — Cuento Solidario gratuito de Magic Memories Books.{% endblock %}
+
+{% block head_extra %}
+<link rel="canonical" href="{{ request.url_root.rstrip('/') }}/cuentos-solidarios/{{ story.slug }}">
+<meta property="og:type" content="website">
+<meta property="og:title" content="{{ story.title_es if lang == 'es' else story.title_en }} — Cuento Solidario Gratis">
+<meta property="og:description" content="{{ (story.description_es if lang == 'es' else story.description_en) or 'Cuento solidario gratuito personalizado con el nombre de tu hijo/a.' }}">
+{% if story.cover_image %}
+<meta property="og:image" content="{{ request.url_root.rstrip('/') }}/static/{{ story.cover_image }}">
+{% endif %}
+<meta property="og:url" content="{{ request.url_root.rstrip('/') }}/cuentos-solidarios/{{ story.slug }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ story.title_es if lang == 'es' else story.title_en }} — Cuento Solidario Gratis">
+<meta name="twitter:description" content="{{ (story.description_es if lang == 'es' else story.description_en) or 'Cuento solidario gratuito.' }}">
+{% if story.cover_image %}
+<meta name="twitter:image" content="{{ request.url_root.rstrip('/') }}/static/{{ story.cover_image }}">
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<style>
+.csd-hero {
+  background: linear-gradient(135deg, #fff1f5, #ede9fe);
+  padding: 60px 24px 48px;
+  text-align: center;
+}
+.csd-cause-chip {
+  display: inline-block;
+  background: #fdf2f8;
+  border: 1px solid #fbcfe8;
+  color: #9d174d;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 6px 16px;
+  border-radius: 50px;
+  margin-bottom: 18px;
+}
+.csd-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(28px, 4vw, 46px);
+  color: #9d174d;
+  margin: 0 0 14px;
+}
+.csd-sub {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 16px;
+  color: #5C5C7A;
+  max-width: 580px;
+  margin: 0 auto 32px;
+  line-height: 1.65;
+}
+.csd-cover {
+  max-width: 380px;
+  margin: 0 auto 32px;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 12px 48px rgba(157,23,77,.18);
+}
+.csd-cover img { width: 100%; display: block; }
+.csd-form-wrap {
+  max-width: 480px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 24px;
+  padding: 36px;
+  box-shadow: 0 4px 32px rgba(0,0,0,.09);
+  border: 1px solid #f0e6f6;
+}
+.csd-form-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  color: #15134A;
+  text-align: center;
+  margin: 0 0 8px;
+}
+.csd-form-sub {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 14px;
+  color: #9CA3AF;
+  text-align: center;
+  margin: 0 0 24px;
+}
+.csd-label {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+  display: block;
+  margin-bottom: 6px;
+}
+.csd-label-opt {
+  font-weight: 400;
+  color: #9CA3AF;
+  font-size: 11px;
+  margin-left: 4px;
+}
+.csd-input, .csd-select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1.5px solid #E5E0D8;
+  border-radius: 12px;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 15px;
+  color: #15134A;
+  margin-bottom: 16px;
+  box-sizing: border-box;
+  transition: border-color .2s;
+  background: #fff;
+}
+.csd-input:focus, .csd-select:focus { outline: none; border-color: #ec4899; }
+.csd-lang-row { display: flex; gap: 10px; margin-bottom: 16px; }
+.csd-lang-btn {
+  flex: 1;
+  padding: 10px;
+  border: 2px solid #E5E0D8;
+  border-radius: 12px;
+  background: #fff;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all .2s;
+  color: #374151;
+}
+.csd-lang-btn.active, .csd-lang-btn:hover {
+  border-color: #ec4899; background: #fdf2f8; color: #9d174d;
+}
+.csd-checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.csd-checkbox-row input[type="checkbox"] {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: #ec4899;
+  cursor: pointer;
+}
+.csd-checkbox-label {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 13px;
+  color: #6B7280;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.csd-submit {
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(135deg, #ec4899, #9333ea);
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.csd-submit:hover:not(:disabled) { opacity: .9; transform: translateY(-2px); }
+.csd-submit:disabled { opacity: .65; cursor: default; transform: none; }
+.csd-error {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 14px;
+  margin-bottom: 16px;
+  display: none;
+}
+.csd-preview-strip {
+  max-width: 900px;
+  margin: 56px auto 0;
+  padding: 0 24px 56px;
+}
+.csd-preview-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 24px;
+  color: #15134A;
+  text-align: center;
+  margin-bottom: 24px;
+}
+.csd-pages-row {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  scrollbar-width: thin;
+}
+.csd-page-thumb {
+  flex-shrink: 0;
+  width: 180px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,.1);
+  transition: transform .3s;
+}
+.csd-page-thumb:hover { transform: scale(1.04); }
+.csd-page-thumb img { width: 100%; display: block; aspect-ratio: 4/3; object-fit: cover; }
+</style>
+
+<div style="padding: 14px 24px 0; max-width: 1400px; margin: 0 auto;">
+  <a href="{{ url_for('index') }}" style="display:inline-flex;align-items:center;gap:6px;font-family:'Quicksand',sans-serif;font-size:14px;font-weight:700;color:#9d174d;text-decoration:none;opacity:0.8;transition:opacity .2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+    {% if lang == 'es' %}Magic Memories Books{% else %}Magic Memories Books{% endif %}
+  </a>
+</div>
+
+<div class="csd-hero">
+  <div class="csd-cause-chip">
+    ❤️ {% if lang == 'es' %}Cuento Solidario — Gratis{% else %}Solidarity Story — Free{% endif %}
+  </div>
+  <h1 class="csd-title">{{ story.title_es if lang == 'es' else story.title_en }}</h1>
+  <p class="csd-sub">
+    {% if story.description_es and lang == 'es' %}{{ story.description_es }}
+    {% elif story.description_en and lang == 'en' %}{{ story.description_en }}
+    {% elif lang == 'es' %}Personaliza el cuento con el nombre de tu hijo/a y léelo online o descárgalo en PDF. Completamente gratis, sin anuncios ni pagos.
+    {% else %}Personalize the story with your child's name and read it online or download it as a PDF. Completely free, no ads, no payments.
+    {% endif %}
+  </p>
+  {% if story.cover_image %}
+  <div class="csd-cover">
+    <img src="{{ url_for('static', filename=story.cover_image) }}"
+         alt="{{ story.title_es if lang == 'es' else story.title_en }}">
+  </div>
+  {% endif %}
+</div>
+
+<div style="padding: 40px 24px 0;">
+  <div class="csd-form-wrap">
+    <h2 class="csd-form-title">
+      {% if lang == 'es' %}Accede al cuento gratuito{% else %}Access the free story{% endif %}
+    </h2>
+    <p class="csd-form-sub">
+      {% if lang == 'es' %}Introduce tu email para recibir el enlace de acceso.{% else %}Enter your email to receive the access link.{% endif %}
+    </p>
+
+    <div class="csd-error" id="csdError"></div>
+
+    <form id="csdForm" novalidate>
+      <label class="csd-label" for="adult_name">
+        {% if lang == 'es' %}Tu nombre{% else %}Your name{% endif %}
+        <span class="csd-label-opt">{% if lang == 'es' %}(para el email){% else %}(for the email){% endif %}</span>
+      </label>
+      <input type="text" id="adult_name" name="adult_name"
+             class="csd-input"
+             placeholder="{% if lang == 'es' %}Ej: María{% else %}E.g. Mary{% endif %}"
+             autocomplete="given-name" maxlength="80">
+
+      <label class="csd-label" for="email">
+        {% if lang == 'es' %}Tu email{% else %}Your email{% endif %}
+        <span class="csd-label-opt" style="color:#ef4444;">*</span>
+      </label>
+      <input type="email" id="email" name="email"
+             class="csd-input"
+             placeholder="tu@email.com"
+             autocomplete="email" required>
+
+      <label class="csd-label">{% if lang == 'es' %}Idioma del cuento{% else %}Story language{% endif %}</label>
+      <div class="csd-lang-row">
+        <button type="button" class="csd-lang-btn {% if lang == 'es' %}active{% endif %}"
+                onclick="setLang('es', event)">🇪🇸 Español</button>
+        <button type="button" class="csd-lang-btn {% if lang == 'en' %}active{% endif %}"
+                onclick="setLang('en', event)">🇺🇸 English</button>
+      </div>
+      <input type="hidden" name="story_lang" id="story_lang" value="{{ lang }}">
+
+      <label class="csd-label" for="downloader_type">
+        {% if lang == 'es' %}Soy{% else %}I am{% endif %}
+        <span class="csd-label-opt">{% if lang == 'es' %}(opcional){% else %}(optional){% endif %}</span>
+      </label>
+      <select id="downloader_type" name="downloader_type" class="csd-select">
+        <option value="">{% if lang == 'es' %}— elige —{% else %}— choose —{% endif %}</option>
+        <option value="padre_madre">{% if lang == 'es' %}Padre / Madre{% else %}Parent{% endif %}</option>
+        <option value="abuelo_abuela">{% if lang == 'es' %}Abuelo / Abuela{% else %}Grandparent{% endif %}</option>
+        <option value="tio_tia">{% if lang == 'es' %}Tío / Tía{% else %}Uncle / Aunt{% endif %}</option>
+        <option value="hermano_hermana">{% if lang == 'es' %}Hermano / Hermana{% else %}Sibling{% endif %}</option>
+        <option value="docente">{% if lang == 'es' %}Docente / Educador/a{% else %}Teacher / Educator{% endif %}</option>
+        <option value="voluntario_ong">{% if lang == 'es' %}Voluntario/a de ONG{% else %}NGO Volunteer{% endif %}</option>
+        <option value="trabajador_social">{% if lang == 'es' %}Trabajador/a social{% else %}Social worker{% endif %}</option>
+        <option value="psicologo">{% if lang == 'es' %}Psicólogo/a infantil{% else %}Child psychologist{% endif %}</option>
+        <option value="periodista">{% if lang == 'es' %}Periodista / Comunicador/a{% else %}Journalist / Communicator{% endif %}</option>
+        <option value="otro">{% if lang == 'es' %}Otro{% else %}Other{% endif %}</option>
+      </select>
+
+      <label class="csd-label" for="how_found_us">
+        {% if lang == 'es' %}¿Cómo nos encontraste?{% else %}How did you find us?{% endif %}
+        <span class="csd-label-opt" style="color:#ef4444;">*</span>
+      </label>
+      <select id="how_found_us" name="how_found_us" class="csd-select" required>
+        <option value="">{% if lang == 'es' %}— elige una opción —{% else %}— choose an option —{% endif %}</option>
+        <option value="instagram">Instagram</option>
+        <option value="tiktok">TikTok</option>
+        <option value="facebook">Facebook</option>
+        <option value="whatsapp">WhatsApp</option>
+        <option value="google">{% if lang == 'es' %}Google / Búsqueda web{% else %}Google / Web search{% endif %}</option>
+        <option value="amigo_familiar">{% if lang == 'es' %}Un amigo o familiar{% else %}A friend or family member{% endif %}</option>
+        <option value="escuela">{% if lang == 'es' %}Mi colegio{% else %}My school{% endif %}</option>
+        <option value="colegio">{% if lang == 'es' %}El colegio de mis hijos{% else %}My child's school{% endif %}</option>
+        <option value="iglesia">{% if lang == 'es' %}Mi iglesia / comunidad religiosa{% else %}My church / faith community{% endif %}</option>
+        <option value="psicologo">{% if lang == 'es' %}Mi psicólogo/a{% else %}My therapist / psychologist{% endif %}</option>
+        <option value="ong">{% if lang == 'es' %}Una ONG o fundación{% else %}An NGO or foundation{% endif %}</option>
+        <option value="noticias">{% if lang == 'es' %}Noticias / prensa{% else %}News / press{% endif %}</option>
+        <option value="otro">{% if lang == 'es' %}Otro{% else %}Other{% endif %}</option>
+      </select>
+
+      <label class="csd-label">
+        {% if lang == 'es' %}Formato del PDF imprimible{% else %}Printable PDF format{% endif %}
+      </label>
+      <div class="csd-lang-row">
+        <button type="button" class="csd-lang-btn active" id="fmt-a4"
+                onclick="setPdfFormat('A4', event)">📄 A4 <span style="font-weight:400;font-size:11px;">(Europa)</span></button>
+        <button type="button" class="csd-lang-btn" id="fmt-letter"
+                onclick="setPdfFormat('LETTER', event)">📄 Carta <span style="font-weight:400;font-size:11px;">(América)</span></button>
+      </div>
+      <input type="hidden" name="pdf_format" id="pdf_format" value="A4">
+
+      <div class="csd-checkbox-row">
+        <input type="checkbox" id="subscribe_future" name="subscribe_future" value="1">
+        <label class="csd-checkbox-label" for="subscribe_future">
+          {% if lang == 'es' %}
+            Quiero recibir notificaciones cuando publiquemos nuevos cuentos solidarios.
+          {% else %}
+            I'd like to be notified when new solidarity stories are published.
+          {% endif %}
+        </label>
+      </div>
+
+      <input type="hidden" name="utm_source"   value="{{ request.args.get('utm_source', '') }}">
+      <input type="hidden" name="utm_medium"   value="{{ request.args.get('utm_medium', '') }}">
+      <input type="hidden" name="utm_campaign" value="{{ request.args.get('utm_campaign', '') }}">
+      <input type="hidden" name="utm_content"  value="{{ request.args.get('utm_content', '') }}">
+
+      <button type="submit" class="csd-submit" id="csdSubmit">
+        📖 {% if lang == 'es' %}Leer mi cuento gratis{% else %}Read my free story{% endif %}
+      </button>
+    </form>
+    <!-- Trust block -->
+    <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:20px;margin-bottom:8px;">
+      <span style="font-family:'Quicksand',sans-serif;font-size:11px;font-weight:700;color:#16a34a;background:#dcfce7;padding:4px 10px;border-radius:50px;">✅ 100% gratuito</span>
+      <span style="font-family:'Quicksand',sans-serif;font-size:11px;font-weight:700;color:#1d4ed8;background:#dbeafe;padding:4px 10px;border-radius:50px;">🚫 Sin publicidad</span>
+      <span style="font-family:'Quicksand',sans-serif;font-size:11px;font-weight:700;color:#7c3aed;background:#ede9fe;padding:4px 10px;border-radius:50px;">💳 Sin compras</span>
+      <span style="font-family:'Quicksand',sans-serif;font-size:11px;font-weight:700;color:#b45309;background:#fef3c7;padding:4px 10px;border-radius:50px;">🧠 Creado con psicólogos infantiles</span>
+    </div>
+    <p style="font-family:'Quicksand',sans-serif;font-size:12px;color:#9CA3AF;text-align:center;margin-top:10px;line-height:1.5;">
+      {% if lang == 'es' %}
+        Tu email solo se usa para enviarte el enlace. Sin spam.
+        <a href="/privacy" style="color:#9d174d;">Política de privacidad</a>
+      {% else %}
+        Your email is only used to send you the link. No spam.
+        <a href="/privacy" style="color:#9d174d;">Privacy policy</a>
+      {% endif %}
+    </p>
+  </div>
+</div>
+
+{% if preview_pages %}
+<div class="csd-preview-strip">
+  <h2 class="csd-preview-title">
+    {% if lang == 'es' %}Vista previa del cuento{% else %}Story preview{% endif %}
+  </h2>
+  <div class="csd-pages-row">
+    {% for page in preview_pages %}
+    <div class="csd-page-thumb">
+      <img src="{{ url_for('static', filename=page.image_file) }}"
+           alt="{% if lang == 'es' %}Página {{ page.page_number }}{% else %}Page {{ page.page_number }}{% endif %}"
+           loading="lazy">
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<script>
+const API_URL = '/api/community-story/{{ story.slug }}/generate';
+const ERRORS = {
+  es: {
+    email_invalid:         'Por favor ingresa un email válido.',
+    how_found_us_required: 'Por favor indica cómo nos encontraste.',
+    story_not_found:       'El cuento no está disponible.',
+    generic:               'Ocurrió un error. Por favor intenta de nuevo.',
+  },
+  en: {
+    email_invalid:         'Please enter a valid email address.',
+    how_found_us_required: 'Please let us know how you found us.',
+    story_not_found:       'This story is not available.',
+    generic:               'An error occurred. Please try again.',
+  },
+};
+let currentLang = '{{ lang }}';
+
+function setLang(l, ev) {
+  currentLang = l;
+  document.getElementById('story_lang').value = l;
+  document.querySelectorAll('.csd-lang-row:first-of-type .csd-lang-btn').forEach(b => b.classList.remove('active'));
+  ev.currentTarget.classList.add('active');
+  // Auto-select PDF format based on language
+  const fmt = (l === 'en') ? 'LETTER' : 'A4';
+  document.getElementById('pdf_format').value = fmt;
+  document.getElementById('fmt-a4').classList.toggle('active', fmt === 'A4');
+  document.getElementById('fmt-letter').classList.toggle('active', fmt === 'LETTER');
+}
+function setPdfFormat(fmt, ev) {
+  document.getElementById('pdf_format').value = fmt;
+  document.getElementById('fmt-a4').classList.remove('active');
+  document.getElementById('fmt-letter').classList.remove('active');
+  ev.currentTarget.classList.add('active');
+}
+function showError(msg) {
+  const el = document.getElementById('csdError');
+  el.textContent = '⚠️ ' + msg;
+  el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function hideError() { document.getElementById('csdError').style.display = 'none'; }
+
+document.getElementById('csdForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  hideError();
+  const lang = currentLang;
+  const errs = ERRORS[lang] || ERRORS.es;
+  const adultName = (document.getElementById('adult_name').value || '').trim();
+  const email     = document.getElementById('email').value.trim();
+  const howFound  = document.getElementById('how_found_us').value;
+  const dlType    = document.getElementById('downloader_type').value;
+  const storyLang = document.getElementById('story_lang').value;
+  const pdfFmt    = document.getElementById('pdf_format').value || 'A4';
+  const subscribe = document.getElementById('subscribe_future').checked;
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError(errs.email_invalid); return; }
+  if (!howFound) { showError(errs.how_found_us_required); return; }
+
+  const btn = document.getElementById('csdSubmit');
+  btn.disabled = true;
+  btn.textContent = lang === 'es' ? '⏳ Preparando tu cuento…' : '⏳ Preparing your story…';
+
+  const utmFields = {};
+  ['utm_source','utm_medium','utm_campaign','utm_content'].forEach(k => {
+    const el = document.querySelector(`input[name="${k}"]`);
+    if (el && el.value) utmFields[k] = el.value;
+  });
+
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        adult_name: adultName, email, story_lang: storyLang,
+        pdf_format: pdfFmt,
+        how_found_us: howFound, downloader_type: dlType,
+        subscribe_future: subscribe, ...utmFields,
+      }),
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      window.location.href = data.redirect_url;
+    } else {
+      showError(errs[data.error] || errs.generic);
+      btn.disabled = false;
+      btn.textContent = lang === 'es' ? '📖 Leer mi cuento gratis' : '📖 Read my free story';
+    }
+  } catch (_) {
+    showError(errs.generic);
+    btn.disabled = false;
+    btn.textContent = lang === 'es' ? '📖 Leer mi cuento gratis' : '📖 Read my free story';
+  }
+});
+</script>
+{% endblock %}

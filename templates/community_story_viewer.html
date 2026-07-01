@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+{% block meta_description %}{{ story.title_es if lang == 'es' else story.title_en }} — Cuento Solidario gratuito con el nombre de {{ child_name }}.{% endblock %}
+
+{% block content %}
+<meta name="robots" content="noindex, nofollow">
+<style>
+* { box-sizing: border-box; }
+.csv-wrap {
+  background: #0f0e1a;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.csv-topbar {
+  background: #1a1a2e;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  flex-wrap: wrap;
+}
+.csv-topbar-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 16px;
+  color: #f8fafc;
+  font-weight: 700;
+}
+.csv-topbar-sub {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 12px;
+  color: rgba(255,255,255,.5);
+}
+.csv-controls { display: flex; align-items: center; gap: 10px; }
+.csv-btn {
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.15);
+  color: #f8fafc;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all .2s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.csv-btn:hover { background: rgba(255,255,255,.18); color: #fff; }
+.csv-btn.pink { background: linear-gradient(135deg, #ec4899, #9333ea); border-color: transparent; }
+.csv-btn.green { background: linear-gradient(135deg, #16a34a, #15803d); border-color: transparent; }
+.csv-page-counter {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 13px;
+  color: rgba(255,255,255,.6);
+  white-space: nowrap;
+}
+.csv-stage {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 20px 16px;
+  position: relative;
+}
+.csv-page-container {
+  position: relative;
+  /* JS sets max-width dynamically so portrait page fits without scrolling */
+  max-width: 560px;
+  width: 100%;
+}
+.csv-page-slide {
+  display: none;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 16px 60px rgba(0,0,0,.65);
+  position: relative;
+  width: 100%;
+}
+.csv-page-slide.active { display: block; }
+.csv-page-slide img {
+  width: 100%;
+  height: auto;
+  display: block;
+  aspect-ratio: 1086 / 1448;
+  object-fit: cover;
+}
+/*
+ * Two spec-based text overlays. Coordinates from 1086×1448px spec.
+ * TOP : x=80 y=22   w=926 h=183  Nunito ExtraBold 40px native
+ * BOT : x=80 y=1228 w=926 h=200  Nunito ExtraBold 38px native
+ * Font size set by JS based on rendered image width.
+ * Color #1A8AB5. No background, no shadow.
+ */
+@font-face {
+  font-family: 'Nunito';
+  src: url('/static/fonts/Nunito-ExtraBold.ttf') format('truetype');
+  font-weight: 800;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nunito';
+  src: url('/static/fonts/Nunito-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-display: swap;
+}
+.csv-text-block {
+  position: absolute;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #1A8AB5;
+  white-space: pre-line;
+  line-height: 1.22;
+  overflow: hidden;
+}
+/* TOP zone: x=80 y=22 w=926 h=183 on 1086×1448 base */
+.csv-text-top {
+  left: 7.367%; top: 1.519%; width: 85.267%; height: 12.638%;
+  font-family: 'Nunito', 'Quicksand', sans-serif;
+  font-weight: 800;
+  font-size: 20px; /* overridden by JS per container width */
+}
+/* BOTTOM zone: x=80 y=1228 w=926 h=200 on 1086×1448 base */
+.csv-text-bot {
+  left: 7.367%; top: 84.807%; width: 85.267%; height: 13.812%;
+  font-family: 'Nunito', 'Quicksand', sans-serif;
+  font-weight: 800;
+  font-size: 19px; /* overridden by JS per container width */
+}
+/* Nav arrows */
+.csv-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.2);
+  color: #fff;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all .2s;
+  z-index: 10;
+}
+.csv-arrow:hover { background: rgba(236,72,153,.5); }
+.csv-arrow.prev { left: -62px; }
+.csv-arrow.next { right: -62px; }
+@media (max-width: 1060px) { .csv-arrow { display: none; } }
+.csv-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px 24px;
+  flex-wrap: wrap;
+}
+.csv-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.2);
+  cursor: pointer;
+  transition: all .2s;
+}
+.csv-dot.active { background: #ec4899; transform: scale(1.3); }
+.csv-action-bar {
+  background: #1a1a2e;
+  border-top: 1px solid rgba(255,255,255,.08);
+  padding: 18px 24px;
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+@media (max-width: 700px) {
+  .csv-topbar { padding: 10px 14px; }
+  .csv-stage { padding: 16px 10px; }
+}
+</style>
+
+<div class="csv-wrap">
+  <div class="csv-topbar">
+    <div>
+      <div class="csv-topbar-title">❤️ {{ story.title_es if lang == 'es' else story.title_en }}</div>
+      <div class="csv-topbar-sub">
+        {% if lang == 'es' %}Cuento Solidario Gratuito{% else %}Free Solidarity Story{% endif %}
+      </div>
+    </div>
+    <div class="csv-controls">
+      <span class="csv-page-counter" id="pageCounter">1 / {{ pages|length }}</span>
+      <a href="{{ url_for('community_download_pdf', token=token) }}" class="csv-btn green">⬇️ PDF</a>
+      <a href="{{ url_for('community_story_detail', slug=story.slug) }}" class="csv-btn">
+        ← {% if lang == 'es' %}Volver{% else %}Back{% endif %}
+      </a>
+      <a href="/" class="csv-btn">🏠</a>
+    </div>
+  </div>
+
+  <div class="csv-stage">
+    <div class="csv-page-container">
+      <button class="csv-arrow prev" onclick="changePage(-1)" aria-label="Anterior">‹</button>
+      <button class="csv-arrow next" onclick="changePage(1)" aria-label="Siguiente">›</button>
+
+      {% for page in pages %}
+      {% set top_t = top_texts[loop.index0] %}
+      {% set bot_t = bot_texts[loop.index0] %}
+      <div class="csv-page-slide {% if loop.first %}active{% endif %}" id="slide-{{ loop.index }}">
+        <img src="{{ url_for('static', filename=page.image_file) }}"
+             alt="{{ loop.index }}"
+             loading="{{ 'eager' if loop.first else 'lazy' }}">
+        {% if top_t %}
+        <div class="csv-text-block csv-text-top">{{ top_t }}</div>
+        {% endif %}
+        {% if bot_t %}
+        <div class="csv-text-block csv-text-bot">{{ bot_t }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="csv-dots" id="dots">
+    {% for page in pages %}
+    <div class="csv-dot {% if loop.first %}active{% endif %}"
+         onclick="goToPage({{ loop.index }})"
+         title="{% if lang == 'es' %}Página{% else %}Page{% endif %} {{ loop.index }}"></div>
+    {% endfor %}
+  </div>
+
+  <div class="csv-action-bar">
+    <a href="{{ url_for('community_download_pdf', token=token) }}" class="csv-btn green">
+      ⬇️ {% if lang == 'es' %}Descargar PDF{% else %}Download PDF{% endif %}
+    </a>
+    <button class="csv-btn pink" onclick="shareStory()">
+      📤 {% if lang == 'es' %}Compartir{% else %}Share{% endif %}
+    </button>
+    <a href="{{ url_for('community_story_detail', slug=story.slug) }}" class="csv-btn">
+      📚 {% if lang == 'es' %}Más cuentos{% else %}More stories{% endif %}
+    </a>
+  </div>
+</div>
+
+<script>
+const TOTAL = {{ pages|length }};
+let current = 1;
+
+// Fit portrait page (1086×1448) within the available viewport height
+function fitPortraitPage() {
+  const reserved = 230; // nav + topbar + dots + padding
+  const availH   = window.innerHeight - reserved;
+  const maxW     = Math.min(580, Math.floor(availH * 1086 / 1448));
+  document.querySelector('.csv-page-container').style.maxWidth = Math.max(260, maxW) + 'px';
+}
+
+// Scale overlay fonts proportionally to the rendered image width
+// Native spec: TOP=40px, BOT=38px on 1086px wide image
+function scaleTextFonts() {
+  const slide = document.querySelector('.csv-page-slide');
+  if (!slide) return;
+  const imgW = slide.offsetWidth || 400;
+  const scale = imgW / 1086;
+  const topPx = Math.max(11, Math.round(40 * scale));
+  const botPx = Math.max(10, Math.round(38 * scale));
+  document.querySelectorAll('.csv-text-top').forEach(el => el.style.fontSize = topPx + 'px');
+  document.querySelectorAll('.csv-text-bot').forEach(el => el.style.fontSize = botPx + 'px');
+}
+
+function layoutPage() { fitPortraitPage(); scaleTextFonts(); }
+layoutPage();
+window.addEventListener('resize', layoutPage);
+
+function goToPage(n) {
+  if (n < 1 || n > TOTAL) return;
+  document.getElementById('slide-' + current)?.classList.remove('active');
+  document.querySelectorAll('.csv-dot')[current - 1]?.classList.remove('active');
+  current = n;
+  document.getElementById('slide-' + current)?.classList.add('active');
+  document.querySelectorAll('.csv-dot')[current - 1]?.classList.add('active');
+  document.getElementById('pageCounter').textContent = current + ' / ' + TOTAL;
+}
+function changePage(dir) { goToPage(current + dir); }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') changePage(1);
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   changePage(-1);
+});
+let touchStartX = 0;
+document.querySelector('.csv-stage').addEventListener('touchstart', e => {
+  touchStartX = e.touches[0].clientX;
+}, {passive: true});
+document.querySelector('.csv-stage').addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(dx) > 50) changePage(dx < 0 ? 1 : -1);
+}, {passive: true});
+
+function shareStory() {
+  const url = window.location.href;
+  const title = {{ (story.title_es if lang == 'es' else story.title_en)|tojson }};
+  if (navigator.share) {
+    navigator.share({ title, url });
+  } else {
+    navigator.clipboard.writeText(url).then(() => {
+      alert('{% if lang == "es" %}¡Enlace copiado!{% else %}Link copied!{% endif %}');
+    }).catch(() => {
+      prompt('{% if lang == "es" %}Copia este enlace:{% else %}Copy this link:{% endif %}', url);
+    });
+  }
+}
+</script>
+{% endblock %}
