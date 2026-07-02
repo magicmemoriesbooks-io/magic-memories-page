@@ -1071,7 +1071,7 @@ def prepare_community_visor_qs():
     _BASE      = os.path.abspath('static/images/community_stories/venezuela_terremoto')
     _VISOR_DIR = os.path.abspath('generations/visor_qs')
     _MUSIC     = 'venezuela_terremoto_bg.mp3'
-    _VERSION   = '10'  # jul 2026: parents guide narration updated with real text
+    _VERSION   = '11'  # jul 2026: cover + back-cover images replaced with web-branded versions (www.magicmemoriesbooks.com)
 
     bake_community_en_images()
 
