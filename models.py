@@ -365,6 +365,7 @@ class CommunityStory(db.Model):
     status = db.Column(db.String(20), default='draft')  # draft/published/hidden/archived
     content_version = db.Column(db.Integer, default=1)
     cover_image = db.Column(db.String(255))
+    cover_image_en = db.Column(db.String(255))
     default_child_name_es = db.Column(db.String(50), default='Valeria')
     default_child_name_en = db.Column(db.String(50), default='Valeria')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

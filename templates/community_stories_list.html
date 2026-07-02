@@ -176,8 +176,9 @@
     {% for story in stories %}
     <div class="cs-card" onclick="window.location='{{ url_for('community_story_detail', slug=story.slug) }}'">
       <div class="cs-card-thumb">
-        {% if story.cover_image %}
-          <img src="{{ url_for('static', filename=story.cover_image) }}"
+        {% set card_cover = (story.cover_image_en if lang != 'es' and story.cover_image_en else story.cover_image) %}
+        {% if card_cover %}
+          <img src="{{ url_for('static', filename=card_cover) }}"
                alt="{{ story.title_es if lang == 'es' else story.title_en }}" loading="lazy">
         {% else %}
           <div class="cs-card-thumb-placeholder">📖</div>

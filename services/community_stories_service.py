@@ -1190,7 +1190,8 @@ def seed_venezuela_story():
         existing.title_en = 'Why Does the Earth Shake?'
         existing.description_es = 'Un cuento solidario sobre terremotos y esperanza'
         existing.description_en = 'A solidarity story about earthquakes and hope'
-        existing.cover_image = 'images/community_stories/venezuela_terremoto/cover.jpg'
+        existing.cover_image = 'images/community_stories/venezuela_terremoto/page01/scene.png'
+        existing.cover_image_en = 'images/community_stories/venezuela_terremoto/page01/scene_en.png'
         existing.status = 'published'
         if (existing.content_version or 0) < _CURRENT_VERSION:
             CommunityStoryPage.query.filter_by(story_id=existing.id).delete()
@@ -1209,7 +1210,8 @@ def seed_venezuela_story():
         cause='earthquake',
         status='published',
         content_version=_CURRENT_VERSION,
-        cover_image='images/community_stories/venezuela_terremoto/cover.jpg',
+        cover_image='images/community_stories/venezuela_terremoto/page01/scene.png',
+        cover_image_en='images/community_stories/venezuela_terremoto/page01/scene_en.png',
     )
     db.session.add(story)
     db.session.flush()

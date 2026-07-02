@@ -7919,6 +7919,7 @@ with app.app_context():
     _safe_ddl("ALTER TABLE coupon_usages ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()")
     _safe_ddl("ALTER TABLE coupon_usages ALTER COLUMN email DROP NOT NULL")
     _safe_ddl("ALTER TABLE community_stories ADD COLUMN IF NOT EXISTS description_es TEXT")
+    _safe_ddl("ALTER TABLE community_stories ADD COLUMN IF NOT EXISTS cover_image_en VARCHAR(255)")
     _safe_ddl("ALTER TABLE community_stories ADD COLUMN IF NOT EXISTS description_en TEXT")
     print("[MIGRATION] Coupon table columns ensured")
     # Seed MAGIC15 coupon on startup if it doesn't exist

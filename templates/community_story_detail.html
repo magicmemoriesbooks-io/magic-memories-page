@@ -6,15 +6,16 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="{{ story.title_es if lang == 'es' else story.title_en }} — Cuento Solidario Gratis">
 <meta property="og:description" content="{{ (story.description_es if lang == 'es' else story.description_en) or 'Cuento solidario gratuito personalizado con el nombre de tu hijo/a.' }}">
-{% if story.cover_image %}
-<meta property="og:image" content="{{ request.url_root.rstrip('/') }}/static/{{ story.cover_image }}">
+{% set meta_cover = (story.cover_image_en if lang != 'es' and story.cover_image_en else story.cover_image) %}
+{% if meta_cover %}
+<meta property="og:image" content="{{ request.url_root.rstrip('/') }}/static/{{ meta_cover }}">
 {% endif %}
 <meta property="og:url" content="{{ request.url_root.rstrip('/') }}/cuentos-solidarios/{{ story.slug }}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{ story.title_es if lang == 'es' else story.title_en }} — Cuento Solidario Gratis">
 <meta name="twitter:description" content="{{ (story.description_es if lang == 'es' else story.description_en) or 'Cuento solidario gratuito.' }}">
-{% if story.cover_image %}
-<meta name="twitter:image" content="{{ request.url_root.rstrip('/') }}/static/{{ story.cover_image }}">
+{% if meta_cover %}
+<meta name="twitter:image" content="{{ request.url_root.rstrip('/') }}/static/{{ meta_cover }}">
 {% endif %}
 {% endblock %}
 
@@ -226,9 +227,10 @@
     {% else %}Personalize the story with your child's name and read it online or download it as a PDF. Completely free, no ads, no payments.
     {% endif %}
   </p>
-  {% if story.cover_image %}
+  {% set hero_cover = (story.cover_image_en if lang != 'es' and story.cover_image_en else story.cover_image) %}
+  {% if hero_cover %}
   <div class="csd-cover">
-    <img src="{{ url_for('static', filename=story.cover_image) }}"
+    <img src="{{ url_for('static', filename=hero_cover) }}"
          alt="{{ story.title_es if lang == 'es' else story.title_en }}">
   </div>
   {% endif %}
