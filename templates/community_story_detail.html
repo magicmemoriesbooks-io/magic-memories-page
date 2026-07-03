@@ -62,6 +62,13 @@
   box-shadow: 0 12px 48px rgba(157,23,77,.18);
 }
 .csd-cover img { width: 100%; display: block; }
+@media (max-width: 640px) {
+  .csd-cover {
+    max-width: 220px;
+    margin: 0 auto 24px;
+    border-radius: 14px;
+  }
+}
 .csd-form-wrap {
   max-width: 480px;
   margin: 0 auto;
@@ -71,6 +78,33 @@
   box-shadow: 0 4px 32px rgba(0,0,0,.09);
   border: 1px solid #f0e6f6;
 }
+.csd-notice {
+  max-width: 480px;
+  margin: 0 auto 20px;
+  background: #f0fbfd;
+  border: 1px solid #d6f1f6;
+  border-radius: 18px;
+  padding: 20px 22px;
+  box-sizing: border-box;
+}
+.csd-notice-title {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0e7490;
+  margin: 0 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.csd-notice p {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 12.5px;
+  color: #4b5563;
+  line-height: 1.6;
+  margin: 0 0 10px;
+}
+.csd-notice p:last-child { margin-bottom: 0; }
 .csd-form-title {
   font-family: 'Playfair Display', serif;
   font-size: 22px;
@@ -237,6 +271,26 @@
 </div>
 
 <div style="padding: 40px 24px 0;">
+  <div class="csd-notice">
+    <p class="csd-notice-title">
+      🩵 {% if lang == 'es' %}Aviso importante{% else %}Important Notice{% endif %}
+    </p>
+    {% if lang == 'es' %}
+    <p>Este cuento ha sido elaborado tomando como referencia recomendaciones internacionales sobre apoyo emocional infantil tras situaciones de emergencia.</p>
+    <p>Su finalidad es educativa y de apoyo emocional para ayudar a las familias a conversar con los niños después de un terremoto.</p>
+    <p>No sustituye la atención psicológica, médica ni profesional cuando un niño presenta síntomas persistentes de estrés, ansiedad o trauma.</p>
+    <p>Si un niño presenta miedo intenso durante varios días, dificultades para dormir, aislamiento, cambios importantes de conducta o cualquier otro síntoma que preocupe a su familia, se recomienda consultar con un profesional sanitario o de salud mental.</p>
+    <p>Ningún cuento puede sustituir el amor, la presencia y el acompañamiento de un adulto de confianza.</p>
+    <p>Este cuento está pensado para leerse junto a un adulto. Compartir la lectura, escuchar las preguntas del niño y hablar sobre sus emociones forma parte de la experiencia.</p>
+    {% else %}
+    <p>This storybook has been created taking into account internationally recognized recommendations for providing emotional support to children during emergency situations.</p>
+    <p>Its purpose is educational and to help families talk with children after an earthquake.</p>
+    <p>It is not a substitute for psychological, medical, or professional care if a child experiences persistent stress, anxiety, trauma, or emotional distress.</p>
+    <p>If a child shows intense fear for several days, sleep difficulties, withdrawal, major behavioral changes, or any other symptoms that concern their family, professional medical or mental health advice should be sought.</p>
+    <p>No storybook can replace the love, presence, and support of a trusted adult.</p>
+    <p>This storybook is designed to be read together with an adult. Listening to children's questions and talking about their emotions is an important part of the experience.</p>
+    {% endif %}
+  </div>
   <div class="csd-form-wrap">
     <h2 class="csd-form-title">
       {% if lang == 'es' %}Accede al cuento gratuito{% else %}Access the free story{% endif %}
@@ -329,9 +383,9 @@
         <input type="checkbox" id="subscribe_future" name="subscribe_future" value="1">
         <label class="csd-checkbox-label" for="subscribe_future">
           {% if lang == 'es' %}
-            Quiero recibir notificaciones cuando publiquemos nuevos cuentos solidarios.
+            Sí, quiero recibir un aviso cuando publiquéis nuevos cuentos solidarios gratuitos.
           {% else %}
-            I'd like to be notified when new solidarity stories are published.
+            Yes, I'd like to be notified when new free solidarity storybooks are published.
           {% endif %}
         </label>
       </div>
@@ -347,18 +401,22 @@
     </form>
     <!-- Trust block -->
     <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:20px;margin-bottom:8px;">
-      <span style="font-family:'Quicksand',sans-serif;font-size:11px;font-weight:700;color:#16a34a;background:#dcfce7;padding:4px 10px;border-radius:50px;">✅ 100% gratuito</span>
-      <span style="font-family:'Quicksand',sans-serif;font-size:11px;font-weight:700;color:#1d4ed8;background:#dbeafe;padding:4px 10px;border-radius:50px;">🚫 Sin publicidad</span>
-      <span style="font-family:'Quicksand',sans-serif;font-size:11px;font-weight:700;color:#7c3aed;background:#ede9fe;padding:4px 10px;border-radius:50px;">💳 Sin compras</span>
-      <span style="font-family:'Quicksand',sans-serif;font-size:11px;font-weight:700;color:#b45309;background:#fef3c7;padding:4px 10px;border-radius:50px;">🧠 Creado con psicólogos infantiles</span>
+      <span style="font-family:'Quicksand',sans-serif;font-size:11px;font-weight:700;color:#16a34a;background:#dcfce7;padding:4px 10px;border-radius:50px;">✅ {% if lang == 'es' %}100% gratuito{% else %}100% free{% endif %}</span>
+      <span style="font-family:'Quicksand',sans-serif;font-size:11px;font-weight:700;color:#1d4ed8;background:#dbeafe;padding:4px 10px;border-radius:50px;">🚫 {% if lang == 'es' %}Sin publicidad{% else %}No ads{% endif %}</span>
+      <span style="font-family:'Quicksand',sans-serif;font-size:11px;font-weight:700;color:#b45309;background:#fef3c7;padding:4px 10px;border-radius:50px;">🧠 {% if lang == 'es' %}Creado con psicólogos infantiles{% else %}Created with child psychologists{% endif %}</span>
     </div>
     <p style="font-family:'Quicksand',sans-serif;font-size:12px;color:#9CA3AF;text-align:center;margin-top:10px;line-height:1.5;">
       {% if lang == 'es' %}
-        Tu email solo se usa para enviarte el enlace. Sin spam.
-        <a href="/privacy" style="color:#9d174d;">Política de privacidad</a>
+        Tu correo electrónico se utilizará únicamente para enviarte el acceso a este cuento.
+        Si marcas la casilla anterior, también podremos avisarte cuando publiquemos nuevos cuentos solidarios.
+        Nunca compartiremos tu información con terceros ni enviaremos publicidad no relacionada.
+        Puedes darte de baja en cualquier momento.
+        <a href="/privacy" style="color:#9d174d;">Política de Privacidad</a>
       {% else %}
-        Your email is only used to send you the link. No spam.
-        <a href="/privacy" style="color:#9d174d;">Privacy policy</a>
+        Your email address will only be used to send you access to this storybook.
+        If you choose to receive updates, we'll also notify you when new free solidarity storybooks are published.
+        We never sell or share your personal information, and you can unsubscribe at any time.
+        <a href="/privacy" style="color:#9d174d;">Privacy Policy</a>
       {% endif %}
     </p>
   </div>
