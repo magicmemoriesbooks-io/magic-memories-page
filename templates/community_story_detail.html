@@ -240,6 +240,33 @@
 }
 .csd-page-thumb:hover { transform: scale(1.04); }
 .csd-page-thumb img { width: 100%; display: block; aspect-ratio: 4/3; object-fit: cover; }
+
+.csd-landing-block {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 56px 24px;
+}
+.csd-block-placeholder {
+  border: 2px dashed #e5d5e8;
+  border-radius: 16px;
+  min-height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fdfbfe;
+}
+.csd-block-label {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #c9b8ce;
+}
+@media (max-width: 640px) {
+  .csd-landing-block { padding: 32px 16px; }
+  .csd-block-placeholder { min-height: 120px; }
+}
 </style>
 
 <div style="padding: 14px 24px 0; max-width: 1400px; margin: 0 auto;">
@@ -438,6 +465,25 @@
   </div>
 </div>
 {% endif %}
+
+<div class="csd-landing-block">
+  <div class="csd-block-placeholder" id="section-1"><span class="csd-block-label">Sección 1</span></div>
+</div>
+<div class="csd-landing-block">
+  <div class="csd-block-placeholder" id="section-2"><span class="csd-block-label">Sección 2</span></div>
+</div>
+<div class="csd-landing-block">
+  <div class="csd-block-placeholder" id="section-3"><span class="csd-block-label">Sección 3</span></div>
+</div>
+<div class="csd-landing-block">
+  <div class="csd-block-placeholder" id="section-4"><span class="csd-block-label">Sección 4</span></div>
+</div>
+<div class="csd-landing-block">
+  <div class="csd-block-placeholder" id="faq"><span class="csd-block-label">FAQ</span></div>
+</div>
+<div class="csd-landing-block">
+  <div class="csd-block-placeholder" id="cta-final"><span class="csd-block-label">CTA Final</span></div>
+</div>
 
 <script>
 const API_URL = '/api/community-story/{{ story.slug }}/generate';
