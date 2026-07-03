@@ -100,6 +100,9 @@
                             <span style="font-size: 11px; color: #94A3B8;">N/A</span>
                             {% elif eb.expiry_warning_sent %}
                             <span style="font-size: 11px; color: #10B981;">✓ Enviado</span>
+                            <button onclick="resetExpiryWarning('{{ eb.preview_id }}')"
+                              title="Reset para re-probar el email de vencimiento"
+                              style="margin-left:5px;padding:1px 6px;background:#6366f1;color:white;border:none;border-radius:4px;font-size:10px;cursor:pointer;">↺</button>
                             {% else %}
                             <span style="font-size: 11px; color: #94A3B8;">Pendiente</span>
                             {% endif %}

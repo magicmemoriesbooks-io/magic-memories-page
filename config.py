@@ -54,6 +54,9 @@ class Config:
     QS_PRINT_BASE_PRICE = 1500
     # Product 5: CP Personalized Book (Cloudprinter casewrap hardcover photobook_cw_a4_p_fc) — $26 + shipping
     CP_PB_BASE_PRICE = 2600
-    
+
+    # Launch promotion discount (applies to product prices, NOT to shipping)
+    LAUNCH_DISCOUNT_PCT = 10
+
     SUPPORTED_LANGUAGES = ['es', 'en']
     DEFAULT_LANGUAGE = 'en'

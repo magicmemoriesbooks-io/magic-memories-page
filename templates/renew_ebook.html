@@ -118,7 +118,10 @@
                         product_type: 'ebook',
                         is_renewal: true,
                         want_print: false,
-                        formats: ['ebook']
+                        formats: ['ebook'],
+                        amount_usd: result.captured_amount_usd || 6.00,
+                        capture_id: result.capture_id || '',
+                        payer_country: result.payer_country || ''
                     })
                 });
                 const processResult = await processResp.json();

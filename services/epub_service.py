@@ -51,14 +51,14 @@ def create_epub_from_story(story_data: dict, output_path: str = None) -> str:
     if not back_cover_path or not os.path.exists(back_cover_path):
         story_id = story_data.get('story_id', '')
         _fixed_backs = {
-            "dragon_garden": "static/images/fixed_pages/dragon_garden_back_cover.png",
+            "dragon_garden": "static/images/fixed_pages/_backup/dragon_garden_back_cover.png",
             "magic_chef": "static/images/fixed_pages/magic_chef_back_cover.png",
             "magic_inventor": "static/images/fixed_pages/magic_inventor_back_cover.png",
-            "star_keeper": "static/images/fixed_pages/star_keeper_back_cover.png",
-            "furry_love": "static/images/fixed_pages/furry_love_baby_back_cover.png",
-            "furry_love_adventure": "static/images/fixed_pages/furry_love_adventure_back_cover.png",
-            "furry_love_teen": "static/images/fixed_pages/furry_love_teen_back_cover.png",
-            "furry_love_adult": "static/images/fixed_pages/furry_love_adult_back_cover.png",
+            "star_keeper": "static/images/fixed_pages/_backup/star_keeper_back_cover.png",
+            "furry_love": "static/images/fixed_pages/_backup/furry_love_baby_back_cover.png",
+            "furry_love_adventure": "static/images/fixed_pages/_backup/furry_love_adventure_back_cover.png",
+            "furry_love_teen": "static/images/fixed_pages/_backup/furry_love_teen_back_cover.png",
+            "furry_love_adult": "static/images/fixed_pages/_backup/furry_love_adult_back_cover.png",
         }
         back_cover_path = _fixed_backs.get(story_id, 'static/images/quick_story_back_cover.png')
     

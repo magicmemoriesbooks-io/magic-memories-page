@@ -152,7 +152,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         paypal_order_id: data.orderID,
                         product_type: 'personalized',
                         want_print: false,
-                        formats: ['digital']
+                        formats: ['digital'],
+                        amount_usd: captureResult.captured_amount_usd || AMOUNT,
+                        capture_id: captureResult.capture_id || '',
+                        payer_country: captureResult.payer_country || ''
                     })
                 });
                 const processResult = await processResp.json();

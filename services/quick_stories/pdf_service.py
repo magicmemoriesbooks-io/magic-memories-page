@@ -7,14 +7,18 @@ from PIL import Image
 
 def generate_quick_story_pdf(story_data: dict, output_path: str = None, print_format: str = 'A4', format_type: str = 'cloudprinter') -> str:
     """
-    Generate PDF for Quick Stories.
+    Generate PDF for Quick Stories (portrait A4 or LETTER layout).
 
-    Baby books (0-2): 16 pages, A4 or Letter portrait with bleed.
-    Kids books (3-8): 16 pages, A4 or Letter portrait with bleed.
+    Baby books (0-2): 16 pages, A4 or Letter portrait.
+    Kids books (3-8): 16 pages, A4 or Letter portrait.
     Birthday books: dispatched as baby or kids based on age_range.
 
-    print_format: 'A4' (default) or 'LETTER' (US/LATAM)
-    format_type: 'cloudprinter' (print-ready, blank cover pages) or 'digital' (clean readable PDF)
+    print_format: 'A4' (default) or 'LETTER' (US/LATAM carta)
+    format_type: 'cloudprinter' (no trim marks, for CP submission)
+                 'digital' or 'print' (with trim marks, for home/copy-shop printing)
+
+    NOTE: Both paths use the portrait A4/LETTER layout (_create_qs_cp_a4_* functions).
+    The old square digital format is no longer used for printable PDFs.
     """
     from services.pdf_service import (
         create_baby_quick_story_pdf,
@@ -39,18 +43,22 @@ def generate_quick_story_pdf(story_data: dict, output_path: str = None, print_fo
     images = [img.lstrip('/') if img else '' for img in images]
     images = [img for img in images if img]
 
-    draw_marks = format_type == 'cloudprinter'
+    # Always use portrait A4/LETTER layout regardless of format_type.
+    # draw_trim_marks=True for home/copy-shop printing; False for Cloudprinter submission.
+    draw_marks = format_type != 'cloudprinter'
 
     if is_baby:
         return create_baby_quick_story_pdf(
             story_data, images, output_path,
-            format_type=format_type, print_format=print_format, skip_sanitize=True,
+            format_type='cloudprinter',
+            print_format=print_format, skip_sanitize=True,
             draw_trim_marks=draw_marks
         )
     else:
         return create_kids_quick_story_pdf(
             story_data, images, output_path,
-            format_type=format_type, print_format=print_format, skip_sanitize=True,
+            format_type='cloudprinter',
+            print_format=print_format, skip_sanitize=True,
             draw_trim_marks=draw_marks
         )
 

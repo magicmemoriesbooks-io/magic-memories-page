@@ -1437,7 +1437,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const email = document.getElementById('email')?.value?.trim() || captureResult.payer_email || '';
                 // Use the verified captured amount from PayPal instead of the potentially-stale currentTotal
                 const verifiedAmount = captureResult.captured_amount_usd > 0 ? captureResult.captured_amount_usd : currentTotal;
-                handlePayPalSuccess(data.orderID, email, checkoutDataGlobal, verifiedAmount);
+                const capturedCaptureId = captureResult.capture_id || '';
+                const capturedPayerCountry = captureResult.payer_country || '';
+                handlePayPalSuccess(data.orderID, email, checkoutDataGlobal, verifiedAmount, capturedCaptureId, capturedPayerCountry);
             } catch(e) {
                 stopRotatingMessages();
                 document.getElementById('loadingOverlay').classList.add('hidden');
@@ -1455,7 +1457,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 {% endif %}
 
-function handlePayPalSuccess(orderID, email, checkoutData, verifiedAmountUsd) {
+function handlePayPalSuccess(orderID, email, checkoutData, verifiedAmountUsd, captureId, payerCountry) {
     const wantPrint = selectedFormats.includes('print');
     const hasEbook = selectedFormats.includes('ebook');
     const hasDigital = selectedFormats.includes('digital');
@@ -1480,6 +1482,8 @@ function handlePayPalSuccess(orderID, email, checkoutData, verifiedAmountUsd) {
             product_type: productType,
             formats: selectedFormats,
             amount_usd: verifiedAmountUsd || currentTotal,
+            capture_id: captureId || '',
+            payer_country: payerCountry || '',
             shipping_cost: wantPrint ? selectedShippingCost : 0,
             format_prices: {digital: CFG.digitalBasePrice, print: CFG.printBasePrice, ebook: CFG.ebookBasePrice, pdf: CFG.pdfBasePrice}
         })

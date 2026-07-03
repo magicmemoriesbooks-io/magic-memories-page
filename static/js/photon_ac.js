@@ -17,6 +17,12 @@
 
   var PHOTON_URL = 'https://photon.komoot.io/api/';
 
+  var LIMITED_COVERAGE_COUNTRIES = [
+    'SA', 'AE', 'EG', 'MA', 'GH', 'NG', 'KE', 'TZ', 'ET', 'UG',
+    'SN', 'CI', 'CM', 'MZ', 'ZM', 'ZW', 'SD', 'LY', 'TN', 'DZ',
+    'IQ', 'SY', 'YE', 'AF', 'PK', 'BD', 'MM', 'KH', 'LA', 'PG'
+  ];
+
   function debounce(fn, delay) {
     var t;
     return function () {
@@ -97,6 +103,11 @@
     function fetchSuggestions(query) {
       if (!query || query.length < 4) { dropdown.style.display = 'none'; return; }
 
+      if (countryEl && LIMITED_COVERAGE_COUNTRIES.indexOf(countryEl.value.toUpperCase()) !== -1) {
+        dropdown.style.display = 'none';
+        return;
+      }
+
       var url = PHOTON_URL + '?q=' + encodeURIComponent(query) + '&limit=5&lang=' + lang;
 
       if (countryEl && countryEl.value) {
@@ -106,6 +117,10 @@
       fetch(url)
         .then(function (r) { return r.json(); })
         .then(function (data) {
+          if (countryEl && LIMITED_COVERAGE_COUNTRIES.indexOf(countryEl.value.toUpperCase()) !== -1) {
+            dropdown.style.display = 'none';
+            return;
+          }
           dropdown.innerHTML = '';
           var features = (data && data.features) || [];
           if (!features.length) { dropdown.style.display = 'none'; return; }
