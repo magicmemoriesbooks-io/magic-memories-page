@@ -267,6 +267,77 @@
   .csd-landing-block { padding: 32px 16px; }
   .csd-block-placeholder { min-height: 120px; }
 }
+.csd-content-section { max-width: 760px; margin: 0 auto; }
+.csd-section-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 28px;
+  color: #15134A;
+  text-align: center;
+  margin: 0 0 28px;
+}
+.csd-section-text {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 15.5px;
+  color: #4b5563;
+  line-height: 1.8;
+}
+.csd-section-text p { margin: 0 0 16px; }
+.csd-section-text h3 {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 17px;
+  font-weight: 800;
+  color: #9d174d;
+  margin: 24px 0 8px;
+}
+.csd-section-text ul { margin: 0 0 16px; padding-left: 22px; }
+.csd-section-text li { margin-bottom: 8px; }
+.csd-section-text strong { color: #15134A; }
+.csd-faq-item {
+  border-bottom: 1px solid #f0e6f6;
+  padding: 16px 0;
+}
+.csd-faq-item summary {
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+  font-size: 15.5px;
+  color: #15134A;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.csd-faq-item summary::-webkit-details-marker { display: none; }
+.csd-faq-item summary::after {
+  content: '+';
+  font-size: 22px;
+  line-height: 1;
+  color: #9d174d;
+  flex-shrink: 0;
+  transition: transform .2s;
+}
+.csd-faq-item[open] summary::after { transform: rotate(45deg); }
+.csd-faq-item p {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 14.5px;
+  color: #4b5563;
+  line-height: 1.7;
+  margin: 12px 0 0;
+}
+.csd-cta-final { text-align: center; }
+.csd-cta-final .csd-section-text { text-align: left; }
+.csd-cta-button {
+  display: inline-block;
+  text-decoration: none;
+  text-align: center;
+  margin-top: 12px;
+  min-width: 280px;
+}
+@media (max-width: 640px) {
+  .csd-section-title { font-size: 22px; }
+  .csd-section-text { font-size: 14.5px; }
+}
 </style>
 
 <div style="padding: 14px 24px 0; max-width: 1400px; margin: 0 auto;">
@@ -318,7 +389,7 @@
     <p>This storybook is designed to be read together with an adult. Listening to children's questions and talking about their emotions is an important part of the experience.</p>
     {% endif %}
   </div>
-  <div class="csd-form-wrap">
+  <div class="csd-form-wrap" id="top-form">
     <h2 class="csd-form-title">
       {% if lang == 'es' %}Accede al cuento gratuito{% else %}Access the free story{% endif %}
     </h2>
@@ -466,17 +537,222 @@
 </div>
 {% endif %}
 
+{% if lang == 'es' %}
+<div class="csd-landing-block" id="section-1">
+  <div class="csd-content-section">
+    <h2 class="csd-section-title">¿Qué es "¿Por qué tiembla la Tierra?"?</h2>
+    <div class="csd-section-text">
+      <p>Cuando un terremoto ocurre, no solo se mueve el suelo. También se mueven las emociones de quienes lo viven, especialmente las de los niños. Muchas veces aparecen preguntas difíciles de responder, miedos que no saben expresar o preocupaciones que los adultos tampoco siempre saben cómo explicar.</p>
+      <p>¿Por qué tiembla la Tierra? es un cuento infantil ilustrado creado para ayudar a las familias a conversar con los niños sobre los terremotos de una forma cercana, sencilla y adaptada a su edad. A través de ilustraciones llenas de calma y un lenguaje fácil de comprender, explica qué ocurre durante un terremoto, por qué sentimos miedo y cómo podemos recuperar poco a poco la sensación de seguridad.</p>
+      <p>El cuento combina información científica explicada de forma comprensible con un enfoque centrado en el bienestar emocional. Los niños descubren que los terremotos son un fenómeno natural de nuestro planeta, pero también aprenden que sentir miedo, incertidumbre o tristeza después de vivir una experiencia así es completamente normal.</p>
+      <p>A lo largo de sus páginas, el cuento acompaña a los pequeños paso a paso. Primero les ayuda a comprender por qué la Tierra tiembla; después les enseña cómo reacciona su cuerpo cuando siente miedo y, finalmente, les ofrece herramientas sencillas para recuperar la calma, expresar sus emociones y recordar que nunca están solos.</p>
+      <p>Además de explicar lo que sucede, el cuento incorpora una de las enseñanzas más importantes para cualquier niño: cómo actuar si vuelve a producirse un terremoto. Mediante ilustraciones claras y un lenguaje adaptado a la infancia, presenta las tres medidas básicas de autoprotección recomendadas internacionalmente: Agáchate, Cúbrete y Sujétate, recordando siempre que deben seguirse las indicaciones de los adultos responsables y de los servicios de emergencia.</p>
+      <p>Este proyecto nace con una vocación completamente solidaria. El cuento puede leerse gratuitamente desde cualquier dispositivo o descargarse en formato PDF preparado para imprimirse tanto en tamaño A4 como Carta. Está disponible en español e inglés para que pueda llegar al mayor número posible de familias, colegios y organizaciones que trabajan con niños en cualquier parte del mundo.</p>
+      <p>Su contenido ha sido elaborado tomando como referencia recomendaciones internacionales sobre apoyo emocional infantil en situaciones de emergencia y tiene una finalidad exclusivamente educativa y de acompañamiento. No pretende sustituir la atención psicológica profesional cuando esta sea necesaria, sino ofrecer una herramienta que facilite la conversación entre adultos y niños en los días posteriores a un terremoto.</p>
+      <p>En Magic Memories Books creemos que una historia puede convertirse en el comienzo de una conversación importante. A veces, un niño encuentra más fácil hacer preguntas después de leer un cuento que durante una explicación directa. Por eso hemos querido crear un recurso que ayude a transformar el miedo en comprensión, la incertidumbre en confianza y la soledad en esperanza.</p>
+      <p><strong>Porque, aunque la Tierra pueda temblar, ningún niño debería sentirse solo.</strong></p>
+    </div>
+  </div>
+</div>
+
+<div class="csd-landing-block" id="section-2">
+  <div class="csd-content-section">
+    <h2 class="csd-section-title">¿Para quién está pensado?</h2>
+    <div class="csd-section-text">
+      <p>Un terremoto afecta de forma diferente a cada niño. Algunos hacen muchas preguntas, otros guardan silencio y otros expresan su miedo a través del juego, el llanto o cambios en su comportamiento. Este cuento ha sido creado para ayudar a los adultos a iniciar esas conversaciones con calma, cercanía y un lenguaje adaptado a la infancia.</p>
+      <p>Aunque está especialmente pensado para niños de Educación Infantil y Primaria, puede ser una herramienta útil para cualquier persona que acompañe a un menor después de un terremoto o de una situación de emergencia.</p>
+      <h3>Familias</h3>
+      <p>Padres, madres, abuelos y otros familiares encontrarán en este cuento una forma sencilla de explicar qué ha ocurrido sin aumentar el miedo. Leer juntos favorece que los niños expresen sus dudas y emociones en un entorno seguro.</p>
+      <h3>Profesores y centros educativos</h3>
+      <p>Los colegios suelen convertirse en un espacio fundamental para ayudar a los niños a recuperar la normalidad después de una emergencia. Este cuento puede utilizarse en el aula para abrir conversaciones, resolver preguntas y trabajar la educación emocional de forma natural.</p>
+      <h3>Psicólogos, pedagogos y orientadores</h3>
+      <p>Como material complementario, el cuento puede facilitar el diálogo con los niños y servir como apoyo en intervenciones educativas o de acompañamiento emocional. Su finalidad es ayudar a explicar una situación compleja con un lenguaje comprensible para la infancia.</p>
+      <h3>Organizaciones humanitarias y ONG</h3>
+      <p>Las entidades que trabajan con familias afectadas por desastres naturales pueden utilizar este recurso como material de apoyo en actividades educativas, espacios seguros para la infancia o programas de acompañamiento comunitario.</p>
+      <h3>Voluntarios y equipos de emergencia</h3>
+      <p>Las personas que colaboran en la atención a familias tras una catástrofe necesitan recursos sencillos, accesibles y fáciles de compartir. Al estar disponible gratuitamente en español e inglés y poder descargarse en PDF listo para imprimir, este cuento puede utilizarse incluso cuando no existe conexión a Internet.</p>
+      <h3>Cualquier persona que quiera ayudar</h3>
+      <p>No es necesario haber vivido un terremoto para compartir este cuento. Muchas personas desean mostrar su apoyo a niños que atraviesan momentos difíciles y, a veces, una historia puede convertirse en un gesto de cercanía, esperanza y cariño.</p>
+      <p><strong>Porque comprender lo que ocurre es el primer paso para recuperar la tranquilidad.</strong> Y cuando un niño se siente acompañado, escuchado y comprendido, resulta mucho más fácil afrontar el miedo y volver a mirar el futuro con esperanza.</p>
+    </div>
+  </div>
+</div>
+
+<div class="csd-landing-block" id="section-3">
+  <div class="csd-content-section">
+    <h2 class="csd-section-title">¿Qué aprenderán los niños?</h2>
+    <div class="csd-section-text">
+      <p>Los niños entienden el mundo a través de las historias. Cuando una experiencia como un terremoto resulta difícil de comprender, un cuento puede ayudarles a poner nombre a lo que sienten, hacer preguntas y descubrir que no están solos.</p>
+      <p>¿Por qué tiembla la Tierra? ha sido creado para explicar un fenómeno natural de forma sencilla, transmitir seguridad y ofrecer herramientas que ayuden a recuperar la calma. A lo largo de sus páginas, los pequeños aprenderán mucho más que por qué ocurre un terremoto.</p>
+      <h3>Comprender qué es un terremoto</h3>
+      <p>El cuento explica de forma sencilla cómo está formada la Tierra y por qué, en ocasiones, las placas tectónicas se desplazan y provocan un temblor. La información científica se presenta con un lenguaje adaptado a la infancia para que los niños comprendan lo ocurrido sin sentirse abrumados.</p>
+      <h3>Entender que sentir miedo es normal</h3>
+      <p>Después de un terremoto, muchos niños experimentan miedo, incertidumbre o confusión. El cuento les ayuda a descubrir que todas esas emociones son una reacción natural y que no hay nada malo en sentirse así.</p>
+      <h3>Reconocer las señales de su cuerpo</h3>
+      <p>Cuando sentimos miedo, nuestro cuerpo también habla. El corazón puede latir más deprisa, pueden aparecer ganas de llorar o necesidad de buscar un abrazo. El cuento explica estas reacciones de forma cercana para que los niños comprendan que su cuerpo está intentando protegerlos.</p>
+      <h3>Aprender a recuperar la calma</h3>
+      <p>A través de mensajes positivos y sencillos ejercicios de respiración, los niños descubren que poco a poco pueden volver a sentirse tranquilos. Recuperar la calma les ayuda a pensar con mayor claridad y afrontar la situación con más seguridad.</p>
+      <h3>Saber cómo actuar durante un terremoto</h3>
+      <p>Además de explicar qué ocurre, el cuento enseña una de las lecciones más importantes: cómo protegerse si vuelve a producirse un temblor. Los niños aprenderán las tres medidas básicas de autoprotección recomendadas internacionalmente: Agáchate, Cúbrete y Sujétate, recordando siempre que deben seguir las indicaciones de los adultos responsables y de los servicios de emergencia.</p>
+      <h3>Descubrir que siempre hay personas dispuestas a ayudar</h3>
+      <p>Los niños conocerán el importante trabajo que realizan familias, vecinos, equipos de emergencia, voluntarios y muchas otras personas que colaboran para cuidar de quienes más lo necesitan después de un desastre.</p>
+      <h3>Transformar el miedo en esperanza</h3>
+      <p>El cuento termina con un mensaje muy importante: incluso después de los momentos más difíciles, las personas pueden ayudarse unas a otras, reconstruir lo perdido y seguir adelante juntas. Comprender que nunca estamos solos es una de las herramientas más valiosas para recuperar la confianza.</p>
+      <p><strong>Porque cuando un niño comprende lo que ocurre, sabe cómo protegerse y siente el apoyo de los adultos que le rodean, el miedo deja poco a poco espacio a la tranquilidad, la confianza y la esperanza.</strong></p>
+    </div>
+  </div>
+</div>
+
+<div class="csd-landing-block" id="section-4">
+  <div class="csd-content-section">
+    <h2 class="csd-section-title">Primeros auxilios psicológicos para niños después de un terremoto</h2>
+    <div class="csd-section-text">
+      <p>Después de vivir un terremoto, muchos niños necesitan algo más que una explicación sobre lo que ha ocurrido. También necesitan sentirse escuchados, comprendidos y acompañados mientras recuperan poco a poco la sensación de seguridad.</p>
+      <p>Los primeros auxilios psicológicos son un conjunto de recomendaciones utilizadas internacionalmente para ofrecer apoyo emocional inmediato a las personas que han vivido una situación de emergencia o un desastre. En el caso de los niños, estas recomendaciones ponen especial énfasis en proporcionar calma, protección, información adaptada a su edad y la cercanía de un adulto de confianza.</p>
+      <p>¿Por qué tiembla la Tierra? ha sido elaborado tomando como referencia estos principios generales de apoyo emocional infantil para facilitar que las familias puedan hablar con los niños de una forma sencilla, cercana y respetuosa.</p>
+      <p>A lo largo del cuento se fomenta que los niños puedan:</p>
+      <ul>
+        <li>Comprender qué ha sucedido con un lenguaje adaptado a su edad.</li>
+        <li>Expresar libremente sus emociones y hacer todas las preguntas que necesiten.</li>
+        <li>Entender que sentir miedo, tristeza o preocupación es una reacción completamente normal.</li>
+        <li>Aprender estrategias sencillas para recuperar la calma mediante la respiración y el acompañamiento de un adulto.</li>
+        <li>Recordar que existen muchas personas trabajando para proteger y ayudar a quienes lo necesitan.</li>
+      </ul>
+      <p>El objetivo no es que los niños olviden lo ocurrido, sino ayudarles a comprenderlo y sentirse acompañados mientras recuperan la confianza.</p>
+      <p>Es importante recordar que cada niño vive una experiencia diferente. Algunos se recuperan rápidamente, mientras que otros pueden necesitar más tiempo o apoyo. La paciencia, la escucha y el cariño de los adultos son fundamentales durante este proceso.</p>
+      <p>Este cuento pretende servir como una herramienta para facilitar la conversación entre adultos y niños, creando un espacio seguro donde puedan compartir sus dudas, expresar sus emociones y encontrar respuestas adaptadas a su nivel de comprensión.</p>
+      <p>Este recurso tiene una finalidad educativa y de apoyo emocional. No sustituye la atención psicológica, médica o profesional cuando un niño presenta síntomas persistentes de ansiedad, estrés o trauma después de un desastre. Si las reacciones emocionales son intensas o se mantienen durante un periodo prolongado, es recomendable consultar con un profesional sanitario o de salud mental.</p>
+      <p>En Magic Memories Books creemos que una historia no puede cambiar por sí sola lo que un niño ha vivido, pero sí puede ayudar a abrir una conversación que le haga sentirse escuchado, comprendido y acompañado. Y, en muchas ocasiones, ese primer paso puede marcar una gran diferencia en su proceso de recuperación emocional.</p>
+    </div>
+  </div>
+</div>
+
+<div class="csd-landing-block" id="section-5">
+  <div class="csd-content-section">
+    <h2 class="csd-section-title">Medidas básicas de seguridad durante un terremoto</h2>
+    <div class="csd-section-text">
+      <p>Además de ayudar a los niños a comprender qué es un terremoto y cómo pueden sentirse después de vivir uno, ¿Por qué tiembla la Tierra? también les enseña una de las lecciones más importantes: cómo protegerse si la Tierra vuelve a temblar.</p>
+      <p>Las recomendaciones que aparecen en el cuento están inspiradas en las medidas de autoprotección difundidas por organismos de protección civil y servicios de emergencia de numerosos países. Aunque cada región puede tener protocolos específicos, existe una recomendación internacional ampliamente conocida por su eficacia:</p>
+      <p><strong>Agáchate, Cúbrete y Sujétate</strong></p>
+      <p>Estos tres pasos ayudan a reducir el riesgo de sufrir lesiones mientras dura un terremoto.</p>
+      <h3>Agáchate</h3>
+      <p>Cuando comienza un temblor, lo primero es mantener la calma y agacharse para evitar perder el equilibrio. Permanecer de pie puede hacer que una persona caiga si el movimiento es fuerte.</p>
+      <h3>Cúbrete</h3>
+      <p>Si hay una mesa resistente cerca, lo más seguro es colocarse debajo para proteger la cabeza y el cuerpo de posibles objetos que puedan caer. Si el niño está en la cama cuando comienza el terremoto, la recomendación es permanecer allí, proteger su cabeza con la almohada y esperar a que termine el movimiento, siempre que no exista un peligro inmediato.</p>
+      <h3>Sujétate</h3>
+      <p>Una vez protegido, es importante sujetarse firmemente a la mesa o al mueble que proporciona protección. Durante un terremoto, los objetos pueden desplazarse y mantener la posición ayuda a permanecer protegido.</p>
+      <h3>Siempre escucha a los adultos</h3>
+      <p>Cada terremoto puede ser diferente. Por eso, una vez que el movimiento haya terminado, los niños deben seguir siempre las indicaciones del adulto que los acompaña y respetar las instrucciones de los servicios de emergencia y de Protección Civil.</p>
+      <h3>Prepararse también ayuda a sentirse más seguro</h3>
+      <p>Hablar en casa sobre qué hacer durante un terremoto, conocer los lugares más seguros y practicar un pequeño plan familiar puede ayudar a que los niños se sientan más tranquilos si alguna vez vuelven a vivir una situación similar. Saber cómo actuar reduce la incertidumbre y aumenta la sensación de seguridad.</p>
+      <p>Nuestro cuento presenta estas medidas de forma sencilla, mediante ilustraciones y un lenguaje adaptado a la infancia, para que los niños puedan recordarlas con facilidad sin generar un miedo innecesario.</p>
+      <p>La información sobre seguridad nunca debe sustituir las recomendaciones oficiales de las autoridades competentes. Si resides en una zona con riesgo sísmico, es aconsejable conocer el plan de emergencia de tu localidad y seguir siempre las indicaciones de Protección Civil y de los organismos oficiales.</p>
+      <p><strong>Porque aprender a protegerse también es una forma de recuperar la confianza.</strong> Cuando un niño sabe qué hacer y siente el apoyo de los adultos que lo rodean, afronta cualquier situación con mucha más tranquilidad y seguridad.</p>
+    </div>
+  </div>
+</div>
+
+<div class="csd-landing-block" id="section-6">
+  <div class="csd-content-section">
+    <h2 class="csd-section-title">Sobre Cuentos Solidarios</h2>
+    <div class="csd-section-text">
+      <p>Cuentos Solidarios es una iniciativa de Magic Memories Books creada con un objetivo muy sencillo: poner historias de calidad al alcance de cualquier familia cuando más las necesita.</p>
+      <p>Creemos que los cuentos pueden hacer mucho más que entretener. También pueden ayudar a los niños a comprender situaciones difíciles, expresar sus emociones y encontrar un espacio seguro para hacer preguntas junto a las personas que más quieren.</p>
+      <p>Por ese motivo hemos creado una colección de cuentos infantiles ilustrados que se ofrecen de forma completamente gratuita, sin publicidad y accesibles desde cualquier lugar del mundo.</p>
+      <p>Nuestro compromiso es que cualquier familia, colegio, biblioteca, psicólogo, organización humanitaria o voluntario pueda acceder a estos recursos sin coste, leerlos online o descargarlos en PDF para utilizarlos cuando los necesiten.</p>
+      <p>Cada cuento aborda una situación diferente que puede resultar difícil de explicar a un niño. Todos están escritos con un lenguaje cercano, ilustraciones amables y un enfoque respetuoso con la infancia, para ayudar a transformar el miedo en comprensión y la incertidumbre en esperanza.</p>
+      <p>La colección irá creciendo poco a poco con nuevos títulos dedicados a distintas situaciones que pueden afectar emocionalmente a los niños. Nuestro objetivo es crear una biblioteca solidaria que esté disponible para cualquier persona, en cualquier país y en varios idiomas.</p>
+      <p>Actualmente, todos los cuentos pueden leerse en español e inglés, y seguiremos trabajando para incorporar nuevos idiomas que permitan llegar a más familias y comunidades de todo el mundo.</p>
+      <h3>Una iniciativa posible gracias a muchas personas</h3>
+      <p>Este proyecto existe gracias al trabajo conjunto de ilustradores, desarrolladores, traductores y personas que creen que la lectura puede convertirse en una herramienta de apoyo emocional para la infancia.</p>
+      <p>Cada descarga, cada lectura y cada persona que comparte estos cuentos ayuda a que el proyecto llegue un poco más lejos y pueda acompañar a más niños cuando atraviesan momentos difíciles.</p>
+      <h3>Tú también puedes formar parte</h3>
+      <p>Si este cuento te ha resultado útil, puedes ayudarnos de una forma muy sencilla: compártelo con otras familias, profesores, colegios u organizaciones que puedan necesitarlo.</p>
+      <p>Una historia compartida puede convertirse en una conversación importante. Y una conversación puede ayudar a un niño a sentirse comprendido, acompañado y menos solo.</p>
+      <p><strong>Porque, a veces, el mayor regalo no es un libro. Es hacerle saber a un niño que, incluso en los momentos más difíciles, siempre habrá alguien dispuesto a tenderle la mano.</strong></p>
+    </div>
+  </div>
+</div>
+
+<div class="csd-landing-block" id="faq">
+  <div class="csd-content-section">
+    <h2 class="csd-section-title">Preguntas frecuentes</h2>
+    <div>
+      <details class="csd-faq-item">
+        <summary>¿El cuento "¿Por qué tiembla la Tierra?" es completamente gratuito?</summary>
+        <p>Sí. Puedes leer el cuento online o descargarlo gratuitamente en formato PDF. Nuestro objetivo es que cualquier familia, colegio u organización pueda acceder a este recurso sin coste.</p>
+      </details>
+      <details class="csd-faq-item">
+        <summary>¿Necesito crear una cuenta para descargar el cuento?</summary>
+        <p>No. Solo necesitamos una dirección de correo electrónico para enviarte el acceso al cuento y el PDF correspondiente. No es necesario crear una cuenta.</p>
+      </details>
+      <details class="csd-faq-item">
+        <summary>¿Puedo imprimir el cuento?</summary>
+        <p>Sí. El PDF está preparado para imprimirse en tamaño A4 o Carta (Letter), e incluye las marcas de corte necesarias para obtener el mejor resultado. También recibirás una guía de impresión con instrucciones paso a paso.</p>
+      </details>
+      <details class="csd-faq-item">
+        <summary>¿Está disponible en otros idiomas?</summary>
+        <p>Actualmente el cuento está disponible en español e inglés. Nuestro objetivo es seguir incorporando nuevos idiomas para que pueda llegar a más familias de todo el mundo.</p>
+      </details>
+      <details class="csd-faq-item">
+        <summary>¿Este cuento puede utilizarse en colegios?</summary>
+        <p>Sí. Profesores, centros educativos y bibliotecas pueden utilizar el cuento como recurso educativo para explicar qué es un terremoto, hablar sobre las emociones y fomentar conversaciones adaptadas a la edad de los alumnos.</p>
+      </details>
+      <details class="csd-faq-item">
+        <summary>¿Puede utilizarse como apoyo en consultas psicológicas?</summary>
+        <p>Puede utilizarse como material complementario para facilitar la conversación con los niños. Sin embargo, el cuento tiene una finalidad educativa y de apoyo emocional y no sustituye la intervención de un profesional cuando sea necesaria.</p>
+      </details>
+      <details class="csd-faq-item">
+        <summary>¿Qué edad es la más adecuada para leer este cuento?</summary>
+        <p>Está pensado principalmente para niños de Educación Infantil y Primaria. Como ocurre con cualquier historia, recomendamos que sea leída junto a un adulto para poder responder las preguntas que puedan surgir durante la lectura.</p>
+      </details>
+      <details class="csd-faq-item">
+        <summary>¿Cómo puedo ayudar a que este cuento llegue a más niños?</summary>
+        <p>Puedes compartir el enlace con otras familias, profesores, colegios, asociaciones u organizaciones que trabajen con niños. También puedes animar a los pequeños a compartir sus dibujos utilizando el hashtag #NiñosValientes, ayudando así a transmitir un mensaje de esperanza y apoyo a otros niños.</p>
+      </details>
+      <details class="csd-faq-item">
+        <summary>¿Habrá nuevos cuentos solidarios?</summary>
+        <p>Sí. Cuentos Solidarios es un proyecto en crecimiento. Si lo deseas, puedes marcar la opción correspondiente en el formulario y te avisaremos cuando publiquemos nuevos cuentos gratuitos.</p>
+      </details>
+      <details class="csd-faq-item">
+        <summary>¿Quién ha creado este cuento?</summary>
+        <p>Este cuento forma parte del proyecto Cuentos Solidarios de Magic Memories Books. Ha sido elaborado con una finalidad educativa y de apoyo emocional, tomando como referencia recomendaciones internacionales sobre acompañamiento infantil en situaciones de emergencia.</p>
+      </details>
+    </div>
+  </div>
+</div>
+
+<div class="csd-landing-block" id="cta-final">
+  <div class="csd-content-section csd-cta-final">
+    <h2 class="csd-section-title">Un pequeño cuento puede marcar una gran diferencia</h2>
+    <div class="csd-section-text">
+      <p>A veces, una historia puede ayudar a responder una pregunta difícil. Otras veces, simplemente puede ofrecer a un niño la tranquilidad de saber que no está solo.</p>
+      <p>¿Por qué tiembla la Tierra? ha sido creado para ayudar a las familias a explicar un terremoto con un lenguaje sencillo, ilustraciones amables y un mensaje de esperanza. Queremos que cualquier niño, en cualquier lugar del mundo, pueda acceder gratuitamente a este recurso siempre que lo necesite.</p>
+      <p>Puedes leer el cuento online desde cualquier dispositivo o descargar un PDF listo para imprimir y compartir con tu familia, tu colegio o las personas que puedan beneficiarse de él.</p>
+      <p>Si este cuento te resulta útil, te invitamos a compartirlo. Cada familia que lo descubre, cada profesor que lo utiliza en el aula y cada persona que lo recomienda ayuda a que llegue un poco más lejos y pueda acompañar a otros niños que atraviesan momentos difíciles.</p>
+      <p><strong>Porque cuando compartimos una historia, también compartimos esperanza.</strong></p>
+    </div>
+    <a href="#top-form" class="csd-submit csd-cta-button">📖 Lee o descarga gratuitamente ¿Por qué tiembla la Tierra?</a>
+  </div>
+</div>
+{% else %}
 <div class="csd-landing-block">
-  <div class="csd-block-placeholder" id="section-1"><span class="csd-block-label">Sección 1</span></div>
+  <div class="csd-block-placeholder" id="section-1"><span class="csd-block-label">Section 1</span></div>
 </div>
 <div class="csd-landing-block">
-  <div class="csd-block-placeholder" id="section-2"><span class="csd-block-label">Sección 2</span></div>
+  <div class="csd-block-placeholder" id="section-2"><span class="csd-block-label">Section 2</span></div>
 </div>
 <div class="csd-landing-block">
-  <div class="csd-block-placeholder" id="section-3"><span class="csd-block-label">Sección 3</span></div>
+  <div class="csd-block-placeholder" id="section-3"><span class="csd-block-label">Section 3</span></div>
 </div>
 <div class="csd-landing-block">
-  <div class="csd-block-placeholder" id="section-4"><span class="csd-block-label">Sección 4</span></div>
+  <div class="csd-block-placeholder" id="section-4"><span class="csd-block-label">Section 4</span></div>
+</div>
+<div class="csd-landing-block">
+  <div class="csd-block-placeholder" id="section-5"><span class="csd-block-label">Section 5</span></div>
+</div>
+<div class="csd-landing-block">
+  <div class="csd-block-placeholder" id="section-6"><span class="csd-block-label">Section 6</span></div>
 </div>
 <div class="csd-landing-block">
   <div class="csd-block-placeholder" id="faq"><span class="csd-block-label">FAQ</span></div>
@@ -484,6 +760,7 @@
 <div class="csd-landing-block">
   <div class="csd-block-placeholder" id="cta-final"><span class="csd-block-label">CTA Final</span></div>
 </div>
+{% endif %}
 
 <script>
 const API_URL = '/api/community-story/{{ story.slug }}/generate';
