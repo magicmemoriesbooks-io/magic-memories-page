@@ -583,76 +583,77 @@ scheduler.add_job(func=scheduled_lead_follow_up_emails, trigger="interval", hour
 def scheduled_isabel_campaign_3h():
     """Hourly job: send Isabel's campaign email to leads 3h–30d old who haven't purchased."""
     try:
-        from datetime import datetime as _dt3, timedelta as _td3
-        from services.email_service import send_isabel_campaign_email, _is_duplicate_send
-        import json as _j3, glob as _g3, os as _o3
+        with app.app_context():
+            from datetime import datetime as _dt3, timedelta as _td3
+            from services.email_service import send_isabel_campaign_email, _is_duplicate_send
+            import json as _j3, glob as _g3, os as _o3
 
-        now = _dt3.utcnow()
-        window_start = now - _td3(days=30)
-        window_end   = now - _td3(hours=3)
+            now = _dt3.utcnow()
+            window_start = now - _td3(days=30)
+            window_end   = now - _td3(hours=3)
 
-        candidates = (
-            PreviewLead.query
-            .filter(PreviewLead.email != '',
-                    PreviewLead.created_at >= window_start,
-                    PreviewLead.created_at <= window_end)
-            .order_by(PreviewLead.created_at.desc())
-            .all()
-        )
+            candidates = (
+                PreviewLead.query
+                .filter(PreviewLead.email != '',
+                        PreviewLead.created_at >= window_start,
+                        PreviewLead.created_at <= window_end)
+                .order_by(PreviewLead.created_at.desc())
+                .all()
+            )
 
-        story_dir = _o3.path.join(_o3.path.dirname(__file__), 'story_previews')
+            story_dir = _o3.path.join(_o3.path.dirname(__file__), 'story_previews')
 
-        # Build purchased set
-        purchased_emails = set()
-        if _o3.path.isdir(story_dir):
-            for jf in _g3.glob(_o3.path.join(story_dir, '*.json')):
-                try:
-                    with open(jf, 'r', encoding='utf-8') as _f:
-                        sd = _j3.load(_f)
-                    if (sd.get('paid') or sd.get('ebook_paid') or sd.get('pdf_paid')
-                            or sd.get('payment_status') == 'completed'
-                            or float(sd.get('amount_paid') or sd.get('customer_total_usd') or 0) > 0):
+            # Build purchased set
+            purchased_emails = set()
+            if _o3.path.isdir(story_dir):
+                for jf in _g3.glob(_o3.path.join(story_dir, '*.json')):
+                    try:
+                        with open(jf, 'r', encoding='utf-8') as _f:
+                            sd = _j3.load(_f)
+                        if (sd.get('paid') or sd.get('ebook_paid') or sd.get('pdf_paid')
+                                or sd.get('payment_status') == 'completed'
+                                or float(sd.get('amount_paid') or sd.get('customer_total_usd') or 0) > 0):
+                            em = (sd.get('customer_email') or '').strip().lower()
+                            if em:
+                                purchased_emails.add(em)
+                    except Exception:
+                        pass
+
+            # Build story info index (child_name + lang) keyed by email and story_id
+            info_by_email, info_by_sid = {}, {}
+            if _o3.path.isdir(story_dir):
+                for jf in _g3.glob(_o3.path.join(story_dir, '*.json')):
+                    try:
+                        with open(jf, 'r', encoding='utf-8') as _f:
+                            sd = _j3.load(_f)
+                        entry = {'child_name': sd.get('child_name', ''),
+                                 'lang': sd.get('lang', 'es')}
                         em = (sd.get('customer_email') or '').strip().lower()
-                        if em:
-                            purchased_emails.add(em)
-                except Exception:
-                    pass
+                        if em and em not in info_by_email:
+                            info_by_email[em] = entry
+                        sid = sd.get('story_id', '')
+                        if sid and sid not in info_by_sid:
+                            info_by_sid[sid] = entry
+                    except Exception:
+                        pass
 
-        # Build story info index (child_name + lang) keyed by email and story_id
-        info_by_email, info_by_sid = {}, {}
-        if _o3.path.isdir(story_dir):
-            for jf in _g3.glob(_o3.path.join(story_dir, '*.json')):
-                try:
-                    with open(jf, 'r', encoding='utf-8') as _f:
-                        sd = _j3.load(_f)
-                    entry = {'child_name': sd.get('child_name', ''),
-                             'lang': sd.get('lang', 'es')}
-                    em = (sd.get('customer_email') or '').strip().lower()
-                    if em and em not in info_by_email:
-                        info_by_email[em] = entry
-                    sid = sd.get('story_id', '')
-                    if sid and sid not in info_by_sid:
-                        info_by_sid[sid] = entry
-                except Exception:
-                    pass
+            seen, sent_count = set(), 0
+            for lead in candidates:
+                em = (lead.email or '').strip().lower()
+                if not em or '@' not in em or em in seen:
+                    continue
+                seen.add(em)
+                if em in purchased_emails:
+                    continue
+                if _is_duplicate_send(preview_id=em, email_type='lead_campaign_isabel', days=365):
+                    continue
+                info = info_by_email.get(em) or info_by_sid.get(lead.story_id or '', {})
+                ok = send_isabel_campaign_email(em, info.get('child_name', ''), info.get('lang', 'es'))
+                if ok:
+                    sent_count += 1
 
-        seen, sent_count = set(), 0
-        for lead in candidates:
-            em = (lead.email or '').strip().lower()
-            if not em or '@' not in em or em in seen:
-                continue
-            seen.add(em)
-            if em in purchased_emails:
-                continue
-            if _is_duplicate_send(preview_id=em, email_type='lead_campaign_isabel', days=365):
-                continue
-            info = info_by_email.get(em) or info_by_sid.get(lead.story_id or '', {})
-            ok = send_isabel_campaign_email(em, info.get('child_name', ''), info.get('lang', 'es'))
-            if ok:
-                sent_count += 1
-
-        if sent_count:
-            print(f"[ISABEL-3H] ✅ Sent to {sent_count} leads")
+            if sent_count:
+                print(f"[ISABEL-3H] ✅ Sent to {sent_count} leads")
     except Exception as _e:
         print(f"[ISABEL-3H] ❌ Error: {_e}")
 
