@@ -1,22 +1,98 @@
 {% extends "base.html" %}
-{% block meta_description %}{{ story.title_es if lang == 'es' else story.title_en }} — Cuento Solidario gratuito de Magic Memories Books.{% endblock %}
 
-{% block head_extra %}
-<link rel="canonical" href="{{ request.url_root.rstrip('/') }}/cuentos-solidarios/{{ story.slug }}">
-<meta property="og:type" content="website">
-<meta property="og:title" content="{{ story.title_es if lang == 'es' else story.title_en }} — Cuento Solidario Gratis">
-<meta property="og:description" content="{{ (story.description_es if lang == 'es' else story.description_en) or 'Cuento solidario gratuito personalizado con el nombre de tu hijo/a.' }}">
+{% set story_title = story.title_es if lang == 'es' else story.title_en %}
+{% set story_desc = (story.description_es if lang == 'es' else story.description_en) or story_title %}
 {% set meta_cover = (story.cover_image_en if lang != 'es' and story.cover_image_en else story.cover_image) %}
-{% if meta_cover %}
-<meta property="og:image" content="{{ request.url_root.rstrip('/') }}/static/{{ meta_cover }}">
-{% endif %}
-<meta property="og:url" content="{{ request.url_root.rstrip('/') }}/cuentos-solidarios/{{ story.slug }}">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="{{ story.title_es if lang == 'es' else story.title_en }} — Cuento Solidario Gratis">
-<meta name="twitter:description" content="{{ (story.description_es if lang == 'es' else story.description_en) or 'Cuento solidario gratuito.' }}">
-{% if meta_cover %}
-<meta name="twitter:image" content="{{ request.url_root.rstrip('/') }}/static/{{ meta_cover }}">
-{% endif %}
+{% set meta_cover_url = (request.url_root.rstrip('/') + '/static/' + meta_cover) if meta_cover else url_for('static', filename='images/og/og_site_hero.jpg', _external=True) %}
+{% set canonical_url = request.url_root.rstrip('/') + '/cuentos-solidarios/' + story.slug %}
+{% set cause_tag = ('Cuento Solidario Gratis' if lang == 'es' else 'Free Solidarity Story') %}
+{% set stories_label = ('Cuentos Solidarios' if lang == 'es' else 'Solidarity Stories') %}
+{% set home_label = ('Inicio' if lang == 'es' else 'Home') %}
+
+{% set faq_es = [
+  ('¿El cuento "¿Por qué tiembla la Tierra?" es completamente gratuito?', 'Sí. Puedes leer el cuento online o descargarlo gratuitamente en formato PDF. Nuestro objetivo es que cualquier familia, colegio u organización pueda acceder a este recurso sin coste.'),
+  ('¿Necesito crear una cuenta para descargar el cuento?', 'No. Solo necesitamos una dirección de correo electrónico para enviarte el acceso al cuento y el PDF correspondiente. No es necesario crear una cuenta.'),
+  ('¿Puedo imprimir el cuento?', 'Sí. El PDF está preparado para imprimirse en tamaño A4 o Carta (Letter), e incluye las marcas de corte necesarias para obtener el mejor resultado. También recibirás una guía de impresión con instrucciones paso a paso.'),
+  ('¿Está disponible en otros idiomas?', 'Actualmente el cuento está disponible en español e inglés. Nuestro objetivo es seguir incorporando nuevos idiomas para que pueda llegar a más familias de todo el mundo.'),
+  ('¿Este cuento puede utilizarse en colegios?', 'Sí. Profesores, centros educativos y bibliotecas pueden utilizar el cuento como recurso educativo para explicar qué es un terremoto, hablar sobre las emociones y fomentar conversaciones adaptadas a la edad de los alumnos.'),
+  ('¿Puede utilizarse como apoyo en consultas psicológicas?', 'Puede utilizarse como material complementario para facilitar la conversación con los niños. Sin embargo, el cuento tiene una finalidad educativa y de apoyo emocional y no sustituye la intervención de un profesional cuando sea necesaria.'),
+  ('¿Qué edad es la más adecuada para leer este cuento?', 'Está pensado principalmente para niños de Educación Infantil y Primaria. Como ocurre con cualquier historia, recomendamos que sea leída junto a un adulto para poder responder las preguntas que puedan surgir durante la lectura.'),
+  ('¿Cómo puedo ayudar a que este cuento llegue a más niños?', 'Puedes compartir el enlace con otras familias, profesores, colegios, asociaciones u organizaciones que trabajen con niños. También puedes animar a los pequeños a compartir sus dibujos utilizando el hashtag #NiñosValientes, ayudando así a transmitir un mensaje de esperanza y apoyo a otros niños.'),
+  ('¿Habrá nuevos cuentos solidarios?', 'Sí. Cuentos Solidarios es un proyecto en crecimiento. Si lo deseas, puedes marcar la opción correspondiente en el formulario y te avisaremos cuando publiquemos nuevos cuentos gratuitos.'),
+  ('¿Quién ha creado este cuento?', 'Este cuento forma parte del proyecto Cuentos Solidarios de Magic Memories Books. Ha sido elaborado con una finalidad educativa y de apoyo emocional, tomando como referencia recomendaciones internacionales sobre acompañamiento infantil en situaciones de emergencia.')
+] %}
+{% set faq_en = [
+  ('Is "Why Does the Earth Shake?" completely free?', 'Yes. You can read the story online or download it for free as a PDF. Our goal is for any family, school, or organization to be able to access this resource at no cost.'),
+  ('Do I need to create an account to download the book?', "No. We only need an email address to send you access to the story and the corresponding PDF. There's no account required."),
+  ('Can I print the book?', 'Yes. The PDF is print-ready in both Letter and A4 sizes, with the trim marks needed for the best results. You will also receive a printing guide with step-by-step instructions.'),
+  ('Is it available in other languages?', 'Right now, the story is available in English and Spanish. Our goal is to keep adding languages so it can reach more families around the world.'),
+  ('Can this book be used in classrooms?', 'Yes. Teachers, schools, and libraries can use this story as an educational resource to explain what an earthquake is, talk about emotions, and start age-appropriate conversations with students.'),
+  ('Can it be used to support therapy or counseling sessions?', 'It can be used as a supplemental resource to support conversations with kids. That said, this book is meant for educational and emotional-support purposes and does not replace professional care when it is needed.'),
+  ("What's the best age for this book?", 'It is designed mainly for preschool and elementary-age kids. As with any story, we recommend reading it together with an adult who can answer questions as they come up.'),
+  ('How can I help this story reach more kids?', 'You can share the link with other families, teachers, schools, or organizations that work with children. You can also encourage kids to share their drawings using the hashtag #BraveKids, helping spread a message of hope and support to other children.'),
+  ('Will there be more solidarity stories?', "Yes. Solidarity Stories is a growing project. If you'd like, you can check the box on the form and we will let you know as soon as we publish new free stories."),
+  ('Who created this book?', 'This story is part of the Solidarity Stories project by Magic Memories Books. It was created for educational and emotional-support purposes, based on internationally recognized guidance for supporting children through emergency situations.')
+] %}
+
+{% block title %}{{ story_title }} — {{ cause_tag }} | Magic Memories Books{% endblock %}
+{% block meta_description %}{{ story_desc }}{% endblock %}
+
+{% block og_title %}{{ story_title }} — {{ cause_tag }}{% endblock %}
+{% block og_description %}{{ story_desc }}{% endblock %}
+{% block og_image %}{{ meta_cover_url }}{% endblock %}
+
+{% block twitter_title %}{{ story_title }} — {{ cause_tag }}{% endblock %}
+{% block twitter_description %}{{ story_desc }}{% endblock %}
+{% block twitter_image %}{{ meta_cover_url }}{% endblock %}
+
+{% block canonical_url %}{{ canonical_url }}{% endblock %}
+{% block og_type %}book{% endblock %}
+
+{% block schema_ld %}
+,{
+  "@type": "Book",
+  "@id": "{{ canonical_url }}#book",
+  "name": {{ story_title | tojson }},
+  "description": {{ story_desc | tojson }},
+  "url": "{{ canonical_url }}",
+  "image": {{ meta_cover_url | tojson }},
+  "inLanguage": "{{ 'es' if lang == 'es' else 'en' }}",
+  "bookFormat": "https://schema.org/EBook",
+  "isAccessibleForFree": true,
+  "isFamilyFriendly": true,
+  "genre": {{ ('Cuento infantil solidario' if lang == 'es' else "Children's solidarity story") | tojson }},
+  "audience": {
+    "@type": "Audience",
+    "audienceType": {{ ('Niños y familias' if lang == 'es' else 'Children and families') | tojson }}
+  },
+  "publisher": {"@id": "https://magicmemoriesbooks.com/#organization"},
+  "author": {"@id": "https://magicmemoriesbooks.com/#organization"}
+},
+{
+  "@type": "BreadcrumbList",
+  "@id": "{{ canonical_url }}#breadcrumb",
+  "itemListElement": [
+    {"@type": "ListItem", "position": 1, "name": {{ home_label | tojson }}, "item": "https://magicmemoriesbooks.com/"},
+    {"@type": "ListItem", "position": 2, "name": {{ stories_label | tojson }}, "item": "https://magicmemoriesbooks.com/cuentos-solidarios"},
+    {"@type": "ListItem", "position": 3, "name": {{ story_title | tojson }}, "item": "{{ canonical_url }}"}
+  ]
+},
+{
+  "@type": "FAQPage",
+  "@id": "{{ canonical_url }}#faq",
+  "mainEntity": [
+    {% for q, a in (faq_es if lang == 'es' else faq_en) %}
+    {
+      "@type": "Question",
+      "name": {{ q | tojson }},
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": {{ a | tojson }}
+      }
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
 {% endblock %}
 
 {% block content %}
@@ -340,12 +416,15 @@
 }
 </style>
 
-<div style="padding: 14px 24px 0; max-width: 1400px; margin: 0 auto;">
-  <a href="{{ url_for('index') }}" style="display:inline-flex;align-items:center;gap:6px;font-family:'Quicksand',sans-serif;font-size:14px;font-weight:700;color:#9d174d;text-decoration:none;opacity:0.8;transition:opacity .2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-    {% if lang == 'es' %}Magic Memories Books{% else %}Magic Memories Books{% endif %}
-  </a>
-</div>
+<nav aria-label="Breadcrumb" style="padding: 14px 24px 0; max-width: 1400px; margin: 0 auto;">
+  <ol style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;list-style:none;margin:0;padding:0;font-family:'Quicksand',sans-serif;font-size:13px;font-weight:600;color:#9d174d;">
+    <li><a href="{{ url_for('index') }}" style="color:#9d174d;text-decoration:none;opacity:0.8;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">{{ home_label }}</a></li>
+    <li aria-hidden="true" style="opacity:0.5;">/</li>
+    <li><a href="{{ url_for('community_stories_list') }}" style="color:#9d174d;text-decoration:none;opacity:0.8;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">{{ stories_label }}</a></li>
+    <li aria-hidden="true" style="opacity:0.5;">/</li>
+    <li aria-current="page" style="opacity:0.65;">{{ story_title }}</li>
+  </ol>
+</nav>
 
 <div class="csd-hero">
   <div class="csd-cause-chip">

@@ -49,7 +49,7 @@
     <meta name="p:domain_verify" content="2f97b8871e2048942f106ee060606c94"/>
     <meta name="keywords" content="{% block meta_keywords %}{% if lang == 'es' %}cuentos personalizados, libros infantiles personalizados, cuento con foto del niño, libro personalizado con IA, cuentos con nombre del niño, regalo niños, libro ilustrado personalizado{% else %}personalized children's books, custom story books, personalized kids stories, AI children's book, custom illustrated book, personalized gift for kids, children's book with child's photo, custom fairy tale{% endif %}{% endblock %}">
     <meta name="robots" content="{% if '/admin' in request.path %}noindex, nofollow{% else %}index, follow{% endif %}">
-    <link rel="canonical" href="https://magicmemoriesbooks.com{{ request.path }}">
+    <link rel="canonical" href="{% block canonical_url %}https://magicmemoriesbooks.com{{ request.path }}{% endblock %}">
     <link rel="alternate" hreflang="x-default" href="https://magicmemoriesbooks.com{{ request.path }}">
     <link rel="alternate" hreflang="en" href="https://magicmemoriesbooks.com{{ request.path }}?lang=en">
     <link rel="alternate" hreflang="es" href="https://magicmemoriesbooks.com{{ request.path }}?lang=es">
@@ -107,7 +107,7 @@
     <meta property="og:description" content="{% block og_description %}{% if lang == 'es' %}Crea cuentos infantiles personalizados con fotos reales de tu hijo/a. Diseños únicos con inteligencia artificial.{% else %}Create personalized children's books with real photos of your child. Unique AI-generated designs.{% endif %}{% endblock %}">
     <meta property="og:image" content="{% block og_image %}{{ url_for('static', filename='images/og/og_site_hero.jpg', _external=True) }}{% endblock %}">
     <meta property="og:url" content="https://magicmemoriesbooks.com{{ request.path }}{% if request.query_string %}?{{ request.query_string.decode() }}{% endif %}">
-    <meta property="og:type" content="website">
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
     <meta property="og:locale" content="{{ 'es_ES' if lang == 'es' else 'en_US' }}">
     <meta property="og:site_name" content="Magic Memories Books">
 
