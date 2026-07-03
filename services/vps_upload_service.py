@@ -256,10 +256,19 @@ def prepare_book_for_visor(story_data, preview_id, book_uuid=None, is_gift=False
 
     print(f"[VISOR-{visor_type.upper()}] Preparing {preview_id}: cover={front_cover}, scenes={len(scene_images)}")
 
+    VISOR_MAX_DIM = 1200  # cap web viewer images; print-quality (300 DPI) originals are untouched
+
+    def _capped_size(size):
+        w, h = size
+        if w <= VISOR_MAX_DIM and h <= VISOR_MAX_DIM:
+            return size
+        scale = VISOR_MAX_DIM / float(max(w, h))
+        return (max(1, round(w * scale)), max(1, round(h * scale)))
+
     ref_size = (1024, 1024)
     if front_cover:
         try:
-            ref_size = Image.open(front_cover).size
+            ref_size = _capped_size(Image.open(front_cover).size)
         except:
             pass
 
@@ -287,6 +296,9 @@ def prepare_book_for_visor(story_data, preview_id, book_uuid=None, is_gift=False
                     print(f"[VISOR] Parchment compose failed for {output_filename}: {_ce}")
             if img.mode in ('RGBA', 'P'):
                 img = img.convert('RGB')
+            if img.width > VISOR_MAX_DIM or img.height > VISOR_MAX_DIM:
+                img = img.copy()
+                img.thumbnail((VISOR_MAX_DIM, VISOR_MAX_DIM), Image.LANCZOS)
             img.save(output_path, 'JPEG', quality=85, optimize=True)
         except Exception as e:
             print(f"[VISOR] Error converting image {clean_path}: {e}")

@@ -9087,6 +9087,9 @@ def admin_rebuild_visor(preview_id):
                     os.chmod(dst, _stat.S_IRUSR | _stat.S_IWUSR | _stat.S_IRGRP | _stat.S_IWGRP)
                     os.remove(dst)
             img = _PilImage.open(src).convert('RGB')
+            _VISOR_MAX_DIM = 1200  # cap web viewer images; print PDF still uses original 300 DPI source
+            if img.width > _VISOR_MAX_DIM or img.height > _VISOR_MAX_DIM:
+                img.thumbnail((_VISOR_MAX_DIM, _VISOR_MAX_DIM), _PilImage.LANCZOS)
             img.save(dst, 'JPEG', quality=88)
             img.close()
             converted += 1
