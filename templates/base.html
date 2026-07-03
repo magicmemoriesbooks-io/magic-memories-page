@@ -49,13 +49,16 @@
     <meta name="p:domain_verify" content="2f97b8871e2048942f106ee060606c94"/>
     <meta name="keywords" content="{% block meta_keywords %}{% if lang == 'es' %}cuentos personalizados, libros infantiles personalizados, cuento con foto del niño, libro personalizado con IA, cuentos con nombre del niño, regalo niños, libro ilustrado personalizado{% else %}personalized children's books, custom story books, personalized kids stories, AI children's book, custom illustrated book, personalized gift for kids, children's book with child's photo, custom fairy tale{% endif %}{% endblock %}">
     <meta name="robots" content="{% if '/admin' in request.path %}noindex, nofollow{% else %}index, follow{% endif %}">
-    <link rel="canonical" href="{% block canonical_url %}https://magicmemoriesbooks.com{{ request.path }}{% endblock %}">
-    <link rel="alternate" hreflang="x-default" href="https://magicmemoriesbooks.com{{ request.path }}">
-    <link rel="alternate" hreflang="en" href="https://magicmemoriesbooks.com{{ request.path }}?lang=en">
-    <link rel="alternate" hreflang="es" href="https://magicmemoriesbooks.com{{ request.path }}?lang=es">
-    <link rel="alternate" hreflang="es-US" href="https://magicmemoriesbooks.com{{ request.path }}?lang=es">
-    <link rel="alternate" hreflang="en-US" href="https://magicmemoriesbooks.com{{ request.path }}?lang=en">
-    <link rel="alternate" hreflang="en-AE" href="https://magicmemoriesbooks.com{{ request.path }}?lang=en">
+    {% set _story_param = request.args.get('story') %}
+    {% set _seo_qs = ('?story=' + _story_param) if _story_param else '' %}
+    {% set _seo_join = '&' if _story_param else '?' %}
+    <link rel="canonical" href="{% block canonical_url %}https://magicmemoriesbooks.com{{ request.path }}{{ _seo_qs }}{% endblock %}">
+    <link rel="alternate" hreflang="x-default" href="https://magicmemoriesbooks.com{{ request.path }}{{ _seo_qs }}">
+    <link rel="alternate" hreflang="en" href="https://magicmemoriesbooks.com{{ request.path }}{{ _seo_qs }}{{ _seo_join }}lang=en">
+    <link rel="alternate" hreflang="es" href="https://magicmemoriesbooks.com{{ request.path }}{{ _seo_qs }}{{ _seo_join }}lang=es">
+    <link rel="alternate" hreflang="es-US" href="https://magicmemoriesbooks.com{{ request.path }}{{ _seo_qs }}{{ _seo_join }}lang=es">
+    <link rel="alternate" hreflang="en-US" href="https://magicmemoriesbooks.com{{ request.path }}{{ _seo_qs }}{{ _seo_join }}lang=en">
+    <link rel="alternate" hreflang="en-AE" href="https://magicmemoriesbooks.com{{ request.path }}{{ _seo_qs }}{{ _seo_join }}lang=en">
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
