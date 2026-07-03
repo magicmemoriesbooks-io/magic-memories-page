@@ -165,7 +165,7 @@ def _generate_text_page(output_path, size, bg_color, title_text, title_color,
         draw.text(((w - sw) / 2, int(h * 0.62)), subtitle_text,
                   fill='#4A3728', font=sub_font)
 
-    img.save(output_path, 'JPEG', quality=90)
+    img.save(output_path, 'JPEG', quality=82, optimize=True, progressive=True)
 
 
 def _resolve_image(path):
@@ -299,7 +299,7 @@ def prepare_book_for_visor(story_data, preview_id, book_uuid=None, is_gift=False
             if img.width > VISOR_MAX_DIM or img.height > VISOR_MAX_DIM:
                 img = img.copy()
                 img.thumbnail((VISOR_MAX_DIM, VISOR_MAX_DIM), Image.LANCZOS)
-            img.save(output_path, 'JPEG', quality=85, optimize=True)
+            img.save(output_path, 'JPEG', quality=82, optimize=True, progressive=True)
         except Exception as e:
             print(f"[VISOR] Error converting image {clean_path}: {e}")
             return
@@ -344,7 +344,7 @@ def prepare_book_for_visor(story_data, preview_id, book_uuid=None, is_gift=False
         _ded_img = _gen_ded(dedication, img_size=ref_size, language=language, author_name=_author_name)
         if _ded_img.mode in ('RGBA', 'P'):
             _ded_img = _ded_img.convert('RGB')
-        _ded_img.save(_ded_output, 'JPEG', quality=90)
+        _ded_img.save(_ded_output, 'JPEG', quality=82, optimize=True, progressive=True)
         _ded_img.close()
         page_num += 1
         pages.append({'image': _ded_filename, 'text': ''})

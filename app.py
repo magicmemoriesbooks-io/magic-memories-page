@@ -8765,7 +8765,10 @@ def admin_regenerate_scene(preview_id, scene_num):
                     except OSError:
                         pass
                 _vi = _PilImg.open(save_path).convert('RGB')
-                _vi.save(visor_jpg, 'JPEG', quality=88)
+                _VISOR_JPG_MAX_DIM = 1200
+                if _vi.width > _VISOR_JPG_MAX_DIM or _vi.height > _VISOR_JPG_MAX_DIM:
+                    _vi.thumbnail((_VISOR_JPG_MAX_DIM, _VISOR_JPG_MAX_DIM), _PilImg.LANCZOS)
+                _vi.save(visor_jpg, 'JPEG', quality=82, optimize=True, progressive=True)
                 _vi.close()
                 print(f"[ADMIN-REGEN] Visor JPG updated: {visor_jpg}")
             except Exception as _ve:
@@ -9090,7 +9093,7 @@ def admin_rebuild_visor(preview_id):
             _VISOR_MAX_DIM = 1200  # cap web viewer images; print PDF still uses original 300 DPI source
             if img.width > _VISOR_MAX_DIM or img.height > _VISOR_MAX_DIM:
                 img.thumbnail((_VISOR_MAX_DIM, _VISOR_MAX_DIM), _PilImage.LANCZOS)
-            img.save(dst, 'JPEG', quality=88)
+            img.save(dst, 'JPEG', quality=82, optimize=True, progressive=True)
             img.close()
             converted += 1
             print(f"[REBUILD-VISOR] [{i}] {os.path.basename(src)} → page_{i+2}.jpg")
