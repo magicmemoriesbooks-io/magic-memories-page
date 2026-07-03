@@ -908,39 +908,96 @@ def contact_submit():
         print(f"[CONTACT] Error sending: {e}")
         return jsonify({'error': 'Failed to send message'}), 500
 
+SITEMAP_PERSONALIZED_STORIES = [
+    # (story_id_or_variant, route, is_furry_love)
+    ('baby_soft_world', 'personalize_story'),
+    ('baby_puppy_love', 'personalize_story'),
+    ('baby_first_pet', 'personalize_story'),
+    ('baby_guardian_light', 'personalize_story'),
+    ('dragon_friend', 'personalize_story'),
+    ('zebra_stripes', 'personalize_story'),
+    ('space_astronaut', 'personalize_story'),
+    ('superhero_light', 'personalize_story'),
+    ('star_guardian', 'personalize_story'),
+    ('chronicles_valley', 'personalize_story'),
+    ('sunset_map', 'personalize_story'),
+    ('dog_forever', 'personalize_story'),
+    ('birthday_celebration_1_3', 'personalize_story'),
+    ('birthday_celebration_4_6', 'personalize_story'),
+    ('birthday_celebration_7_9', 'personalize_story'),
+    ('dragon_garden_illustrated', 'personalize_story'),
+    ('magic_chef_illustrated', 'personalize_story'),
+    ('magic_inventor_illustrated', 'personalize_story'),
+    ('star_keeper_illustrated', 'personalize_story'),
+    ('centinela_aurora_illustrated', 'personalize_story'),
+    ('furry_love', 'personalize_furry_love'),
+    ('furry_love_adventure', 'personalize_furry_love'),
+    ('furry_love_teen', 'personalize_furry_love'),
+    ('furry_love_adult', 'personalize_furry_love'),
+]
+
+
 @app.route('/sitemap.xml')
 def sitemap():
     from datetime import date
     today = date.today().isoformat()
     domain = 'https://magicmemoriesbooks.com'
-    urls = [
-        (f'{domain}/',                          '1.0',  'weekly'),
-        (f'{domain}/?lang=en',                  '1.0',  'weekly'),
-        (f'{domain}/story-selection',           '0.9',  'weekly'),
-        (f'{domain}/story-selection?lang=en',   '0.9',  'weekly'),
-        (f'{domain}/personalized-books',        '0.9',  'weekly'),
-        (f'{domain}/personalized-books?lang=en','0.9',  'weekly'),
-        (f'{domain}/furry-love',                '0.8',  'weekly'),
-        (f'{domain}/birthday-stories',           '0.9',  'weekly'),
-        (f'{domain}/birthday-stories?lang=en',  '0.9',  'weekly'),
-        (f'{domain}/stories-0-1',               '0.8',  'weekly'),
-        (f'{domain}/stories-3-5',               '0.8',  'weekly'),
-        (f'{domain}/stories-3-8',               '0.8',  'weekly'),
-        (f'{domain}/stories-5-7',               '0.8',  'weekly'),
-        (f'{domain}/pricing',                   '0.8',  'monthly'),
-        (f'{domain}/pricing?lang=en',           '0.8',  'monthly'),
-        (f'{domain}/faq',                       '0.7',  'monthly'),
-        (f'{domain}/faq?lang=en',               '0.7',  'monthly'),
-        (f'{domain}/contact',                   '0.6',  'monthly'),
-        (f'{domain}/about',                     '0.6',  'monthly'),
-        (f'{domain}/terms',                     '0.3',  'yearly'),
-        (f'{domain}/privacy',                   '0.3',  'yearly'),
-    ]
+
+    def bilingual_urls(path, priority, changefreq, lastmod=today, query=''):
+        """Return a list of (loc, alternates, lastmod, changefreq, priority) for a
+        bilingual page, where `query` is an extra query string fragment such as
+        '?story=xxx' (no lang param included)."""
+        join = '&amp;' if query else '?'
+        loc_default = f'{domain}{path}{query}'
+        loc_en = f'{domain}{path}{query}{join}lang=en'
+        loc_es = f'{domain}{path}{query}{join}lang=es'
+        alternates = [
+            ('x-default', loc_default),
+            ('es', loc_es),
+            ('en', loc_en),
+        ]
+        return [(loc_default, alternates, lastmod, changefreq, priority)]
+
+    entries = []
+
+    # ---- Core pages ----
+    entries += bilingual_urls('/', '1.0', 'weekly')
+    entries += bilingual_urls('/express-catalog', '0.9', 'weekly')
+    entries += bilingual_urls('/universos-catalog', '0.9', 'weekly')
+    entries += bilingual_urls('/birthday-stories', '0.9', 'weekly')
+    entries += bilingual_urls('/pricing', '0.8', 'monthly')
+    entries += bilingual_urls('/faq', '0.7', 'monthly')
+    entries += bilingual_urls('/contact', '0.6', 'monthly')
+    entries += bilingual_urls('/about', '0.6', 'monthly')
+    entries += bilingual_urls('/cuentos-solidarios', '0.8', 'weekly')
+    entries += bilingual_urls('/terms', '0.3', 'yearly')
+    entries += bilingual_urls('/privacy', '0.3', 'yearly')
+
+    # ---- Personalized stories (24 books) ----
+    for story_key, route_name in SITEMAP_PERSONALIZED_STORIES:
+        path = '/personalize-story' if route_name == 'personalize_story' else '/personalize-furry-love'
+        entries += bilingual_urls(path, '0.6', 'weekly', query=f'?story={story_key}')
+
+    # ---- Cuentos Solidarios (published stories) ----
+    try:
+        published_stories = CommunityStory.query.filter_by(status='published').all()
+        for story in published_stories:
+            lastmod_story = (story.updated_at or story.created_at)
+            lastmod_story = lastmod_story.date().isoformat() if lastmod_story else today
+            entries += bilingual_urls(f'/cuentos-solidarios/{story.slug}', '0.7', 'monthly',
+                                       lastmod=lastmod_story)
+    except Exception:
+        pass
+
     xml_parts = ['<?xml version="1.0" encoding="UTF-8"?>',
-                 '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
-    for loc, priority, changefreq in urls:
-        xml_parts.append(f'  <url><loc>{loc}</loc><lastmod>{today}</lastmod>'
-                         f'<changefreq>{changefreq}</changefreq><priority>{priority}</priority></url>')
+                 '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
+                 'xmlns:xhtml="http://www.w3.org/1999/xhtml">']
+    for loc, alternates, lastmod, changefreq, priority in entries:
+        xml_parts.append(f'  <url><loc>{loc}</loc>')
+        for hreflang, alt_loc in alternates:
+            xml_parts.append(f'    <xhtml:link rel="alternate" hreflang="{hreflang}" href="{alt_loc}"/>')
+        xml_parts.append(f'    <lastmod>{lastmod}</lastmod>'
+                          f'<changefreq>{changefreq}</changefreq><priority>{priority}</priority></url>')
     xml_parts.append('</urlset>')
     return '\n'.join(xml_parts), 200, {'Content-Type': 'application/xml; charset=utf-8'}
 
