@@ -728,9 +728,9 @@ STORIES = {
                 "text_below_en": "\"It's a treasure map, {pet_name}!\" exclaimed {name} with shining eyes."
             },
             {
-                "text_above_es": "{pet_name} olió el mapa y ladró una vez, como diciendo: \"¿A qué esperamos?\" El mapa los llevó por un sendero estrecho entre los árboles, donde las ramas formaban un túnel verde sobre sus cabezas.",
+                "text_above_es": "{pet_name} olió el mapa y dio un pequeño salto emocionado, como diciendo: \"¿A qué esperamos?\" El mapa los llevó por un sendero estrecho entre los árboles, donde las ramas formaban un túnel verde sobre sus cabezas.",
                 "text_below_es": "La mariposa dorada volaba adelante, mostrándoles el camino.",
-                "text_above_en": "{pet_name} sniffed the map and barked once, as if saying: \"What are we waiting for?\" The map led them down a narrow path between the trees, where branches formed a green tunnel overhead.",
+                "text_above_en": "{pet_name} sniffed the map and gave an excited little hop, as if saying: \"What are we waiting for?\" The map led them down a narrow path between the trees, where branches formed a green tunnel overhead.",
                 "text_below_en": "The golden butterfly flew ahead, showing them the way."
             },
             {
