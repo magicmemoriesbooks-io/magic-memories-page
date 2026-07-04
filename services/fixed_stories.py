@@ -741,9 +741,9 @@ STORIES = {
             },
             {
                 "text_above_es": "{name} acarició la cabeza de {pet_name} con suavidad. \"No tengas miedo, yo estoy contigo\", le susurró.",
-                "text_below_es": "Entonces tomó a {pet_name} en brazos con cuidado y empezó a cruzar el puente paso a paso. {pet_name} se acurrucó contra su pecho, cerrando los ojos con confianza.",
+                "text_below_es": "Entonces {name} caminó primero, paso a paso, animando a {pet_name} con voz dulce. {pet_name} respiró hondo y avanzó justo detrás, sin apartar los ojos de {hisher} amigo.",
                 "text_above_en": "{name} gently stroked {pet_name}'s head. \"Don't be afraid, I'm with you,\" {heshe} whispered.",
-                "text_below_en": "Then {name} carefully picked up {pet_name} and started crossing the bridge step by step. {pet_name} nestled against their chest, closing their eyes with trust."
+                "text_below_en": "Then {name} walked ahead first, step by step, cheering {pet_name} on with a sweet voice. {pet_name} took a deep breath and followed right behind, never taking their eyes off {hisher} friend."
             },
             {
                 "text_above_es": "Cuando llegaron al otro lado, {pet_name} lamió la cara de {name} como diciendo \"gracias\". La X del mapa señalaba una pequeña cueva en la ladera de una colina.",
