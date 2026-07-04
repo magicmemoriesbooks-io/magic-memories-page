@@ -3604,11 +3604,18 @@ def regenerate_cover(preview_id):
             return jsonify({'success': True, 'cover_image': f'/{cover_image_path_regen}'})
 
         else:
-            return jsonify({'success': False, 'error': 'Cover regeneration only available for furry_love and star_keeper stories'}), 400
+            return jsonify({'success': False, 'error': 'Cover regeneration only available for furry_love, star_keeper, dragon_garden and centinela_aurora stories'}), 400
     except Exception as e:
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/regenerate-cover/<preview_id>', methods=['POST'])
+def admin_regenerate_cover(preview_id):
+    """Admin-only: regenerate the cover for a preview/paid book. No regen limit. Reuses regenerate_cover() logic."""
+    if not check_admin_auth():
+        return jsonify({'success': False, 'error': 'No autorizado'}), 401
+    return regenerate_cover(preview_id)
 
 @app.route('/baby-story-preview/<preview_id>')
 def baby_story_preview(preview_id):
