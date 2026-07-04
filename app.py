@@ -3650,6 +3650,7 @@ def generate_fixed_story_api():
         if is_furry_love:
             traits['pet_name'] = data.get('pet_name', 'Buddy')
             traits['pet_desc'] = data.get('pet_desc', '')
+            traits['pet_species'] = data.get('pet_species', 'dog')
             traits['facial_hair'] = data.get('facial_hair', 'none')
             traits['glasses'] = data.get('glasses', 'none')
             traits['body_build'] = data.get('body_build', 'average')
