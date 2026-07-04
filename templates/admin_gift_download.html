@@ -89,6 +89,26 @@
                 </div>
             </div>
 
+            <!-- PASO 1.5: PDF descargable (formato A4 / Carta) para autoimpresión -->
+            <div class="card mb-4 border-info">
+                <div class="card-header text-white" style="background: linear-gradient(135deg, #0EA5E9, #38BDF8);">
+                    <h5 class="mb-0">📄 PDF descargable (autoimpresión del cliente)</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">Si el cliente va a imprimir el libro por su cuenta (no vía Cloudprinter), elige el formato de papel de su país antes de descargar. <strong>A4</strong> para Europa/LatAm en general, <strong>Carta (Letter)</strong> para EE.UU., México, Centroamérica y buena parte de LatAm.</p>
+                    <div class="d-flex gap-2 align-items-center flex-wrap">
+                        <select class="form-select" id="pdfFormatSelect" style="max-width: 220px;">
+                            <option value="A4">A4 (Europa)</option>
+                            <option value="LETTER">Carta / Letter (Américas)</option>
+                        </select>
+                        <button type="button" onclick="setPdfFormat()" class="btn btn-info fw-bold" id="btnSetPdfFormat">
+                            🔄 Aplicar formato y descargar
+                        </button>
+                    </div>
+                    <div id="pdfFormatStatus" class="mt-2 small"></div>
+                </div>
+            </div>
+
             <!-- PASO 2: Enviar a Cloudprinter -->
             <div class="card mb-4">
                 <div class="card-header text-white" style="background: linear-gradient(135deg, #10B981, #059669);">
@@ -96,6 +116,10 @@
                 </div>
                 <div class="card-body">
                     <p class="text-muted mb-3">Rellena la dirección de envío y haz clic en <strong>Enviar</strong>. Los PDFs ya generados en el Paso 1 se usarán directamente.</p>
+
+                    <div class="alert alert-warning py-2 px-3 small mb-3">
+                        ⚠️ Antes de enviar, usa <strong>Verificar cotización</strong> para confirmar que Cloudprinter imprime/envía al país del cliente y que devuelve un precio. Si no hay cotización, NO envíes el pedido — ofrece el PDF de arriba en su lugar.
+                    </div>
 
                     <form id="cpOrderForm">
                         <div class="row g-2 mb-2">
@@ -118,7 +142,7 @@
                                 <input type="text" class="form-control" name="state_code" placeholder="Provincia/Estado">
                             </div>
                             <div class="col-6">
-                                <select class="form-select" name="country_code">
+                                <select class="form-select" name="country_code" id="cpCountrySelect">
                                     {% include '_cp_country_options.html' %}
                                 </select>
                             </div>
@@ -137,7 +161,12 @@
                             </div>
                         </div>
 
-                        <button type="button" onclick="sendToCloudprinter()" class="btn btn-success btn-lg w-100 fw-bold mt-2">
+                        <button type="button" onclick="checkShippingQuote()" class="btn btn-outline-warning btn-lg w-100 fw-bold mt-2">
+                            🔍 Verificar cotización de Cloudprinter
+                        </button>
+                        <div id="quoteResult" class="mt-2" style="display:none;"></div>
+
+                        <button type="button" onclick="sendToCloudprinter()" class="btn btn-success btn-lg w-100 fw-bold mt-2" id="btnSendCp" disabled title="Verifica la cotización primero">
                             🖨️ Enviar pedido a Cloudprinter
                         </button>
                     </form>
@@ -208,6 +237,63 @@ async function generateCpPdfs() {
         errBox.style.display = 'block';
         btn.textContent = '⚙️ Generar PDFs CP (sin enviar)';
         btn.disabled = false;
+    }
+}
+
+async function setPdfFormat() {
+    const fmt = document.getElementById('pdfFormatSelect').value;
+    const btn = document.getElementById('btnSetPdfFormat');
+    const status = document.getElementById('pdfFormatStatus');
+    btn.disabled = true;
+    btn.textContent = '⏳ Aplicando…';
+    status.innerHTML = '';
+    try {
+        const resp = await fetch(`/admin/set-pdf-format/${PREVIEW_ID}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ print_format: fmt }),
+        });
+        const data = await resp.json();
+        if (data.success) {
+            status.innerHTML = `<span class="text-success">✅ ${data.message}</span> — <a href="${data.download_url}" target="_blank">Descargar PDF ahora</a>`;
+        } else {
+            status.innerHTML = `<span class="text-danger">❌ ${data.error || 'Error desconocido'}</span>`;
+        }
+    } catch (e) {
+        status.innerHTML = `<span class="text-danger">❌ Error de red: ${e.message}</span>`;
+    }
+    btn.disabled = false;
+    btn.textContent = '🔄 Aplicar formato y descargar';
+}
+
+async function checkShippingQuote() {
+    const country = document.getElementById('cpCountrySelect').value;
+    const stateInput = document.querySelector('#cpOrderForm [name="state_code"]');
+    const stateCode = stateInput ? stateInput.value : '';
+    const resultBox = document.getElementById('quoteResult');
+    const sendBtn = document.getElementById('btnSendCp');
+
+    resultBox.style.display = 'block';
+    resultBox.innerHTML = '<span class="text-muted">⏳ Consultando Cloudprinter…</span>';
+    sendBtn.disabled = true;
+
+    try {
+        const resp = await fetch(`/admin/gift-check-shipping/${PREVIEW_ID}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ country_code: country, state_code: stateCode }),
+        });
+        const data = await resp.json();
+        if (data.available) {
+            resultBox.innerHTML = `<div class="alert alert-success py-2 px-3 small mb-0">${data.message_es}</div>`;
+            sendBtn.disabled = false;
+        } else {
+            resultBox.innerHTML = `<div class="alert alert-danger py-2 px-3 small mb-0">${data.message_es || 'No se pudo verificar la cotización.'}<br><strong>No envíes el pedido a Cloudprinter.</strong> Usa el PDF descargable de arriba (elige Carta si el cliente está en América) para que lo imprima por su cuenta.</div>`;
+            sendBtn.disabled = true;
+        }
+    } catch (e) {
+        resultBox.innerHTML = `<div class="alert alert-danger py-2 px-3 small mb-0">❌ Error de red: ${e.message}</div>`;
+        sendBtn.disabled = true;
     }
 }
 
