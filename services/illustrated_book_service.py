@@ -539,14 +539,16 @@ def generate_scene_complete(
         elif book_id == 'dragon_garden':
             reference_note = (
                 f"The child in @image1 is {child_age_int} years old. "
-                "@image1=child character — copy face, hair, skin, and outfit exactly. "
+                "@image1=child character — copy face, hair, skin, and outfit exactly."
+                f"{_eye_note} "
                 "@image2=small emerald dragon SPARK — copy appearance exactly. "
                 "Two distinct characters: @image1 is fully human, @image2 is a small baby dragon."
             )
         elif book_id == 'centinela_aurora':
             reference_note = (
                 f"The child in @image1 is {child_age_int} years old. "
-                "@image1=child character — copy face, hair, skin, and outfit exactly. ONE child only. "
+                "@image1=child character — copy face, hair, skin, and outfit exactly. ONE child only."
+                f"{_eye_note} "
                 "@image2=small electric-blue fox ASTRO — copy appearance exactly. "
                 "CRITICAL: @image1 is the ONLY human in this scene. "
                 "@image2 is a small four-legged animal fox, electric blue fur, NOT a person. "
@@ -555,7 +557,8 @@ def generate_scene_complete(
         else:
             reference_note = (
                 f"The child in @image1 is {child_age_int} years old. "
-                "@image1=child character — copy face, hair, skin, and outfit exactly. "
+                "@image1=child character — copy face, hair, skin, and outfit exactly."
+                f"{_eye_note} "
                 "@image2=small star companion — copy appearance exactly. "
                 "Two distinct characters: @image1 is fully human, @image2 is a small glowing star."
             )
