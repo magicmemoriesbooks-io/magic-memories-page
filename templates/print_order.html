@@ -171,7 +171,8 @@ async function calculateShipping() {
             document.getElementById('paymentSection').classList.remove('hidden');
             if (!paypalButtonsRendered) renderPayPalButtons();
         } else {
-            alert(data.error || (LANG === 'es' ? 'Error calculando el envío' : 'Error calculating shipping'));
+            const msg = LANG === 'es' ? (data.message_es || data.error || 'Error calculando el envío') : (data.message_en || data.error || 'Error calculating shipping');
+            alert(msg);
         }
     } catch(e) {
         alert('Connection error: ' + e.message);
