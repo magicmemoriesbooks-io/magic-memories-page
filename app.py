@@ -3249,7 +3249,7 @@ def regenerate_cover(preview_id):
             )
             cover_raw_path = save_image_locally(cover_url, f'{output_dir}/cover_raw.png')
             
-            story_lang = story_data.get('story_lang', 'es')
+            story_lang = story_data.get('lang', story_data.get('story_lang', 'es'))
             from services.personalized_books.generation import get_print_title
             book_id = story_id.replace('_illustrated', '')
             story_title = get_print_title(book_id, child_name, story_lang, pet_name=pet_name)
@@ -3388,7 +3388,7 @@ def regenerate_cover(preview_id):
                     )
 
             cover_raw_path_regen = save_image_locally(cover_url_regen, f'{output_dir}/cover_raw.png')
-            story_lang_regen = story_data.get('story_lang', 'es')
+            story_lang_regen = story_data.get('lang', story_data.get('story_lang', 'es'))
             from services.personalized_books.generation import get_print_title
             story_title_regen = get_print_title('star_keeper', child_name_regen, story_lang_regen)
             author_name_regen = story_data.get('author_name', '')
@@ -3495,7 +3495,7 @@ def regenerate_cover(preview_id):
                 )
 
             cover_raw_path_regen = save_image_locally(cover_url_regen, f'{output_dir}/cover_raw.png')
-            story_lang_regen = story_data.get('story_lang', 'es')
+            story_lang_regen = story_data.get('lang', story_data.get('story_lang', 'es'))
             from services.personalized_books.generation import get_print_title
             story_title_regen = get_print_title('dragon_garden', child_name_regen, story_lang_regen)
             author_name_regen = story_data.get('author_name', '')
@@ -3605,7 +3605,7 @@ def regenerate_cover(preview_id):
                 )
 
             cover_raw_path_regen = save_image_locally(cover_url_regen, f'{output_dir}/cover_raw.png')
-            story_lang_regen = story_data.get('story_lang', 'es')
+            story_lang_regen = story_data.get('lang', story_data.get('story_lang', 'es'))
             from services.personalized_books.generation import get_print_title
             story_title_regen = get_print_title('centinela_aurora', child_name_regen, story_lang_regen)
             author_name_regen = story_data.get('author_name', '')
