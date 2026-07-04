@@ -241,11 +241,26 @@
 
     {% set cover_path = preview.cover_raw_path or preview.front_cover_path or preview.cover_spread_path or preview.cover_image or preview.original_cover %}
     {% set char_preview = preview.character_preview %}
-    {% if cover_path or preview.back_cover_path or char_preview %}
+    {% set human_ref = preview.human_preview_path %}
+    {% set pet_ref = preview.pet_preview_path or preview.pet_preview %}
+    {% if cover_path or preview.back_cover_path or char_preview or human_ref or pet_ref %}
     <div class="ap-card">
         <div class="ap-card-header ap-hdr-covers">Portadas &amp; Referencia</div>
         <div class="ap-card-body" style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;">
-            {% if char_preview %}
+            {% if human_ref or pet_ref %}
+            {% if human_ref %}
+            <div style="text-align:center;">
+                <p style="font-size:12px; color:#666; margin-bottom:6px; font-weight:700;">🧑 Referencia humano</p>
+                <img src="/{{ human_ref.lstrip('/') }}?t={{ range(1000000)|random }}" class="ap-cover-img" onclick="openLB(this.src)" alt="Referencia humano" style="border:2px solid #f59e0b;">
+            </div>
+            {% endif %}
+            {% if pet_ref %}
+            <div style="text-align:center;">
+                <p style="font-size:12px; color:#666; margin-bottom:6px; font-weight:700;">🐾 Referencia mascota</p>
+                <img src="/{{ pet_ref.lstrip('/') }}?t={{ range(1000000)|random }}" class="ap-cover-img" onclick="openLB(this.src)" alt="Referencia mascota" style="border:2px solid #f59e0b;">
+            </div>
+            {% endif %}
+            {% elif char_preview %}
             <div style="text-align:center;">
                 <p style="font-size:12px; color:#666; margin-bottom:6px; font-weight:700;">🎨 Imagen de referencia</p>
                 <img src="/{{ char_preview.lstrip('/') }}?t={{ range(1000000)|random }}" class="ap-cover-img" onclick="openLB(this.src)" alt="Referencia" style="border:2px solid #f59e0b;">
