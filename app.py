@@ -9800,6 +9800,106 @@ def admin_generate_cp_pdfs(preview_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/admin/set-pdf-format/<preview_id>', methods=['POST'])
+def admin_set_pdf_format(preview_id):
+    """Admin: set the downloadable printable PDF format (A4 or LETTER/Carta) for a
+    preview and clear any cached PDF so the next download regenerates in the new format."""
+    if not check_admin_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+    import re
+    if not re.match(r'^[a-zA-Z0-9_\-]+$', preview_id):
+        return jsonify({'error': 'Invalid preview ID'}), 400
+
+    data = request.get_json() or {}
+    print_format = 'LETTER' if data.get('print_format') == 'LETTER' else 'A4'
+
+    preview_file = f'story_previews/{preview_id}.json'
+    if not os.path.exists(preview_file):
+        return jsonify({'error': 'Preview no encontrado'}), 404
+
+    with open(preview_file, 'r', encoding='utf-8') as f:
+        story_data = json.load(f)
+
+    story_data['print_format'] = print_format
+    # Clear cached printable PDF path so it regenerates in the newly chosen format
+    story_data.pop('pdf_printable_path', None)
+
+    with open(preview_file, 'w', encoding='utf-8') as f:
+        json.dump(story_data, f, ensure_ascii=False, indent=2)
+
+    return jsonify({
+        'success': True,
+        'print_format': print_format,
+        'download_url': f'/download-book/{preview_id}',
+        'message': f'Formato actualizado a {"Carta" if print_format == "LETTER" else "A4"}. El PDF se regenerará al descargar.',
+    })
+
+
+@app.route('/admin/gift-check-shipping/<preview_id>', methods=['POST'])
+def admin_gift_check_shipping(preview_id):
+    """Admin: check Cloudprinter shipping availability/price BEFORE submitting a gift
+    print order, so the admin can warn the client and offer the PDF instead if there
+    is no printing coverage or quote for that country."""
+    if not check_admin_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+    import re
+    if not re.match(r'^[a-zA-Z0-9_\-]+$', preview_id):
+        return jsonify({'error': 'Invalid preview ID'}), 400
+
+    preview_file = f'story_previews/{preview_id}.json'
+    if not os.path.exists(preview_file):
+        return jsonify({'error': 'Preview no encontrado'}), 404
+
+    with open(preview_file, 'r', encoding='utf-8') as f:
+        story_data = json.load(f)
+
+    data = request.get_json() or {}
+    country_code = (data.get('country_code') or '').strip().upper()
+    state_code = (data.get('state_code') or '').strip().upper()
+    if not country_code:
+        return jsonify({'error': 'Falta country_code'}), 400
+
+    is_illustrated = story_data.get('is_illustrated_book', False)
+
+    from services.cloudprinter_api_service import (
+        CLOUDPRINTER_AVAILABLE_COUNTRIES, get_shipping_quote, get_pb_shipping_quote
+    )
+
+    if country_code not in CLOUDPRINTER_AVAILABLE_COUNTRIES:
+        return jsonify({
+            'available': False,
+            'error': 'no_shipping_to_country',
+            'message_es': f'⚠️ Cloudprinter NO imprime/envía a {country_code}. Recomendamos enviar el PDF imprimible en su lugar.',
+        })
+
+    quote_fn = get_pb_shipping_quote if is_illustrated else get_shipping_quote
+    try:
+        options = quote_fn(country_code, state_code=state_code)
+    except Exception as e:
+        return jsonify({
+            'available': False,
+            'error': 'quote_failed',
+            'message_es': f'⚠️ No se pudo obtener cotización de Cloudprinter ({e}). Recomendamos enviar el PDF imprimible en su lugar.',
+        })
+
+    if not options:
+        return jsonify({
+            'available': False,
+            'error': 'no_shipping_options',
+            'message_es': f'⚠️ Cloudprinter no devolvió opciones de envío para {country_code}{" / " + state_code if state_code else ""}. NO se puede confirmar precio ni entrega — recomendamos enviar el PDF imprimible en su lugar de imprimir sin cotización.',
+        })
+
+    cheapest = min(options.values(), key=lambda o: float(o.get('cp_cost_usd', o.get('total_usd', 9e9))))
+    return jsonify({
+        'available': True,
+        'country_code': country_code,
+        'options_count': len(options),
+        'cheapest_shipping_usd': round(float(cheapest.get('cp_cost_usd', cheapest.get('total_usd', 0))), 2),
+        'print_cost_usd': round(float(cheapest.get('print_cost_usd', 0)), 2),
+        'message_es': f'✅ Cloudprinter SÍ imprime y envía a {country_code}. Costo estimado de envío: ${round(float(cheapest.get("cp_cost_usd", cheapest.get("total_usd", 0))), 2)} USD.',
+    })
+
+
 @app.route('/admin/gift-send-to-cp/<preview_id>', methods=['POST'])
 def admin_gift_send_to_cp(preview_id):
     """Submit an admin gift book to Cloudprinter. Handles both Quick Story and illustrated PB books."""
