@@ -1341,7 +1341,25 @@ def generate_cover_spread(
         _cover_neg_prompt = _cover_neg(gender)
         try:
             cover_prompt_final = front_prompt
-            if is_star_keeper_cover and has_refs:
+            if is_furry and has_refs:
+                _cover_eye_color_raw = traits.get('eye_color', '') if traits else ''
+                _cover_eye_color_map = {
+                    'blue': 'bright blue', 'green': 'green', 'brown': 'brown',
+                    'hazel': 'hazel', 'gray': 'gray', 'dark_brown': 'dark brown',
+                }
+                _cover_eye_note = ''
+                if _cover_eye_color_raw:
+                    _cover_eye_label = _cover_eye_color_map.get(_cover_eye_color_raw, _cover_eye_color_raw)
+                    _cover_eye_note = f" The human has {_cover_eye_label} eyes — preserve this exactly."
+                furry_cover_ref_note = (
+                    "@image1=HUMAN character (approved avatar), @image2=PET animal. "
+                    "Copy the EXACT skin complexion, eye color, and hair appearance from @image1 — "
+                    f"replicate the avatar faithfully.{_cover_eye_note} "
+                    "Human has human face and human hands. Pet has fur, animal face, four paws. "
+                    "Two distinct separate characters side by side."
+                )
+                cover_prompt_final = f"{furry_cover_ref_note}\n{front_prompt}"
+            elif is_star_keeper_cover and has_refs:
                 if book_id == 'dragon_garden':
                     sk_cover_ref_note = (
                         f"The child in @image1 is {child_age_int} years old. "
