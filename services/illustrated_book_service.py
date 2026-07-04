@@ -1067,7 +1067,22 @@ def generate_closing_page(
     print(f"[CLOSING] Prompt: {prompt[:300]}...")
     
     if is_furry and reference_image_path_2 and os.path.exists(reference_image_path_2):
-        reference_note = "@image1=HUMAN character, @image2=PET animal. Human has smooth skin, human face, human hands. Pet has fur, animal face, four paws. Two distinct separate characters side by side."
+        _closing_eye_color_raw = traits.get('eye_color', '') if traits else ''
+        _closing_eye_color_map = {
+            'blue': 'bright blue', 'green': 'green', 'brown': 'brown',
+            'hazel': 'hazel', 'gray': 'gray', 'dark_brown': 'dark brown',
+        }
+        _closing_eye_note = ''
+        if _closing_eye_color_raw:
+            _closing_eye_label = _closing_eye_color_map.get(_closing_eye_color_raw, _closing_eye_color_raw)
+            _closing_eye_note = f" The human has {_closing_eye_label} eyes — preserve this exactly."
+        reference_note = (
+            "@image1=HUMAN character, @image2=PET animal. "
+            "Copy the EXACT skin complexion, eye color, and hair appearance from @image1 — "
+            f"replicate the avatar faithfully.{_closing_eye_note} "
+            "Human has smooth skin, human face, human hands. Pet has fur, animal face, four paws. "
+            "Two distinct separate characters side by side."
+        )
         enhanced_prompt = f"{reference_note}\n{prompt}"
         try:
             with open(reference_image_path, "rb") as ref1, open(reference_image_path_2, "rb") as ref2:
