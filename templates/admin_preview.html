@@ -254,7 +254,9 @@
             {% if cover_path %}
             <div style="text-align:center;">
                 <p style="font-size:12px; color:#666; margin-bottom:6px;">Portada</p>
-                <img src="/{{ cover_path.lstrip('/') }}?t={{ range(1000000)|random }}" class="ap-cover-img" onclick="openLB(this.src)" alt="Portada">
+                <img id="cover-img-main" src="/{{ cover_path.lstrip('/') }}?t={{ range(1000000)|random }}" class="ap-cover-img" onclick="openLB(this.src)" alt="Portada">
+                <br>
+                <button class="ap-regen-btn" style="margin-top:6px;" onclick="adminRegenCover('{{ preview_id }}', this)">↺ Regenerar portada</button>
             </div>
             {% endif %}
             {% if preview.back_cover_path %}
@@ -582,6 +584,40 @@ function adminRegenScene(previewId, sceneNum, btn) {
         btn.style.background = '#dc2626';
         if (img) img.style.opacity = '1';
         setTimeout(function() { btn.innerHTML = '↺ Regenerar'; btn.style.background = ''; btn.disabled = false; }, 3000);
+    });
+}
+function adminRegenCover(previewId, btn) {
+    if (!confirm('¿Regenerar la portada? Esto tomará ~30-60 segundos con FLUX 2 Dev + imágenes de referencia.')) return;
+    var img = document.getElementById('cover-img-main');
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Generando...';
+    if (img) { img.style.opacity = '0.4'; }
+    fetch('/admin/regenerate-cover/' + previewId, { method: 'POST' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        btn.disabled = false;
+        if (data.success) {
+            btn.innerHTML = '✅ Listo';
+            btn.style.background = '#16a34a';
+            if (img && data.cover_image) {
+                img.src = data.cover_image + '?t=' + Date.now();
+                img.style.opacity = '1';
+            }
+            setTimeout(function() { btn.innerHTML = '↺ Regenerar portada'; btn.style.background = ''; btn.disabled = false; }, 4000);
+        } else {
+            btn.innerHTML = '❌ Error';
+            btn.style.background = '#dc2626';
+            if (img) img.style.opacity = '1';
+            alert('Error regenerando portada: ' + (data.error || 'desconocido'));
+            setTimeout(function() { btn.innerHTML = '↺ Regenerar portada'; btn.style.background = ''; btn.disabled = false; }, 3000);
+        }
+    })
+    .catch(function() {
+        btn.disabled = false;
+        btn.innerHTML = '❌ Conexión';
+        btn.style.background = '#dc2626';
+        if (img) img.style.opacity = '1';
+        setTimeout(function() { btn.innerHTML = '↺ Regenerar portada'; btn.style.background = ''; btn.disabled = false; }, 3000);
     });
 }
 function adminRegenPage(previewId, pageIdx, btn) {
