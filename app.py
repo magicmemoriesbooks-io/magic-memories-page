@@ -3222,6 +3222,24 @@ def regenerate_cover(preview_id):
             
             cover_prompt = build_scene_prompt(FRONT_COVER, human_desc, pet_name, pet_desc, age_display=age_display_regen, eye_desc=eye_desc_regen, gender_word=gender_word_regen, hair_color=hair_color_regen, glasses=glasses_regen, facial_hair=facial_hair_regen)
             
+            _eye_color_raw_regen = traits.get('eye_color', '')
+            _eye_color_map_regen = {
+                'blue': 'bright blue', 'green': 'green', 'brown': 'brown',
+                'hazel': 'hazel', 'gray': 'gray', 'dark_brown': 'dark brown',
+            }
+            _eye_note_regen = ''
+            if _eye_color_raw_regen:
+                _eye_label_regen = _eye_color_map_regen.get(_eye_color_raw_regen, _eye_color_raw_regen)
+                _eye_note_regen = f" The human has {_eye_label_regen} eyes — preserve this exactly."
+            reference_note_regen = (
+                "@image1=HUMAN character (approved avatar), @image2=PET animal. "
+                "Copy the EXACT skin complexion, eye color, and hair appearance from @image1 — "
+                f"replicate the avatar faithfully.{_eye_note_regen} "
+                "Human has human face and human hands. Pet has fur, animal face, four paws. "
+                "Two distinct separate characters side by side."
+            )
+            cover_prompt = f"{reference_note_regen}\n{cover_prompt}"
+            
             print(f"[REGEN COVER] Regenerating cover for {story_id} with FLUX 2 Dev + references")
             cover_url = generate_with_flux2_dev(
                 cover_prompt, 
