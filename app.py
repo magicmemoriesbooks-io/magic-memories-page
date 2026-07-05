@@ -8760,10 +8760,16 @@ def admin_regenerate_scene(preview_id, scene_num):
                     # current shared prompt template if the template was edited later,
                     # or if pronouns/wording were customized at generation time).
                     # Only fall back to the generic template when no saved text exists.
+                    # NOTE: story_data['pages'] for illustrated/furry_love books is a FLAT
+                    # array of just the 19 scene texts, indexed directly by scene_cfg_idx
+                    # (0-based scene number) — it does NOT include title/dedication/credits
+                    # entries, despite what page_idx (used for composed_dir filenames) implies.
+                    # Indexing it with page_idx instead of scene_cfg_idx silently pairs each
+                    # illustration with a DIFFERENT scene's caption. Always use scene_cfg_idx here.
                     raw_text = None
                     _pages_for_text = story_data.get('pages', [])
-                    if 0 <= page_idx < len(_pages_for_text):
-                        raw_text = _pages_for_text[page_idx].get('text')
+                    if 0 <= scene_cfg_idx < len(_pages_for_text):
+                        raw_text = _pages_for_text[scene_cfg_idx].get('text')
                     if not raw_text:
                         _story_texts_for_text = story_data.get('story_texts') or []
                         if 0 <= scene_cfg_idx < len(_story_texts_for_text):
@@ -9029,9 +9035,15 @@ def admin_regenerate_page(preview_id, page_idx):
             # current shared prompt template if the template was edited later,
             # or if pronouns/wording were customized at generation time).
             # Only fall back to the generic template when no saved text exists.
+            # NOTE: story_data['pages'] for illustrated/furry_love books is a FLAT
+            # array of just the 19 scene texts, indexed directly by scene_cfg_idx
+            # (0-based scene number) — it does NOT include title/dedication/credits
+            # entries, despite what page_idx (used for composed_dir filenames) implies.
+            # Indexing it with page_idx instead of scene_cfg_idx silently pairs each
+            # illustration with a DIFFERENT scene's caption. Always use scene_cfg_idx here.
             raw_text = None
-            if 0 <= page_idx < len(pages_data):
-                raw_text = pages_data[page_idx].get('text')
+            if 0 <= scene_cfg_idx < len(pages_data):
+                raw_text = pages_data[scene_cfg_idx].get('text')
             if not raw_text:
                 _story_texts_for_text = story_data.get('story_texts') or []
                 if 0 <= scene_cfg_idx < len(_story_texts_for_text):
