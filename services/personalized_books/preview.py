@@ -940,7 +940,8 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
         if story_id == 'furry_love_adventure_illustrated':
             from services.personalized_books.furry_love_adventure_prompts import (
                 build_human_preview_prompt, build_pet_preview_prompt,
-                build_human_preview_prompt_with_photo, build_pet_preview_prompt_with_photo
+                build_human_preview_prompt_with_photo, build_pet_preview_prompt_with_photo,
+                ADVENTURE_OUTFIT_BOY, ADVENTURE_OUTFIT_GIRL
             )
         elif story_id == 'furry_love_teen_illustrated':
             from services.personalized_books.furry_love_teen_prompts import (
@@ -1041,7 +1042,8 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
             human_prompt = build_human_preview_prompt_with_photo(gender_word, age_display, eye_desc, hair_for_prompt, glasses=glasses_val, facial_hair=facial_hair_val, skin_tone=skin_tone_for_prompt)
         else:
             _is_baby_no_photo = (story_id == 'furry_love_illustrated')
-            human_prompt = build_human_preview_prompt(human_desc, is_baby=_is_baby_no_photo)
+            _gender_word_for_outfit = "girl" if gender == "female" else "boy"
+            human_prompt = build_human_preview_prompt(human_desc, is_baby=_is_baby_no_photo, gender_word=_gender_word_for_outfit)
         
         print(f"[PREVIEW DEBUG] HUMAN PROMPT FULL ({len(human_prompt)} chars): {human_prompt}")
         if pet_photo_path:
@@ -1083,11 +1085,13 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                     f"POSE: standing, full body visible from head to feet, relaxed confident smile, arms naturally at sides."
                 )
             else:
-                # Kids (3-8 años) — minimal prompt like baby: convert from photo, no characteristic descriptions
+                # Kids (3-8 años) — Furry Love Adventure: use the SAME adventure outfit worn in every
+                # scene, so preview/cover/scenes never diverge into a random generic outfit.
+                _adv_outfit_k = ADVENTURE_OUTFIT_GIRL if gender == "female" else ADVENTURE_OUTFIT_BOY
                 kontext_prompt = (
                     f"Convert the {gender_word} in @image1 into a high-quality 3D animated children's book character. "
                     f"Preserve the exact face, eye color, skin tone, and hair — identical likeness. "
-                    f"OUTFIT: colorful t-shirt with shorts or pants, sneakers — fun casual children's style. "
+                    f"OUTFIT: {_adv_outfit_k}. "
                     f"BACKGROUND: soft cream gradient, plain studio. "
                     f"POSE: standing, full body visible from head to feet, big joyful smile, arms relaxed at sides."
                 )
