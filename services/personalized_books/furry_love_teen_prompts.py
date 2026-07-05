@@ -254,6 +254,10 @@ def build_scene_prompt(scene: dict, human_desc: str, pet_name: str, pet_desc: st
     # "ONE pet" → "ONE cat" or "ONE dog" based on user's form selection
     prompt = prompt.replace('ONE pet', f'ONE {animal_word}')
 
+    # Reinforce eye color explicitly (references alone are unreliable for FLUX fidelity)
+    if eye_color_only:
+        prompt += f" EYES: the teenager has {eye_color_only} eyes, matching @image1 exactly."
+
     return prompt
 
 
