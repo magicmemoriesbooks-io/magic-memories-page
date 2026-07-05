@@ -9264,6 +9264,8 @@ def download_book_pdf(preview_id):
                 book_id=book_id,
                 book_title=book_title,
                 print_format=print_format,
+                front_cover_path=story_data.get('front_cover_path') or None,
+                back_cover_path=story_data.get('back_cover_path') or None,
             )
             if pdf_path and os.path.exists(pdf_path):
                 # Cache for next time
@@ -9335,6 +9337,9 @@ def admin_download_gelato_pdf(preview_id):
                     book_id=_book_id_dl,
                     output_path=_full_pdf,
                     force_regenerate=True,
+                    print_format=_fmt_dl,
+                    front_cover_path=story_data.get('front_cover_path') or None,
+                    back_cover_path=story_data.get('back_cover_path') or None,
                 )
                 if os.path.exists(_full_pdf):
                     print(f"[ADMIN PDF] Serving 28-page complete PDF for {preview_id}")
