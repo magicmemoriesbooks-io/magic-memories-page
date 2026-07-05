@@ -252,6 +252,11 @@ def build_scene_prompt(scene: dict, human_desc: str, pet_name: str, pet_desc: st
     prompt = prompt.replace('{hair_desc}', hair_desc if hair_desc else hair_color_label)
     # Explicitly name the animal type in CAST so FLUX doesn't default to dog
     prompt = prompt.replace('ONE pet', f'ONE {animal_word}')
+
+    # Reinforce eye color explicitly (references alone are unreliable for FLUX fidelity)
+    if eye_color_only:
+        prompt += f" EYES: {gender_word} has {eye_color_only} eyes, matching @image1 exactly."
+
     return prompt
 
 
