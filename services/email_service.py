@@ -278,6 +278,7 @@ def send_story_email_with_attachments(
     visor_url: Optional[str] = None,
     is_pdf_purchase: bool = False,
     give_gift_ebook: bool = False,
+    cc: Optional[str] = None,
 ) -> dict:
     child_name = story_data.get('child_name', 'tu pequeño')
     story_name = story_data.get('story_name', 'tu cuento')
@@ -558,6 +559,8 @@ Magic Memories Books
         msg['Subject'] = subject
         msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
         msg['To'] = to_email
+        if cc:
+            msg['Cc'] = cc
         
         msg_alternative.attach(MIMEText(text_body, 'plain', 'utf-8'))
         msg_alternative.attach(MIMEText(html_body, 'html', 'utf-8'))
