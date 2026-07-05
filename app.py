@@ -9077,6 +9077,34 @@ def admin_regenerate_page(preview_id, page_idx):
         except Exception:
             pass
 
+        # Update visor JPG immediately so eBook reflects new image without needing rebuild
+        try:
+            from PIL import Image as _PilImg
+            visor_dir = f'generations/visor_pb/{preview_id}'
+            os.makedirs(visor_dir, exist_ok=True)
+            visor_jpg = os.path.join(visor_dir, f'page_{page_idx+2}.jpg')
+            if os.path.exists(visor_jpg):
+                try:
+                    os.remove(visor_jpg)
+                except OSError:
+                    pass
+            _vi = _PilImg.open(save_path).convert('RGB')
+            _VISOR_JPG_MAX_DIM = 1200
+            if _vi.width > _VISOR_JPG_MAX_DIM or _vi.height > _VISOR_JPG_MAX_DIM:
+                _vi.thumbnail((_VISOR_JPG_MAX_DIM, _VISOR_JPG_MAX_DIM), _PilImg.LANCZOS)
+            _vi.save(visor_jpg, 'JPEG', quality=82, optimize=True, progressive=True)
+            _vi.close()
+            print(f"[ADMIN-REGEN-PAGE] Visor JPG updated: {visor_jpg}")
+        except Exception as _ve:
+            print(f"[ADMIN-REGEN-PAGE] Visor JPG update failed: {_ve}")
+        # Invalidate PDF cache so next download regenerates fresh
+        _cp_pdf = f'generations/cloudprinter/{preview_id}/content.pdf'
+        if os.path.exists(_cp_pdf):
+            try:
+                os.remove(_cp_pdf)
+            except Exception:
+                pass
+
         url_path = f'/{save_path}'
 
         # Update pages_data
@@ -9763,8 +9791,8 @@ def admin_generate_cp_pdfs(preview_id):
 
             # Re-upload visor to pick up any regenerated scenes
             try:
-                from services.vps_upload_service import upload_book_to_visor
-                upload_book_to_visor(preview_id, story_data)
+                from services.vps_upload_service import prepare_and_upload
+                prepare_and_upload(story_data, preview_id)
             except Exception as _vu_err:
                 print(f"[GEN-CP-PDF] Visor re-upload skipped: {_vu_err}")
 
@@ -10007,9 +10035,9 @@ def admin_gift_send_to_cp(preview_id):
             # Always re-upload visor before building Cloudprinter PDF so any
             # admin-regenerated scenes are reflected in page_N.jpg
             try:
-                from services.vps_upload_service import upload_book_to_visor
+                from services.vps_upload_service import prepare_and_upload
                 print(f"[ADMIN-CP] Re-uploading visor for {preview_id} to pick up regenerated images…")
-                upload_book_to_visor(preview_id, story_data)
+                prepare_and_upload(story_data, preview_id)
                 story_data['visor_uploaded'] = True
                 print(f"[ADMIN-CP] Visor re-upload done for {preview_id}")
             except Exception as _vu_err:
