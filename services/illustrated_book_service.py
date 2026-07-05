@@ -1330,7 +1330,7 @@ def generate_cover_spread(
         outfit_desc = "a cozy green tunic with brown pants" if gender == "male" else "a flowing lavender dress"
         front_prompt = f"Disney Pixar 3D style illustration. A {gender_child} with {hair_desc} and {skin_tone} skin wearing {outfit_desc} in a magical garden. {STYLE_BASE}"
     
-    front_prompt += "\nClean illustration, space for title at top."
+    front_prompt += "\nPure illustration only, open sky and empty space in the upper area."
     
     is_star_keeper_cover = (book_id in ('star_keeper', 'dragon_garden', 'centinela_aurora'))
     reuse_preview_as_cover = (
