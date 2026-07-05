@@ -1062,7 +1062,7 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                 kontext_prompt = (
                     f"Convert the {gender_word} in @image1 into a high-quality 3D animated children's book character. "
                     f"Preserve the exact face, hair, and skin tone of the baby — identical likeness. "
-                    f"The baby has {eye_desc}, matching @image1 exactly. "
+                    f"Change the baby's eye color to {eye_desc}, regardless of the baby's actual eye color in @image1. "
                     f"OUTFIT: change the baby's clothing to a soft sage-green baby romper with small leaf print, no text on clothing, regardless of what the baby is wearing in @image1. "
                     f"BACKGROUND: soft cream gradient, plain studio. "
                     f"POSE: baby sitting on the floor, facing camera, warm happy smiling expression, full body visible from head to bare feet, natural baby proportions, face and body balanced."
@@ -1072,7 +1072,7 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                 kontext_prompt = (
                     f"Convert the {age_display} {gender_word} in @image1 into a high-quality 3D animated children's book character. "
                     f"Preserve the exact face, skin tone, and hair — identical likeness. "
-                    f"They have {eye_desc}, matching @image1 exactly. "
+                    f"Change their eye color to {eye_desc}, regardless of their actual eye color in @image1. "
                     f"OUTFIT: change their clothing to a casual hoodie and jeans, sneakers — modern teen style, regardless of what they are wearing in @image1. "
                     f"BACKGROUND: soft cream gradient, plain studio. "
                     f"POSE: standing, full body visible from head to feet, confident friendly smile, arms relaxed at sides."
@@ -1082,7 +1082,7 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                 kontext_prompt = (
                     f"Convert the {age_display} {gender_word} in @image1 into a high-quality 3D animated storybook character. "
                     f"Preserve the exact face, hair color, skin tone, and age from the photo — identical adult likeness. "
-                    f"They have {eye_desc}, matching @image1 exactly. "
+                    f"Change their eye color to {eye_desc}, regardless of their actual eye color in @image1. "
                     f"OUTFIT: change their clothing to casual outdoor hiking clothes (flannel shirt or fleece, cargo pants, hiking boots), regardless of what they are wearing in @image1. "
                     f"BACKGROUND: soft cream gradient, plain studio. "
                     f"POSE: standing, full body visible from head to feet, relaxed confident smile, arms naturally at sides."
@@ -1094,7 +1094,7 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                 kontext_prompt = (
                     f"Convert the {age_display} {gender_word} in @image1 into a high-quality 3D animated children's book character. "
                     f"Preserve the exact face, skin tone, and hair — identical likeness. "
-                    f"They have {eye_desc}, matching @image1 exactly. "
+                    f"Change their eye color to {eye_desc}, regardless of their actual eye color in @image1. "
                     f"OUTFIT: change their clothing to {_adv_outfit_k}, regardless of what they are wearing in @image1. "
                     f"BACKGROUND: soft cream gradient, plain studio. "
                     f"POSE: standing, full body visible from head to feet, big joyful smile, arms relaxed at sides."
