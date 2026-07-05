@@ -165,7 +165,16 @@
             {% set gelato_pdf_available = preview.gelato_combined_pdf or (preview.pages_composed and is_gelato_book) %}
             {% set has_pdf = preview.lulu_order_folder or preview.pdf_path or preview.digital_pdf_path or preview.pdf_printable_path or gelato_pdf_available %}
             {% if gelato_pdf_available or is_gelato_book %}
-            <a href="{{ url_for('admin_download_gelato_pdf', preview_id=preview_id) }}" class="ap-btn ap-btn-pdf" target="_blank">📄 Descargar PDF Impresión</a>
+            <a id="pdf-impresion-link" href="{{ url_for('admin_download_gelato_pdf', preview_id=preview_id) }}" class="ap-btn ap-btn-pdf" target="_blank">📄 Descargar PDF Impresión</a>
+            <span style="display:inline-flex; align-items:center; gap:6px; background:#f1f5f9; border-radius:8px; padding:5px 10px;">
+                <label for="pdfFormatSelectMain" style="font-size:12px; color:#475569; font-weight:600;">Formato:</label>
+                <select id="pdfFormatSelectMain" style="font-size:12px; padding:4px 6px; border-radius:6px; border:1px solid #cbd5e1;">
+                    <option value="A4" {% if (preview.print_format or 'A4') == 'A4' %}selected{% endif %}>A4</option>
+                    <option value="LETTER" {% if preview.print_format == 'LETTER' %}selected{% endif %}>Carta (Letter)</option>
+                </select>
+                <button type="button" class="ap-btn" style="font-size:12px; padding:5px 12px; background:#0ea5e9; color:#fff;" onclick="setPdfFormatMain('{{ preview_id }}')">Aplicar y descargar</button>
+            </span>
+            <span id="pdfFormatMainStatus" style="font-size:12px;"></span>
             {% elif has_pdf %}
             <a href="{{ url_for('admin_download_pdf', preview_id=preview_id) }}" class="ap-btn ap-btn-pdf" target="_blank">📄 Descargar PDF</a>
             {% endif %}
@@ -697,6 +706,33 @@ function adminResetPdf(previewId, btn) {
     });
 }
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { closeLB(); closeCpModal(); } });
+
+async function setPdfFormatMain(previewId) {
+    var fmt = document.getElementById('pdfFormatSelectMain').value;
+    var status = document.getElementById('pdfFormatMainStatus');
+    var link = document.getElementById('pdf-impresion-link');
+    status.style.color = '#475569';
+    status.textContent = '⏳ Aplicando…';
+    try {
+        var resp = await fetch('/admin/set-pdf-format/' + previewId, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ print_format: fmt }),
+        });
+        var data = await resp.json();
+        if (data.success) {
+            status.style.color = '#166534';
+            status.textContent = '✅ Formato ' + (fmt === 'LETTER' ? 'Carta' : 'A4') + ' aplicado';
+            if (link) { link.click(); }
+        } else {
+            status.style.color = '#991b1b';
+            status.textContent = '❌ ' + (data.error || 'Error desconocido');
+        }
+    } catch (e) {
+        status.style.color = '#991b1b';
+        status.textContent = '❌ Error de red: ' + e.message;
+    }
+}
 
 function generateCpPdfsPreview(previewId) {
     var linksDiv = document.getElementById('cp-pdf-preview-links');
