@@ -1061,26 +1061,29 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                 # Baby book — minimal prompt: just convert the baby from the photo, no characteristic descriptions
                 kontext_prompt = (
                     f"Convert the {gender_word} in @image1 into a high-quality 3D animated children's book character. "
-                    f"Preserve the exact face, eye color, skin tone, and hair of the baby — identical likeness. "
-                    f"OUTFIT: soft sage-green baby romper with small leaf print, no text on clothing. "
+                    f"Preserve the exact face, hair, and skin tone of the baby — identical likeness. "
+                    f"The baby has {eye_desc}, matching @image1 exactly. "
+                    f"OUTFIT: change the baby's clothing to a soft sage-green baby romper with small leaf print, no text on clothing, regardless of what the baby is wearing in @image1. "
                     f"BACKGROUND: soft cream gradient, plain studio. "
                     f"POSE: baby sitting on the floor, facing camera, warm happy smiling expression, full body visible from head to bare feet, natural baby proportions, face and body balanced."
                 )
             elif story_id == 'furry_love_teen_illustrated':
                 # Teen — same minimal @image1 approach as baby and adventure: let Kontext read the photo directly
                 kontext_prompt = (
-                    f"Convert the {gender_word} in @image1 into a high-quality 3D animated children's book character. "
-                    f"Preserve the exact face, eye color, skin tone, and hair — identical likeness. "
-                    f"OUTFIT: casual hoodie and jeans, sneakers — modern teen style. "
+                    f"Convert the {age_display} {gender_word} in @image1 into a high-quality 3D animated children's book character. "
+                    f"Preserve the exact face, skin tone, and hair — identical likeness. "
+                    f"They have {eye_desc}, matching @image1 exactly. "
+                    f"OUTFIT: change their clothing to a casual hoodie and jeans, sneakers — modern teen style, regardless of what they are wearing in @image1. "
                     f"BACKGROUND: soft cream gradient, plain studio. "
                     f"POSE: standing, full body visible from head to feet, confident friendly smile, arms relaxed at sides."
                 )
             elif story_id == 'furry_love_adult_illustrated':
                 # Adult — mountain adventure story. Minimalist: let Kontext read @image1 directly.
                 kontext_prompt = (
-                    f"Convert the adult {gender_word} in @image1 into a high-quality 3D animated storybook character. "
-                    f"Preserve the exact face, eye color, hair color, skin tone, and age from the photo — identical adult likeness. "
-                    f"OUTFIT: casual outdoor hiking clothes (flannel shirt or fleece, cargo pants, hiking boots). "
+                    f"Convert the {age_display} {gender_word} in @image1 into a high-quality 3D animated storybook character. "
+                    f"Preserve the exact face, hair color, skin tone, and age from the photo — identical adult likeness. "
+                    f"They have {eye_desc}, matching @image1 exactly. "
+                    f"OUTFIT: change their clothing to casual outdoor hiking clothes (flannel shirt or fleece, cargo pants, hiking boots), regardless of what they are wearing in @image1. "
                     f"BACKGROUND: soft cream gradient, plain studio. "
                     f"POSE: standing, full body visible from head to feet, relaxed confident smile, arms naturally at sides."
                 )
@@ -1089,9 +1092,10 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                 # scene, so preview/cover/scenes never diverge into a random generic outfit.
                 _adv_outfit_k = ADVENTURE_OUTFIT_GIRL if gender == "female" else ADVENTURE_OUTFIT_BOY
                 kontext_prompt = (
-                    f"Convert the {gender_word} in @image1 into a high-quality 3D animated children's book character. "
-                    f"Preserve the exact face, eye color, skin tone, and hair — identical likeness. "
-                    f"OUTFIT: {_adv_outfit_k}. "
+                    f"Convert the {age_display} {gender_word} in @image1 into a high-quality 3D animated children's book character. "
+                    f"Preserve the exact face, skin tone, and hair — identical likeness. "
+                    f"They have {eye_desc}, matching @image1 exactly. "
+                    f"OUTFIT: change their clothing to {_adv_outfit_k}, regardless of what they are wearing in @image1. "
                     f"BACKGROUND: soft cream gradient, plain studio. "
                     f"POSE: standing, full body visible from head to feet, big joyful smile, arms relaxed at sides."
                 )
