@@ -1333,9 +1333,13 @@ def generate_cover_spread(
     front_prompt += "\nPure illustration only, open sky and empty space in the upper area."
     
     is_star_keeper_cover = (book_id in ('star_keeper', 'dragon_garden', 'centinela_aurora'))
+    # For furry_love books: if only ONE reference was passed (cover_raw.png, the
+    # already-approved cover with human+pet merged), reuse it directly instead of
+    # regenerating with FLUX. Only regenerate with FLUX when TWO separate refs
+    # (human_preview + pet_preview) are supplied and need to be merged.
     reuse_preview_as_cover = (
         reference_image_path and os.path.exists(reference_image_path)
-        and not is_furry
+        and not reference_image_path_2
         and not is_star_keeper_cover
     )
     
