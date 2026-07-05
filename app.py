@@ -3269,6 +3269,14 @@ def regenerate_cover(preview_id):
                 json.dump(story_data, f, ensure_ascii=False, indent=2)
             
             print(f"[REGEN COVER] Cover regenerated successfully: {cover_image_path}")
+
+            # Single reconstruction pipeline: cover_raw.png is now newer than the
+            # existing cover_spread, so rebuild_book will rebuild the spread,
+            # visor, printable PDF and Cloudprinter PDFs from it.
+            from services.personalized_books.rebuild import rebuild_book
+            if os.path.exists(f'generated/composed_{preview_id}'):
+                rebuild_book(preview_id)
+
             return jsonify({
                 'success': True,
                 'cover_image': f'/{cover_image_path}'
@@ -3356,7 +3364,8 @@ def regenerate_cover(preview_id):
                     )
                 else:
                     # Fallback: no references, text-only prompt
-                    from services.fixed_stories import get_hair_description, get_eye_description, get_unified_skin_description, get_hair_strict
+                    from services.fixed_stories import get_hair_description, get_eye_description, get_hair_strict
+                    from services.replicate_service import get_unified_skin_description
                     from services.personalized_books.star_keeper_prompts import get_hair_action as sk_get_hair_action
                     hair_desc_regen = get_hair_description(traits)
                     eye_desc_regen = get_eye_description(traits)
@@ -3399,9 +3408,15 @@ def regenerate_cover(preview_id):
             )
             story_data['cover_image'] = f'/{cover_image_path_regen}'
             story_data['cover_raw_path'] = cover_raw_path_regen
+            story_data['original_cover'] = f'/{cover_image_path_regen}'
             with open(preview_file, 'w', encoding='utf-8') as f:
                 json.dump(story_data, f, ensure_ascii=False, indent=2)
             print(f"[REGEN COVER SK] Cover regenerated: {cover_image_path_regen}")
+
+            from services.personalized_books.rebuild import rebuild_book
+            if os.path.exists(f'generated/composed_{preview_id}'):
+                rebuild_book(preview_id)
+
             return jsonify({'success': True, 'cover_image': f'/{cover_image_path_regen}'})
 
         elif story_id == 'dragon_garden_illustrated':
@@ -3463,7 +3478,8 @@ def regenerate_cover(preview_id):
                     negative_prompt=dg_neg_regen
                 )
             else:
-                from services.fixed_stories import get_hair_description, get_eye_description, get_unified_skin_description, get_hair_strict
+                from services.fixed_stories import get_hair_description, get_eye_description, get_hair_strict
+                from services.replicate_service import get_unified_skin_description
                 from services.personalized_books.dragon_garden_prompts import get_hair_action as dg_get_hair_action
                 hair_desc_regen = get_hair_description(traits)
                 eye_desc_regen = get_eye_description(traits)
@@ -3506,9 +3522,15 @@ def regenerate_cover(preview_id):
             )
             story_data['cover_image'] = f'/{cover_image_path_regen}'
             story_data['cover_raw_path'] = cover_raw_path_regen
+            story_data['original_cover'] = f'/{cover_image_path_regen}'
             with open(preview_file, 'w', encoding='utf-8') as f:
                 json.dump(story_data, f, ensure_ascii=False, indent=2)
             print(f"[REGEN COVER DG] Cover regenerated: {cover_image_path_regen}")
+
+            from services.personalized_books.rebuild import rebuild_book
+            if os.path.exists(f'generated/composed_{preview_id}'):
+                rebuild_book(preview_id)
+
             return jsonify({'success': True, 'cover_image': f'/{cover_image_path_regen}'})
 
         elif story_id == 'centinela_aurora_illustrated':
@@ -3572,7 +3594,8 @@ def regenerate_cover(preview_id):
                     negative_prompt=ca_neg_regen
                 )
             else:
-                from services.fixed_stories import get_hair_description, get_eye_description, get_unified_skin_description, get_hair_strict
+                from services.fixed_stories import get_hair_description, get_eye_description, get_hair_strict
+                from services.replicate_service import get_unified_skin_description
                 from services.personalized_books.centinela_aurora_prompts import get_hair_action as ca_get_hair_action
                 hair_desc_regen = get_hair_description(traits)
                 eye_desc_regen = get_eye_description(traits)
@@ -3616,9 +3639,15 @@ def regenerate_cover(preview_id):
             )
             story_data['cover_image'] = f'/{cover_image_path_regen}'
             story_data['cover_raw_path'] = cover_raw_path_regen
+            story_data['original_cover'] = f'/{cover_image_path_regen}'
             with open(preview_file, 'w', encoding='utf-8') as f:
                 json.dump(story_data, f, ensure_ascii=False, indent=2)
             print(f"[REGEN COVER CA] Cover regenerated: {cover_image_path_regen}")
+
+            from services.personalized_books.rebuild import rebuild_book
+            if os.path.exists(f'generated/composed_{preview_id}'):
+                rebuild_book(preview_id)
+
             return jsonify({'success': True, 'cover_image': f'/{cover_image_path_regen}'})
 
         else:
@@ -7075,73 +7104,35 @@ def regenerate_page(preview_id, page_num):
             text_position = scene_config.get('text_position', 'bottom')
             final_image = add_text_to_image(base_image, text, position=text_position)
         
-        # Save to the output directory
-        output_dir = story_data.get('output_dir', f'generated/personalized_{preview_id[:8]}')
-        os.makedirs(output_dir, exist_ok=True)
+        # Save to the SAME canonical location the whole rebuild pipeline reads
+        # from: generated/composed_<preview_id>/page_NN.png. Saving into
+        # output_dir would silently orphan this page from the reconstruction
+        # pipeline's page listing.
+        composed_dir = f'generated/composed_{preview_id}'
+        os.makedirs(composed_dir, exist_ok=True)
         
-        # Save clean image (no watermark — user has already paid)
-        original_path = os.path.join(output_dir, f'page_{page_num:02d}.png')
+        # page_num from this route (3-21) is already the composed_dir page number.
+        original_path = os.path.join(composed_dir, f'page_{page_num:02d}.png')
         final_image.save(original_path, 'PNG')
-        preview_path = original_path
         
         print(f"[REGENERATE] Saved: {original_path} (no watermark, post-payment)")
         
-        # Update regeneration count
+        # Update regeneration count and persist BEFORE rebuilding, so the
+        # single reconstruction pipeline sees the up-to-date count too.
         regen_counts[page_key] = current_count + 1
         story_data['page_regenerations'] = regen_counts
-        
-        # Update ALL image path arrays to ensure PDF generation uses new images
-        page_index = page_num - 1  # Array index (0-based)
-        
-        # Update original_images
-        original_images = story_data.get('original_images', [])
-        if page_index < len(original_images):
-            original_images[page_index] = f'/{original_path}'
-            story_data['original_images'] = original_images
-        
-        # Update all_pages_original (used by email PDF)
-        all_pages_original = story_data.get('all_pages_original', [])
-        if page_index < len(all_pages_original):
-            all_pages_original[page_index] = f'/{original_path}'
-            story_data['all_pages_original'] = all_pages_original
-        
-        # Update original_scene_paths (fallback)
-        original_scene_paths = story_data.get('original_scene_paths', [])
-        if page_index < len(original_scene_paths):
-            original_scene_paths[page_index] = f'/{original_path}'
-            story_data['original_scene_paths'] = original_scene_paths
-        
-        # Update preview/watermarked images
-        preview_images = story_data.get('images', [])
-        if page_index < len(preview_images):
-            preview_images[page_index] = f'/{preview_path}'
-            story_data['images'] = preview_images
-        
-        # Update all_pages_preview
-        all_pages_preview = story_data.get('all_pages_preview', [])
-        if page_index < len(all_pages_preview):
-            all_pages_preview[page_index] = f'/{preview_path}'
-            story_data['all_pages_preview'] = all_pages_preview
-        
-        print(f"[REGENERATE] Updated arrays - page_index={page_index}, original_path={original_path}")
-        
-        story_data['visor_uploaded'] = False
-        story_data['visor_url'] = ''
-        story_data['pdf_printable_path'] = ''
-        if story_data.get('cp_submitted') or story_data.get('lulu_submitted'):
-            story_data['cp_needs_refresh'] = True
-            story_data['cp_submitted'] = False
-            story_data['lulu_submitted'] = False
-        print(f"[REGENERATE] Visor, PDF and print flags reset — will regenerate on next confirm_and_send")
-        
-        # Save updated story data
         with open(preview_file, 'w', encoding='utf-8') as f:
             json.dump(story_data, f, ensure_ascii=False, indent=2)
+        
+        # Single reconstruction pipeline: rebuilds path arrays, visor,
+        # printable PDF and Cloudprinter PDFs from the page files on disk.
+        from services.personalized_books.rebuild import rebuild_book
+        rebuild_book(preview_id)
         
         return jsonify({
             'success': True, 
             'message': f'Página {page_num} regenerada correctamente',
-            'image_path': f'/{preview_path}',
+            'image_path': f'/{original_path}',
             'regenerations_left': 2 - (current_count + 1)
         })
         
@@ -8803,37 +8794,9 @@ def admin_regenerate_scene(preview_id, scene_num):
             except Exception:
                 pass
 
-            # Update visor JPG immediately so eBook reflects new image without needing rebuild
-            try:
-                from PIL import Image as _PilImg
-                visor_dir = f'generations/visor_pb/{preview_id}'
-                os.makedirs(visor_dir, exist_ok=True)
-                visor_jpg = os.path.join(visor_dir, f'page_{page_idx+2}.jpg')
-                if os.path.exists(visor_jpg):
-                    try:
-                        os.remove(visor_jpg)
-                    except OSError:
-                        pass
-                _vi = _PilImg.open(save_path).convert('RGB')
-                _VISOR_JPG_MAX_DIM = 1200
-                if _vi.width > _VISOR_JPG_MAX_DIM or _vi.height > _VISOR_JPG_MAX_DIM:
-                    _vi.thumbnail((_VISOR_JPG_MAX_DIM, _VISOR_JPG_MAX_DIM), _PilImg.LANCZOS)
-                _vi.save(visor_jpg, 'JPEG', quality=82, optimize=True, progressive=True)
-                _vi.close()
-                print(f"[ADMIN-REGEN] Visor JPG updated: {visor_jpg}")
-            except Exception as _ve:
-                print(f"[ADMIN-REGEN] Visor JPG update failed: {_ve}")
-            # Invalidate PDF cache so next download regenerates fresh
-            _cp_pdf = f'generations/cloudprinter/{preview_id}/content.pdf'
-            if os.path.exists(_cp_pdf):
-                try:
-                    os.remove(_cp_pdf)
-                except Exception:
-                    pass
-
             url_path = f'/{save_path}'
 
-            # Update pages_data scene_path → clean path
+            # Update pages_data scene_path → clean path (kept for the admin text-editor UI)
             pages_data = story_data.get('pages', [])
             if 0 <= page_idx < len(pages_data):
                 if pages_data[page_idx].get('scene_path') is not None:
@@ -8843,29 +8806,13 @@ def admin_regenerate_scene(preview_id, scene_num):
                 else:
                     pages_data[page_idx]['scene_path'] = url_path
                 story_data['pages'] = pages_data
+                with open(preview_path, 'w', encoding='utf-8') as f:
+                    json.dump(story_data, f, ensure_ascii=False, indent=2)
 
-            # Update original_scene_paths and scene_paths for the scenes grid
-            # original_scene_paths is an ALL-PAGES array (24 entries incl. title+ded)
-            # so the correct index is page_idx, not scene_num-1
-            orig_paths = story_data.get('original_scene_paths', story_data.get('original_images', []))
-            if 0 <= page_idx < len(orig_paths):
-                orig_paths[page_idx] = url_path
-                story_data['original_scene_paths'] = orig_paths
-                story_data['original_images'] = orig_paths
-
-            scene_paths = story_data.get('scene_paths', story_data.get('images', []))
-            if 0 <= page_idx < len(scene_paths):
-                scene_paths[page_idx] = url_path
-                story_data['scene_paths'] = scene_paths
-                story_data['images'] = scene_paths
-
-            story_data['visor_uploaded'] = False
-            story_data['pages_composed'] = False
-            story_data.pop('digital_pdf_path', None)
-            story_data.pop('print_pdf_path', None)
-
-            with open(preview_path, 'w', encoding='utf-8') as f:
-                json.dump(story_data, f, ensure_ascii=False, indent=2)
+            # Single reconstruction pipeline: rebuilds path arrays, visor,
+            # printable PDF and Cloudprinter PDFs from the page files on disk.
+            from services.personalized_books.rebuild import rebuild_book
+            rebuild_book(preview_id)
 
             production_logger.info(f"[ADMIN-REGEN] Illustrated scene {scene_num} OK for {preview_id}: {save_path}")
             return jsonify({'success': True, 'image_url': url_path})
@@ -9077,37 +9024,9 @@ def admin_regenerate_page(preview_id, page_idx):
         except Exception:
             pass
 
-        # Update visor JPG immediately so eBook reflects new image without needing rebuild
-        try:
-            from PIL import Image as _PilImg
-            visor_dir = f'generations/visor_pb/{preview_id}'
-            os.makedirs(visor_dir, exist_ok=True)
-            visor_jpg = os.path.join(visor_dir, f'page_{page_idx+2}.jpg')
-            if os.path.exists(visor_jpg):
-                try:
-                    os.remove(visor_jpg)
-                except OSError:
-                    pass
-            _vi = _PilImg.open(save_path).convert('RGB')
-            _VISOR_JPG_MAX_DIM = 1200
-            if _vi.width > _VISOR_JPG_MAX_DIM or _vi.height > _VISOR_JPG_MAX_DIM:
-                _vi.thumbnail((_VISOR_JPG_MAX_DIM, _VISOR_JPG_MAX_DIM), _PilImg.LANCZOS)
-            _vi.save(visor_jpg, 'JPEG', quality=82, optimize=True, progressive=True)
-            _vi.close()
-            print(f"[ADMIN-REGEN-PAGE] Visor JPG updated: {visor_jpg}")
-        except Exception as _ve:
-            print(f"[ADMIN-REGEN-PAGE] Visor JPG update failed: {_ve}")
-        # Invalidate PDF cache so next download regenerates fresh
-        _cp_pdf = f'generations/cloudprinter/{preview_id}/content.pdf'
-        if os.path.exists(_cp_pdf):
-            try:
-                os.remove(_cp_pdf)
-            except Exception:
-                pass
-
         url_path = f'/{save_path}'
 
-        # Update pages_data
+        # Update pages_data (kept for the admin text-editor UI)
         if pages_data[page_idx].get('scene_path') is not None:
             pages_data[page_idx]['scene_path'] = url_path
         elif pages_data[page_idx].get('fixed_scene') is not None:
@@ -9116,22 +9035,13 @@ def admin_regenerate_page(preview_id, page_idx):
             pages_data[page_idx]['scene_path'] = url_path
 
         story_data['pages'] = pages_data
-
-        # Update original_scene_paths so visor picks up new image
-        # original_scene_paths is an ALL-PAGES array — use page_idx directly
-        orig_paths = story_data.get('original_scene_paths', story_data.get('original_images', []))
-        if 0 <= page_idx < len(orig_paths):
-            orig_paths[page_idx] = url_path
-            story_data['original_scene_paths'] = orig_paths
-            story_data['original_images'] = orig_paths
-
-        story_data['visor_uploaded'] = False
-        story_data['pages_composed'] = False
-        story_data.pop('digital_pdf_path', None)
-        story_data.pop('print_pdf_path', None)
-
         with open(preview_path, 'w', encoding='utf-8') as f:
             json.dump(story_data, f, ensure_ascii=False, indent=2)
+
+        # Single reconstruction pipeline: rebuilds path arrays, visor,
+        # printable PDF and Cloudprinter PDFs from the page files on disk.
+        from services.personalized_books.rebuild import rebuild_book
+        rebuild_book(preview_id)
 
         production_logger.info(f"[ADMIN-REGEN-PAGE] Page {page_idx} OK for {preview_id}: {save_path}")
         return jsonify({'success': True, 'image_url': url_path})
@@ -12942,135 +12852,33 @@ def _compose_personalized_book_background(preview_id, **kwargs):
                 except Exception as photo_del_err:
                     production_logger.warning(f"[BG-COMPOSE] Could not delete child photo: {photo_del_err}")
         
-        content_original = original_paths[2:-2]
-        content_preview = preview_paths[2:-2]
-        
-        formatted_original = [f'/{p}' if not p.startswith('/') else p for p in content_original]
-        formatted_preview = [f'/{p}' if not p.startswith('/') else p for p in content_preview]
-        all_pages_original = [f'/{p}' if not p.startswith('/') else p for p in original_paths[:-2]]
-        
-        all_original = [f'/{p}' if not p.startswith('/') else p for p in original_paths]
-        all_preview = [f'/{p}' if not p.startswith('/') else p for p in preview_paths]
-        
-        production_logger.info(f"[BG-COMPOSE] Total pages: {len(original_paths)}, Content pages: {len(content_original)}")
-        
-        story_data['scene_paths'] = formatted_original
-        story_data['images'] = formatted_preview
-        story_data['original_images'] = formatted_original
-        story_data['all_pages_original'] = all_original
-        story_data['all_pages_preview'] = all_preview
+        production_logger.info(f"[BG-COMPOSE] Pages generated for {preview_id}: {len(original_paths)} page files on disk")
         story_data['composed_pages_dir'] = composed_dir
-        story_data['pages_composed'] = True
-        story_data['scenes_pending'] = False
-        story_data['scenes_generating'] = False
-        
-        from services.illustrated_book_service import generate_cover_spread, add_watermark
-        
-        existing_cover_spread_path = story_data.get('cover_spread_path', '')
-        cover_was_regenerated = False
-        if scenes_already_ready and existing_cover_spread_path and os.path.exists(existing_cover_spread_path):
-            cover_raw_path_check = story_data.get('cover_raw_path', '')
-            if cover_raw_path_check and os.path.exists(cover_raw_path_check):
-                spread_mtime = os.path.getmtime(existing_cover_spread_path)
-                raw_mtime = os.path.getmtime(cover_raw_path_check)
-                if raw_mtime > spread_mtime:
-                    cover_was_regenerated = True
-                    production_logger.info(f"[BG-COMPOSE] Cover was regenerated after spread creation, regenerating cover spread with new cover...")
-        
-        if scenes_already_ready and existing_cover_spread_path and os.path.exists(existing_cover_spread_path) and not cover_was_regenerated:
-            production_logger.info(f"[BG-COMPOSE] Loading existing cover spread from disk...")
-            from PIL import Image
-            cover_spread = Image.open(existing_cover_spread_path)
-        else:
-            ref_image_path = None
-            ref_image_path_2_cover = None
-            if book_id == "magic_inventor":
-                character_preview = story_data.get('character_preview', '')
-                if character_preview:
-                    ref_candidate = character_preview.lstrip('/')
-                    if os.path.exists(ref_candidate):
-                        ref_image_path = ref_candidate
-            elif book_id in ("furry_love", "furry_love_adventure", "furry_love_teen", "furry_love_adult"):
-                cover_raw_saved = story_data.get('cover_raw_path', '')
-                if cover_raw_saved:
-                    raw_path = cover_raw_saved.lstrip('/')
-                    if os.path.exists(raw_path):
-                        ref_image_path = raw_path
-                        production_logger.info(f"[BG-COMPOSE] Furry love: using RAW pre-generated cover (no text overlay): {raw_path}")
-                if not ref_image_path:
-                    cover_raw = story_data.get('original_cover', story_data.get('cover_image', ''))
-                    if cover_raw:
-                        cover_raw_path_fallback = cover_raw.lstrip('/')
-                        if os.path.exists(cover_raw_path_fallback):
-                            ref_image_path = cover_raw_path_fallback
-                            production_logger.info(f"[BG-COMPOSE] Furry love: using pre-generated cover (with overlay) as fallback: {cover_raw_path_fallback}")
-                if not ref_image_path:
-                    human_preview = story_data.get('human_preview_path', '')
-                    if human_preview:
-                        human_ref = human_preview.lstrip('/')
-                        if os.path.exists(human_ref):
-                            ref_image_path = human_ref
-                    pet_preview = story_data.get('pet_preview_path', '')
-                    if pet_preview:
-                        pet_ref = pet_preview.lstrip('/')
-                        if os.path.exists(pet_ref):
-                            ref_image_path_2_cover = pet_ref
-            
-            production_logger.info(f"[BG-COMPOSE] Generating cover spread...")
-            author_name = story_data.get('author_name', 'Magic Memories Books')
-            cover_spread = generate_cover_spread(traits, child_name, gender, lang, book_id, author_name, reference_image_path=ref_image_path, reference_image_path_2=ref_image_path_2_cover)
-        
-        DPI = 300
-        MM_TO_INCH = 1 / 25.4
-        wrap_px = int(19.05 * MM_TO_INCH * DPI)
-        board_w_px = int(213.175 * MM_TO_INCH * DPI)
-        spine_px = int(6.35 * MM_TO_INCH * DPI)
-        
-        front_x = wrap_px + board_w_px + spine_px
-        front_cover = cover_spread.crop((front_x, wrap_px, front_x + board_w_px, wrap_px + int(303.35 * MM_TO_INCH * DPI)))
-        back_cover = cover_spread.crop((wrap_px, wrap_px, wrap_px + board_w_px, wrap_px + int(303.35 * MM_TO_INCH * DPI)))
+        with open(preview_file, 'w', encoding='utf-8') as f:
+            json.dump(story_data, f, ensure_ascii=False, indent=2)
 
-        production_logger.info("[BG-COMPOSE] Back cover ready (logo already embedded by generate_cover_spread)")
+        # Single reconstruction pipeline: builds every path array from the
+        # page_NN.png files on disk, rebuilds the cover spread only if the
+        # raw cover changed, rebuilds the visor/eBook, the printable PDF and
+        # the Cloudprinter cover.pdf/content.pdf. Identical for a first-time
+        # composition and for any later admin/customer regeneration.
+        from services.personalized_books.rebuild import rebuild_book
+        rebuild_book(preview_id)
 
-        front_cover_original_path = os.path.join(composed_dir, 'front_cover.png')
-        front_cover.save(front_cover_original_path, 'PNG')
-        story_data['front_cover_path'] = f'/{front_cover_original_path}'
-        
-        back_cover_original_path = os.path.join(composed_dir, 'back_cover.png')
-        back_cover.save(back_cover_original_path, 'PNG')
-        story_data['back_cover_path'] = f'/{back_cover_original_path}'
-        
-        front_cover_preview = add_watermark(front_cover)
-        cover_preview_path = os.path.join(composed_dir, 'cover_preview.png')
-        front_cover_preview.save(cover_preview_path, 'PNG')
-        story_data['cover_preview'] = f'/{cover_preview_path}'
-        
-        back_cover_preview = add_watermark(back_cover)
-        back_cover_preview_path = os.path.join(composed_dir, 'back_cover_preview.png')
-        back_cover_preview.save(back_cover_preview_path, 'PNG')
-        story_data['back_cover_preview'] = f'/{back_cover_preview_path}'
-        
-        cover_spread_save_path = os.path.join(composed_dir, 'cover_spread.png')
-        cover_spread.save(cover_spread_save_path, 'PNG')
-        story_data['cover_spread_path'] = cover_spread_save_path
-        
+        with open(preview_file, 'r', encoding='utf-8') as f:
+            story_data = json.load(f)
+        formatted_original = story_data.get('scene_paths', [])
+        visor_url = story_data.get('visor_url', '')
+
         is_admin_gift = story_data.get('admin_gift', False)
-
+        # is_gift for the visor's expiry policy was already handled inside
+        # rebuild_book (want_ebook / admin_gift). Only the DECISION of
+        # whether to email the customer and submit a print order (a
+        # permission concern, not reconstruction) differs by book type here.
         if is_admin_gift:
-            production_logger.info(f"[BG-COMPOSE] ADMIN GIFT book — skipping print submission")
-            
-            try:
-                from services.vps_upload_service import prepare_and_upload
-                visor_result = prepare_and_upload(story_data, preview_id, is_gift=True)
-                visor_url = visor_result.get('visor_url')
-                story_data['visor_url'] = visor_url
-                story_data['visor_uuid'] = visor_result.get('book_uuid')
-                story_data['visor_uploaded'] = True
-                story_data['ebook_is_gift'] = True
-                production_logger.info(f"[BG-COMPOSE] Admin gift visor prepared: {visor_url}")
-            except Exception as visor_err:
-                production_logger.error(f"[BG-COMPOSE] Admin gift visor preparation failed: {visor_err}")
-        
+            production_logger.info(f"[BG-COMPOSE] ADMIN GIFT book — skipping customer email/print submission")
+            story_data['ebook_is_gift'] = True
+
         if customer_email and not is_admin_gift:
             try:
                 want_print = bool(story_data.get('want_print', False))
@@ -13079,8 +12887,6 @@ def _compose_personalized_book_background(preview_id, **kwargs):
 
                 # Gift ebook: customer didn't buy the ebook → receives 6-month gift visor
                 give_gift_ebook = not want_ebook
-                # Visor: permanent if ebook purchased, 6-month gift otherwise
-                _visor_is_gift = not want_ebook
 
                 # Gift email placement (1 gift ebook max per order):
                 # PDF+Print (no ebook): gift goes in libro impreso email (comes later)
@@ -13092,21 +12898,10 @@ def _compose_personalized_book_background(preview_id, **kwargs):
                 base_url = os.environ.get('SITE_DOMAIN', os.environ.get('REPLIT_DEV_DOMAIN', 'magicmemoriesbooks.com'))
                 recovery_url = f"https://{base_url}/order-complete/{preview_id}"
 
-                visor_url = None
-                try:
-                    from services.vps_upload_service import prepare_and_upload
-                    visor_result = prepare_and_upload(story_data, preview_id, is_gift=_visor_is_gift)
-                    visor_url = visor_result.get('visor_url')
-                    story_data['visor_url'] = visor_url
-                    story_data['visor_uuid'] = visor_result.get('book_uuid')
-                    story_data['visor_uploaded'] = True
-                    story_data['ebook_is_gift'] = _visor_is_gift
-                    story_data['pdf_include_gift_ebook'] = _pdf_include_gift
-                    with open(preview_file, 'w', encoding='utf-8') as _vf:
-                        json.dump(story_data, _vf, ensure_ascii=False, indent=2)
-                    production_logger.info(f"[BG-COMPOSE] Visor prepared (is_gift={_visor_is_gift}, want_ebook={want_ebook}, want_pdf={want_pdf}, want_print={want_print}): {visor_url}")
-                except Exception as visor_err:
-                    production_logger.error(f"[BG-COMPOSE] Visor preparation failed: {visor_err}")
+                story_data['pdf_include_gift_ebook'] = _pdf_include_gift
+                with open(preview_file, 'w', encoding='utf-8') as _vf:
+                    json.dump(story_data, _vf, ensure_ascii=False, indent=2)
+                production_logger.info(f"[BG-COMPOSE] Visor ready (want_ebook={want_ebook}, want_pdf={want_pdf}, want_print={want_print}): {visor_url}")
 
                 _bg_product_type = story_data.get('product_type', '') or ''
                 _print_product_type_bg = story_data.get('print_product_type', '') or ''
@@ -13118,35 +12913,20 @@ def _compose_personalized_book_background(preview_id, **kwargs):
                     if shipping_address_g and shipping_address_g.get('name') and shipping_address_g.get('street1'):
                         try:
                             from services.personalized_books.generation import get_print_title
-                            from services.personalized_books.cp_pdf_service import generate_cw_cover_pdf, generate_cw_content_pdf
                             from services.cloudprinter_api_service import submit_pb_print_order, get_pdf_public_url, resolve_shipping_level
                             pet_name_g = traits.get('pet_name', '') if traits else ''
                             book_title_g = get_print_title(book_id, child_name, lang, pet_name=pet_name_g)
                             cp_shipping_level = resolve_shipping_level(story_data.get('shipping_method', 'cp_saver'))
 
-                            from services.cloudprinter_api_service import get_pb_chosen_page_count
-                            _chosen_pages = get_pb_chosen_page_count()
-                            production_logger.info(f"[BG-COMPOSE] Generating CP casewrap PDFs for {preview_id} "
-                                                   f"(page_count={_chosen_pages})...")
+                            # cover.pdf and content.pdf were already produced by
+                            # rebuild_book() above (single reconstruction pipeline) —
+                            # reuse those files instead of regenerating them here.
                             cp_out_dir = os.path.join("generations", "cloudprinter", preview_id)
-                            os.makedirs(cp_out_dir, exist_ok=True)
                             cover_pdf_path   = os.path.join(cp_out_dir, "cover.pdf")
                             content_pdf_path = os.path.join(cp_out_dir, "content.pdf")
+                            if not (os.path.exists(cover_pdf_path) and os.path.exists(content_pdf_path)):
+                                raise RuntimeError(f"CP PDFs missing after rebuild_book for {preview_id}: {cover_pdf_path}, {content_pdf_path}")
 
-                            generate_cw_cover_pdf(
-                                session_id=preview_id,
-                                book_title=book_title_g,
-                                output_path=cover_pdf_path,
-                                page_count=_chosen_pages,
-                                story_id=book_id,
-                            )
-                            generate_cw_content_pdf(
-                                session_id=preview_id,
-                                child_name=child_name,
-                                language=lang,
-                                output_path=content_pdf_path,
-                                page_count=_chosen_pages,
-                            )
                             cover_pdf_url   = get_pdf_public_url(preview_id, "cover.pdf")
                             content_pdf_url = get_pdf_public_url(preview_id, "content.pdf")
                             story_data['cp_cover_pdf_url']   = cover_pdf_url
