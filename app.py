@@ -8755,10 +8755,28 @@ def admin_regenerate_scene(preview_id, scene_num):
                     from services.illustrated_book_service import add_text_to_image
                     child_name_for_text = story_data.get('child_name', '')
                     pet_name_for_text = traits.get('pet_name', '')
-                    raw_text = scene_config.get(f'text_{lang}', scene_config.get('text_es', ''))
-                    raw_text = raw_text.replace('{name}', child_name_for_text)
-                    if pet_name_for_text:
-                        raw_text = raw_text.replace('{pet_name}', pet_name_for_text)
+
+                    # Prefer the ORIGINAL saved text for this book (may differ from the
+                    # current shared prompt template if the template was edited later,
+                    # or if pronouns/wording were customized at generation time).
+                    # Only fall back to the generic template when no saved text exists.
+                    raw_text = None
+                    _pages_for_text = story_data.get('pages', [])
+                    if 0 <= page_idx < len(_pages_for_text):
+                        raw_text = _pages_for_text[page_idx].get('text')
+                    if not raw_text:
+                        _story_texts_for_text = story_data.get('story_texts') or []
+                        if 0 <= scene_cfg_idx < len(_story_texts_for_text):
+                            raw_text = _story_texts_for_text[scene_cfg_idx].get('text')
+                    if raw_text:
+                        print(f"[ADMIN-REGEN] Using ORIGINAL saved text for scene {scene_num}")
+                    else:
+                        raw_text = scene_config.get(f'text_{lang}', scene_config.get('text_es', ''))
+                        raw_text = raw_text.replace('{name}', child_name_for_text)
+                        if pet_name_for_text:
+                            raw_text = raw_text.replace('{pet_name}', pet_name_for_text)
+                        print(f"[ADMIN-REGEN] No saved text found, falling back to template for scene {scene_num}")
+
                     position = scene_config.get('text_position', 'split')
                     final_img = add_text_to_image(img, raw_text, position, '#FFFFFF', '#000000', 38, 0.143)
                     print(f"[ADMIN-REGEN] Text composed (position={position}): {raw_text[:40]!r}")
@@ -9006,11 +9024,28 @@ def admin_regenerate_page(preview_id, page_idx):
         # Compose text using add_text_to_image — same as generate_full_book, NOT QS composer
         try:
             from services.illustrated_book_service import add_text_to_image
-            raw_text = scene_config.get(f'text_{lang}', scene_config.get('text_es', ''))
-            raw_text = raw_text.replace('{name}', child_name)
-            pet_name_val = traits.get('pet_name', '')
-            if pet_name_val:
-                raw_text = raw_text.replace('{pet_name}', pet_name_val)
+
+            # Prefer the ORIGINAL saved text for this book (may differ from the
+            # current shared prompt template if the template was edited later,
+            # or if pronouns/wording were customized at generation time).
+            # Only fall back to the generic template when no saved text exists.
+            raw_text = None
+            if 0 <= page_idx < len(pages_data):
+                raw_text = pages_data[page_idx].get('text')
+            if not raw_text:
+                _story_texts_for_text = story_data.get('story_texts') or []
+                if 0 <= scene_cfg_idx < len(_story_texts_for_text):
+                    raw_text = _story_texts_for_text[scene_cfg_idx].get('text')
+            if raw_text:
+                print(f"[ADMIN-REGEN-PAGE] Using ORIGINAL saved text for page {page_idx}")
+            else:
+                raw_text = scene_config.get(f'text_{lang}', scene_config.get('text_es', ''))
+                raw_text = raw_text.replace('{name}', child_name)
+                pet_name_val = traits.get('pet_name', '')
+                if pet_name_val:
+                    raw_text = raw_text.replace('{pet_name}', pet_name_val)
+                print(f"[ADMIN-REGEN-PAGE] No saved text found, falling back to template for page {page_idx}")
+
             position = scene_config.get('text_position', 'split')
             final_img = add_text_to_image(img, raw_text, position, '#FFFFFF', '#000000', 38, 0.143)
             print(f"[ADMIN-REGEN-PAGE] Text composed (position={position}): {raw_text[:40]!r}")
