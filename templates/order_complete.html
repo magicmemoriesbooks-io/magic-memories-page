@@ -774,7 +774,7 @@
             {% for i in range(story_data.images|length) %}
             {% set page_num = i + 1 %}
             {% set text_idx = i - text_start %}
-            {% set can_regenerate = page_num >= 3 and page_num <= 22 and ((not email_sent and not story_data.is_illustrated_book) or (story_data.is_illustrated_book and not story_data.pages_composed|default(false))) %}
+            {% set can_regenerate = page_num >= 3 and page_num <= 22 and ((not email_sent and not story_data.is_illustrated_book) or (story_data.is_illustrated_book and story_data.pages_composed|default(false))) %}
             {% set regen_count = story_data.page_regenerations[page_num|string]|default(0) if story_data.page_regenerations else 0 %}
             <div class="flex flex-col md:flex-row gap-4 p-4 bg-gradient-to-br from-purple-50/50 to-pink-50/50 rounded-xl" id="page-container-{{ page_num }}">
                 <div class="md:w-1/3 flex-shrink-0">
