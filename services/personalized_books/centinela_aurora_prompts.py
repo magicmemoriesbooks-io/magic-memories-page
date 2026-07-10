@@ -19,7 +19,7 @@
 #   - WIDE SHOT, characters occupy ~40% of frame, environment visible
 #   - Scenes 1, 19 and CLOSING have no @image2
 
-STYLE_BASE = "Disney Pixar 3D style, midnight blue aurora tones, electric blue and golden accents, warm magical glow, WIDE SHOT full body from head to feet, characters occupy 40% of frame, environment visible, clean illustration only, NO text, NO watermarks."
+STYLE_BASE = "Disney Pixar 3D style, midnight blue aurora tones, electric blue and golden accents, warm magical glow, WIDE SHOT full body from head to feet, characters occupy 40% of frame, environment visible, clean illustration only."
 
 ASTRO_INLINE = (
     "ASTRO: small magical fox, kitten-sized, vibrant electric blue fur, "
@@ -493,8 +493,7 @@ FRONT_COVER = {
         "SETTING: Night sky and aurora WIDE VIEW, magnificent aurora borealis colors filling the sky, "
         "stars everywhere, magical stardust floating around them, centered composition for book cover. "
         "ATMOSPHERE: Epic adventure invitation, magical aurora colors, excitement and wonder. "
-        "STRICT: ABSOLUTELY NO rendered text, no titles, no logos, no words, no letters, no captions, "
-        "no watermarks, no signatures, pure illustration only. {style}"
+        "STRICT: Pure illustration only. {style}"
     )
 }
 
@@ -505,8 +504,7 @@ BACK_COVER = {
         "in its bark, flowers glowing blue in the moonlight, fireflies floating, aurora colors painting the sky "
         "above, a golden compass resting on the garden path leading to the tree, magical peaceful atmosphere. "
         "STRICT: Pure scenic landscape only, no characters. "
-        "ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, "
-        "no captions, no watermarks, no signatures, pure illustration only. {style}"
+        "Pure illustration only. {style}"
     )
 }
 
