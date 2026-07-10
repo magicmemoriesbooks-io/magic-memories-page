@@ -1,13 +1,13 @@
 """
-Shadow Delivery Module — Fase 0 de la unificacion transaccional de emails.
+Shadow Delivery Module — unificacion transaccional de emails (modo sombra).
 
 ESTADO: SOLO SOMBRA (shadow mode). Este modulo:
   - NO envia ningun email.
   - NO bloquea ningun email actual.
-  - NO sustituye ninguna decision del flujo real.
-  - Se ejecuta EN PARALELO al flujo activo, solo para comparar y registrar
-    si el nuevo modelo (OrderEntitlements + DeliveryPlan) habria tomado la
-    misma decision que el codigo legacy que ya esta en produccion.
+  - NO sustituye ninguna decision del flujo real todavia.
+  - Se ejecuta EN PARALELO a los flujos activos, solo para comparar y
+    registrar si el nuevo modelo (OrderEntitlements + DeliveryPlan) habria
+    tomado la misma decision que el codigo legacy que sigue en produccion.
 
 Cualquier excepcion dentro de este modulo debe quedar contenida en el
 propio modulo (o en el call site que lo invoque con try/except) y jamas
@@ -18,6 +18,42 @@ Identidad:
     (hoy tomado de `paypal_order_id` cuando existe en story_data).
   - `preview_id` se mantiene como trazabilidad y se usa como identificador
     alternativo unicamente cuando no existe `order_id` documentado.
+
+--------------------------------------------------------------------------
+SEMANTICA DE "eBook" (aclaracion explicita, ver docs/unified_email_delivery_architecture.md
+seccion "Semantica de eBook permanente vs eBook temporal de regalo")
+--------------------------------------------------------------------------
+El codigo legacy usa el MISMO nombre de campo (`ebook_is_gift`) para DOS
+conceptos distintos que NO deben confundirse:
+
+  1. `admin_gift_book` (antes escrito en algunos puntos como
+     `story_data['ebook_is_gift'] = True` cuando `admin_gift` es True,
+     ver app.py ~linea 12942): un libro COMPLETO regalado manualmente por
+     un administrador. No tiene relacion con lo que el cliente compro.
+
+  2. Elegibilidad calculada de "eBook temporal de 6 meses" (en el codigo
+     legacy aparece como variables ad-hoc distintas segun el archivo:
+     `_include_gift` en `_dispatch_printable_pdf_email`, `give_gift_ebook`
+     en la composicion de libros personalizados, `_visor_is_gift_cs` en
+     `confirm_and_send` para Quick Stories): el cliente NO compro el eBook
+     permanente, pero SI compro PDF y/o impreso, y por eso recibe acceso
+     temporal (6 meses) al visor como cortesia. Esta elegibilidad se anula
+     si el cliente SI compro el eBook permanente.
+
+Esta arquitectura los separa con nombres inequivocos en `OrderEntitlements`:
+  - `ebook_permanent_purchased`: el cliente compro el eBook permanente
+    (`want_ebook` en el legacy).
+  - `admin_gift_book`: bandera administrativa de regalo total del libro,
+    independiente de lo que el cliente pago (`admin_gift` en el legacy).
+  - `temp_gift_ebook_eligible` (calculado, NO almacenado): True solo si
+    el pedido esta pagado, NO es un regalo administrativo, y el cliente
+    NO compro el eBook permanente pero SI compro PDF y/o impreso.
+  - `temp_gift_ebook_source`: de donde viene esa elegibilidad —
+    'pdf' | 'print' | 'pdf_and_print' | 'none'.
+
+El campo legacy `ebook_is_gift` se sigue LEYENDO solo con fines de
+comparacion/diagnostico (`legacy_admin_gift_flag_raw`), nunca se usa como
+fuente de la decision nueva.
 """
 
 from __future__ import annotations
@@ -52,15 +88,38 @@ class OrderEntitlements:
 
     paid: bool
     want_pdf: bool
-    want_ebook: bool
     want_print: bool
-    ebook_is_gift: bool
     cp_submitted: bool
+
+    ebook_permanent_purchased: bool     # antes: want_ebook
+    admin_gift_book: bool               # antes: admin_gift / uso ambiguo de ebook_is_gift
+    legacy_admin_gift_flag_raw: bool    # solo diagnostico, valor crudo de story_data['ebook_is_gift']
+
+    is_quick_story: bool = False
 
     resolved_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
 
+    @property
+    def temp_gift_ebook_source(self) -> str:
+        if self.ebook_permanent_purchased or self.admin_gift_book or not self.paid:
+            return 'none'
+        if self.want_pdf and self.want_print:
+            return 'pdf_and_print'
+        if self.want_pdf:
+            return 'pdf'
+        if self.want_print:
+            return 'print'
+        return 'none'
+
+    @property
+    def temp_gift_ebook_eligible(self) -> bool:
+        return self.temp_gift_ebook_source != 'none'
+
     def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
+        d = asdict(self)
+        d['temp_gift_ebook_eligible'] = self.temp_gift_ebook_eligible
+        d['temp_gift_ebook_source'] = self.temp_gift_ebook_source
+        return d
 
 
 @dataclass
@@ -88,6 +147,23 @@ def resolve_order_entitlements(story_data: Dict[str, Any], preview_id: str) -> O
     order_id = story_data.get('paypal_order_id') or story_data.get('order_id') or None
     identity_source = 'order_id' if order_id else 'preview_id_fallback'
 
+    is_quick_story = False
+    try:
+        from services.quick_stories.checkout import is_quick_story as _check_qs
+        is_quick_story = bool(_check_qs(story_data.get('story_id', '')))
+    except Exception:
+        # No es critico para el calculo de entitlements; si el checker no
+        # esta disponible en este contexto, se deja en False y se registra
+        # como nota en el plan (ver build_delivery_plan).
+        pass
+
+    want_pdf = (
+        story_data.get('product_type') == 'personalized_pdf'
+        or bool(story_data.get('pdf_order'))
+        or bool(story_data.get('want_pdf', False))
+        or bool(story_data.get('pdf_paid', False))
+    )
+
     return OrderEntitlements(
         preview_id=preview_id,
         order_id=order_id,
@@ -97,27 +173,43 @@ def resolve_order_entitlements(story_data: Dict[str, Any], preview_id: str) -> O
         lang=story_data.get('lang', 'es'),
         child_name=story_data.get('child_name', ''),
         paid=bool(story_data.get('paid', False)),
-        want_pdf=bool(story_data.get('want_pdf', False)),
-        want_ebook=bool(story_data.get('want_ebook', False)),
+        want_pdf=want_pdf,
         want_print=bool(story_data.get('want_print', False)),
-        ebook_is_gift=bool(story_data.get('ebook_is_gift', False)),
         cp_submitted=bool(story_data.get('cp_submitted', False)),
+        ebook_permanent_purchased=bool(story_data.get('want_ebook', False)),
+        admin_gift_book=bool(story_data.get('admin_gift', False)),
+        legacy_admin_gift_flag_raw=bool(story_data.get('ebook_is_gift', False)),
+        is_quick_story=is_quick_story,
     )
 
 
 def build_delivery_plan(entitlements: OrderEntitlements) -> DeliveryPlan:
     """
     Replica en forma declarativa las reglas que HOY viven dispersas en
-    app.py (p.ej. `_include_gift` en `_dispatch_printable_pdf_email`), para
-    poder comparar contra la decision real sin haberla tocado.
+    app.py bajo nombres distintos segun el archivo (`_include_gift` en
+    `_dispatch_printable_pdf_email`, `give_gift_ebook` en la composicion de
+    libros personalizados, `_visor_is_gift_cs` en `confirm_and_send`), para
+    poder comparar contra la decision real sin haberlas tocado todavia.
 
-    Regla replicada (ver app.py:13559, comentario original conservado):
-      Se incluye el eBook de regalo solo cuando el cliente NO compro
-      separadamente el eBook Y NO compro tambien el libro impreso.
+    IMPORTANTE: esta funcion NO lee `_include_gift` ni ninguna variable
+    legacy — calcula el resultado exclusivamente desde OrderEntitlements,
+    tal como exige la arquitectura final (ver seccion "eBook temporal" del
+    documento de arquitectura). El call site es responsable de comparar
+    este resultado contra la variable legacy correspondiente, no al reves.
     """
     planned: List[str] = []
     suppressed: List[Dict[str, str]] = []
     notes: List[str] = []
+
+    if entitlements.admin_gift_book:
+        notes.append('admin_gift_book_skips_customer_email_and_print_by_design')
+        return DeliveryPlan(
+            preview_id=entitlements.preview_id,
+            order_id=entitlements.order_id,
+            planned_emails=[],
+            suppressed_emails=[{'email_type': 'ALL', 'reason': 'admin_gift_book'}],
+            notes=notes,
+        )
 
     if not entitlements.paid:
         notes.append('order_not_paid_no_plan_generated')
@@ -132,21 +224,22 @@ def build_delivery_plan(entitlements: OrderEntitlements) -> DeliveryPlan:
     if entitlements.want_pdf:
         planned.append('pdf_ready')
 
-        include_gift = (not entitlements.want_ebook) and (not entitlements.want_print)
-        if include_gift:
-            planned.append('gift_ebook')
-        else:
-            reason = 'ebook_already_purchased_separately' if entitlements.want_ebook else 'print_confirmation_owns_gift_ebook'
-            suppressed.append({'email_type': 'gift_ebook', 'reason': reason})
+    if entitlements.ebook_permanent_purchased:
+        planned.append('ebook_permanent_delivery')
 
-    if entitlements.want_ebook:
-        planned.append('ebook_delivery')
+    if entitlements.temp_gift_ebook_eligible:
+        planned.append('gift_ebook_temp_6mo')
+    elif entitlements.ebook_permanent_purchased:
+        suppressed.append({'email_type': 'gift_ebook_temp_6mo', 'reason': 'ebook_permanent_already_purchased'})
 
     if entitlements.want_print:
         if entitlements.cp_submitted:
             planned.append('print_confirmation')
         else:
             notes.append('print_wanted_but_not_yet_submitted_to_cloudprinter')
+
+    if not entitlements.want_pdf and not entitlements.want_print and not entitlements.ebook_permanent_purchased:
+        notes.append('digital_only_no_pdf_case_ebook_temp_gift_is_sole_delivery')
 
     if entitlements.identity_source == 'preview_id_fallback':
         notes.append('no_order_id_found_using_preview_id_as_identity')
@@ -175,13 +268,20 @@ def record_shadow_comparison(
     jamas debe interrumpir un envio real.
 
     `stage` identifica el punto de integracion (p.ej.
-    'dispatch_printable_pdf_email') para poder filtrar el log por origen
-    mientras se agregan mas puntos de integracion en fases futuras.
+    'dispatch_printable_pdf_email', 'confirm_and_send') para poder filtrar
+    el log por origen mientras se agregan mas puntos de integracion.
     """
     try:
         actual_emails = set(actual_decision.get('planned_emails', []))
         plan_emails = set(plan.planned_emails)
-        match = actual_emails == plan_emails
+        # Comparacion semantica: 'gift_ebook' (nombre usado por el hook mas
+        # antiguo, antes de esta aclaracion de nombres) se homologa a
+        # 'gift_ebook_temp_6mo' unicamente para esta comparacion, para no
+        # generar falsos MISMATCH mientras coexisten call sites con nombres
+        # de transicion.
+        _alias = {'gift_ebook': 'gift_ebook_temp_6mo'}
+        actual_emails_normalized = {_alias.get(e, e) for e in actual_emails}
+        match = actual_emails_normalized == plan_emails
 
         entry = {
             'ts': datetime.utcnow().isoformat(),
@@ -202,7 +302,7 @@ def record_shadow_comparison(
 
         if not match:
             print(f"[SHADOW-DELIVERY] MISMATCH at stage={stage} preview_id={entitlements.preview_id}: "
-                  f"actual={sorted(actual_emails)} shadow={sorted(plan_emails)}")
+                  f"actual={sorted(actual_emails_normalized)} shadow={sorted(plan_emails)}")
 
     except Exception as _shadow_err:  # pragma: no cover - defensive, must never bubble up
         try:
