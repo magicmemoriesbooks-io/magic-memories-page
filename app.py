@@ -13601,6 +13601,23 @@ def _dispatch_printable_pdf_email(preview_id, customer_email, lang='es'):
             )
             customer_sent = customer_result.get('success', False)
             print(f"[PDF-DISPATCH] Customer PDF email {'sent' if customer_sent else 'FAILED'} for {customer_email} (gift_ebook={_include_gift})")
+
+            # --- SHADOW MODE (Fase 0, solo lectura/registro, no afecta el envio real) ---
+            try:
+                from services.shadow_delivery import run_shadow_comparison_safe
+                _actual_planned = ['pdf_ready']
+                if _include_gift:
+                    _actual_planned.append('gift_ebook')
+                run_shadow_comparison_safe(
+                    stage='dispatch_printable_pdf_email',
+                    story_data=story_data,
+                    preview_id=preview_id,
+                    actual_decision={'planned_emails': _actual_planned, 'include_gift': _include_gift},
+                )
+            except Exception as _shadow_call_err:
+                print(f"[SHADOW-DELIVERY] WARNING: shadow hook failed non-fatally: {_shadow_call_err}")
+            # --- FIN SHADOW MODE ---
+
             # Dedicated gift eBook email so customer gets a standalone visor-access email
             if _include_gift and visor_url and not story_data.get('gift_ebook_sent'):
                 try:
