@@ -26,6 +26,35 @@ Lo que SÍ comparten ambos dominios, y se mantiene así en el diseño: `email_se
 
 ---
 
+## -0.5. Semántica final de eBook permanente vs. eBook temporal de regalo
+
+Se detectó y corrigió una ambigüedad de nombres real en el código legacy, señalada explícitamente por revisión: el campo `story_data['ebook_is_gift']` se usa en el código para DOS conceptos distintos que nunca deben confundirse:
+
+1. **`admin_gift_book`** (antes escrito parcialmente como `ebook_is_gift=True` en `app.py` ~línea 12942): un libro COMPLETO regalado manualmente por un administrador. No depende de lo que el cliente pagó — se salta email y envío a impresión por diseño.
+2. **Elegibilidad calculada de eBook temporal (6 meses)**: el cliente NO compró el eBook permanente, pero SÍ compró PDF y/o impreso, y por eso recibe acceso temporal de cortesía al visor. En el código legacy esto vive disperso bajo nombres distintos según el archivo: `_include_gift` (`_dispatch_printable_pdf_email`), `give_gift_ebook` (composición de libros personalizados), `_visor_is_gift_cs` (`confirm_and_send` para Quick Stories) — nunca se llamó igual dos veces, lo cual dificultaba auditar si eran la misma regla.
+
+`OrderEntitlements` (en `services/shadow_delivery.py`) resuelve esto con nombres inequívocos:
+
+| Campo | Significado | Origen legacy |
+|---|---|---|
+| `ebook_permanent_purchased` | El cliente compró el eBook permanente | `want_ebook` |
+| `admin_gift_book` | Bandera administrativa de regalo total del libro | `admin_gift` |
+| `legacy_admin_gift_flag_raw` | Valor crudo de `ebook_is_gift` — **solo diagnóstico**, nunca fuente de decisión | `ebook_is_gift` |
+| `temp_gift_ebook_eligible` (calculado, no almacenado) | True solo si: pagado, NO es regalo admin, NO compró el eBook permanente, y SÍ compró PDF y/o impreso | (disperso: `_include_gift` / `give_gift_ebook` / `_visor_is_gift_cs`) |
+| `temp_gift_ebook_source` (calculado) | `'pdf'` \| `'print'` \| `'pdf_and_print'` \| `'none'` | no existía antes como campo explícito |
+
+**Regla de diseño:** ninguna función nueva lee `ebook_is_gift` como fuente de verdad para decidir el eBook temporal — se calcula exclusivamente desde `want_ebook`, `admin_gift`, `want_pdf` y `want_print`. El campo legacy solo se transporta para comparación/diagnóstico mientras conviven ambos sistemas.
+
+## -0.4. Sobre `_include_gift` y variables equivalentes (`give_gift_ebook`, `_visor_is_gift_cs`)
+
+Confirmado y aceptado: mientras dure el modo sombra, el shadow SÍ compara temporalmente contra estas variables legacy (es su función: detectar discrepancias). Pero **la arquitectura permanente no debe depender de ellas ni replicarlas como fuente**. Regla de corte para cuando la migración esté validada con datos reales de producción (ver sección "Dependencia crítica" más abajo):
+
+- `_include_gift`, `give_gift_ebook` y `_visor_is_gift_cs` dejan de decidir.
+- Las ramas legacy que hoy las calculan (tres implementaciones distintas de la misma regla, en tres archivos/funciones distintas) dejan de calcular el beneficio.
+- El derecho a un único eBook temporal de 6 meses proviene EXCLUSIVAMENTE de `OrderEntitlements.temp_gift_ebook_eligible`, resuelto una sola vez por el orquestador común, no recalculado de forma independiente en cada punto de envío.
+
+Esto todavía NO se ha hecho — ver sección "Dependencia crítica que bloquea el corte" al final de este documento.
+
 ## 0. Verificación previa: ¿es `_is_duplicate_send` adecuada para uso transaccional? (spoiler de la sección 4)
 
 Antes de diseñar nada, se examinó la implementación real línea por línea (`services/email_service.py:60-137`):
@@ -274,7 +303,11 @@ Este diseño es deliberadamente una capa de **decisión + registro de estado**, 
 | Fallo simulado del proveedor SMTP | Ninguno hasta que se resuelva | 0 en el intento fallido | Archivo ya generado se conserva | delivery_id en `retryable` | Reintentos infinitos sin backoff |
 | Reinicio/reintento del servidor durante un envío en curso | El email se completa una sola vez tras la reconciliación | 1 | — | delivery_id pasa de `processing` colgado a `retryable` tras timeout, luego a `sent` | Que quede en `processing` para siempre, o que se reintente mientras el proceso original seguía vivo |
 
-**Nota:** dos filas de la tabla (QS digital sin PDF, y el detalle exacto de si "generation_started" se envía hoy en todos los flujos) están marcadas como pendientes de confirmar con el comportamiento real observado en producción antes de fijarlas como caso de prueba — se listan aquí como huecos de información a cerrar en la fase de implementación, no como suposición.
+**Huecos de información cerrados tras verificación de código (10 julio 2026):**
+
+- **`generation_started`**: el nombre real en el código es `generation_started_at` (timestamp, no email). Se usa únicamente para calcular timeouts de composición en `check_generation_status` (`app.py` ~líneas 6363 y 6469-6470: 20 y 25 minutos respectivamente). **No dispara ningún email.** Existe una función `send_generation_started_email` definida en `services/email_service.py`, pero **no tiene ningún call site activo** en los flujos de pago actuales — es código muerto/no conectado, no una automatización desactivada a propósito. Se deja tal cual (no se elimina, siguiendo la instrucción de no borrar código sin auditoría de limpieza previa).
+- **QS digital sin PDF (Quick Story 100% digital, sin PDF ni impreso)**: usa los mismos campos `want_pdf`/`want_print`/`want_ebook` que Personalized Books. El envío final NO ocurre en `_dispatch_cart_item` (que solo dispara generación en background + el email de recuperación) sino en `/api/confirm-and-send` (`app.py:7194`), tras la aprobación manual del cliente en la pantalla de revisión. Si `want_pdf=False` y `want_print=False`, la única entrega es el visor — con el mismo cálculo de eBook temporal (`_visor_is_gift_cs = not want_ebook`) que en cualquier otro producto. Esta fila de la matriz queda: **1 email (visor, gift o permanente según `want_ebook`), 0 adjuntos PDF**.
+- Ambos hallazgos ya están reflejados en el modo shadow (`services/shadow_delivery.py`), que ahora también instrumenta el punto `confirm_and_send`, cubriendo el caso de Quick Story digital sin PDF.
 
 ---
 
@@ -286,4 +319,18 @@ Este diseño es deliberadamente una capa de **decisión + registro de estado**, 
 - **Ningún orquestador existente vuelve a decidir reglas de negocio** tras la migración — todos pasan a ser ejecutores de un plan ya resuelto, verificando contra el registro transaccional antes de actuar.
 - **Migración en 4 fases, reversible, sin borrar código legacy**, con el caso "PDF + impreso" (el que falló hoy) como prueba de regresión obligatoria y permanente.
 
-Este documento no implementa nada. Antes de comenzar la Fase 0 se requiere tu aprobación explícita y, si corresponde, resolver los huecos de información marcados (comportamiento real de `generation_started` y de QS digital sin PDF) para que la matriz de pruebas de la sección 10 quede cerrada al 100%.
+Este documento no implementa nada por sí solo salvo la Fase 0 (modo shadow, ya en curso — ver siguiente sección).
+
+---
+
+## 11. Dependencia crítica que bloquea el corte a Fase 1+ (legítimo punto de pausa)
+
+El criterio de aprobación de la Fase 0, definido en este mismo documento (sección 9), es: *"el plan calculado en modo shadow coincide, para pedidos reales recientes, con lo que efectivamente se envió"*. Esa validación requiere, por definición, **tráfico real de producción** (pedidos pagados reales pasando por `confirm_and_send` / `_dispatch_printable_pdf_email` con el shadow activo, comparando contra lo que el código legacy decidió de verdad).
+
+Esto entra en conflicto directo con dos restricciones explícitas de este trabajo:
+- "No enviar emails reales."
+- "No usar datos de prueba reales" (no se debe simular producción con pedidos falsos para forzar la validación).
+
+Por lo tanto, **avanzar a la Fase 1 (migrar el primer orquestador para que decida en base al plan, no solo lo registre) sin datos reales de shadow validados sería exactamente el tipo de "parche improvisado sin evidencia" que este trabajo tiene prohibido**. No es una limitación de esfuerzo — es una dependencia real: no existe manera segura de certificar que el nuevo cálculo coincide con el legacy sin observar tráfico real, y no se puede generar tráfico real en este entorno sandbox sin violar las reglas del encargo.
+
+**Estado dejado en este repositorio**: el modo shadow (Fase 0) queda completo, corriendo en paralelo sin alterar ningún envío real, instrumentado en los dos puntos de entrega que importan (`_dispatch_printable_pdf_email` y `confirm_and_send`), con semántica de entitlements corregida y con pruebas unitarias que fijan el comportamiento esperado (`tests/test_shadow_delivery.py`, 26/26 OK). Cuando el usuario decida activar esto en el VPS real (fuera del alcance de este trabajo, que es solo GitHub), el log `data/shadow_delivery_log.jsonl` acumulará comparaciones reales; a partir de un volumen razonable de coincidencias sin mismatches inesperados, la Fase 1 puede aprobarse con evidencia real en vez de supuestos.
