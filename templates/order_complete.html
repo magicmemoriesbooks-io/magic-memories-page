@@ -76,12 +76,12 @@
         </h1>
         {% if email_sent %}
         <p class="text-gray-600 mb-4 text-base">
-            {% if lang == 'es' %}Lo enviamos a{% else %}We sent it to{% endif %}
+            {% if lang == 'es' %}✅ Tu PDF fue enviado a{% else %}✅ Your PDF was sent to{% endif %}
             <strong class="text-gray-800">{{ delivery_email }}</strong>
         </p>
         {% else %}
         <p class="text-gray-600 mb-4 text-base">
-            {% if lang == 'es' %}Tu email con el PDF llegará en breve a{% else %}Your PDF email will arrive shortly at{% endif %}
+            {% if lang == 'es' %}⏳ El email con tu PDF aún no ha sido enviado a{% else %}⏳ Your PDF email has not been sent yet to{% endif %}
             <strong class="text-gray-800">{{ delivery_email }}</strong>
         </p>
         {% endif %}
@@ -109,32 +109,19 @@
         </div>
         {% endif %}
 
-        {% if story_data.admin_gift and story_data.is_illustrated_book %}
+        {% if story_data.admin_gift %}
         <div class="mb-8 text-center flex flex-wrap gap-3 justify-center">
-            <a href="/admin/gelato-order/{{ preview_id }}/download-pdf" target="_blank" class="inline-block px-6 py-3 text-white font-semibold rounded-lg no-underline" style="background: linear-gradient(135deg, #8B5CF6, #EC4899);">
-                Descargar PDF Impresión
+            <a href="/admin/order/{{ preview_id }}/download-pdf" target="_blank" class="inline-block px-6 py-3 text-white font-semibold rounded-lg no-underline" style="background: linear-gradient(135deg, #8B5CF6, #EC4899);">
+                ⬇️ Descargar PDF Impresión
             </a>
-            {% if story_data.gelato_order_id %}
-            <span class="inline-flex items-center gap-2 px-5 py-3 bg-green-100 text-green-800 font-semibold rounded-lg text-sm">
-                Enviado a imprenta — {{ story_data.gelato_order_id }}
-            </span>
-            {% endif %}
-        </div>
-        {% elif story_data.admin_gift %}
-        <div class="mb-8 text-center flex flex-wrap gap-3 justify-center">
-            {% if story_data.cp_pdf_url %}
-            <a href="{{ story_data.cp_pdf_url }}" target="_blank" class="inline-block px-6 py-3 text-white font-semibold rounded-lg no-underline" style="background: linear-gradient(135deg, #8B5CF6, #EC4899);">
-                ⬇️ Descargar PDF Cloudprinter
-            </a>
-            {% else %}
-            <a href="/admin/gelato-order/{{ preview_id }}/download-pdf" target="_blank" class="inline-block px-6 py-3 text-white font-semibold rounded-lg no-underline" style="background: linear-gradient(135deg, #8B5CF6, #EC4899);">
-                ⬇️ Descargar PDF del cuento
-            </a>
-            {% endif %}
             {% if story_data.want_print %}
                 {% if story_data.cp_order_ref %}
                 <span class="inline-flex items-center gap-2 px-5 py-3 bg-green-100 text-green-800 font-semibold rounded-lg text-sm">
-                    Enviado — Ref {{ story_data.cp_order_ref }}
+                    ✅ Enviado a Cloudprinter — Ref {{ story_data.cp_order_ref }}
+                </span>
+                {% elif story_data.cp_submitted %}
+                <span class="inline-flex items-center gap-2 px-5 py-3 bg-green-100 text-green-800 font-semibold rounded-lg text-sm">
+                    ✅ Enviado a Cloudprinter
                 </span>
                 {% else %}
                 <button onclick="openGiftCpModal('{{ preview_id }}')" class="px-6 py-3 text-white font-semibold rounded-lg" style="background: linear-gradient(135deg, #059669, #047857);">
@@ -157,37 +144,21 @@
         {% endif %}
 
         {% if _has_print %}
+        {% set cp_sent = story_data.cp_status == 'sent' or story_data.cp_submitted %}
+        {% set cp_failed = story_data.cp_status == 'failed' %}
         <div class="mb-6">
-            {% if story_data.is_illustrated_book %}
-                {% if story_data.gelato_order_id %}
-                <div class="bg-green-50 border border-green-200 rounded-xl p-5">
-                    <p class="text-green-800 text-sm">{% if lang == 'es' %}📦 <strong>Libro impreso:</strong> Tu libro fue enviado a producción con Cloudprinter. Recibirás un email de seguimiento en los próximos días.{% else %}📦 <strong>Printed book:</strong> Your book has been sent to production via Cloudprinter. You'll receive a tracking email soon.{% endif %}</p>
-                </div>
-                {% elif story_data.gelato_status == 'error' %}
-                <div class="bg-red-50 border border-red-200 rounded-xl p-5">
-                    <p class="text-red-800 text-sm">{% if lang == 'es' %}⚠️ Hubo un problema con el envío impreso. Escríbenos a <a href="mailto:info@magicmemoriesbooks.com" class="underline font-semibold">info@magicmemoriesbooks.com</a> y lo resolvemos.{% else %}⚠️ There was a problem with print shipping. Email us at <a href="mailto:info@magicmemoriesbooks.com" class="underline font-semibold">info@magicmemoriesbooks.com</a> and we'll resolve it.{% endif %}</p>
-                </div>
-                {% else %}
-                <div class="bg-amber-50 border border-amber-200 rounded-xl p-5">
-                    <p class="text-amber-800 text-sm">{% if lang == 'es' %}📦 <strong>Libro impreso:</strong> Tu libro en tapa dura se está preparando para producción. Recibirás un email de seguimiento.{% else %}📦 <strong>Printed book:</strong> Your hardcover book is being prepared for production. You'll receive a tracking email.{% endif %}</p>
-                </div>
-                {% endif %}
+            {% if cp_sent %}
+            <div class="bg-green-50 border border-green-200 rounded-xl p-5">
+                <p class="text-green-800 text-sm">{% if lang == 'es' %}✅ <strong>Libro impreso:</strong> Tu libro fue enviado a producción con Cloudprinter. Recibirás un email de seguimiento en los próximos días.{% else %}✅ <strong>Printed book:</strong> Your book has been sent to production via Cloudprinter. You'll receive a tracking email soon.{% endif %}</p>
+            </div>
+            {% elif cp_failed %}
+            <div class="bg-red-50 border border-red-200 rounded-xl p-5">
+                <p class="text-red-800 text-sm">{% if lang == 'es' %}⚠️ <strong>Libro impreso:</strong> Hubo un problema al enviar a Cloudprinter. Escríbenos a <a href="mailto:info@magicmemoriesbooks.com" class="underline font-semibold">info@magicmemoriesbooks.com</a> y lo resolvemos.{% else %}⚠️ <strong>Printed book:</strong> There was a problem sending to Cloudprinter. Email us at <a href="mailto:info@magicmemoriesbooks.com" class="underline font-semibold">info@magicmemoriesbooks.com</a> and we'll resolve it.{% endif %}</p>
+            </div>
             {% else %}
-                {% set cp_sent = story_data.cp_status == 'sent' or story_data.cp_submitted %}
-                {% set cp_failed = story_data.cp_status == 'failed' %}
-                {% if cp_sent %}
-                <div class="bg-green-50 border border-green-200 rounded-xl p-5">
-                    <p class="text-green-800 text-sm">{% if lang == 'es' %}📦 <strong>Libro impreso:</strong> Tu libro fue enviado a producción. Recibirás un email de seguimiento en los próximos días.{% else %}📦 <strong>Printed book:</strong> Your book has been sent to production. You'll receive a tracking email soon.{% endif %}</p>
-                </div>
-                {% elif cp_failed %}
-                <div class="bg-red-50 border border-red-200 rounded-xl p-5">
-                    <p class="text-red-800 text-sm">{% if lang == 'es' %}⚠️ Hubo un problema con el envío impreso. Escríbenos a <a href="mailto:info@magicmemoriesbooks.com" class="underline font-semibold">info@magicmemoriesbooks.com</a> y lo resolvemos.{% else %}⚠️ There was a problem with print shipping. Email us at <a href="mailto:info@magicmemoriesbooks.com" class="underline font-semibold">info@magicmemoriesbooks.com</a> and we'll resolve it.{% endif %}</p>
-                </div>
-                {% else %}
-                <div class="bg-amber-50 border border-amber-200 rounded-xl p-5">
-                    <p class="text-amber-800 text-sm">{% if lang == 'es' %}📦 <strong>Libro impreso:</strong> Tu libro se está preparando para envío. Recibirás un email de seguimiento.{% else %}📦 <strong>Printed book:</strong> Your book is being prepared for shipping. You'll receive a tracking email.{% endif %}</p>
-                </div>
-                {% endif %}
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-5">
+                <p class="text-amber-800 text-sm">{% if lang == 'es' %}⏳ <strong>Libro impreso:</strong> Tu libro aún no ha sido enviado a producción.{% else %}⏳ <strong>Printed book:</strong> Your book has not been submitted to production yet.{% endif %}</p>
+            </div>
             {% endif %}
         </div>
         {% endif %}
@@ -219,9 +190,11 @@
                style="background: linear-gradient(135deg, #7C3AED, #EC4899);">
                 📖 {% if lang == 'es' %}Ver mi libro online{% else %}View my book online{% endif %}
             </a>
+            {% if email_sent %}
             <p class="text-gray-500 text-xs mt-2">
                 {% if lang == 'es' %}También lo enviamos a tu email con el archivo PDF{% else %}We also sent it to your email with the PDF file{% endif %}
             </p>
+            {% endif %}
         </div>
         {% else %}
         <div id="visor-loading-section" class="mb-6 bg-purple-50 border border-purple-200 rounded-xl p-5 text-center">
@@ -239,9 +212,11 @@
                style="background: linear-gradient(135deg, #7C3AED, #EC4899);">
                 📖 {% if lang == 'es' %}Ver mi libro online{% else %}View my book online{% endif %}
             </a>
+            {% if email_sent %}
             <p class="text-gray-500 text-xs mt-2">
                 {% if lang == 'es' %}También lo enviamos a tu email con el archivo PDF{% else %}We also sent it to your email with the PDF file{% endif %}
             </p>
+            {% endif %}
         </div>
         {% endif %}
         {% endif %}{# end _wants_visor #}
@@ -773,21 +748,24 @@
         <div class="space-y-6">
             {% for i in range(story_data.images|length) %}
             {% set page_num = i + 1 %}
+            {# disk_page_num is the actual page_NN.png number on disk.
+               story_data.images[0] = page_03.png, so disk = i + 3. #}
+            {% set disk_page_num = i + 3 %}
             {% set text_idx = i - text_start %}
-            {% set can_regenerate = page_num >= 3 and page_num <= 22 and ((not email_sent and not story_data.is_illustrated_book) or (story_data.is_illustrated_book and story_data.pages_composed|default(false))) %}
-            {% set regen_count = story_data.page_regenerations[page_num|string]|default(0) if story_data.page_regenerations else 0 %}
-            <div class="flex flex-col md:flex-row gap-4 p-4 bg-gradient-to-br from-purple-50/50 to-pink-50/50 rounded-xl" id="page-container-{{ page_num }}">
+            {% set can_regenerate = i >= 2 and disk_page_num <= 21 and ((not email_sent and not story_data.is_illustrated_book) or (story_data.is_illustrated_book and not story_data.pages_composed|default(false))) %}
+            {% set regen_count = story_data.page_regenerations[disk_page_num|string]|default(0) if story_data.page_regenerations else 0 %}
+            <div class="flex flex-col md:flex-row gap-4 p-4 bg-gradient-to-br from-purple-50/50 to-pink-50/50 rounded-xl" id="page-container-{{ disk_page_num }}">
                 <div class="md:w-1/3 flex-shrink-0">
                     <div class="aspect-[3/4] rounded-xl overflow-hidden shadow-md border-4 border-purple-100 hover:border-purple-300 transition-all cursor-pointer" onclick="openImageModal({{ i }})">
-                        <img src="{{ story_data.images[i] }}" alt="{% if lang == 'es' %}Ilustración {{ page_num }}{% else %}Illustration {{ page_num }}{% endif %}" class="w-full h-full object-cover hover:scale-105 transition-transform" id="page-img-{{ page_num }}">
+                        <img src="{{ story_data.images[i] }}" alt="{% if lang == 'es' %}Ilustración {{ page_num }}{% else %}Illustration {{ page_num }}{% endif %}" class="w-full h-full object-cover hover:scale-105 transition-transform" id="page-img-{{ disk_page_num }}">
                     </div>
                     {% if can_regenerate and regen_count < 2 %}
-                    <button onclick="regeneratePage({{ page_num }})" 
+                    <button onclick="regeneratePage({{ disk_page_num }})" 
                             class="mt-2 w-full py-2 px-3 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
-                            id="regen-btn-{{ page_num }}">
+                            id="regen-btn-{{ disk_page_num }}">
                         <span class="text-lg">🔄</span>
                         <span>{% if lang == 'es' %}Regenerar{% else %}Regenerate{% endif %}</span>
-                        <span class="text-xs bg-orange-600 px-2 py-0.5 rounded-full" id="regen-count-{{ page_num }}">{{ 2 - regen_count }}/2</span>
+                        <span class="text-xs bg-orange-600 px-2 py-0.5 rounded-full" id="regen-count-{{ disk_page_num }}">{{ 2 - regen_count }}/2</span>
                     </button>
                     {% elif can_regenerate and regen_count >= 2 %}
                     <div class="mt-2 w-full py-2 px-3 bg-gray-300 text-gray-600 text-sm font-semibold rounded-lg text-center">
@@ -947,12 +925,24 @@
         {% endif %}
 
         {% if story_data.want_print and not story_data.admin_gift %}
+        {% set _cp_sent2 = story_data.cp_status == 'sent' or story_data.cp_submitted %}
+        {% set _cp_failed2 = story_data.cp_status == 'failed' %}
         <div class="mt-4">
-            {% if story_data.gelato_status == 'error' %}
+            {% if _cp_sent2 %}
+            <div class="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+                <p class="text-green-800 text-sm">
+                    {% if lang == 'es' %}
+                    ✅ <strong>Libro impreso:</strong> Tu libro fue enviado a producción con Cloudprinter. Recibirás un email con el seguimiento.
+                    {% else %}
+                    ✅ <strong>Printed book:</strong> Your book has been sent to production via Cloudprinter. You'll receive a tracking email.
+                    {% endif %}
+                </p>
+            </div>
+            {% elif _cp_failed2 %}
             <div class="bg-red-50 border-2 border-red-300 rounded-xl p-5 text-center">
                 <div class="text-3xl mb-2">⚠️</div>
                 <p class="text-red-800 font-semibold mb-2">
-                    {% if lang == 'es' %}Hubo un problema al enviar tu libro a impresión{% else %}There was a problem sending your book to print{% endif %}
+                    {% if lang == 'es' %}Hubo un problema al enviar tu libro a Cloudprinter{% else %}There was a problem sending your book to Cloudprinter{% endif %}
                 </p>
                 <p class="text-red-700 text-sm mb-3">
                     {% if lang == 'es' %}
@@ -962,23 +952,13 @@
                     {% endif %}
                 </p>
             </div>
-            {% elif story_data.gelato_order_id %}
-            <div class="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
-                <p class="text-green-800 text-sm">
-                    {% if lang == 'es' %}
-                    <strong>✅ Libro impreso:</strong> Tu libro en tapa dura ya fue enviado a producción con Cloudprinter. Recibirás un email con el seguimiento.
-                    {% else %}
-                    <strong>✅ Printed book:</strong> Your hardcover book has been sent to production via Cloudprinter. You'll receive a tracking email.
-                    {% endif %}
-                </p>
-            </div>
             {% else %}
             <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
                 <p class="text-amber-800 text-sm">
                     {% if lang == 'es' %}
-                    <strong>Libro impreso:</strong> Tu libro en tapa dura se enviará a producción automáticamente. Recibirás un email con el seguimiento.
+                    ⏳ <strong>Libro impreso:</strong> Tu libro aún no ha sido enviado a producción.
                     {% else %}
-                    <strong>Printed book:</strong> Your hardcover book will be sent to production automatically. You'll receive a tracking email.
+                    ⏳ <strong>Printed book:</strong> Your book has not been submitted to production yet.
                     {% endif %}
                 </p>
             </div>
@@ -1006,12 +986,16 @@
             <div class="text-2xl mb-2">🎁</div>
             <p class="text-purple-800 font-semibold mb-3">Libro Regalo - PDF listo</p>
             <div class="flex flex-wrap gap-3 justify-center">
-                <a href="/admin/gelato-order/{{ preview_id }}/download-pdf" target="_blank" class="inline-block px-5 py-2 text-white font-semibold rounded-lg no-underline text-sm" style="background: linear-gradient(135deg, #8B5CF6, #EC4899);">
-                    Descargar PDF Impresión
+                <a href="/admin/order/{{ preview_id }}/download-pdf" target="_blank" class="inline-block px-5 py-2 text-white font-semibold rounded-lg no-underline text-sm" style="background: linear-gradient(135deg, #8B5CF6, #EC4899);">
+                    ⬇️ Descargar PDF Impresión
                 </a>
-                {% if story_data.gelato_order_id %}
+                {% if story_data.cp_order_ref %}
                 <span class="inline-flex items-center px-5 py-2 bg-green-100 text-green-800 font-semibold rounded-lg text-sm">
-                    Enviado — {{ story_data.gelato_order_id }}
+                    ✅ Enviado — Ref {{ story_data.cp_order_ref }}
+                </span>
+                {% elif story_data.cp_submitted %}
+                <span class="inline-flex items-center px-5 py-2 bg-green-100 text-green-800 font-semibold rounded-lg text-sm">
+                    ✅ Enviado a Cloudprinter
                 </span>
                 {% endif %}
             </div>
