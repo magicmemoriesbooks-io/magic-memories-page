@@ -13552,7 +13552,11 @@ def _dispatch_printable_pdf_email(preview_id, customer_email, lang='es'):
         pdf_filename = os.path.basename(printable_pdf_path)
         visor_url = story_data.get('visor_url', '')
         # Include gift eBook only when the customer did NOT separately purchase the eBook
-        _include_gift = not story_data.get('want_ebook', False)
+        # AND did NOT also buy the printed book — if want_print is true, the print
+        # confirmation flow (Email B2) owns sending the single gift eBook email to
+        # avoid sending two "gift eBook" emails for the same story when PDF + print
+        # are bought together.
+        _include_gift = not story_data.get('want_ebook', False) and not story_data.get('want_print', False)
 
         local_pdf_path = printable_pdf_path
         if not os.path.exists(local_pdf_path):
