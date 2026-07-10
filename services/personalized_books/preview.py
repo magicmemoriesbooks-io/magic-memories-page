@@ -523,8 +523,7 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                 f"ATMOSPHERE: Adventure invitation, joyful flight, magical. "
                 f"STRICT: Only ONE {gender_word}, only ONE small dragon @image1, "
                 f"the {gender_word} is a fully human child: no tail, no wings, no scales. {hair_strict_text} "
-                f"ABSOLUTELY NO rendered text, no titles, no logos, no words, no letters, no captions, "
-                f"no watermarks, no signatures, pure illustration only. {DG_STYLE_BASE}"
+                f"Pure illustration only. {DG_STYLE_BASE}"
             )
             photo_refs = [spark_path] if spark_ok else None
             print(f"[DRAGON GARDEN PREVIEW] FLUX 2 Dev cover scene (no photo) | gender={gender_word} | age={age_display}")
@@ -597,7 +596,7 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                 f"SETTING: Magical pink kitchen WIDE VIEW, sparkles hearts and golden stars, floating magical desserts everywhere, rainbow cakes, glowing star cookies, swirling colorful ice creams, centered composition for book cover. "
                 f"ATMOSPHERE: Sweet magical invitation, pink and golden warmth. "
                 f"STRICT: Only ONE child character (@image1), only ONE cake character SWEETIE (@image2), @image1 is 100% human child: no animal features, no tail. "
-                f"ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {CHEF_STYLE_BASE}"
+                f"Pure illustration only. {CHEF_STYLE_BASE}"
             )
             photo_refs = [portrait_path, sweetie_path] if sweetie_ok else [portrait_path]
             print(f"[MAGIC CHEF PREVIEW] Step 2 — FLUX 2 Dev cover | portrait={portrait_path} | sweetie={sweetie_ok}")
@@ -623,7 +622,7 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                     f"SETTING: Magical pink kitchen WIDE VIEW, sparkles hearts and golden stars, floating magical desserts everywhere, rainbow cakes, glowing star cookies, swirling colorful ice creams, centered composition for book cover. "
                     f"ATMOSPHERE: Sweet magical invitation, pink and golden warmth. "
                     f"STRICT: Only ONE {gender_word}, only ONE cake character SWEETIE (@image1), the {gender_word} is a fully human child: no animal features, no tail. {hair_strict_text} "
-                    f"ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {CHEF_STYLE_BASE}"
+                    f"Pure illustration only. {CHEF_STYLE_BASE}"
                 )
                 photo_refs_nophoto = [sweetie_path]
             else:
@@ -635,7 +634,7 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                     f"SETTING: Magical pink kitchen WIDE VIEW, sparkles hearts and golden stars, floating magical desserts everywhere, rainbow cakes, glowing star cookies, swirling colorful ice creams, centered composition for book cover. "
                     f"ATMOSPHERE: Sweet magical invitation, pink and golden warmth. "
                     f"STRICT: Only ONE {gender_word}, only ONE cake character SWEETIE, the {gender_word} is a fully human child: no animal features, no tail. {hair_strict_text} "
-                    f"ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {CHEF_STYLE_BASE}"
+                    f"Pure illustration only. {CHEF_STYLE_BASE}"
                 )
                 photo_refs_nophoto = None
             print(f"[MAGIC CHEF PREVIEW] FLUX 2 Dev cover (no photo) | gender={gender_word} | age={age_display}")
@@ -707,7 +706,7 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                 f"SETTING: Magical inventor workshop WIDE VIEW, floating golden gears, crystal tubes with colorful liquids, warm golden light, sparkles, centered composition for book cover. "
                 f"ATMOSPHERE: Adventure invitation, warm golden, friendship and creativity. "
                 f"STRICT: Only ONE child character (@image1), only ONE small robot BOLT (@image2), @image1 is 100% human child: no mechanical parts, no robot features on @image1. "
-                f"ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {INVENTOR_STYLE_BASE}"
+                f"Pure illustration only. {INVENTOR_STYLE_BASE}"
             )
             photo_refs = [portrait_path, bolt_path] if bolt_ok else [portrait_path]
             print(f"[MAGIC INVENTOR PREVIEW] Step 2 — FLUX 2 Dev cover | portrait={portrait_path} | bolt={bolt_ok}")
@@ -733,7 +732,7 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                     f"SETTING: Magical inventor workshop WIDE VIEW, floating golden gears, crystal tubes with colorful liquids, warm golden light, sparkles, centered composition for book cover. "
                     f"ATMOSPHERE: Adventure invitation, warm golden, friendship and creativity. "
                     f"STRICT: Only ONE {gender_word}, only ONE small robot BOLT (@image1), the {gender_word} is a fully human child: no mechanical parts, no robot features on {gender_word}. {hair_strict_text} "
-                    f"ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {INVENTOR_STYLE_BASE}"
+                    f"Pure illustration only. {INVENTOR_STYLE_BASE}"
                 )
                 photo_refs_nophoto = [bolt_path]
             else:
@@ -745,7 +744,7 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                     f"SETTING: Magical inventor workshop WIDE VIEW, floating golden gears, crystal tubes with colorful liquids, warm golden light, sparkles, centered composition for book cover. "
                     f"ATMOSPHERE: Adventure invitation, warm golden, friendship and creativity. "
                     f"STRICT: Only ONE {gender_word}, only ONE small robot BOLT, the {gender_word} is a fully human child: no mechanical parts, no robot features on {gender_word}. {hair_strict_text} "
-                    f"ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {INVENTOR_STYLE_BASE}"
+                    f"Pure illustration only. {INVENTOR_STYLE_BASE}"
                 )
                 photo_refs_nophoto = None
             print(f"[MAGIC INVENTOR PREVIEW] FLUX 2 Dev cover (no photo) | gender={gender_word} | age={age_display}")
@@ -845,8 +844,7 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                 f"light from the lighthouse door, centered composition for book cover. "
                 f"ATMOSPHERE: Adventure invitation, celestial magic. "
                 f"STRICT: Only ONE {gender_word}, fully human child, no wings. {hair_strict_text} "
-                f"ABSOLUTELY NO rendered text, no titles, no logos, no words, no letters, no captions, "
-                f"no watermarks, no signatures, pure illustration only. {KEEPER_STYLE_BASE}"
+                f"Pure illustration only. {KEEPER_STYLE_BASE}"
             )
             photo_refs = [luna_path] if luna_ok else None
             print(f"[STAR KEEPER PREVIEW] FLUX 2 Dev cover scene (no photo) | gender={gender_word} | age={age_display}")
@@ -933,8 +931,7 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                 f"Eyes: {eye_desc} — render this exact color.\n"
                 "@image2 = the approved companion ASTRO — definitive visual reference, keep visually consistent. "
                 "Maintain its complete visual identity: body shape, proportions, colors, textures and distinctive features.\n"
-                f"CHARACTER SEPARATION: Render exactly TWO completely separate characters. @image1 remains a fully human {gender_word}. @image2 retains its own original non-human anatomy.\n"
-                f"STYLE\n{AURORA_STYLE_BASE}"
+                f"CHARACTER SEPARATION: Render exactly TWO completely separate characters. @image1 remains a fully human {gender_word}. @image2 retains its own original non-human anatomy."
             )
             ca_cover_scene = CA_FRONT_COVER.get('prompt', '').replace('{style}', AURORA_STYLE_BASE)
             ca_cover_prompt = f"{ca_ref_note}\n{ca_cover_scene}"
