@@ -574,13 +574,14 @@ document.getElementById('regenerateBtn').addEventListener('click', () => {
         btn.textContent = '{% if lang == "es" %}Regenerar Preview ({% else %}Regenerate Preview ({% endif %}' + remaining + '{% if lang == "es" %} restantes){% else %} remaining){% endif %}';
     }
     const refPath = (currentCharacterData && currentCharacterData.character_image) ? currentCharacterData.character_image : null;
-    generateCharacterPreview(refPath);
+    generateCharacterPreview(refPath, true);
 });
 
-async function generateCharacterPreview(referenceImage) {
-    const btn = document.getElementById('generateCharacterBtn');
-    const btnText = document.getElementById('charBtnText');
-    const btnLoading = document.getElementById('charBtnLoading');
+async function generateCharacterPreview(referenceImage, isRegenerate) {
+    const btn = isRegenerate ? document.getElementById('regenerateBtn') : document.getElementById('generateCharacterBtn');
+    const btnText = isRegenerate ? null : document.getElementById('charBtnText');
+    const btnLoading = isRegenerate ? null : document.getElementById('charBtnLoading');
+    const regenerateOriginalText = isRegenerate ? btn.textContent : null;
     
     const childName = document.getElementById('child_name').value;
     const childGender = document.getElementById('child_gender').value;
@@ -599,8 +600,12 @@ async function generateCharacterPreview(referenceImage) {
     }
     
     btn.disabled = true;
-    btnText.textContent = '{% if lang == "es" %}Generando...{% else %}Generating...{% endif %}';
-    btnLoading.classList.remove('hidden');
+    if (isRegenerate) {
+        btn.textContent = '{% if lang == "es" %}Generando...{% else %}Generating...{% endif %}';
+    } else {
+        btnText.textContent = '{% if lang == "es" %}Generando...{% else %}Generating...{% endif %}';
+        btnLoading.classList.remove('hidden');
+    }
     
     try {
         const storyTemplate = '{{ story_id }}';
@@ -691,8 +696,12 @@ async function generateCharacterPreview(referenceImage) {
     }
     
     btn.disabled = false;
-    btnText.textContent = '✨ {% if lang == "es" %}Ver Preview del Personaje{% else %}View Character Preview{% endif %}';
-    btnLoading.classList.add('hidden');
+    if (isRegenerate) {
+        btn.textContent = regenerateOriginalText;
+    } else {
+        btnText.textContent = '✨ {% if lang == "es" %}Ver Preview del Personaje{% else %}View Character Preview{% endif %}';
+        btnLoading.classList.add('hidden');
+    }
 }
 
 document.getElementById('generateStoryBtn').addEventListener('click', async function() {
