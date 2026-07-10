@@ -7391,6 +7391,28 @@ def confirm_and_send(preview_id):
             except Exception as pdf_err:
                 print(f"[CONFIRM-SEND] PDF generation failed: {pdf_err}")
         
+        # --- SHADOW MODE (solo lectura/registro, no afecta el envio real) ---
+        try:
+            from services.shadow_delivery import run_shadow_comparison_safe
+            _actual_planned_cs = []
+            if want_print:
+                _actual_planned_cs.append('pdf_ready')
+            elif story_data.get('want_pdf') or story_data.get('pdf_paid'):
+                _actual_planned_cs.append('pdf_ready')
+            if want_ebook:
+                _actual_planned_cs.append('ebook_permanent_delivery')
+            if _visor_is_gift_cs:
+                _actual_planned_cs.append('gift_ebook_temp_6mo')
+            run_shadow_comparison_safe(
+                stage='confirm_and_send',
+                story_data=story_data,
+                preview_id=preview_id,
+                actual_decision={'planned_emails': _actual_planned_cs, 'visor_is_gift': _visor_is_gift_cs},
+            )
+        except Exception as _shadow_call_err_cs:
+            print(f"[SHADOW-DELIVERY] WARNING: shadow hook failed non-fatally in confirm_and_send: {_shadow_call_err_cs}")
+        # --- FIN SHADOW MODE ---
+
         from services.email_service import send_ebook_email
         if visor_url:
             email_result = send_ebook_email(
@@ -13607,7 +13629,7 @@ def _dispatch_printable_pdf_email(preview_id, customer_email, lang='es'):
                 from services.shadow_delivery import run_shadow_comparison_safe
                 _actual_planned = ['pdf_ready']
                 if _include_gift:
-                    _actual_planned.append('gift_ebook')
+                    _actual_planned.append('gift_ebook_temp_6mo')
                 run_shadow_comparison_safe(
                     stage='dispatch_printable_pdf_email',
                     story_data=story_data,
