@@ -20,7 +20,7 @@
 #   - Keep prompts concise - FLUX 2 Dev loses focus with >300 words
 #   - Style: Disney Pixar 3D everywhere, NO watercolor
 
-STYLE_BASE = "Disney Pixar 3D style, soft luminous pastel colors with pink and golden accents, warm kitchen lighting, WIDE SHOT full body from head to feet, characters occupy 40% of frame, environment visible, clean illustration only, NO text, NO watermarks."
+STYLE_BASE = "Disney Pixar 3D style, soft luminous pastel colors with pink and golden accents, warm kitchen lighting, WIDE SHOT full body from head to feet, characters occupy 40% of frame, environment visible, clean illustration only."
 
 SWEETIE_HAT_INLINE = "a magical glowing white chef's hat with cute cartoon eyes and a friendly animated smiling mouth, golden sparkles around it"
 
@@ -169,11 +169,11 @@ CLOSING_SCENE = {
 }
 
 FRONT_COVER = {
-    "prompt": "Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, confident joyful smile. OUTFIT: {sweetie_hat_inline}, and an elegant white chef jacket with golden buttons. COMPANION: {SWEETIE_CAKE_INLINE}. ACTION: {gender_word} stands in center of magical kitchen, SWEETIE floats happily beside the child. SETTING: Magical pink kitchen WIDE VIEW, sparkles hearts and golden stars, floating magical desserts everywhere, rainbow cakes, glowing star cookies, swirling colorful ice creams, centered composition for book cover. ATMOSPHERE: Sweet magical invitation, pink and golden warmth. STRICT: Only ONE {gender_word}, only ONE cake character SWEETIE, {gender_word} is 100% human child, no duplicates. ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {style}"
+    "prompt": "Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, confident joyful smile. OUTFIT: {sweetie_hat_inline}, and an elegant white chef jacket with golden buttons. COMPANION: {SWEETIE_CAKE_INLINE}. ACTION: {gender_word} stands in center of magical kitchen, SWEETIE floats happily beside the child. SETTING: Magical pink kitchen WIDE VIEW, sparkles hearts and golden stars, floating magical desserts everywhere, rainbow cakes, glowing star cookies, swirling colorful ice creams, centered composition for book cover. ATMOSPHERE: Sweet magical invitation, pink and golden warmth. STRICT: Only ONE {gender_word}, only ONE cake character SWEETIE, {gender_word} is 100% human child, no duplicates. Pure illustration only. {style}"
 }
 
 BACK_COVER = {
-    "prompt": "Disney Pixar 3D style illustration. SETTING: Warm cozy magical kitchen WIDE VIEW, wooden shelves with colorful ingredient jars, copper pots hanging from ceiling, brick oven with warm golden glow, floating wooden spoons, magical sparkles, steam rising from pots, rainbow cakes and desserts on tables, star-shaped cookies on tray, warm sunset light through window. STRICT: NO characters, NO people, only scenery. ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {style}"
+    "prompt": "Disney Pixar 3D style illustration. SETTING: Warm cozy magical kitchen WIDE VIEW, wooden shelves with colorful ingredient jars, copper pots hanging from ceiling, brick oven with warm golden glow, floating wooden spoons, magical sparkles, steam rising from pots, rainbow cakes and desserts on tables, star-shaped cookies on tray, warm sunset light through window. STRICT: NO characters, NO people, only scenery. Pure illustration only. {style}"
 }
 
 
