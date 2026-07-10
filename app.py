@@ -22,7 +22,8 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 preview_rate_limits = {}
 email_rate_limits = {}
-STORY_GEN_MAX    = 3   # max generations per email+story/24h (1 initial + 2 regens)
+STORY_GEN_MAX    = 4   # max generations per email+story = 1 initial + 3 regens; the 4th regen attempt (5th total) is blocked
+STORY_GEN_WINDOW_HOURS = 3  # rolling window for character-preview regenerations (excludes free stories)
 EMAIL_STORY_MAX  = 2   # max different stories per email/24h
 IP_ABUSE_MAX     = 20  # anti-abuse threshold per IP/24h
 # Legacy aliases kept so existing references don't break
@@ -90,6 +91,7 @@ def check_generation_allowed(email, story_id, ip):
         return True, 'ok'
 
     cutoff = datetime.utcnow() - timedelta(hours=24)
+    story_cutoff = datetime.utcnow() - timedelta(hours=STORY_GEN_WINDOW_HOURS)
 
     # Rule 3 — IP anti-abuse (no email required)
     if ip and ip != '0.0.0.0':
@@ -109,12 +111,12 @@ def check_generation_allowed(email, story_id, ip):
     email_key = email.strip().lower()
 
     try:
-        # Rule 1 — max generations for this specific story
+        # Rule 1 — max generations for this specific story (rolling window, see STORY_GEN_WINDOW_HOURS)
         if story_id:
             story_count = PreviewLead.query.filter(
                 db.func.lower(PreviewLead.email) == email_key,
                 PreviewLead.story_id == story_id,
-                PreviewLead.created_at >= cutoff
+                PreviewLead.created_at >= story_cutoff
             ).count()
             if story_count >= STORY_GEN_MAX:
                 return False, 'story_limit'
@@ -3161,7 +3163,15 @@ def regenerate_cover(preview_id):
         traits = story_data.get('traits', {})
         output_dir = story_data.get('output_dir', f'generated/previews/{preview_id}')
         os.makedirs(output_dir, exist_ok=True)
-        
+
+        # Cover regeneration limit: max 2 per preview (all paid personalized books).
+        cover_regen_count = story_data.get('cover_regenerations', 0)
+        if cover_regen_count >= 2 and not is_testing_mode_active():
+            return jsonify({
+                'success': False,
+                'error': 'Has alcanzado el límite de 2 regeneraciones para la portada'
+            }), 400
+
         is_furry = 'furry_love' in story_id
         
         if is_furry:
@@ -3264,6 +3274,7 @@ def regenerate_cover(preview_id):
             story_data['cover_image'] = f'/{cover_image_path}'
             story_data['cover_raw_path'] = cover_raw_path
             story_data['original_cover'] = f'/{cover_image_path}'
+            story_data['cover_regenerations'] = cover_regen_count + 1
             
             with open(preview_file, 'w', encoding='utf-8') as f:
                 json.dump(story_data, f, ensure_ascii=False, indent=2)
@@ -3273,13 +3284,17 @@ def regenerate_cover(preview_id):
             # Single reconstruction pipeline: cover_raw.png is now newer than the
             # existing cover_spread, so rebuild_book will rebuild the spread,
             # visor, printable PDF and Cloudprinter PDFs from it.
+            # mark_composed=False: this is a pre/post-approval cover regeneration,
+            # never a composition-completion event — must not touch the order's
+            # composition/approval state flags.
             from services.personalized_books.rebuild import rebuild_book
             if os.path.exists(f'generated/composed_{preview_id}'):
-                rebuild_book(preview_id)
+                rebuild_book(preview_id, mark_composed=False)
 
             return jsonify({
                 'success': True,
-                'cover_image': f'/{cover_image_path}'
+                'cover_image': f'/{cover_image_path}',
+                'regenerations_left': max(0, 2 - (cover_regen_count + 1))
             })
         elif story_id == 'star_keeper_illustrated':
             from services.personalized_books.star_keeper_prompts import (
@@ -3409,15 +3424,18 @@ def regenerate_cover(preview_id):
             story_data['cover_image'] = f'/{cover_image_path_regen}'
             story_data['cover_raw_path'] = cover_raw_path_regen
             story_data['original_cover'] = f'/{cover_image_path_regen}'
+            story_data['cover_regenerations'] = cover_regen_count + 1
             with open(preview_file, 'w', encoding='utf-8') as f:
                 json.dump(story_data, f, ensure_ascii=False, indent=2)
             print(f"[REGEN COVER SK] Cover regenerated: {cover_image_path_regen}")
 
+            # mark_composed=False: regeneration only, never a composition-
+            # completion event — must not touch composition/approval state.
             from services.personalized_books.rebuild import rebuild_book
             if os.path.exists(f'generated/composed_{preview_id}'):
-                rebuild_book(preview_id)
+                rebuild_book(preview_id, mark_composed=False)
 
-            return jsonify({'success': True, 'cover_image': f'/{cover_image_path_regen}'})
+            return jsonify({'success': True, 'cover_image': f'/{cover_image_path_regen}', 'regenerations_left': max(0, 2 - (cover_regen_count + 1))})
 
         elif story_id == 'dragon_garden_illustrated':
             from services.personalized_books.dragon_garden_prompts import (
@@ -3523,15 +3541,18 @@ def regenerate_cover(preview_id):
             story_data['cover_image'] = f'/{cover_image_path_regen}'
             story_data['cover_raw_path'] = cover_raw_path_regen
             story_data['original_cover'] = f'/{cover_image_path_regen}'
+            story_data['cover_regenerations'] = cover_regen_count + 1
             with open(preview_file, 'w', encoding='utf-8') as f:
                 json.dump(story_data, f, ensure_ascii=False, indent=2)
             print(f"[REGEN COVER DG] Cover regenerated: {cover_image_path_regen}")
 
+            # mark_composed=False: regeneration only, never a composition-
+            # completion event — must not touch composition/approval state.
             from services.personalized_books.rebuild import rebuild_book
             if os.path.exists(f'generated/composed_{preview_id}'):
-                rebuild_book(preview_id)
+                rebuild_book(preview_id, mark_composed=False)
 
-            return jsonify({'success': True, 'cover_image': f'/{cover_image_path_regen}'})
+            return jsonify({'success': True, 'cover_image': f'/{cover_image_path_regen}', 'regenerations_left': max(0, 2 - (cover_regen_count + 1))})
 
         elif story_id == 'centinela_aurora_illustrated':
             from services.personalized_books.centinela_aurora_prompts import (
@@ -3553,6 +3574,12 @@ def regenerate_cover(preview_id):
             astro_ok_regen = astro_path_regen and os.path.exists(astro_path_regen)
             ca_neg_regen = get_gender_negative_prompt(gender_regen)
             ca_scene_regen = CA_FRONT_COVER.get('prompt', '').replace('{style}', CA_STYLE_BASE)
+            from services.fixed_stories import get_age_body_desc as _ca_regen_age_fn
+            _ca_regen_age_group, _ca_regen_age_body_desc = _ca_regen_age_fn(child_age_regen)
+            age_display_regen = f"{child_age_regen} year old"
+            _ca_regen_eye_raw = traits.get('eye_color', '')
+            from services.fixed_stories import get_eye_description as _ca_regen_eye_fn
+            eye_desc_regen = _ca_regen_eye_fn(traits) if _ca_regen_eye_raw else ''
 
             if human_photo_path_regen and os.path.exists(human_photo_path_regen):
                 portrait_path_regen = None
@@ -3563,29 +3590,49 @@ def regenerate_cover(preview_id):
                         portrait_path_regen = saved_portrait_path
                         print(f"[REGEN COVER CA] Reusing saved Kontext portrait: {portrait_path_regen}")
                 if not portrait_path_regen:
+                    # ── Kontext Master Prompt v2.0 (approved) ──
                     kontext_prompt_regen = (
-                        f"The child in @image1 is {child_age_regen} years old. "
-                        f"Convert @image1 into a Disney Pixar 3D animated children's book character. "
-                        f"Copy the face, hair colour, skin tone, and eye colour from @image1 exactly — identical likeness. "
-                        f"Replace all clothing with: {outfit_desc_regen}. "
-                        f"Full body visible from head to feet, standing pose, brave adventurous smile. "
-                        f"Background: deep midnight blue with subtle aurora colors, plain studio — "
-                        f"no fox, no compass, no detailed scenery."
+                        f"Convert the {age_display_regen} {gender_word_regen} in @image1 into a high-end modern 3D animated feature film character.\n\n"
+                        f"CRITICAL ANATOMY:\n"
+                        f"The character is exactly {age_display_regen}.\n"
+                        f"Enforce these strict age-specific traits: {_ca_regen_age_body_desc}\n"
+                        f"Ensure mature proportions, visible neck, and proportional head size. Do not use toddler proportions.\n\n"
+                        f"IDENTITY ANCHOR:\n"
+                        f"Preserve the exact face, skin tone, and hair — identical likeness.\n"
+                        + (f"The character has {eye_desc_regen} eyes. Render this exact eye color deliberately.\n\n" if eye_desc_regen else "\n")
+                        + f"OUTFIT:\n{outfit_desc_regen}.\n\n"
+                        f"BACKGROUND:\n"
+                        f"Deep midnight blue with subtle aurora colors, plain studio — no scenery.\n\n"
+                        f"POSE:\n"
+                        f"Standing in a relaxed natural pose, brave adventurous expression, arms relaxed at the sides. "
+                        f"Full body completely visible from head to feet. Character occupies approximately 80% of the vertical frame."
                     )
-                    print(f"[REGEN COVER CA] Step 1 — Kontext portrait | photo={human_photo_path_regen} | age={child_age_regen}")
+                    print(f"[REGEN COVER CA] Step 1 — Kontext portrait (master v2.0) | photo={human_photo_path_regen} | age={child_age_regen}")
                     portrait_url_regen = generate_with_flux_kontext(kontext_prompt_regen, human_photo_path_regen, aspect_ratio="3:4")
                     portrait_path_regen = save_image_locally(portrait_url_regen, f'{output_dir}/ca_portrait_regen_{uuid.uuid4().hex[:8]}.png')
 
+                # ── FLUX 2 Dev Cover Master Prompt v2.0 (approved, with companion) ──
                 ca_ref_note_regen = (
-                    f"The child in @image1 is {child_age_regen} years old. "
-                    f"@image1={gender_word_regen} character — copy face, hair, skin, and outfit exactly. ONE child only. "
-                    "@image2=small electric-blue fox ASTRO — copy appearance exactly. "
-                    f"CRITICAL: @image1 is the ONLY human. "
-                    "@image2 is a small four-legged animal fox, electric blue fur, NOT a person. "
-                    "Two separate characters: one human child, one tiny fox animal."
+                    "REFERENCE\n\n"
+                    "@image1 is the approved main character.\n"
+                    "Use @image1 as the definitive visual reference.\n"
+                    "Keep @image1 visually consistent throughout the illustration.\n\n"
+                    f"@image1 is a {gender_word_regen} of exactly {age_display_regen}.\n"
+                    f"Maintain these exact age-specific anatomical proportions: {_ca_regen_age_body_desc}\n"
+                    f"Replicate the exact facial identity, original natural skin tone, original hair color, hair texture, and specific hairstyle from @image1 perfectly. Keep the haircut exactly as shown.\n"
+                    + (f"The character has {eye_desc_regen} eyes — render this exact eye color.\n" if eye_desc_regen else "")
+                    + "Preserve the character's natural skin pigmentation and original hair color under the magical environmental lighting.\n\n"
+                    "@image2 is the approved companion ASTRO.\n"
+                    "Use @image2 as the definitive visual reference.\n"
+                    "Keep @image2 visually consistent throughout the illustration.\n"
+                    "Maintain the complete visual identity of @image2, including body shape, proportions, colors, textures and distinctive features.\n\n"
+                    "CHARACTER SEPARATION\n\n"
+                    f"Render exactly TWO completely separate characters. @image1 remains a fully human {gender_word_regen}. @image2 retains its own original non-human anatomy.\n\n"
+                    "STYLE\n\n"
+                    f"{CA_STYLE_BASE}"
                 )
                 photo_refs_regen = [portrait_path_regen, astro_path_regen] if astro_ok_regen else [portrait_path_regen]
-                print(f"[REGEN COVER CA] Step 2 — FLUX 2 Dev scene | portrait={portrait_path_regen} | astro={astro_ok_regen}")
+                print(f"[REGEN COVER CA] Step 2 — FLUX 2 Dev scene (master v2.0) | portrait={portrait_path_regen} | astro={astro_ok_regen}")
                 cover_url_regen = generate_with_flux2_dev(
                     f"{ca_ref_note_regen}\n{ca_scene_regen}",
                     aspect_ratio="3:4",
@@ -3594,30 +3641,23 @@ def regenerate_cover(preview_id):
                     negative_prompt=ca_neg_regen
                 )
             else:
-                from services.fixed_stories import get_hair_description, get_eye_description, get_hair_strict
+                # ── FLUX 2 Dev Cover Master Prompt v2.0 (approved, no photo, solo child) ──
+                from services.fixed_stories import get_hair_description
                 from services.replicate_service import get_unified_skin_description
                 from services.personalized_books.centinela_aurora_prompts import get_hair_action as ca_get_hair_action
                 hair_desc_regen = get_hair_description(traits)
-                eye_desc_regen = get_eye_description(traits)
                 skin_regen = get_unified_skin_description(traits.get('skin_tone', 'light'))
                 hair_action_regen = ca_get_hair_action(traits)
-                hair_strict_regen = get_hair_strict(traits)
-                age_display_regen = f"{child_age_regen} year old"
-                ca_nophoto_regen = (
-                    f"@image1 = small magical electric-blue fox companion ASTRO — copy @image1 appearance exactly.\n"
-                    f"Draw a single {gender_word_regen} ({age_display_regen}), {hair_desc_regen}, {eye_desc_regen}, {skin_regen} skin, "
-                    f"big joyful brave smile, {hair_action_regen}. OUTFIT: {outfit_desc_regen}.\n"
-                    f"ACTION: The {gender_word_regen} stands confidently holding the golden compass high with one arm, "
-                    f"face lit with adventurous excitement. @image1 perches on the {gender_word_regen}'s shoulder, "
-                    f"glowing tail raised high, electric blue light blazing brilliantly against the aurora sky. "
-                    f"SETTING: Night sky and aurora WIDE VIEW, magnificent aurora borealis colors filling the sky, "
-                    f"stars everywhere, magical stardust floating around them, centered composition for book cover. "
-                    f"ATMOSPHERE: Epic adventure invitation, magical aurora colors, excitement and wonder. "
-                    f"STRICT: Only ONE {gender_word_regen}, only ONE small electric-blue fox @image1, "
-                    f"the {gender_word_regen} is a fully human child: no tail, no fox features. {hair_strict_regen} "
-                    f"ABSOLUTELY NO rendered text, no titles, no logos, no words, no letters, no captions, "
-                    f"no watermarks, no signatures, pure illustration only. {CA_STYLE_BASE}"
+                ca_nophoto_ref_note_regen = (
+                    "REFERENCE\n\n"
+                    f"@image1 is the approved companion ASTRO — copy @image1 appearance exactly.\n\n"
+                    f"MAIN CHARACTER\n\n"
+                    f"Draw a single {gender_word_regen} of exactly {age_display_regen}.\n"
+                    f"Maintain these exact age-specific anatomical proportions: {_ca_regen_age_body_desc}\n"
+                    f"{hair_desc_regen}, {eye_desc_regen}, {skin_regen} skin, big joyful brave smile, {hair_action_regen}.\n"
+                    f"OUTFIT: {outfit_desc_regen}."
                 )
+                ca_nophoto_regen = f"{ca_nophoto_ref_note_regen}\n{ca_scene_regen}"
                 photo_refs_regen = [astro_path_regen] if astro_ok_regen else None
                 cover_url_regen = generate_with_flux2_dev(
                     ca_nophoto_regen,
@@ -3640,15 +3680,18 @@ def regenerate_cover(preview_id):
             story_data['cover_image'] = f'/{cover_image_path_regen}'
             story_data['cover_raw_path'] = cover_raw_path_regen
             story_data['original_cover'] = f'/{cover_image_path_regen}'
+            story_data['cover_regenerations'] = cover_regen_count + 1
             with open(preview_file, 'w', encoding='utf-8') as f:
                 json.dump(story_data, f, ensure_ascii=False, indent=2)
             print(f"[REGEN COVER CA] Cover regenerated: {cover_image_path_regen}")
 
+            # mark_composed=False: regeneration only, never a composition-
+            # completion event — must not touch composition/approval state.
             from services.personalized_books.rebuild import rebuild_book
             if os.path.exists(f'generated/composed_{preview_id}'):
-                rebuild_book(preview_id)
+                rebuild_book(preview_id, mark_composed=False)
 
-            return jsonify({'success': True, 'cover_image': f'/{cover_image_path_regen}'})
+            return jsonify({'success': True, 'cover_image': f'/{cover_image_path_regen}', 'regenerations_left': max(0, 2 - (cover_regen_count + 1))})
 
         else:
             return jsonify({'success': False, 'error': 'Cover regeneration only available for furry_love, star_keeper, dragon_garden and centinela_aurora stories'}), 400
@@ -7126,8 +7169,11 @@ def regenerate_page(preview_id, page_num):
         
         # Single reconstruction pipeline: rebuilds path arrays, visor,
         # printable PDF and Cloudprinter PDFs from the page files on disk.
+        # mark_composed=False: interior-scene regeneration only, never a
+        # composition-completion event — must not touch the order's
+        # composition/approval state flags.
         from services.personalized_books.rebuild import rebuild_book
-        rebuild_book(preview_id)
+        rebuild_book(preview_id, mark_composed=False)
         
         return jsonify({
             'success': True, 
@@ -8708,6 +8754,16 @@ def admin_regenerate_scene(preview_id, scene_num):
                 luna_static = 'static/assets/luna_reference.png'
                 if os.path.exists(luna_static):
                     ref_path_2 = luna_static
+            elif book_id == 'centinela_aurora':
+                character_preview = story_data.get('character_preview', '') or story_data.get('cover_image', '')
+                if character_preview:
+                    cp_ref = character_preview.lstrip('/')
+                    if os.path.exists(cp_ref):
+                        ref_path = cp_ref
+                from services.personalized_books.preview import _ensure_astro_reference
+                astro_regen_path = _ensure_astro_reference()
+                if astro_regen_path and os.path.exists(astro_regen_path):
+                    ref_path_2 = astro_regen_path
             else:
                 reference_image = story_data.get('character_preview', '') or story_data.get('cover_image', '')
                 if reference_image:
@@ -8811,8 +8867,11 @@ def admin_regenerate_scene(preview_id, scene_num):
 
             # Single reconstruction pipeline: rebuilds path arrays, visor,
             # printable PDF and Cloudprinter PDFs from the page files on disk.
+            # mark_composed=False: admin scene regeneration only, never a
+            # composition-completion event — must not touch composition/
+            # approval state flags.
             from services.personalized_books.rebuild import rebuild_book
-            rebuild_book(preview_id)
+            rebuild_book(preview_id, mark_composed=False)
 
             production_logger.info(f"[ADMIN-REGEN] Illustrated scene {scene_num} OK for {preview_id}: {save_path}")
             return jsonify({'success': True, 'image_url': url_path})
@@ -9040,8 +9099,11 @@ def admin_regenerate_page(preview_id, page_idx):
 
         # Single reconstruction pipeline: rebuilds path arrays, visor,
         # printable PDF and Cloudprinter PDFs from the page files on disk.
+        # mark_composed=False: admin page regeneration only, never a
+        # composition-completion event — must not touch composition/
+        # approval state flags.
         from services.personalized_books.rebuild import rebuild_book
-        rebuild_book(preview_id)
+        rebuild_book(preview_id, mark_composed=False)
 
         production_logger.info(f"[ADMIN-REGEN-PAGE] Page {page_idx} OK for {preview_id}: {save_path}")
         return jsonify({'success': True, 'image_url': url_path})
