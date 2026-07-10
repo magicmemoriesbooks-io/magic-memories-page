@@ -20,7 +20,7 @@
 #   - NEVER say @image1 "flies" or "soars" (gives wings)
 #   - Scenes 1, 2, 19 and CLOSING have no @image2
 
-STYLE_BASE = "Disney Pixar 3D style, soft luminous deep blue and violet tones with golden and silver sparkles, warm moonlight and starlight glow, full body visible from head to feet, character placed prominently in foreground, spectacular environment fills the background, clean illustration only, NO text, NO watermarks."
+STYLE_BASE = "Disney Pixar 3D style, soft luminous deep blue and violet tones with golden and silver sparkles, warm moonlight and starlight glow, full body visible from head to feet, character placed prominently in foreground, spectacular environment fills the background, clean illustration only."
 
 LUNA_INLINE = "LUNA: a small cute five-pointed star shape the size of a child's hand, solid shimmering silver-white, two big expressive violet eyes on the star face, tiny translucent wings on the sides, soft silver glow"
 
@@ -167,11 +167,11 @@ CLOSING_SCENE = {
 }
 
 FRONT_COVER = {
-    "prompt": "ACTION: @image1 stands confidently at the lighthouse entrance with one hand reaching upward toward the stars, @image2 hovers beside @image1's shoulder. SETTING: Old stone lighthouse on a dramatic clifftop WIDE VIEW, magnificent starry sky with bright constellations and shooting stars, ocean waves crashing below, warm golden-blue light from the lighthouse door, centered composition for book cover. ATMOSPHERE: Adventure invitation, celestial magic. STRICT: ABSOLUTELY NO rendered text, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {style}"
+    "prompt": "ACTION: @image1 stands confidently at the lighthouse entrance with one hand reaching upward toward the stars, @image2 hovers beside @image1's shoulder. SETTING: Old stone lighthouse on a dramatic clifftop WIDE VIEW, magnificent starry sky with bright constellations and shooting stars, ocean waves crashing below, warm golden-blue light from the lighthouse door, centered composition for book cover. ATMOSPHERE: Adventure invitation, celestial magic. STRICT: Pure illustration only. {style}"
 }
 
 BACK_COVER = {
-    "prompt": "SETTING: Old stone lighthouse on clifftop seen from distance at night WIDE VIEW, lighthouse beam sweeping across magnificent starry sky, ocean waves gently crashing on rocks, moonlight path on water surface, fireflies dotting cliff grass, one special star shining brighter above lighthouse. STRICT: NO characters, only scenery. ABSOLUTELY NO rendered text, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {style}"
+    "prompt": "SETTING: Old stone lighthouse on clifftop seen from distance at night WIDE VIEW, lighthouse beam sweeping across magnificent starry sky, ocean waves gently crashing on rocks, moonlight path on water surface, fireflies dotting cliff grass, one special star shining brighter above lighthouse. STRICT: NO characters, only scenery. Pure illustration only. {style}"
 }
 
 
