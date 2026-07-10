@@ -128,13 +128,21 @@
             </div>
         </div>
         {% set story_template = story_data.story_template|default(story_data.story_id|default('')) %}
-        {% if 'furry_love' in story_template or story_template == 'star_keeper_illustrated' %}
+        {% set cover_regens_used = story_data.cover_regenerations|default(0) %}
+        {% if 'furry_love' in story_template or story_template in ('star_keeper_illustrated', 'dragon_garden_illustrated', 'centinela_aurora_illustrated') %}
         <div class="flex justify-center mt-3">
+            {% if cover_regens_used >= 2 %}
+            <div class="px-4 py-2 text-sm bg-gray-200 text-gray-500 rounded-full">
+                {% if lang == 'es' %}Límite de regeneraciones alcanzado{% else %}Regeneration limit reached{% endif %}
+            </div>
+            {% else %}
             <button type="button" id="regenerateCoverBtn" onclick="regenerateCover('{{ preview_id }}')"
                 class="px-4 py-2 text-sm text-amber-600 border border-amber-200 rounded-full hover:bg-amber-50 transition-colors flex items-center gap-2">
                 <span id="regenCoverIcon">🔄</span>
                 <span id="regenCoverText">{% if lang == 'es' %}Regenerar Portada{% else %}Regenerate Cover {% endif %}</span>
+                <span class="text-xs bg-amber-200 px-2 py-0.5 rounded-full">{{ 2 - cover_regens_used }}/2</span>
             </button>
+            {% endif %}
         </div>
         {% endif %}
     </div>
@@ -401,11 +409,15 @@ async function regenerateCover(previewId) {
             if (coverImg) {
                 coverImg.src = data.cover_image + '?t=' + Date.now();
             }
+            if (data.regenerations_left <= 0) {
+                btn.outerHTML = '<div class="px-4 py-2 text-sm bg-gray-200 text-gray-500 rounded-full">{{ "Límite de regeneraciones alcanzado" if lang == "es" else "Regeneration limit reached" }}</div>';
+                return;
+            }
             icon.textContent = '✅';
             text.textContent = '{{ "Portada regenerada" if lang == "es" else "Cover regenerated" }}';
             setTimeout(() => {
                 icon.textContent = '🔄';
-                text.textContent = '{{ "Regenerar Portada" if lang == "es" else "Regenerate Cover" }}';
+                text.textContent = '{{ "Regenerar Portada" if lang == "es" else "Regenerate Cover" }} (' + data.regenerations_left + '/2)';
             }, 2000);
         } else {
             alert(data.error || '{{ "Error al regenerar" if lang == "es" else "Error regenerating" }}');
