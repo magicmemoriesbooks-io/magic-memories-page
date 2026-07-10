@@ -919,24 +919,22 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
             print(f"[CENTINELA AURORA PREVIEW] Portrait saved: {portrait_path}")
 
             # ── Step 2: FLUX 2 Dev Cover Master Prompt v2.0 (approved, with companion) ──
+            # NOTE (Jul 2026): ca_ref_note fue compactado para corregir bug de Replicate
+            # 'q_descale must have shape (batch_size, num_heads_k)' reproducido de forma
+            # aislada: el prompt combinado (ca_ref_note + ca_cover_scene) superaba un
+            # umbral de tokens que disparaba el error del kernel de atención en FLUX 2 Dev
+            # con 2 imágenes de referencia. Se conserva TODA la información (identidad de
+            # @image1, edad/anatomía, cabello, ojos exactos, identidad de @image2/ASTRO,
+            # separación de personajes) solo eliminando redundancias textuales.
             ca_ref_note = (
-                "REFERENCE\n\n"
-                "@image1 is the approved main character.\n"
-                "Use @image1 as the definitive visual reference.\n"
-                "Keep @image1 visually consistent throughout the illustration.\n\n"
-                f"@image1 is a {gender_word} of exactly {age_display}.\n"
-                f"Maintain these exact age-specific anatomical proportions: {age_body_desc}\n"
-                f"Replicate the exact facial identity, original natural skin tone, original hair color, hair texture, and specific hairstyle from @image1 perfectly. Keep the haircut exactly as shown.\n"
-                f"The character has {eye_desc} eyes — render this exact eye color.\n"
-                "Preserve the character's natural skin pigmentation and original hair color under the magical environmental lighting.\n\n"
-                "@image2 is the approved companion ASTRO.\n"
-                "Use @image2 as the definitive visual reference.\n"
-                "Keep @image2 visually consistent throughout the illustration.\n"
-                "Maintain the complete visual identity of @image2, including body shape, proportions, colors, textures and distinctive features.\n\n"
-                "CHARACTER SEPARATION\n\n"
-                f"Render exactly TWO completely separate characters. @image1 remains a fully human {gender_word}. @image2 retains its own original non-human anatomy.\n\n"
-                "STYLE\n\n"
-                f"{AURORA_STYLE_BASE}"
+                f"@image1 = the approved {gender_word} of exactly {age_display} — definitive visual reference, keep visually consistent throughout. "
+                f"Maintain exact age-specific anatomical proportions: {age_body_desc}. "
+                f"Replicate the exact facial identity, original skin tone, hair color, texture, and hairstyle from @image1. "
+                f"Eyes: {eye_desc} — render this exact color.\n"
+                "@image2 = the approved companion ASTRO — definitive visual reference, keep visually consistent. "
+                "Maintain its complete visual identity: body shape, proportions, colors, textures and distinctive features.\n"
+                f"CHARACTER SEPARATION: Render exactly TWO completely separate characters. @image1 remains a fully human {gender_word}. @image2 retains its own original non-human anatomy.\n"
+                f"STYLE\n{AURORA_STYLE_BASE}"
             )
             ca_cover_scene = CA_FRONT_COVER.get('prompt', '').replace('{style}', AURORA_STYLE_BASE)
             ca_cover_prompt = f"{ca_ref_note}\n{ca_cover_scene}"
@@ -947,8 +945,7 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
                 aspect_ratio="3:4",
                 photo_ref_paths=photo_refs,
                 image_prompt_strength=0.9,
-                negative_prompt=ca_neg,
-                force_go_fast=True
+                negative_prompt=ca_neg
             )
         else:
             # ── FLUX 2 Dev Cover Master Prompt v2.0 (approved, no photo, solo child) ──
