@@ -15,7 +15,7 @@
 #   - Keep prompts concise - FLUX 2 Dev loses focus with >300 words
 #   - Style: Disney Pixar 3D everywhere, NO watercolor
 
-STYLE_BASE = "Disney Pixar 3D style, soft luminous pastel colors with copper and golden accents, warm lighting, WIDE SHOT full body from head to feet, characters occupy 40% of frame, environment visible, clean illustration only, NO text, NO watermarks."
+STYLE_BASE = "Disney Pixar 3D style, soft luminous pastel colors with copper and golden accents, warm lighting, WIDE SHOT full body from head to feet, characters occupy 40% of frame, environment visible, clean illustration only."
 
 BOLT_INLINE = "BOLT: a small round copper robot with spherical body, big glowing blue eyes, two short metallic arms, two stumpy legs, small antenna on top with blinking light, copper patina finish"
 
@@ -162,11 +162,11 @@ CLOSING_SCENE = {
 }
 
 FRONT_COVER = {
-    "prompt": "Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, confident joyful smile, holding a glowing wrench. OUTFIT: {outfit_desc}. COMPANION: {BOLT_INLINE}. ACTION: {gender_word} and BOLT stand together in center of workshop, facing viewer, centered composition for book cover, BOLT waves with one arm, blue eyes bright. SETTING: Magical inventor workshop WIDE VIEW, floating golden gears, crystal tubes with colorful liquids, warm golden light, sparkles. ATMOSPHERE: Adventure invitation, warm golden, friendship and creativity. STRICT: Only ONE {gender_word}, only ONE small robot BOLT, {gender_word} is 100% human child, no duplicates. ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {style}"
+    "prompt": "Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, confident joyful smile, holding a glowing wrench. OUTFIT: {outfit_desc}. COMPANION: {BOLT_INLINE}. ACTION: {gender_word} and BOLT stand together in center of workshop, facing viewer, centered composition for book cover, BOLT waves with one arm, blue eyes bright. SETTING: Magical inventor workshop WIDE VIEW, floating golden gears, crystal tubes with colorful liquids, warm golden light, sparkles. ATMOSPHERE: Adventure invitation, warm golden, friendship and creativity. STRICT: Only ONE {gender_word}, only ONE small robot BOLT, {gender_word} is 100% human child, no duplicates. Pure illustration only. {style}"
 }
 
 BACK_COVER = {
-    "prompt": "Disney Pixar 3D style illustration. SETTING: Magical inventor workshop seen from outside WIDE VIEW, charming old building with chimney puffing golden smoke, mechanical flowers around entrance, copper wind vanes on roof, fireflies and mechanical butterflies, warm sunset light. STRICT: NO characters, only scenery. ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {style}"
+    "prompt": "Disney Pixar 3D style illustration. SETTING: Magical inventor workshop seen from outside WIDE VIEW, charming old building with chimney puffing golden smoke, mechanical flowers around entrance, copper wind vanes on roof, fireflies and mechanical butterflies, warm sunset light. STRICT: NO characters, only scenery. Pure illustration only. {style}"
 }
 
 
