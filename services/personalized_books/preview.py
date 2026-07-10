@@ -197,14 +197,15 @@ def _run_replicate_with_retry(input_params, ref_file_paths=None):
     raise last_error
 
 
-def generate_with_flux2_dev(prompt: str, aspect_ratio: str = "3:4", photo_ref_path: str = None, photo_ref_paths: list = None, image_prompt_strength: float = 0.50, negative_prompt: str = None) -> str:
+def generate_with_flux2_dev(prompt: str, aspect_ratio: str = "3:4", photo_ref_path: str = None, photo_ref_paths: list = None, image_prompt_strength: float = 0.50, negative_prompt: str = None, force_go_fast: bool = False) -> str:
     """Generate illustration using FLUX 2 Dev (better consistency for series).
     If photo_ref_path is provided, uses it as single input_images reference.
     If photo_ref_paths is provided, uses multiple input_images references (e.g. human + pet).
     image_prompt_strength: 0.0=all text, 1.0=all image. Default 0.50 (50/50 balance).
     With 2 refs (human+pet): each ref ~25%, text 50% — better characteristic control.
     With 1 ref (single photo): ref 50%, text 50% — balanced face+trait fidelity.
-    negative_prompt: passed as separate FLUX parameter to suppress unwanted features (tails, animal features)."""
+    negative_prompt: passed as separate FLUX parameter to suppress unwanted features (tails, animal features).
+    force_go_fast: when True, keeps go_fast=True even with photo refs (for previews — faster, slightly lower quality)."""
     input_params = {
         "prompt": prompt,
         "aspect_ratio": aspect_ratio,
@@ -219,7 +220,8 @@ def generate_with_flux2_dev(prompt: str, aspect_ratio: str = "3:4", photo_ref_pa
         if valid_paths:
             print(f"[PREVIEW] Generating with FLUX 2 Dev + {len(valid_paths)} photo references (strength={image_prompt_strength}): {valid_paths}")
             print(f"[PREVIEW] Prompt ({len(prompt)} chars): {prompt[:200]}...")
-            input_params["go_fast"] = False
+            if not force_go_fast:
+                input_params["go_fast"] = False
             input_params["image_prompt_strength"] = image_prompt_strength
             if len(valid_paths) >= 2:
                 if "PET" in prompt or "pet" in prompt.lower()[:300]:
@@ -232,7 +234,8 @@ def generate_with_flux2_dev(prompt: str, aspect_ratio: str = "3:4", photo_ref_pa
     elif photo_ref_path and os.path.exists(photo_ref_path):
         print(f"[PREVIEW] Generating with FLUX 2 Dev + photo reference (strength={image_prompt_strength}): {photo_ref_path}")
         print(f"[PREVIEW] Prompt ({len(prompt)} chars): {prompt[:200]}...")
-        input_params["go_fast"] = False
+        if not force_go_fast:
+            input_params["go_fast"] = False
         input_params["image_prompt_strength"] = image_prompt_strength
         output = _run_replicate_with_retry(input_params, ref_file_paths=[photo_ref_path])
     else:
@@ -282,6 +285,7 @@ def _ensure_astro_reference() -> str:
     """Generate ASTRO fox companion reference image once and cache it as a static asset.
     Returns the file path, or empty string if generation fails.
     ASTRO: small magical fox, kitten-sized, electric blue fur, amber eyes, glowing star-tipped tail.
+    Uses Companion Master Prompt v1.0.
     """
     astro_path = 'static/assets/astro_reference.png'
     if os.path.exists(astro_path):
@@ -289,13 +293,43 @@ def _ensure_astro_reference() -> str:
     print("[CENTINELA AURORA] Generating ASTRO reference image (first time only)...")
     try:
         astro_prompt = (
-            "Disney Pixar 3D style illustration. A single small magical fox named ASTRO, "
-            "kitten-sized, vibrant electric blue fur covering the entire body, white chest patch, "
-            "large expressive amber-golden eyes, a glowing star-tipped tail that emits soft electric blue light, "
-            "a star-gem rope collar around the neck. "
-            "Sitting pose, centered in frame, full body visible. "
-            "Plain deep midnight blue background with faint aurora colors. "
-            "Full character visible, clean studio lighting, pure illustration only, NO text, NO watermarks."
+            "Create the definitive reference design for ASTRO, "
+            "the recurring companion character of an illustrated children's book series.\n\n"
+            "STYLE:\n"
+            "Disney Pixar-style 3D animated children's book illustration.\n\n"
+            "CHARACTER:\n"
+            "A small magical fox named ASTRO, kitten-sized, vibrant electric blue fur covering the entire body, "
+            "white chest patch, large expressive amber-golden eyes, a glowing star-tipped tail that emits soft "
+            "electric blue light, a star-gem rope collar around the neck.\n\n"
+            "The design must be immediately recognizable and remain visually consistent "
+            "across every illustration in the book series.\n\n"
+            "Preserve:\n"
+            "- overall body shape and proportions\n"
+            "- facial features\n"
+            "- eye shape and eye color\n"
+            "- colors and textures\n"
+            "- distinctive accessories or markings\n\n"
+            "POSE:\n"
+            "Sitting naturally.\n\n"
+            "COMPOSITION:\n"
+            "Single character only.\n"
+            "Centered in the frame.\n"
+            "Full character completely visible.\n"
+            "No part of the character may be cropped.\n"
+            "Occupy approximately 70% of the frame.\n\n"
+            "BACKGROUND:\n"
+            "Deep midnight blue gradient with faint aurora colors.\n\n"
+            "LIGHTING:\n"
+            "Soft warm lighting.\n"
+            "Even illumination with minimal shadows.\n\n"
+            "Clean illustration only.\n"
+            "No scenery.\n"
+            "No additional characters.\n"
+            "No props or external objects.\n"
+            "Only elements that are intrinsic to the character design.\n"
+            "No text.\n"
+            "No logos.\n"
+            "No watermarks."
         )
         image_url = generate_with_flux2_dev(astro_prompt, aspect_ratio="1:1")
         from services.replicate_service import save_image_locally as _sil
@@ -411,7 +445,7 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
     Preview = Front Cover with centered composition for book cover
     """
     from services.replicate_service import save_image_locally, get_unified_skin_description, get_gender_negative_prompt
-    from services.fixed_stories import get_hair_description, get_eye_description
+    from services.fixed_stories import get_hair_description, get_eye_description, get_age_body_desc
     
     # Determine if a photo is provided and build glasses description
     has_photo = bool(child_photo_path and os.path.exists(child_photo_path))
@@ -844,7 +878,6 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
             FRONT_COVER as CA_FRONT_COVER,
             get_hair_action as aurora_get_hair_action
         )
-        from services.fixed_stories import get_hair_strict
         from services.replicate_service import get_gender_negative_prompt as _ca_neg_fn
 
         gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
@@ -858,64 +891,84 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
         output_dir = 'generated/previews'
         os.makedirs(output_dir, exist_ok=True)
 
-        ca_scene = CA_FRONT_COVER.get('prompt', '').replace('{style}', AURORA_STYLE_BASE)
         ca_neg = _ca_neg_fn(gender)
         eye_desc = get_eye_description(traits)
+        age_group, age_body_desc = get_age_body_desc(child_age)
 
         if human_photo_path and os.path.exists(human_photo_path):
+            # ── Step 1: Kontext Master Prompt v2.0 (approved) ───────────────
             kontext_prompt = (
-                f"Convert the {age_display} {gender_word} in @image1 into a high-quality 3D animated children's book character. "
-                f"Preserve the exact face, skin tone, and hair — identical likeness. "
-                f"Eye color: {eye_desc} — render this exact eye color. "
-                f"OUTFIT: {outfit_desc}. "
-                f"BACKGROUND: deep midnight blue with subtle aurora colors, plain studio — no fox, no compass, no scenery. "
-                f"POSE: standing, full body visible from head to feet, brave adventurous smile, arms relaxed at sides."
+                f"Convert the {age_display} {gender_word} in @image1 into a high-end modern 3D animated feature film character.\n\n"
+                f"CRITICAL ANATOMY:\n"
+                f"The character is exactly {age_display}.\n"
+                f"Enforce these strict age-specific traits: {age_body_desc}\n"
+                f"Ensure mature proportions, visible neck, and proportional head size. Do not use toddler proportions.\n\n"
+                f"IDENTITY ANCHOR:\n"
+                f"Preserve the exact face, skin tone, and hair — identical likeness.\n"
+                f"The character has {eye_desc} eyes. Render this exact eye color deliberately.\n\n"
+                f"OUTFIT:\n{outfit_desc}.\n\n"
+                f"BACKGROUND:\n"
+                f"Deep midnight blue with subtle aurora colors, plain studio — no scenery.\n\n"
+                f"POSE:\n"
+                f"Standing in a relaxed natural pose, brave adventurous expression, arms relaxed at the sides. "
+                f"Full body completely visible from head to feet. Character occupies approximately 80% of the vertical frame."
             )
-            print(f"[CENTINELA AURORA PREVIEW] Step 1 — Kontext portrait | photo={human_photo_path} | age={child_age}")
+            print(f"[CENTINELA AURORA PREVIEW] Step 1 — Kontext portrait (master v2.0) | photo={human_photo_path} | age={child_age} | age_group={age_group}")
             portrait_url = generate_with_flux_kontext(kontext_prompt, human_photo_path, aspect_ratio="3:4")
             portrait_path = save_image_locally(portrait_url, f'{output_dir}/ca_portrait_{uuid.uuid4().hex[:8]}.png')
             print(f"[CENTINELA AURORA PREVIEW] Portrait saved: {portrait_path}")
 
+            # ── Step 2: FLUX 2 Dev Cover Master Prompt v2.0 (approved, with companion) ──
             ca_ref_note = (
-                f"The child in @image1 is {age_display}. "
-                f"@image1={gender_word} character — copy face, eye color, hair, skin, and outfit exactly. "
-                "@image2=small electric-blue fox companion ASTRO — copy appearance exactly. "
-                f"Two distinct characters: @image1 is a fully human {gender_word}, @image2 is a small electric-blue fox."
+                "REFERENCE\n\n"
+                "@image1 is the approved main character.\n"
+                "Use @image1 as the definitive visual reference.\n"
+                "Keep @image1 visually consistent throughout the illustration.\n\n"
+                f"@image1 is a {gender_word} of exactly {age_display}.\n"
+                f"Maintain these exact age-specific anatomical proportions: {age_body_desc}\n"
+                f"Replicate the exact facial identity, original natural skin tone, original hair color, hair texture, and specific hairstyle from @image1 perfectly. Keep the haircut exactly as shown.\n"
+                f"The character has {eye_desc} eyes — render this exact eye color.\n"
+                "Preserve the character's natural skin pigmentation and original hair color under the magical environmental lighting.\n\n"
+                "@image2 is the approved companion ASTRO.\n"
+                "Use @image2 as the definitive visual reference.\n"
+                "Keep @image2 visually consistent throughout the illustration.\n"
+                "Maintain the complete visual identity of @image2, including body shape, proportions, colors, textures and distinctive features.\n\n"
+                "CHARACTER SEPARATION\n\n"
+                f"Render exactly TWO completely separate characters. @image1 remains a fully human {gender_word}. @image2 retains its own original non-human anatomy.\n\n"
+                "STYLE\n\n"
+                f"{AURORA_STYLE_BASE}"
             )
+            ca_cover_scene = CA_FRONT_COVER.get('prompt', '').replace('{style}', AURORA_STYLE_BASE)
+            ca_cover_prompt = f"{ca_ref_note}\n{ca_cover_scene}"
             photo_refs = [portrait_path, astro_path] if astro_ok else [portrait_path]
-            print(f"[CENTINELA AURORA PREVIEW] Step 2 — FLUX 2 Dev cover scene | portrait={portrait_path} | astro={astro_ok}")
-            _ca_full_prompt = f"{ca_ref_note}\n{ca_scene}"
-            print(f"[CENTINELA AURORA PREVIEW] FULL PROMPT TO FLUX:\n{_ca_full_prompt}")
+            print(f"[CENTINELA AURORA PREVIEW] Step 2 — FLUX 2 Dev cover (master v2.0) | portrait={portrait_path} | astro={astro_ok}")
             cov_url = generate_with_flux2_dev(
-                f"{ca_ref_note}\n{ca_scene}",
+                ca_cover_prompt,
                 aspect_ratio="3:4",
                 photo_ref_paths=photo_refs,
                 image_prompt_strength=0.9,
-                negative_prompt=ca_neg
+                negative_prompt=ca_neg,
+                force_go_fast=True
             )
         else:
+            # ── FLUX 2 Dev Cover Master Prompt v2.0 (approved, no photo, solo child) ──
             hair_action = aurora_get_hair_action(traits)
             hair_desc = get_hair_description(traits)
-            hair_strict_text = get_hair_strict(traits)
             eye_desc = get_eye_description(traits)
             skin_tone = get_unified_skin_description(traits.get('skin_tone', 'light'))
-            ca_nophoto_prompt = (
-                f"@image1 = small magical electric-blue fox companion ASTRO — copy @image1 appearance exactly.\n"
-                f"Draw a single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, "
-                f"big joyful brave smile, {hair_action}. OUTFIT: {outfit_desc}.\n"
-                f"ACTION: The {gender_word} stands confidently holding the golden compass high with one arm, "
-                f"face lit with adventurous excitement. @image1 perches on the {gender_word}'s shoulder, "
-                f"glowing tail raised high, electric blue light blazing brilliantly against the aurora sky. "
-                f"SETTING: Night sky and aurora WIDE VIEW, magnificent aurora borealis colors filling the sky, "
-                f"stars everywhere, magical stardust floating around them, centered composition for book cover. "
-                f"ATMOSPHERE: Epic adventure invitation, magical aurora colors, excitement and wonder. "
-                f"STRICT: Only ONE {gender_word}, only ONE small electric-blue fox @image1, "
-                f"the {gender_word} is a fully human child: no tail, no fox features. {hair_strict_text} "
-                f"ABSOLUTELY NO rendered text, no titles, no logos, no words, no letters, no captions, "
-                f"no watermarks, no signatures, pure illustration only. {AURORA_STYLE_BASE}"
+            ca_nophoto_ref_note = (
+                "REFERENCE\n\n"
+                f"@image1 is the approved companion ASTRO — copy @image1 appearance exactly.\n\n"
+                f"MAIN CHARACTER\n\n"
+                f"Draw a single {gender_word} of exactly {age_display}.\n"
+                f"Maintain these exact age-specific anatomical proportions: {age_body_desc}\n"
+                f"{hair_desc}, {eye_desc}, {skin_tone} skin, big joyful brave smile, {hair_action}.\n"
+                f"OUTFIT: {outfit_desc}."
             )
+            ca_cover_scene_nophoto = CA_FRONT_COVER.get('prompt', '').replace('{style}', AURORA_STYLE_BASE)
+            ca_nophoto_prompt = f"{ca_nophoto_ref_note}\n{ca_cover_scene_nophoto}"
             photo_refs = [astro_path] if astro_ok else None
-            print(f"[CENTINELA AURORA PREVIEW] FLUX 2 Dev cover scene (no photo) | gender={gender_word} | age={age_display}")
+            print(f"[CENTINELA AURORA PREVIEW] FLUX 2 Dev cover scene (master v2.0, no photo) | gender={gender_word} | age={age_display}")
             cov_url = generate_with_flux2_dev(
                 ca_nophoto_prompt,
                 aspect_ratio="3:4",
