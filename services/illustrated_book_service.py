@@ -548,33 +548,25 @@ def generate_scene_complete(
             )
         elif book_id == 'centinela_aurora':
             from services.fixed_stories import get_age_body_desc as _get_age_body
-            from services.personalized_books.centinela_aurora_prompts import STYLE_BASE as _CA_STYLE_DUAL
             _ca_age_group, _ca_age_body_desc = _get_age_body(child_age_int)
             _ca_gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
             _ca_age_display = f"{child_age_int} year old"
             _ca_eye_line = (
-                f"The character has {_eye_color_map.get(_eye_color_raw, _eye_color_raw)} eyes — render this exact eye color.\n"
+                f"Eyes: {_eye_color_map.get(_eye_color_raw, _eye_color_raw)} — render this exact color. "
                 if _eye_color_raw else ""
             )
-            # ── FLUX 2 Dev Master Prompt v2.0 (approved, with companion) ──
+            # ── FLUX 2 Dev prompt (compacted Jul 2026, see .agents/memory/flux-cover-negation-bloat.md) ──
+            # Conserva TODA la información (identidad de @image1, edad/anatomía, cabello, ojos exactos,
+            # identidad de @image2/ASTRO, separación de personajes) eliminando redundancias textuales.
+            # NOTA: NO incluir STYLE_BASE aquí — el scene_template de cada escena ya lo inyecta vía {style}.
             reference_note = (
-                "REFERENCE\n\n"
-                "@image1 is the approved main character.\n"
-                "Use @image1 as the definitive visual reference.\n"
-                "Keep @image1 visually consistent throughout the illustration.\n\n"
-                f"@image1 is a {_ca_gender_word} of exactly {_ca_age_display}.\n"
-                f"Maintain these exact age-specific anatomical proportions: {_ca_age_body_desc}\n"
-                f"Replicate the exact facial identity, original natural skin tone, original hair color, hair texture, and specific hairstyle from @image1 perfectly. Keep the haircut exactly as shown.\n"
-                + _ca_eye_line +
-                "Preserve the character's natural skin pigmentation and original hair color under the magical environmental lighting.\n\n"
-                "@image2 is the approved companion ASTRO.\n"
-                "Use @image2 as the definitive visual reference.\n"
-                "Keep @image2 visually consistent throughout the illustration.\n"
-                "Maintain the complete visual identity of @image2, including body shape, proportions, colors, textures and distinctive features.\n\n"
-                "CHARACTER SEPARATION\n\n"
-                f"Render exactly TWO completely separate characters. @image1 remains a fully human {_ca_gender_word}. @image2 retains its own original non-human anatomy.\n\n"
-                "STYLE\n\n"
-                f"{_CA_STYLE_DUAL}"
+                f"@image1 = the approved {_ca_gender_word} of exactly {_ca_age_display} — definitive visual reference, keep visually consistent throughout. "
+                f"Maintain exact age-specific anatomical proportions: {_ca_age_body_desc}. "
+                f"Replicate the exact facial identity, original skin tone, hair color, texture, and hairstyle from @image1. "
+                f"{_ca_eye_line}"
+                "@image2 = the approved companion ASTRO — definitive visual reference, keep visually consistent. "
+                "Maintain its complete visual identity: body shape, proportions, colors, textures and distinctive features.\n"
+                f"CHARACTER SEPARATION: Render exactly TWO completely separate characters. @image1 remains a fully human {_ca_gender_word}. @image2 retains its own original non-human anatomy."
             )
         else:
             reference_note = (
@@ -633,27 +625,14 @@ def generate_scene_complete(
         _ca_age_group_s, _ca_age_body_desc_s = _get_age_body_solo(child_age_int)
         _ca_gw_s = "boy" if gender == "male" else "girl" if gender == "female" else "child"
         _ca_age_display_s = f"{child_age_int} year old"
-        _ca_eye_s = (
-            f"The character has {_eye_color_map.get(_eye_color_raw, _eye_color_raw)} eyes — render this exact eye color.\n"
-            if _eye_color_raw else ""
-        )
-        from services.personalized_books.centinela_aurora_prompts import STYLE_BASE as _CA_STYLE_SOLO
-        # ── FLUX 2 Dev Master Prompt v2.0 (approved, solo) ──
+        # ── FLUX 2 Dev prompt (compacted Jul 2026, see .agents/memory/flux-cover-negation-bloat.md) ──
+        # NOTA: NO incluir STYLE_BASE aquí — el scene_template ya lo inyecta vía {style}.
         reference_note = (
-            "REFERENCE\n\n"
-            "@image1 is the approved main character.\n"
-            "Use @image1 as the definitive visual reference.\n"
-            "Keep @image1 visually consistent throughout the illustration.\n\n"
-            f"@image1 is a {_ca_gw_s} of exactly {_ca_age_display_s}.\n"
-            f"Maintain these exact age-specific anatomical proportions: {_ca_age_body_desc_s}\n"
-            f"Replicate the exact facial identity, original natural skin tone, original hair color, hair texture, and specific hairstyle from @image1 perfectly. Keep the haircut exactly as shown.\n"
-            + _ca_eye_s +
-            "Preserve the character's natural skin pigmentation and original hair color under the magical environmental lighting.\n\n"
-            "CHARACTER\n\n"
-            "Render a single human character: @image1.\n"
-            "The illustration contains only @image1.\n\n"
-            "STYLE\n\n"
-            f"{_CA_STYLE_SOLO}"
+            f"@image1 = the approved {_ca_gw_s} of exactly {_ca_age_display_s} — definitive visual reference, keep visually consistent throughout. "
+            f"Maintain exact age-specific anatomical proportions: {_ca_age_body_desc_s}. "
+            f"Replicate the exact facial identity, original skin tone, hair color, texture, and hairstyle from @image1. "
+            + (f"Eyes: {_eye_color_map.get(_eye_color_raw, _eye_color_raw)} — render this exact color. " if _eye_color_raw else "") +
+            "CHARACTER: Render a single human character, @image1 only."
         )
     else:
         gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
