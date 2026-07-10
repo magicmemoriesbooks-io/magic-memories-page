@@ -1,7 +1,28 @@
 # Arquitectura Unificada de Emails y Entregas — Diseño Técnico
-Fecha: 10 julio 2026. Documento de **diseño únicamente**. No se modificó código de producción, no se crearon archivos de servicio, no se aplicó ningún parche a `_is_duplicate_send`, no se eliminó código legacy.
+Fecha: 10 julio 2026 (actualizado tras la auditoría de ciclo de vida/marketing). Documento de **diseño únicamente**. No se modificó código de producción, no se crearon archivos de servicio, no se aplicó ningún parche a `_is_duplicate_send`, no se eliminó código legacy.
 
-Este documento asume como contexto la auditoría previa (`docs/email_system_audit.md`). Aquí se responde a las 10 secciones solicitadas.
+Este documento asume como contexto las dos auditorías previas: `docs/email_system_audit.md` (pipeline transaccional) y `docs/lifecycle_marketing_email_audit.md` (pipeline de ciclo de vida y marketing: leads, recuperación, feedback, upsell, newsletter).
+
+---
+
+## -1. Separación formal de dos dominios (actualización tras auditoría de ciclo de vida/marketing)
+
+La auditoría de ciclo de vida confirmó que el sistema ya opera, de facto, con dos lógicas de decisión completamente distintas, aunque compartiendo la misma infraestructura de envío. El diseño que sigue formaliza esa separación en vez de mezclarla:
+
+| | **Pipeline transaccional** | **Pipeline de ciclo de vida y marketing** |
+|---|---|---|
+| Pregunta que responde | "¿Qué compró y qué le corresponde entregar?" | "¿Sigue siendo elegible para recibir esto ahora mismo?" |
+| Depende de un pedido | Sí, siempre | No necesariamente — puede ser un lead que nunca compró (`PreviewLead`) |
+| Fuente de verdad de reglas | `resolve_entitlements()` / `build_delivery_plan()` (secciones 1-2 de este documento) | Reglas propias por automatización: ventanas de tiempo desde un evento (compra o creación de lead) + verificación de exclusión en el momento del envío |
+| Prioridad de diseño | Garantizar que lo pagado SIEMPRE se entregue | Garantizar que NUNCA se envíe a quien ya no corresponde (ya compró, se dio de baja, ya se le envió) |
+| Ejemplos | PDF, eBook permanente, eBook regalo, confirmación de impresión | Campaña Isabel (leads abandonados), feedback 24h, upsell 48h, aviso de vencimiento de eBook, newsletter |
+| Estado que consulta | Registro transaccional nuevo (`delivery_id` con escritura atómica, sección 5) | `data/lead_follow_ups.json`, tabla `PreviewLead`, escaneo de `story_previews/*.json`, `NewsletterSubscriber.is_active` |
+
+**Regla de diseño explícita: el pipeline de marketing NO llama a `resolve_order_emails()`/`resolve_entitlements()`.** Puede, como mucho, CONSULTAR de forma read-only si existe un pedido pagado para decidir excluirse (igual que ya hace hoy comprobando `paid=True` o `want_print`), pero nunca participa en la resolución de derechos ni en el plan de entregas transaccional. Esto evita acoplar una lista de reglas comerciales de venta (que cambian con frecuencia, precios, ventanas de tiempo, campañas) a la lógica crítica de "entregar lo que el cliente pagó".
+
+Lo que SÍ comparten ambos dominios, y se mantiene así en el diseño: `email_service.py` como motor de envío y plantillas, el proveedor SMTP, los idiomas, `data/email_log.jsonl` como auditoría común, y el manejo de errores. El registro transaccional nuevo de la sección 5, en cambio, es **exclusivo del pipeline transaccional** — el pipeline de marketing sigue usando sus propios almacenes de estado (`lead_follow_ups.json`, `PreviewLead`, `NewsletterSubscriber`), que ya están diseñados correctamente para su propio propósito y no se tocan en esta migración.
+
+**Hallazgo pendiente de decisión de negocio (no técnico) que quedó documentado en la auditoría de ciclo de vida:** ni la campaña Isabel ni el feedback/upsell verifican hoy el opt-out general de `NewsletterSubscriber.is_active`. Esto es una decisión de negocio (¿un email transaccional-adyacente como "feedback 24h" debe respetar la baja del newsletter general, o son canales independientes?), no algo que se resuelva solo con arquitectura — se deja marcado para que se decida antes de tocar esas funciones.
 
 ---
 
