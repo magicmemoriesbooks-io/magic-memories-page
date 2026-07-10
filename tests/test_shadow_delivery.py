@@ -46,6 +46,7 @@ def test_resolve_entitlements_with_order_id():
         'want_ebook': False,
         'want_print': False,
         'ebook_is_gift': False,
+        'admin_gift': False,
         'cp_submitted': False,
     }
     ent = resolve_order_entitlements(story_data, preview_id='preview_abc')
@@ -53,6 +54,45 @@ def test_resolve_entitlements_with_order_id():
     check('identity_source == order_id', ent.identity_source == 'order_id')
     check('preview_id preservado', ent.preview_id == 'preview_abc')
     check('want_pdf True', ent.want_pdf is True)
+    check('ebook_permanent_purchased False (want_ebook False)', ent.ebook_permanent_purchased is False)
+    check('admin_gift_book False', ent.admin_gift_book is False)
+
+
+def test_ebook_semantics_admin_gift_vs_temp_gift_are_distinct():
+    # Caso 1: regalo administrativo total del libro (admin_gift=True) -> NUNCA
+    # debe confundirse con la elegibilidad calculada de eBook temporal.
+    story_admin_gift = {
+        'paypal_order_id': 'PPADM', 'paid': True,
+        'want_pdf': True, 'want_ebook': False, 'want_print': False,
+        'admin_gift': True, 'ebook_is_gift': True,
+    }
+    ent_admin = resolve_order_entitlements(story_admin_gift, 'p_admin')
+    plan_admin = build_delivery_plan(ent_admin)
+    check('admin_gift_book True se detecta', ent_admin.admin_gift_book is True)
+    check('admin_gift_book suprime TODOS los emails', plan_admin.planned_emails == [])
+    check('admin_gift no depende del eBook temporal', ent_admin.temp_gift_ebook_eligible is False)
+
+    # Caso 2: compra normal (PDF, sin eBook permanente, sin admin_gift) ->
+    # SI debe ser elegible al eBook temporal de 6 meses.
+    story_normal = {
+        'paypal_order_id': 'PPNORM', 'paid': True,
+        'want_pdf': True, 'want_ebook': False, 'want_print': False,
+        'admin_gift': False, 'ebook_is_gift': False,
+    }
+    ent_normal = resolve_order_entitlements(story_normal, 'p_normal')
+    check('elegible a gift temporal cuando compro solo PDF', ent_normal.temp_gift_ebook_eligible is True)
+    check('fuente de elegibilidad == pdf', ent_normal.temp_gift_ebook_source == 'pdf')
+
+    # Caso 3: compro el eBook permanente -> NUNCA elegible al temporal,
+    # sin importar el valor crudo (posiblemente ambiguo) de ebook_is_gift.
+    story_permanent = {
+        'paypal_order_id': 'PPPERM', 'paid': True,
+        'want_pdf': True, 'want_ebook': True, 'want_print': False,
+        'admin_gift': False, 'ebook_is_gift': False,
+    }
+    ent_permanent = resolve_order_entitlements(story_permanent, 'p_perm')
+    check('eBook permanente comprado se detecta', ent_permanent.ebook_permanent_purchased is True)
+    check('NO elegible a gift temporal si ya compro el permanente', ent_permanent.temp_gift_ebook_eligible is False)
 
 
 def test_resolve_entitlements_fallback_to_preview_id():
@@ -70,7 +110,7 @@ def test_plan_pdf_only_includes_gift():
     ent = resolve_order_entitlements(story_data, 'p1')
     plan = build_delivery_plan(ent)
     check('pdf_ready planificado', 'pdf_ready' in plan.planned_emails)
-    check('gift_ebook incluido (no compro ebook ni print)', 'gift_ebook' in plan.planned_emails)
+    check('gift_ebook incluido (no compro ebook ni print)', 'gift_ebook_temp_6mo' in plan.planned_emails)
     check('sin supresiones', plan.suppressed_emails == [])
 
 
@@ -82,9 +122,10 @@ def test_plan_pdf_plus_ebook_suppresses_gift():
     ent = resolve_order_entitlements(story_data, 'p2')
     plan = build_delivery_plan(ent)
     check('pdf_ready planificado', 'pdf_ready' in plan.planned_emails)
-    check('gift_ebook NO incluido (ya compro ebook)', 'gift_ebook' not in plan.planned_emails)
+    check('gift_ebook NO incluido (ya compro ebook)', 'gift_ebook_temp_6mo' not in plan.planned_emails)
+    check('ebook_permanent_delivery planificado', 'ebook_permanent_delivery' in plan.planned_emails)
     reasons = [s['reason'] for s in plan.suppressed_emails]
-    check('razon de supresion correcta', 'ebook_already_purchased_separately' in reasons)
+    check('razon de supresion correcta', 'ebook_permanent_already_purchased' in reasons)
 
 
 def test_plan_pdf_plus_print_suppresses_gift():
@@ -94,10 +135,9 @@ def test_plan_pdf_plus_print_suppresses_gift():
     }
     ent = resolve_order_entitlements(story_data, 'p3')
     plan = build_delivery_plan(ent)
-    check('gift_ebook NO incluido (compro tambien impreso)', 'gift_ebook' not in plan.planned_emails)
+    check('gift_ebook_temp_6mo SI incluido (no compro ebook permanente, elegible via print)', 'gift_ebook_temp_6mo' in plan.planned_emails)
+    check('fuente de elegibilidad == pdf_and_print', ent.temp_gift_ebook_source == 'pdf_and_print')
     check('print_confirmation planificado (cp_submitted=True)', 'print_confirmation' in plan.planned_emails)
-    reasons = [s['reason'] for s in plan.suppressed_emails]
-    check('razon de supresion correcta (print)', 'print_confirmation_owns_gift_ebook' in reasons)
 
 
 def test_plan_unpaid_order_produces_empty_plan():
