@@ -527,7 +527,9 @@ def generate_scene_complete(
         _eye_note = f" The human has {_eye_label} eyes — preserve this exactly."
 
     is_star_keeper = (book_id in ('star_keeper', 'dragon_garden', 'centinela_aurora'))
-    if (is_furry or is_star_keeper) and reference_image_path_2 and os.path.exists(reference_image_path_2):
+    # Solo scenes in centinela_aurora (1, 19, CLOSING) have no @image2 in prompt
+    _ca_is_solo = (book_id == 'centinela_aurora' and '@image2' not in prompt)
+    if (is_furry or (is_star_keeper and not _ca_is_solo)) and reference_image_path_2 and os.path.exists(reference_image_path_2):
         if is_furry:
             reference_note = (
                 "@image1=HUMAN character (approved avatar), @image2=PET animal. "
@@ -545,14 +547,34 @@ def generate_scene_complete(
                 "Two distinct characters: @image1 is fully human, @image2 is a small baby dragon."
             )
         elif book_id == 'centinela_aurora':
+            from services.fixed_stories import get_age_body_desc as _get_age_body
+            from services.personalized_books.centinela_aurora_prompts import STYLE_BASE as _CA_STYLE_DUAL
+            _ca_age_group, _ca_age_body_desc = _get_age_body(child_age_int)
+            _ca_gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
+            _ca_age_display = f"{child_age_int} year old"
+            _ca_eye_line = (
+                f"The character has {_eye_color_map.get(_eye_color_raw, _eye_color_raw)} eyes — render this exact eye color.\n"
+                if _eye_color_raw else ""
+            )
+            # ── FLUX 2 Dev Master Prompt v2.0 (approved, with companion) ──
             reference_note = (
-                f"The child in @image1 is {child_age_int} years old. "
-                "@image1=child character — copy face, hair, skin, and outfit exactly. ONE child only."
-                f"{_eye_note} "
-                "@image2=small electric-blue fox ASTRO — copy appearance exactly. "
-                "CRITICAL: @image1 is the ONLY human in this scene. "
-                "@image2 is a small four-legged animal fox, electric blue fur, NOT a person. "
-                "Render exactly two separate characters: one human child, one tiny fox animal."
+                "REFERENCE\n\n"
+                "@image1 is the approved main character.\n"
+                "Use @image1 as the definitive visual reference.\n"
+                "Keep @image1 visually consistent throughout the illustration.\n\n"
+                f"@image1 is a {_ca_gender_word} of exactly {_ca_age_display}.\n"
+                f"Maintain these exact age-specific anatomical proportions: {_ca_age_body_desc}\n"
+                f"Replicate the exact facial identity, original natural skin tone, original hair color, hair texture, and specific hairstyle from @image1 perfectly. Keep the haircut exactly as shown.\n"
+                + _ca_eye_line +
+                "Preserve the character's natural skin pigmentation and original hair color under the magical environmental lighting.\n\n"
+                "@image2 is the approved companion ASTRO.\n"
+                "Use @image2 as the definitive visual reference.\n"
+                "Keep @image2 visually consistent throughout the illustration.\n"
+                "Maintain the complete visual identity of @image2, including body shape, proportions, colors, textures and distinctive features.\n\n"
+                "CHARACTER SEPARATION\n\n"
+                f"Render exactly TWO completely separate characters. @image1 remains a fully human {_ca_gender_word}. @image2 retains its own original non-human anatomy.\n\n"
+                "STYLE\n\n"
+                f"{_CA_STYLE_DUAL}"
             )
         else:
             reference_note = (
@@ -606,12 +628,40 @@ def generate_scene_complete(
                     print(f"[SCENE {scene_id}] CRITICAL: All {MAX_RETRIES + 1} attempts failed for FLUX 2 Dev + 2 refs.")
                     raise RuntimeError(f"FLUX 2 Dev failed for scene {scene_id} after {MAX_RETRIES + 1} attempts: {e}")
 
-    gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
-    reference_note = (
-        f"@image1=the {gender_word} character (approved avatar). "
-        "Copy the EXACT skin complexion, eye color, and hair appearance from @image1 — "
-        f"replicate the avatar faithfully.{_eye_note}"
-    )
+    if book_id == 'centinela_aurora' and _ca_is_solo:
+        from services.fixed_stories import get_age_body_desc as _get_age_body_solo
+        _ca_age_group_s, _ca_age_body_desc_s = _get_age_body_solo(child_age_int)
+        _ca_gw_s = "boy" if gender == "male" else "girl" if gender == "female" else "child"
+        _ca_age_display_s = f"{child_age_int} year old"
+        _ca_eye_s = (
+            f"The character has {_eye_color_map.get(_eye_color_raw, _eye_color_raw)} eyes — render this exact eye color.\n"
+            if _eye_color_raw else ""
+        )
+        from services.personalized_books.centinela_aurora_prompts import STYLE_BASE as _CA_STYLE_SOLO
+        # ── FLUX 2 Dev Master Prompt v2.0 (approved, solo) ──
+        reference_note = (
+            "REFERENCE\n\n"
+            "@image1 is the approved main character.\n"
+            "Use @image1 as the definitive visual reference.\n"
+            "Keep @image1 visually consistent throughout the illustration.\n\n"
+            f"@image1 is a {_ca_gw_s} of exactly {_ca_age_display_s}.\n"
+            f"Maintain these exact age-specific anatomical proportions: {_ca_age_body_desc_s}\n"
+            f"Replicate the exact facial identity, original natural skin tone, original hair color, hair texture, and specific hairstyle from @image1 perfectly. Keep the haircut exactly as shown.\n"
+            + _ca_eye_s +
+            "Preserve the character's natural skin pigmentation and original hair color under the magical environmental lighting.\n\n"
+            "CHARACTER\n\n"
+            "Render a single human character: @image1.\n"
+            "The illustration contains only @image1.\n\n"
+            "STYLE\n\n"
+            f"{_CA_STYLE_SOLO}"
+        )
+    else:
+        gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
+        reference_note = (
+            f"@image1=the {gender_word} character (approved avatar). "
+            "Copy the EXACT skin complexion, eye color, and hair appearance from @image1 — "
+            f"replicate the avatar faithfully.{_eye_note}"
+        )
     enhanced_prompt = f"{reference_note}\n{prompt}"
 
     from services.replicate_service import get_gender_negative_prompt
@@ -1141,8 +1191,40 @@ def generate_closing_page(
                 print(f"[CLOSING] Retry also failed: {e2}")
             return Image.new("RGB", img_size, "#FFFEF5")
     
-    gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
-    reference_note = f"@image1=the {gender_word} character. Preserve exactly: same face, same hair color, same hair length, same hair style, same skin tone as the reference."
+    if book_id == 'centinela_aurora':
+        _closing_eye_color_raw = traits.get('eye_color', '') if traits else ''
+        _closing_eye_color_map = {
+            'blue': 'bright blue', 'green': 'green', 'brown': 'brown',
+            'hazel': 'hazel', 'gray': 'gray', 'dark_brown': 'dark brown',
+        }
+        _closing_eye_s = (
+            f"@image1 has {_closing_eye_color_map.get(_closing_eye_color_raw, _closing_eye_color_raw)} eyes. Render this exact eye color.\n\n"
+            if _closing_eye_color_raw else ""
+        )
+        from services.fixed_stories import get_age_body_desc as _get_age_body_closing
+        _closing_child_age = traits.get('child_age', '6') if traits else '6'
+        _closing_age_int = int(_closing_child_age) if str(_closing_child_age).isdigit() else 6
+        _closing_age_group, _ = _get_age_body_closing(_closing_age_int)
+        _closing_gw = "boy" if gender == "male" else "girl" if gender == "female" else "child"
+        from services.personalized_books.centinela_aurora_prompts import STYLE_BASE as _CA_STYLE_CLOSING
+        reference_note = (
+            "REFERENCE\n\n"
+            "@image1 is the approved main character.\n"
+            "Use @image1 as the definitive visual reference.\n"
+            "Keep @image1 visually consistent throughout the illustration.\n\n"
+            f"@image1 is a {_closing_gw}.\n"
+            f"Maintain the body proportions, height and facial maturity of {_closing_age_group} as shown in @image1.\n"
+            + _closing_eye_s +
+            "CHARACTER\n\n"
+            "Render a single human character: @image1.\n"
+            "The illustration contains only @image1.\n\n"
+            "STYLE\n\n"
+            + _CA_STYLE_CLOSING + "\n"
+            "Soft warm lighting."
+        )
+    else:
+        gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
+        reference_note = f"@image1=the {gender_word} character. Preserve exactly: same face, same hair color, same hair length, same hair style, same skin tone as the reference."
     enhanced_prompt = f"{reference_note}\n{prompt}"
 
     from services.replicate_service import get_gender_negative_prompt as _get_neg
