@@ -19,7 +19,7 @@
 #   - WIDE SHOT, characters occupy ~40% of frame, environment visible
 #   - Scenes 1, 19 and CLOSING have no @image2
 
-STYLE_BASE = "Disney Pixar 3D style, soft luminous pastel colors with emerald and golden accents, warm lighting, WIDE SHOT full body from head to feet, characters occupy 40% of frame, environment visible, clean illustration only, NO text, NO watermarks."
+STYLE_BASE = "Disney Pixar 3D style, soft luminous pastel colors with emerald and golden accents, warm lighting, WIDE SHOT full body from head to feet, characters occupy 40% of frame, environment visible, clean illustration only."
 
 SPARK_INLINE = "SPARK: an adorable baby dragon with small chubby round body covered in shimmering emerald green scales, large expressive golden eyes, tiny translucent iridescent wings, short stubby tail, small rounded snout with a sweet smile, two tiny curved horns on head, soft cream-colored belly"
 
@@ -166,11 +166,11 @@ CLOSING_SCENE = {
 }
 
 FRONT_COVER = {
-    "prompt": "ACTION: @image1 sits happily on @image2's back soaring through the sky, arms gently holding @image2, @image2's wings spread wide and flapping, golden sparkles trailing. SETTING: Beautiful sky WIDE VIEW, fluffy pink and white cotton clouds, magnificent rainbow arching, golden sunlight, sparkles trailing, centered composition for book cover. ATMOSPHERE: Adventure invitation, joyful flight, magical. STRICT: ABSOLUTELY NO rendered text, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {style}"
+    "prompt": "ACTION: @image1 sits happily on @image2's back soaring through the sky, arms gently holding @image2, @image2's wings spread wide and flapping, golden sparkles trailing. SETTING: Beautiful sky WIDE VIEW, fluffy pink and white cotton clouds, magnificent rainbow arching, golden sunlight, sparkles trailing, centered composition for book cover. ATMOSPHERE: Adventure invitation, joyful flight, magical. STRICT: Pure illustration only. {style}"
 }
 
 BACK_COVER = {
-    "prompt": "Disney Pixar 3D style illustration. SETTING: Beautiful magical garden path WIDE VIEW, ancient oak tree, glowing flowers and mushrooms, fireflies, soft ethereal golden light, peaceful dreamy atmosphere. STRICT: NO characters, only scenery. ABSOLUTELY NO rendered text anywhere in the image, no titles, no logos, no words, no letters, no captions, no watermarks, no signatures, pure illustration only. {style}"
+    "prompt": "Disney Pixar 3D style illustration. SETTING: Beautiful magical garden path WIDE VIEW, ancient oak tree, glowing flowers and mushrooms, fireflies, soft ethereal golden light, peaceful dreamy atmosphere. STRICT: NO characters, only scenery. Pure illustration only. {style}"
 }
 
 
