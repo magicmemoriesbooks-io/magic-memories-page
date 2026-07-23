@@ -22,15 +22,36 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 preview_rate_limits = {}
 email_rate_limits = {}
-STORY_GEN_MAX    = 4   # max generations per email+story = 1 initial + 3 regens; the 4th regen attempt (5th total) is blocked
+STORY_GEN_MAX    = 9999   # max generations per email+story = 1 initial + 3 regens; the 4th regen attempt (5th total) is blocked
 STORY_GEN_WINDOW_HOURS = 3  # rolling window for character-preview regenerations (excludes free stories)
-EMAIL_STORY_MAX  = 2   # max different stories per email/24h
-IP_ABUSE_MAX     = 20  # anti-abuse threshold per IP/24h
+EMAIL_STORY_MAX  = 9999   # max different stories per email/24h
+IP_ABUSE_MAX     = 9999  # anti-abuse threshold per IP/24h
 # Legacy aliases kept so existing references don't break
 PREVIEW_IP_MAX   = STORY_GEN_MAX
 PREVIEW_EMAIL_MAX = EMAIL_STORY_MAX
 PREVIEW_EMAIL_WINDOW = 24 * 60 * 60
 _generation_progress = {}
+
+import threading as _threading
+_active_gen_lock = _threading.Lock()
+_active_generations = {}  # gen_key → {'token': str, 'started': float}
+
+def _save_gen_state(gen_token, status, image_url=None, kontext_portrait=None, error=None):
+    """Persist preview generation state to disk for recovery on page reload (🔴 production fix)."""
+    try:
+        os.makedirs('data/preview_gen', exist_ok=True)
+        from datetime import datetime as _dt
+        with open(f'data/preview_gen/{gen_token}.json', 'w') as _gf:
+            json.dump({
+                'gen_token': gen_token,
+                'status': status,
+                'image_url': image_url,
+                'kontext_portrait': kontext_portrait,
+                'error': error,
+                'updated_at': _dt.utcnow().isoformat()
+            }, _gf)
+    except Exception:
+        pass
 
 def _write_progress(preview_id, done, total):
     """Write generation progress to disk so all Gunicorn workers can read it."""
@@ -2205,7 +2226,6 @@ def download_file(filename):
 
 
 @app.route('/preview-pdf/printable/<session_id>/<filename>')
-@app.route('/preview-pdf/gelato/<session_id>/<filename>')
 def preview_printable_pdf(session_id, filename):
     """Serve a printable PDF file for browser preview (personalized_pdf orders)."""
     import re
@@ -2213,7 +2233,7 @@ def preview_printable_pdf(session_id, filename):
         abort(400)
     if not filename.endswith('.pdf') or '/' in filename or '..' in filename:
         abort(400)
-    pdf_path = os.path.join('generated', 'gelato', session_id, filename)
+    pdf_path = os.path.join('generated', 'cloudprinter', session_id, filename)
     if not os.path.exists(pdf_path):
         abort(404)
     return send_file(os.path.abspath(pdf_path), mimetype='application/pdf')
@@ -2602,11 +2622,48 @@ def api_story_completed():
     return jsonify({'ok': True})
 
 
+@app.route('/api/reserve-gen-token', methods=['POST'])
+def reserve_gen_token():
+    """Pre-register a generation token so the browser can persist it BEFORE the long Kontext+FLUX call."""
+    try:
+        data = request.get_json(force=True) or {}
+        client_ip = get_client_ip()
+        story_id = data.get('story_id', '').strip()
+        if not story_id:
+            return jsonify({'success': False, 'error': 'missing story_id'}), 400
+        gen_key = f"{client_ip}:{story_id}"
+        with _active_gen_lock:
+            if gen_key in _active_generations:
+                existing_token = _active_generations[gen_key]['token']
+                return jsonify({'success': True, 'gen_token': existing_token, 'already_running': True})
+        gen_token = uuid.uuid4().hex[:12]
+        _save_gen_state(gen_token, 'pending')
+        return jsonify({'success': True, 'gen_token': gen_token, 'already_running': False})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/generate-baby-preview', methods=['POST'])
 def generate_baby_preview_api():
     """Generate character preview with FLUX via Replicate (supports baby and kids)"""
+    _ctx = {}
     try:
-        data = request.get_json()
+        try:
+            data = request.get_json(force=True)
+            if data is None:
+                raise ValueError("empty body")
+        except Exception:
+            from werkzeug.exceptions import ClientDisconnected
+            client_ip = get_client_ip()
+            matching_token = None
+            with _active_gen_lock:
+                for key, info in _active_generations.items():
+                    if key.startswith(client_ip + ':'):
+                        matching_token = info.get('token')
+                        break
+            if matching_token:
+                return jsonify({'success': False, 'error': 'generating_in_progress', 'gen_token': matching_token}), 200
+            return jsonify({'success': False, 'error': 'bad_request'}), 400
 
         if not data.get('admin_gift'):
             client_ip = get_client_ip()
@@ -2615,7 +2672,21 @@ def generate_baby_preview_api():
             allowed, reason = check_generation_allowed(user_email, story_id, client_ip)
             if not allowed:
                 return jsonify({'success': False, 'error': 'rate_limited', 'rate_limited': True, 'reason': reason}), 429
+            pre_token = data.get('pre_token', '').strip()
+            gen_token = pre_token if (pre_token and len(pre_token) == 12 and pre_token.isalnum()) else uuid.uuid4().hex[:12]
+            gen_key = f"{client_ip}:{story_id}"
+            with _active_gen_lock:
+                if gen_key in _active_generations:
+                    existing_token = _active_generations[gen_key]['token']
+                    return jsonify({'success': False, 'error': 'generating_in_progress', 'gen_token': existing_token})
+                _active_generations[gen_key] = {'token': gen_token, 'started': time.time()}
+                _ctx['gen_key'] = gen_key
+            _ctx['gen_token'] = gen_token
+            _save_gen_state(gen_token, 'generating')
             save_preview_lead(user_email, client_ip, story_id)
+        else:
+            gen_token = uuid.uuid4().hex[:12]
+            _ctx['gen_token'] = gen_token
 
         from services.replicate_service import generate_illustration_replicate, save_image_locally, get_unified_skin_description, get_gender_negative_prompt, FLUX_DEV_MODEL, FLUX_2_DEV_MODEL
         from services.fixed_stories import get_hair_description, get_eye_description, get_skin_tone, get_gender_child, STORIES
@@ -2634,7 +2705,8 @@ def generate_baby_preview_api():
             'skin_tone': data.get('skin_tone', 'light'),
             'child_age': str(child_age),
             'gender': child_gender,
-            'glasses': data.get('glasses', '')
+            'glasses': data.get('glasses', ''),
+            'hairstyle': data.get('hairstyle', '')
         }
         from services.quick_stories.checkout import ALL_QUICK_FAMILY_IDS
         
@@ -2645,6 +2717,11 @@ def generate_baby_preview_api():
         _child_photo_raw = data.get('child_photo_path', '')
         _upload_prefix = 'generated/uploads/furry_photos/'
         child_photo_path = _child_photo_raw if (_child_photo_raw and _child_photo_raw.startswith(_upload_prefix) and os.path.exists(_child_photo_raw)) else ''
+        _reuse_portrait_raw = data.get('reuse_portrait_path', '')
+        _preview_prefix = 'generated/previews/'
+        reuse_portrait_path = _reuse_portrait_raw if (_reuse_portrait_raw and _reuse_portrait_raw.startswith(_preview_prefix) and os.path.exists(_reuse_portrait_raw)) else ''
+        if reuse_portrait_path:
+            traits['reuse_portrait_path'] = reuse_portrait_path
         
         if is_baby:
             traits['is_baby_story'] = True
@@ -2698,6 +2775,9 @@ def generate_baby_preview_api():
                 child_age=child_age,
                 traits=traits
             )
+            if result.get('success') and _ctx.get('gen_token'):
+                _save_gen_state(_ctx['gen_token'], 'completed', result.get('image_url'), result.get('kontext_portrait'))
+                result['gen_token'] = _ctx['gen_token']
             return jsonify(result)
 
         if story_id == 'star_keeper_illustrated':
@@ -2721,6 +2801,9 @@ def generate_baby_preview_api():
                 child_age=child_age,
                 traits=traits
             )
+            if result.get('success') and _ctx.get('gen_token'):
+                _save_gen_state(_ctx['gen_token'], 'completed', result.get('image_url'), result.get('kontext_portrait'))
+                result['gen_token'] = _ctx['gen_token']
             return jsonify(result)
 
         if is_baby:
@@ -2812,7 +2895,9 @@ def generate_baby_preview_api():
                     traits=traits,
                     child_photo_path=child_photo_path
                 )
-                
+                if result.get('success') and _ctx.get('gen_token'):
+                    _save_gen_state(_ctx['gen_token'], 'completed', result.get('image_url'), result.get('kontext_portrait'))
+                    result['gen_token'] = _ctx['gen_token']
                 return jsonify(result)
             else:
                 preview_override = story_config.get('preview_prompt_override')
@@ -2943,14 +3028,48 @@ def generate_baby_preview_api():
             image_url = generate_illustration_replicate(prompt, 0, aspect_ratio="3:4", model=preview_model, negative_prompt=_baby_neg)
             local_path = save_image_locally(image_url, f'{output_dir}/preview_{uuid.uuid4().hex[:8]}.png')
 
+        _final_url = f'/{local_path}'
+        if _ctx.get('gen_token'):
+            _save_gen_state(_ctx['gen_token'], 'completed', _final_url)
         return jsonify({
             'success': True,
-            'image_url': f'/{local_path}'
+            'image_url': _final_url,
+            'gen_token': _ctx.get('gen_token', '')
         })
     except Exception as e:
         import traceback
         traceback.print_exc()
+        if _ctx.get('gen_token'):
+            _save_gen_state(_ctx['gen_token'], 'failed', error=str(e))
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if _ctx.get('gen_key'):
+            with _active_gen_lock:
+                _active_generations.pop(_ctx['gen_key'], None)
+
+
+@app.route('/api/preview-gen-status', methods=['GET'])
+def preview_gen_status():
+    """Return persisted state of a preview generation by token (for page-reload recovery)."""
+    token = request.args.get('token', '').strip()
+    if not token or len(token) > 40 or not token.isalnum():
+        return jsonify({'status': 'expired'}), 200
+    path = f'data/preview_gen/{token}.json'
+    try:
+        if not os.path.exists(path):
+            return jsonify({'status': 'expired'}), 200
+        with open(path, 'r') as _gf:
+            state = json.load(_gf)
+        from datetime import datetime as _dt
+        updated = state.get('updated_at', '')
+        if updated:
+            age_seconds = (_dt.utcnow() - _dt.fromisoformat(updated)).total_seconds()
+            if age_seconds > 7200:
+                return jsonify({'status': 'expired'}), 200
+        return jsonify(state), 200
+    except Exception:
+        return jsonify({'status': 'expired'}), 200
+
 
 @app.route('/api/regenerate-furry-preview', methods=['POST'])
 def regenerate_furry_preview():
@@ -3165,7 +3284,7 @@ def regenerate_cover(preview_id):
         os.makedirs(output_dir, exist_ok=True)
 
         # Cover regeneration limit: max 2 per preview (all paid personalized books).
-        cover_regen_count = story_data.get('cover_regenerations', 0)
+        cover_regen_count = story_data.get('cover_regenerations') or 0
         if cover_regen_count >= 2 and not is_testing_mode_active():
             return jsonify({
                 'success': False,
@@ -3287,9 +3406,10 @@ def regenerate_cover(preview_id):
             # mark_composed=False: this is a pre/post-approval cover regeneration,
             # never a composition-completion event — must not touch the order's
             # composition/approval state flags.
-            from services.personalized_books.rebuild import rebuild_book
             if os.path.exists(f'generated/composed_{preview_id}'):
-                rebuild_book(preview_id, mark_composed=False)
+                import threading
+                from services.personalized_books.rebuild import rebuild_book
+                threading.Thread(target=rebuild_book, args=(preview_id,), kwargs={'mark_composed': False}, daemon=True).start()
 
             return jsonify({
                 'success': True,
@@ -3300,7 +3420,9 @@ def regenerate_cover(preview_id):
             from services.personalized_books.star_keeper_prompts import (
                 FRONT_COVER as SK_FRONT_COVER,
                 STYLE_BASE as SK_STYLE_BASE,
-                get_outfit_desc as sk_get_outfit_desc
+                STYLE_BASE_COVER as SK_STYLE_BASE_COVER,
+                get_outfit_desc as sk_get_outfit_desc,
+                build_ref_note as sk_build_ref_note_fn,
             )
             from services.personalized_books.preview import generate_with_flux2_dev, generate_with_flux_kontext
             from services.replicate_service import save_image_locally, create_cover_from_character, get_gender_negative_prompt
@@ -3311,11 +3433,17 @@ def regenerate_cover(preview_id):
             child_age_regen = int(traits.get('child_age', 5))
             gender_word_regen = "boy" if gender_regen == "male" else "girl" if gender_regen == "female" else "child"
             outfit_desc_regen = sk_get_outfit_desc(gender_regen)
+            age_display_regen = f"{child_age_regen} year old"
             human_photo_path_regen = traits.get('human_photo_path', '')
             luna_path_regen = _ensure_luna_reference()
             luna_ok_regen = luna_path_regen and os.path.exists(luna_path_regen)
-            sk_neg_regen = get_gender_negative_prompt(gender_regen)
-            sk_scene_regen = SK_FRONT_COVER.get('prompt', '').replace('{style}', SK_STYLE_BASE)
+            _sk_neg_base_regen = (
+                "text, watermark, signature, logo, letters, words, ugly, deformed, blurry, low quality, "
+                "distorted face, wings on child, animal features on human, furry child, "
+                "animal ears, cat ears, bunny ears, fox ears, extra limbs"
+            )
+            sk_neg_regen = (_sk_neg_base_regen + ", masculine features, boy haircut") if gender_regen == 'female' else (_sk_neg_base_regen + ", earrings, jewelry, bows, ribbons, makeup, lipstick, feminine accessories, girl features, ponytails, pigtails") if gender_regen == 'male' else _sk_neg_base_regen
+            sk_scene_regen = SK_FRONT_COVER.get('prompt', '').replace('{style}', SK_STYLE_BASE_COVER)
 
             if human_photo_path_regen and os.path.exists(human_photo_path_regen):
                 # Step 1: Reuse saved Kontext portrait if available, otherwise regenerate
@@ -3340,20 +3468,15 @@ def regenerate_cover(preview_id):
                     portrait_url_regen = generate_with_flux_kontext(kontext_prompt_regen, human_photo_path_regen, aspect_ratio="3:4")
                     portrait_path_regen = save_image_locally(portrait_url_regen, f'{output_dir}/sk_portrait_regen_{uuid.uuid4().hex[:8]}.png')
 
-                # Step 2: FLUX 2 Dev lighthouse scene with portrait + LUNA
-                sk_ref_note_regen = (
-                    f"The child in @image1 is {child_age_regen} years old. "
-                    f"@image1={gender_word_regen} character — copy face, hair, skin, and outfit exactly. "
-                    "@image2=small star companion LUNA — copy appearance exactly. "
-                    f"Two distinct characters: @image1 is a fully human {gender_word_regen}, @image2 is a small glowing star."
-                )
+                # Step 2 — PASO 3: FLUX 2 Dev cover scene — ref_note from prompt file (single source of truth)
+                sk_ref_note_regen = sk_build_ref_note_fn(age_display_regen, gender_word_regen, '', '', '')
                 photo_refs_regen = [portrait_path_regen, luna_path_regen] if luna_ok_regen else [portrait_path_regen]
-                print(f"[REGEN COVER SK] Step 2 — FLUX 2 Dev scene | portrait={portrait_path_regen} | luna={luna_ok_regen}")
+                print(f"[REGEN COVER SK] PASO 3 — FLUX 2 Dev cover | portrait={portrait_path_regen} | luna={luna_ok_regen}")
                 cover_url_regen = generate_with_flux2_dev(
                     f"{sk_ref_note_regen}\n{sk_scene_regen}",
                     aspect_ratio="3:4",
                     photo_ref_paths=photo_refs_regen,
-                    image_prompt_strength=0.90,
+                    image_prompt_strength=0.95,
                     negative_prompt=sk_neg_regen
                 )
             else:
@@ -3364,17 +3487,12 @@ def regenerate_cover(preview_id):
                         portrait_path_regen = os.path.join(output_dir, f_name)
                         break
                 if portrait_path_regen and os.path.exists(portrait_path_regen) and luna_ok_regen:
-                    sk_ref_note_regen = (
-                        f"The child in @image1 is {child_age_regen} years old. "
-                        f"@image1={gender_word_regen} character — copy face, hair, skin, and outfit exactly. "
-                        "@image2=small star companion LUNA — copy appearance exactly. "
-                        f"Two distinct characters: @image1 is a fully human {gender_word_regen}, @image2 is a small glowing star."
-                    )
+                    sk_ref_note_regen = sk_build_ref_note_fn(age_display_regen, gender_word_regen, '', '', '')
                     cover_url_regen = generate_with_flux2_dev(
                         f"{sk_ref_note_regen}\n{sk_scene_regen}",
                         aspect_ratio="3:4",
                         photo_ref_paths=[portrait_path_regen, luna_path_regen],
-                        image_prompt_strength=0.90,
+                        image_prompt_strength=0.95,
                         negative_prompt=sk_neg_regen
                     )
                 else:
@@ -3431,9 +3549,10 @@ def regenerate_cover(preview_id):
 
             # mark_composed=False: regeneration only, never a composition-
             # completion event — must not touch composition/approval state.
-            from services.personalized_books.rebuild import rebuild_book
             if os.path.exists(f'generated/composed_{preview_id}'):
-                rebuild_book(preview_id, mark_composed=False)
+                import threading
+                from services.personalized_books.rebuild import rebuild_book
+                threading.Thread(target=rebuild_book, args=(preview_id,), kwargs={'mark_composed': False}, daemon=True).start()
 
             return jsonify({'success': True, 'cover_image': f'/{cover_image_path_regen}', 'regenerations_left': max(0, 2 - (cover_regen_count + 1))})
 
@@ -3441,7 +3560,9 @@ def regenerate_cover(preview_id):
             from services.personalized_books.dragon_garden_prompts import (
                 FRONT_COVER as DG_FRONT_COVER,
                 STYLE_BASE as DG_STYLE_BASE,
-                get_outfit_desc as dg_get_outfit_desc
+                STYLE_BASE_COVER as DG_STYLE_BASE_COVER,
+                get_outfit_desc as dg_get_outfit_desc,
+                build_ref_note as dg_build_ref_note_fn,
             )
             from services.personalized_books.preview import generate_with_flux2_dev, generate_with_flux_kontext
             from services.replicate_service import save_image_locally, create_cover_from_character, get_gender_negative_prompt
@@ -3452,11 +3573,17 @@ def regenerate_cover(preview_id):
             child_age_regen = int(traits.get('child_age', 5))
             gender_word_regen = "boy" if gender_regen == "male" else "girl" if gender_regen == "female" else "child"
             outfit_desc_regen = dg_get_outfit_desc(gender_regen)
+            age_display_regen = f"{child_age_regen} year old"
             human_photo_path_regen = traits.get('human_photo_path', '')
             spark_path_regen = _ensure_spark_reference()
             spark_ok_regen = spark_path_regen and os.path.exists(spark_path_regen)
-            dg_neg_regen = get_gender_negative_prompt(gender_regen)
-            dg_scene_regen = DG_FRONT_COVER.get('prompt', '').replace('{style}', DG_STYLE_BASE)
+            _dg_neg_base_regen = (
+                "text, watermark, signature, logo, letters, words, ugly, deformed, blurry, low quality, "
+                "distorted face, wings on child, animal features on human, furry child, "
+                "animal ears, cat ears, bunny ears, fox ears, extra limbs"
+            )
+            dg_neg_regen = (_dg_neg_base_regen + ", masculine features, boy haircut") if gender_regen == 'female' else (_dg_neg_base_regen + ", earrings, jewelry, bows, ribbons, makeup, lipstick, feminine accessories, girl features, ponytails, pigtails") if gender_regen == 'male' else _dg_neg_base_regen
+            dg_scene_regen = DG_FRONT_COVER.get('prompt', '').replace('{style}', DG_STYLE_BASE_COVER)
 
             if human_photo_path_regen and os.path.exists(human_photo_path_regen):
                 portrait_path_regen = None
@@ -3480,19 +3607,15 @@ def regenerate_cover(preview_id):
                     portrait_url_regen = generate_with_flux_kontext(kontext_prompt_regen, human_photo_path_regen, aspect_ratio="3:4")
                     portrait_path_regen = save_image_locally(portrait_url_regen, f'{output_dir}/dg_portrait_regen_{uuid.uuid4().hex[:8]}.png')
 
-                dg_ref_note_regen = (
-                    f"The child in @image1 is {child_age_regen} years old. "
-                    f"@image1={gender_word_regen} character — copy face, hair, skin, and outfit exactly. "
-                    "@image2=small emerald dragon companion SPARK — copy appearance exactly. "
-                    f"Two distinct characters: @image1 is a fully human {gender_word_regen}, @image2 is a small baby dragon."
-                )
+                # PASO 3: FLUX 2 Dev cover scene — ref_note from prompt file (single source of truth)
+                dg_ref_note_regen = dg_build_ref_note_fn(age_display_regen, gender_word_regen, '', '', '')
                 photo_refs_regen = [portrait_path_regen, spark_path_regen] if spark_ok_regen else [portrait_path_regen]
-                print(f"[REGEN COVER DG] Step 2 — FLUX 2 Dev scene | portrait={portrait_path_regen} | spark={spark_ok_regen}")
+                print(f"[REGEN COVER DG] PASO 3 — FLUX 2 Dev cover | portrait={portrait_path_regen} | spark={spark_ok_regen}")
                 cover_url_regen = generate_with_flux2_dev(
                     f"{dg_ref_note_regen}\n{dg_scene_regen}",
                     aspect_ratio="3:4",
                     photo_ref_paths=photo_refs_regen,
-                    image_prompt_strength=0.90,
+                    image_prompt_strength=0.95,
                     negative_prompt=dg_neg_regen
                 )
             else:
@@ -3548,9 +3671,10 @@ def regenerate_cover(preview_id):
 
             # mark_composed=False: regeneration only, never a composition-
             # completion event — must not touch composition/approval state.
-            from services.personalized_books.rebuild import rebuild_book
             if os.path.exists(f'generated/composed_{preview_id}'):
-                rebuild_book(preview_id, mark_composed=False)
+                import threading
+                from services.personalized_books.rebuild import rebuild_book
+                threading.Thread(target=rebuild_book, args=(preview_id,), kwargs={'mark_composed': False}, daemon=True).start()
 
             return jsonify({'success': True, 'cover_image': f'/{cover_image_path_regen}', 'regenerations_left': max(0, 2 - (cover_regen_count + 1))})
 
@@ -3558,7 +3682,9 @@ def regenerate_cover(preview_id):
             from services.personalized_books.centinela_aurora_prompts import (
                 FRONT_COVER as CA_FRONT_COVER,
                 STYLE_BASE as CA_STYLE_BASE,
-                get_outfit_desc as ca_get_outfit_desc
+                STYLE_BASE_COVER as CA_STYLE_BASE_COVER,
+                get_outfit_desc as ca_get_outfit_desc,
+                build_ref_note as ca_build_ref_note_fn,
             )
             from services.personalized_books.preview import generate_with_flux2_dev, generate_with_flux_kontext
             from services.replicate_service import save_image_locally, create_cover_from_character, get_gender_negative_prompt
@@ -3569,13 +3695,23 @@ def regenerate_cover(preview_id):
             child_age_regen = int(traits.get('child_age', 5))
             gender_word_regen = "boy" if gender_regen == "male" else "girl" if gender_regen == "female" else "child"
             outfit_desc_regen = ca_get_outfit_desc(gender_regen)
-            human_photo_path_regen = traits.get('human_photo_path', '')
+            human_photo_path_regen = traits.get('human_photo_path') or story_data.get('child_photo_path', '')
             astro_path_regen = _ensure_astro_reference()
             astro_ok_regen = astro_path_regen and os.path.exists(astro_path_regen)
-            ca_neg_regen = get_gender_negative_prompt(gender_regen)
-            ca_scene_regen = CA_FRONT_COVER.get('prompt', '').replace('{style}', CA_STYLE_BASE)
-            from services.fixed_stories import get_age_body_desc as _ca_regen_age_fn
-            _ca_regen_age_group, _ca_regen_age_body_desc = _ca_regen_age_fn(child_age_regen)
+            # Custom negative_prompt for Centinela: sin supresión de cola (ASTRO tiene cola legítima).
+            # Sí suprime: multi-cola, rasgos animales en el niño, género incorrecto.
+            _ca_neg_base_regen = (
+                "text, watermark, signature, logo, letters, words, ugly, deformed, blurry, low quality, "
+                "distorted face, wings on child, animal features on human, furry child, "
+                "animal ears, cat ears, bunny ears, fox ears, extra limbs, hybrid creature, "
+                "animal body parts on human, two tails, multiple tails, double tail, split tail, extra tail"
+            )
+            ca_neg_regen = (_ca_neg_base_regen + ", masculine features, boy haircut") if gender_regen == 'female' else (_ca_neg_base_regen + ", earrings, jewelry, bows, ribbons, makeup, lipstick, feminine accessories, girl features, ponytails, pigtails") if gender_regen == 'male' else _ca_neg_base_regen
+            ca_scene_regen = CA_FRONT_COVER.get('prompt', '').replace('{style}', CA_STYLE_BASE_COVER)
+            from services.age_profiles import get_age_profile as _ca_regen_age_fn
+            _ca_regen_profile, _ca_regen_range_key = _ca_regen_age_fn(child_age_regen)
+            _ca_regen_age_body_desc = _ca_regen_profile['kontext']
+            print(f"[REGEN COVER CA] age={child_age_regen} range={_ca_regen_range_key} display={_ca_regen_profile['display']}")
             age_display_regen = f"{child_age_regen} year old"
             _ca_regen_eye_raw = traits.get('eye_color', '')
             from services.fixed_stories import get_eye_description as _ca_regen_eye_fn
@@ -3588,84 +3724,107 @@ def regenerate_cover(preview_id):
                     saved_portrait_path = saved_portrait.lstrip('/')
                     if os.path.exists(saved_portrait_path):
                         portrait_path_regen = saved_portrait_path
-                        print(f"[REGEN COVER CA] Reusing saved Kontext portrait: {portrait_path_regen}")
+                        print(f"[REGEN COVER CA] Reusing saved FLUX avatar: {portrait_path_regen}")
                 if not portrait_path_regen:
-                    # ── Kontext Master Prompt v2.0 (approved) ──
-                    kontext_prompt_regen = (
-                        f"Convert the {age_display_regen} {gender_word_regen} in @image1 into a high-end modern 3D animated feature film character.\n\n"
-                        f"CRITICAL ANATOMY:\n"
-                        f"The character is exactly {age_display_regen}.\n"
-                        f"Enforce these strict age-specific traits: {_ca_regen_age_body_desc}\n"
-                        f"Ensure mature proportions, visible neck, and proportional head size. Do not use toddler proportions.\n\n"
-                        f"IDENTITY ANCHOR:\n"
-                        f"Preserve the exact face, skin tone, and hair — identical likeness.\n"
-                        + (f"The character has {eye_desc_regen} eyes. Render this exact eye color deliberately.\n\n" if eye_desc_regen else "\n")
-                        + f"OUTFIT:\n{outfit_desc_regen}.\n\n"
-                        f"BACKGROUND:\n"
-                        f"Deep midnight blue with subtle aurora colors, plain studio — no scenery.\n\n"
-                        f"POSE:\n"
-                        f"Standing in a relaxed natural pose, brave adventurous expression, arms relaxed at the sides. "
-                        f"Full body completely visible from head to feet. Character occupies approximately 80% of the vertical frame."
+                    # ── PASO 1: Kontext — convierte foto → personaje 3D animado ──
+                    from services.personalized_books.centinela_aurora_prompts import (
+                        build_kontext_prompt as _ca_bk_regen,
+                        build_avatar_prompt as _ca_ba_regen,
                     )
-                    print(f"[REGEN COVER CA] Step 1 — Kontext portrait (master v2.0) | photo={human_photo_path_regen} | age={child_age_regen}")
+                    kontext_prompt_regen = _ca_bk_regen(
+                        age_display_regen, gender_word_regen, _ca_regen_age_body_desc, eye_desc_regen, outfit_desc_regen
+                    )
+                    print(f"[REGEN COVER CA] PASO 1 — Kontext | photo={human_photo_path_regen} | age={child_age_regen}")
                     portrait_url_regen = generate_with_flux_kontext(kontext_prompt_regen, human_photo_path_regen, aspect_ratio="3:4")
-                    portrait_path_regen = save_image_locally(portrait_url_regen, f'{output_dir}/ca_portrait_regen_{uuid.uuid4().hex[:8]}.png')
+                    _kontext_path_regen = save_image_locally(portrait_url_regen, f'{output_dir}/ca_kontext_regen_{uuid.uuid4().hex[:8]}.png')
+                    # ── PASO 2: FLUX Avatar — traduce Kontext al lenguaje visual FLUX nativo ──
+                    _av_neg_base = (
+                        "text, watermark, signature, logo, letters, words, ugly, deformed, blurry, low quality, "
+                        "distorted face, defined jawline, visible cheekbones, mature face, adult face, teenager, "
+                        "wings on child, animal features on human, furry child, animal ears, extra limbs"
+                    )
+                    _av_neg_gender = (
+                        "masculine features, boy haircut, male jawline" if gender_regen == "female"
+                        else "girl features, ponytails, pigtails, feminine accessories, earrings, jewelry, bows, ribbons, makeup, lipstick"
+                    )
+                    avatar_prompt_regen = _ca_ba_regen(age_display_regen, gender_word_regen)
+                    print(f"[REGEN COVER CA] PASO 2 — FLUX avatar | kontext={_kontext_path_regen}")
+                    avatar_url_regen = generate_with_flux2_dev(
+                        avatar_prompt_regen,
+                        aspect_ratio="3:4",
+                        photo_ref_path=_kontext_path_regen,
+                        image_prompt_strength=0.95,
+                        negative_prompt=_av_neg_base + ", " + _av_neg_gender,
+                        force_go_fast=False,
+                    )
+                    portrait_path_regen = save_image_locally(avatar_url_regen, f'{output_dir}/ca_avatar_regen_{uuid.uuid4().hex[:8]}.png')
+                    print(f"[REGEN COVER CA] PASO 2 — Avatar guardado: {portrait_path_regen}")
 
-                # ── FLUX 2 Dev Cover Master Prompt v2.0 (approved, with companion) ──
-                ca_ref_note_regen = (
-                    "REFERENCE\n\n"
-                    "@image1 is the approved main character.\n"
-                    "Use @image1 as the definitive visual reference.\n"
-                    "Keep @image1 visually consistent throughout the illustration.\n\n"
-                    f"@image1 is a {gender_word_regen} of exactly {age_display_regen}.\n"
-                    f"Maintain these exact age-specific anatomical proportions: {_ca_regen_age_body_desc}\n"
-                    f"Replicate the exact facial identity, original natural skin tone, original hair color, hair texture, and specific hairstyle from @image1 perfectly. Keep the haircut exactly as shown.\n"
-                    + (f"The character has {eye_desc_regen} eyes — render this exact eye color.\n" if eye_desc_regen else "")
-                    + "Preserve the character's natural skin pigmentation and original hair color under the magical environmental lighting.\n\n"
-                    "@image2 is the approved companion ASTRO.\n"
-                    "Use @image2 as the definitive visual reference.\n"
-                    "Keep @image2 visually consistent throughout the illustration.\n"
-                    "Maintain the complete visual identity of @image2, including body shape, proportions, colors, textures and distinctive features.\n\n"
-                    "CHARACTER SEPARATION\n\n"
-                    f"Render exactly TWO completely separate characters. @image1 remains a fully human {gender_word_regen}. @image2 retains its own original non-human anatomy.\n\n"
-                    "STYLE\n\n"
-                    f"{CA_STYLE_BASE}"
+                # ── FLUX 2 Dev Cover — mismo prompt que preview PASO 3 ──
+                from services.personalized_books.age_profiles_nophoto import get_age_profile_nophoto as _ca_regen_nophoto_fn
+                _ca_regen_nophoto_profile, _ = _ca_regen_nophoto_fn(child_age_regen)
+                ca_ref_note_regen = ca_build_ref_note_fn(
+                    _ca_regen_nophoto_profile['display'], gender_word_regen,
+                    _ca_regen_nophoto_profile['cover_ref'],
+                    eye_desc_regen, outfit_desc_regen
                 )
                 photo_refs_regen = [portrait_path_regen, astro_path_regen] if astro_ok_regen else [portrait_path_regen]
-                print(f"[REGEN COVER CA] Step 2 — FLUX 2 Dev scene (master v2.0) | portrait={portrait_path_regen} | astro={astro_ok_regen}")
+                print(f"[REGEN COVER CA] PASO 3 — FLUX 2 Dev cover | portrait={portrait_path_regen} | astro={astro_ok_regen} | prompt_len={len(ca_ref_note_regen)+len(ca_scene_regen)}")
                 cover_url_regen = generate_with_flux2_dev(
                     f"{ca_ref_note_regen}\n{ca_scene_regen}",
                     aspect_ratio="3:4",
                     photo_ref_paths=photo_refs_regen,
-                    image_prompt_strength=0.90,
+                    image_prompt_strength=0.95,
                     negative_prompt=ca_neg_regen
                 )
             else:
-                # ── FLUX 2 Dev Cover Master Prompt v2.0 (approved, no photo, solo child) ──
-                from services.fixed_stories import get_hair_description
-                from services.replicate_service import get_unified_skin_description
-                from services.personalized_books.centinela_aurora_prompts import get_hair_action as ca_get_hair_action
-                hair_desc_regen = get_hair_description(traits)
-                skin_regen = get_unified_skin_description(traits.get('skin_tone', 'light'))
-                hair_action_regen = ca_get_hair_action(traits)
-                ca_nophoto_ref_note_regen = (
-                    "REFERENCE\n\n"
-                    f"@image1 is the approved companion ASTRO — copy @image1 appearance exactly.\n\n"
-                    f"MAIN CHARACTER\n\n"
-                    f"Draw a single {gender_word_regen} of exactly {age_display_regen}.\n"
-                    f"Maintain these exact age-specific anatomical proportions: {_ca_regen_age_body_desc}\n"
-                    f"{hair_desc_regen}, {eye_desc_regen}, {skin_regen} skin, big joyful brave smile, {hair_action_regen}.\n"
-                    f"OUTFIT: {outfit_desc_regen}."
-                )
-                ca_nophoto_regen = f"{ca_nophoto_ref_note_regen}\n{ca_scene_regen}"
-                photo_refs_regen = [astro_path_regen] if astro_ok_regen else None
-                cover_url_regen = generate_with_flux2_dev(
-                    ca_nophoto_regen,
-                    aspect_ratio="3:4",
-                    photo_ref_paths=photo_refs_regen,
-                    image_prompt_strength=0.85,
-                    negative_prompt=ca_neg_regen
-                )
+                # ── SISTEMA 2 (sin foto): usar portrait guardado como @image1 + ASTRO como @image2 ──
+                _s2_portrait_regen = story_data.get('character_preview', '').lstrip('/')
+                if _s2_portrait_regen and os.path.exists(_s2_portrait_regen) and astro_ok_regen:
+                    # Portrait FLUX disponible → mismo flujo que preview PASO 3
+                    from services.personalized_books.age_profiles_nophoto import get_age_profile_nophoto as _ca_s2_nophoto_fn
+                    _ca_s2_nophoto_profile, _ = _ca_s2_nophoto_fn(child_age_regen)
+                    ca_s2_ref_note_regen = ca_build_ref_note_fn(
+                        _ca_s2_nophoto_profile['display'], gender_word_regen,
+                        _ca_s2_nophoto_profile['cover_ref'],
+                        eye_desc_regen, outfit_desc_regen
+                    )
+                    photo_refs_regen = [_s2_portrait_regen, astro_path_regen]
+                    print(f"[REGEN COVER CA S2] Portrait + ASTRO | portrait={_s2_portrait_regen} | astro={astro_ok_regen} | prompt_len={len(ca_s2_ref_note_regen)+len(ca_scene_regen)}")
+                    cover_url_regen = generate_with_flux2_dev(
+                        f"{ca_s2_ref_note_regen}\n{ca_scene_regen}",
+                        aspect_ratio="3:4",
+                        photo_ref_paths=photo_refs_regen,
+                        image_prompt_strength=0.95,
+                        negative_prompt=ca_neg_regen
+                    )
+                else:
+                    # Fallback: sin portrait guardado → generación basada en texto + ASTRO como @image1
+                    from services.fixed_stories import get_hair_description
+                    from services.replicate_service import get_unified_skin_description
+                    from services.personalized_books.centinela_aurora_prompts import get_hair_action as ca_get_hair_action
+                    hair_desc_regen = get_hair_description(traits)
+                    skin_regen = get_unified_skin_description(traits.get('skin_tone', 'light'))
+                    hair_action_regen = ca_get_hair_action(traits)
+                    ca_nophoto_ref_note_regen = (
+                        "REFERENCE\n\n"
+                        f"@image1 is the approved companion ASTRO — copy @image1 appearance exactly.\n\n"
+                        f"MAIN CHARACTER\n\n"
+                        f"Draw a single {gender_word_regen} of exactly {age_display_regen}.\n"
+                        f"Maintain these exact age-specific anatomical proportions: {_ca_regen_age_body_desc}\n"
+                        f"{hair_desc_regen}, {eye_desc_regen}, {skin_regen} skin, big joyful brave smile, {hair_action_regen}.\n"
+                        f"OUTFIT: {outfit_desc_regen}."
+                    )
+                    ca_nophoto_regen = f"{ca_nophoto_ref_note_regen}\n{ca_scene_regen}"
+                    photo_refs_regen = [astro_path_regen] if astro_ok_regen else None
+                    print(f"[REGEN COVER CA S2 FALLBACK] Sin portrait guardado | astro={astro_ok_regen}")
+                    cover_url_regen = generate_with_flux2_dev(
+                        ca_nophoto_regen,
+                        aspect_ratio="3:4",
+                        photo_ref_paths=photo_refs_regen,
+                        image_prompt_strength=0.85,
+                        negative_prompt=ca_neg_regen
+                    )
 
             cover_raw_path_regen = save_image_locally(cover_url_regen, f'{output_dir}/cover_raw.png')
             story_lang_regen = story_data.get('lang', story_data.get('story_lang', 'es'))
@@ -3687,14 +3846,325 @@ def regenerate_cover(preview_id):
 
             # mark_composed=False: regeneration only, never a composition-
             # completion event — must not touch composition/approval state.
-            from services.personalized_books.rebuild import rebuild_book
             if os.path.exists(f'generated/composed_{preview_id}'):
-                rebuild_book(preview_id, mark_composed=False)
+                import threading
+                from services.personalized_books.rebuild import rebuild_book
+                threading.Thread(target=rebuild_book, args=(preview_id,), kwargs={'mark_composed': False}, daemon=True).start()
+
+            return jsonify({'success': True, 'cover_image': f'/{cover_image_path_regen}', 'regenerations_left': max(0, 2 - (cover_regen_count + 1))})
+
+        elif story_id == 'magic_chef_illustrated':
+            from services.personalized_books.magic_chef_prompts import (
+                STYLE_BASE_COVER as CHEF_STYLE_BASE_COVER,
+                FRONT_COVER as MC_REGEN_FRONT_COVER,
+                get_outfit_desc as chef_get_outfit_desc,
+                build_ref_note as chef_build_ref_note_fn,
+                build_kontext_prompt as mc_build_kontext_regen,
+                build_avatar_prompt as mc_build_avatar_regen,
+            )
+            from services.personalized_books.preview import generate_with_flux2_dev, generate_with_flux_kontext, _ensure_sweetie_reference
+            from services.replicate_service import save_image_locally, create_cover_from_character, get_gender_negative_prompt
+
+            gender_regen = story_data.get('gender', 'neutral')
+            child_name_regen = story_data.get('child_name', '')
+            child_age_regen = int(traits.get('child_age', 6))
+            gender_word_regen = "boy" if gender_regen == "male" else "girl" if gender_regen == "female" else "child"
+            age_display_regen = f"{child_age_regen} year old"
+            outfit_desc_regen = chef_get_outfit_desc(gender_regen)
+            human_photo_path_regen = traits.get('human_photo_path', '') or story_data.get('child_photo_path', '')
+            sweetie_path_regen = _ensure_sweetie_reference()
+            sweetie_ok_regen = sweetie_path_regen and os.path.exists(sweetie_path_regen)
+            chef_neg_regen = get_gender_negative_prompt(gender_regen)
+            from services.fixed_stories import get_eye_description as _mc_regen_eye_fn
+            eye_desc_regen = _mc_regen_eye_fn(traits) if traits.get('eye_color') else ''
+            chef_scene_regen = MC_REGEN_FRONT_COVER.get('prompt', '').replace('{style}', CHEF_STYLE_BASE_COVER)
+            from services.age_profiles import get_age_profile as _mc_regen_age_fn
+            _mc_regen_profile, _mc_regen_range_key = _mc_regen_age_fn(child_age_regen)
+            _mc_regen_age_body_desc = _mc_regen_profile['kontext']
+            print(f"[REGEN COVER CHEF] age={child_age_regen} range={_mc_regen_range_key} display={_mc_regen_profile['display']}")
+
+            if human_photo_path_regen and os.path.exists(human_photo_path_regen):
+                portrait_path_regen = None
+                saved_portrait = story_data.get('character_preview', '')
+                if saved_portrait:
+                    saved_portrait_path = saved_portrait.lstrip('/')
+                    if os.path.exists(saved_portrait_path):
+                        portrait_path_regen = saved_portrait_path
+                        print(f"[REGEN COVER CHEF] Reusing saved FLUX avatar: {portrait_path_regen}")
+                if not portrait_path_regen:
+                    kontext_prompt_regen = mc_build_kontext_regen(
+                        age_display_regen, gender_word_regen, _mc_regen_age_body_desc, eye_desc_regen, outfit_desc_regen
+                    )
+                    print(f"[REGEN COVER CHEF] PASO 1 — Kontext | photo={human_photo_path_regen} | age={child_age_regen}")
+                    portrait_url_regen = generate_with_flux_kontext(kontext_prompt_regen, human_photo_path_regen, aspect_ratio="3:4")
+                    _kontext_path_regen = save_image_locally(portrait_url_regen, f'{output_dir}/chef_kontext_regen_{uuid.uuid4().hex[:8]}.png')
+                    _av_neg_base = (
+                        "text, watermark, signature, logo, letters, words, ugly, deformed, blurry, low quality, "
+                        "distorted face, defined jawline, visible cheekbones, mature face, adult face, teenager, "
+                        "wings on child, animal features on human, furry child, animal ears, extra limbs"
+                    )
+                    _av_neg_gender = (
+                        "masculine features, boy haircut, male jawline" if gender_regen == "female"
+                        else "girl features, ponytails, pigtails, feminine accessories, earrings, jewelry, bows, ribbons, makeup, lipstick"
+                    )
+                    avatar_prompt_regen = mc_build_avatar_regen(age_display_regen, gender_word_regen)
+                    print(f"[REGEN COVER CHEF] PASO 2 — FLUX avatar | kontext={_kontext_path_regen}")
+                    avatar_url_regen = generate_with_flux2_dev(
+                        avatar_prompt_regen,
+                        aspect_ratio="3:4",
+                        photo_ref_path=_kontext_path_regen,
+                        image_prompt_strength=0.95,
+                        negative_prompt=_av_neg_base + ", " + _av_neg_gender,
+                        force_go_fast=False,
+                    )
+                    portrait_path_regen = save_image_locally(avatar_url_regen, f'{output_dir}/chef_avatar_regen_{uuid.uuid4().hex[:8]}.png')
+                    print(f"[REGEN COVER CHEF] PASO 2 — Avatar guardado: {portrait_path_regen}")
+
+                from services.personalized_books.age_profiles_nophoto import get_age_profile_nophoto as _mc_regen_nophoto_fn
+                _mc_regen_nophoto_profile, _ = _mc_regen_nophoto_fn(child_age_regen)
+                chef_ref_note_regen = chef_build_ref_note_fn(
+                    _mc_regen_nophoto_profile['display'], gender_word_regen,
+                    _mc_regen_nophoto_profile['cover_ref'],
+                    eye_desc_regen, outfit_desc_regen
+                )
+                photo_refs_regen = [portrait_path_regen, sweetie_path_regen] if sweetie_ok_regen else [portrait_path_regen]
+                print(f"[REGEN COVER CHEF] PASO 3 — FLUX 2 Dev cover | portrait={portrait_path_regen} | sweetie={sweetie_ok_regen}")
+                _chef_cover_neg = chef_neg_regen + ", text, watermark, logo, letters, words, title card, Disney logo, Pixar logo, branded text"
+                cover_url_regen = generate_with_flux2_dev(
+                    f"{chef_ref_note_regen}\n{chef_scene_regen}",
+                    aspect_ratio="3:4",
+                    photo_ref_paths=photo_refs_regen,
+                    image_prompt_strength=0.95,
+                    negative_prompt=_chef_cover_neg
+                )
+            else:
+                _s2_portrait_regen = story_data.get('character_preview', '').lstrip('/')
+                if _s2_portrait_regen and os.path.exists(_s2_portrait_regen) and sweetie_ok_regen:
+                    from services.personalized_books.age_profiles_nophoto import get_age_profile_nophoto as _mc_s2_nophoto_fn
+                    _mc_s2_nophoto_profile, _ = _mc_s2_nophoto_fn(child_age_regen)
+                    mc_s2_ref_note_regen = chef_build_ref_note_fn(
+                        _mc_s2_nophoto_profile['display'], gender_word_regen,
+                        _mc_s2_nophoto_profile['cover_ref'],
+                        eye_desc_regen, outfit_desc_regen
+                    )
+                    photo_refs_regen = [_s2_portrait_regen, sweetie_path_regen]
+                    print(f"[REGEN COVER CHEF S2] Portrait + SWEETIE | portrait={_s2_portrait_regen} | sweetie={sweetie_ok_regen}")
+                    _chef_cover_neg_s2 = chef_neg_regen + ", text, watermark, logo, letters, words, title card, Disney logo, Pixar logo, branded text"
+                    cover_url_regen = generate_with_flux2_dev(
+                        f"{mc_s2_ref_note_regen}\n{chef_scene_regen}",
+                        aspect_ratio="3:4",
+                        photo_ref_paths=photo_refs_regen,
+                        image_prompt_strength=0.95,
+                        negative_prompt=_chef_cover_neg_s2
+                    )
+                else:
+                    from services.fixed_stories import get_hair_description as _mc_regen_hair_fn
+                    from services.replicate_service import get_unified_skin_description as _mc_regen_skin_fn
+                    hair_desc_regen = _mc_regen_hair_fn(traits)
+                    skin_regen = _mc_regen_skin_fn(traits.get('skin_tone', 'light'))
+                    mc_nophoto_ref_note_regen = (
+                        f"@image1 = the rainbow cake companion — copy @image1 appearance exactly.\n\n"
+                        f"Draw a single {gender_word_regen} of exactly {age_display_regen}.\n"
+                        f"{hair_desc_regen}" + (f", {eye_desc_regen}" if eye_desc_regen else "") + f", {skin_regen} skin, confident joyful smile.\n"
+                        f"OUTFIT: {outfit_desc_regen}."
+                    )
+                    photo_refs_regen = [sweetie_path_regen] if sweetie_ok_regen else None
+                    print(f"[REGEN COVER CHEF S2 FALLBACK] Sin portrait guardado | sweetie={sweetie_ok_regen}")
+                    _chef_cover_neg_fb = chef_neg_regen + ", text, watermark, logo, letters, words, title card, Disney logo, Pixar logo, branded text"
+                    cover_url_regen = generate_with_flux2_dev(
+                        f"{mc_nophoto_ref_note_regen}\n{chef_scene_regen}",
+                        aspect_ratio="3:4",
+                        photo_ref_paths=photo_refs_regen,
+                        image_prompt_strength=0.85,
+                        negative_prompt=_chef_cover_neg_fb
+                    )
+
+            cover_raw_path_regen = save_image_locally(cover_url_regen, f'{output_dir}/cover_raw.png')
+            story_lang_regen = story_data.get('lang', story_data.get('story_lang', 'es'))
+            from services.personalized_books.generation import get_print_title
+            story_title_regen = get_print_title('magic_chef', child_name_regen, story_lang_regen)
+            author_name_regen = story_data.get('author_name', '')
+            cover_image_path_regen = create_cover_from_character(
+                cover_raw_path_regen, output_dir,
+                title=story_title_regen,
+                author=author_name_regen if author_name_regen else ''
+            )
+            story_data['cover_image'] = f'/{cover_image_path_regen}'
+            story_data['cover_raw_path'] = cover_raw_path_regen
+            story_data['original_cover'] = f'/{cover_image_path_regen}'
+            story_data['cover_regenerations'] = cover_regen_count + 1
+            with open(preview_file, 'w', encoding='utf-8') as f:
+                json.dump(story_data, f, ensure_ascii=False, indent=2)
+            print(f"[REGEN COVER CHEF] Cover regenerated: {cover_image_path_regen}")
+
+            if os.path.exists(f'generated/composed_{preview_id}'):
+                import threading
+                from services.personalized_books.rebuild import rebuild_book
+                threading.Thread(target=rebuild_book, args=(preview_id,), kwargs={'mark_composed': False}, daemon=True).start()
+
+            return jsonify({'success': True, 'cover_image': f'/{cover_image_path_regen}', 'regenerations_left': max(0, 2 - (cover_regen_count + 1))})
+
+        elif story_id == 'magic_inventor_illustrated':
+            from services.personalized_books.magic_inventor_prompts import (
+                FRONT_COVER as MI_FRONT_COVER,
+                STYLE_BASE as MI_STYLE_BASE,
+                STYLE_BASE_COVER as MI_STYLE_BASE_COVER,
+                get_outfit_desc as mi_get_outfit_desc,
+                build_ref_note as mi_build_ref_note_fn,
+                build_kontext_prompt as mi_build_kontext_fn,
+                build_avatar_prompt as mi_build_avatar_fn,
+            )
+            from services.personalized_books.preview import generate_with_flux2_dev, generate_with_flux_kontext, _ensure_bolt_reference
+            from services.replicate_service import save_image_locally, create_cover_from_character, get_gender_negative_prompt
+
+            gender_regen = story_data.get('gender', 'neutral')
+            child_name_regen = story_data.get('child_name', '')
+            child_age_regen = int(traits.get('child_age', 5))
+            gender_word_regen = "boy" if gender_regen == "male" else "girl" if gender_regen == "female" else "child"
+            outfit_desc_regen = mi_get_outfit_desc(gender_regen)
+            age_display_regen = f"{child_age_regen} year old"
+            human_photo_path_regen = traits.get('human_photo_path') or story_data.get('child_photo_path', '')
+            bolt_path_regen = _ensure_bolt_reference()
+            bolt_ok_regen = bolt_path_regen and os.path.exists(bolt_path_regen)
+            _mi_neg_base_regen = (
+                "text, watermark, signature, logo, letters, words, ugly, deformed, blurry, low quality, "
+                "distorted face, wings on child, animal features on human, furry child, "
+                "animal ears, cat ears, bunny ears, fox ears, extra limbs"
+            )
+            mi_neg_regen = (_mi_neg_base_regen + ", masculine features, boy haircut") if gender_regen == 'female' else (_mi_neg_base_regen + ", earrings, jewelry, bows, ribbons, makeup, lipstick, feminine accessories, girl features, ponytails, pigtails") if gender_regen == 'male' else _mi_neg_base_regen
+            mi_scene_regen = MI_FRONT_COVER.get('prompt', '').replace('{style}', MI_STYLE_BASE_COVER)
+            from services.fixed_stories import get_eye_description as _mi_regen_eye_fn
+            _mi_regen_eye_raw = traits.get('eye_color', '')
+            eye_desc_regen = _mi_regen_eye_fn(traits) if _mi_regen_eye_raw else ''
+            from services.age_profiles import get_age_profile as _mi_regen_age_fn
+            _mi_regen_profile, _mi_regen_range_key = _mi_regen_age_fn(child_age_regen)
+            _mi_regen_age_body_desc = _mi_regen_profile['kontext']
+            print(f"[REGEN COVER MI] age={child_age_regen} range={_mi_regen_range_key}")
+
+            if human_photo_path_regen and os.path.exists(human_photo_path_regen):
+                portrait_path_regen = None
+                saved_portrait = story_data.get('character_preview', '')
+                if saved_portrait:
+                    saved_portrait_path = saved_portrait.lstrip('/')
+                    if os.path.exists(saved_portrait_path):
+                        portrait_path_regen = saved_portrait_path
+                        print(f"[REGEN COVER MI] Reusing saved FLUX avatar: {portrait_path_regen}")
+                if not portrait_path_regen:
+                    # ── PASO 1: Kontext — convierte foto → personaje 3D animado ──
+                    kontext_prompt_regen = mi_build_kontext_fn(
+                        age_display_regen, gender_word_regen, _mi_regen_age_body_desc, eye_desc_regen, outfit_desc_regen
+                    )
+                    print(f"[REGEN COVER MI] PASO 1 — Kontext | photo={human_photo_path_regen} | age={child_age_regen}")
+                    portrait_url_regen = generate_with_flux_kontext(kontext_prompt_regen, human_photo_path_regen, aspect_ratio="3:4")
+                    _kontext_path_regen = save_image_locally(portrait_url_regen, f'{output_dir}/mi_kontext_regen_{uuid.uuid4().hex[:8]}.png')
+                    # ── PASO 2: FLUX Avatar — traduce Kontext al lenguaje visual FLUX nativo ──
+                    _av_neg_base = (
+                        "text, watermark, signature, logo, letters, words, ugly, deformed, blurry, low quality, "
+                        "distorted face, defined jawline, visible cheekbones, mature face, adult face, teenager, "
+                        "wings on child, animal features on human, furry child, animal ears, extra limbs"
+                    )
+                    _av_neg_gender = (
+                        "masculine features, boy haircut, male jawline" if gender_regen == "female"
+                        else "girl features, ponytails, pigtails, feminine accessories, earrings, jewelry, bows, ribbons, makeup, lipstick"
+                    )
+                    avatar_prompt_regen = mi_build_avatar_fn(age_display_regen, gender_word_regen)
+                    print(f"[REGEN COVER MI] PASO 2 — FLUX avatar | kontext={_kontext_path_regen}")
+                    avatar_url_regen = generate_with_flux2_dev(
+                        avatar_prompt_regen,
+                        aspect_ratio="3:4",
+                        photo_ref_path=_kontext_path_regen,
+                        image_prompt_strength=0.95,
+                        negative_prompt=_av_neg_base + ", " + _av_neg_gender,
+                        force_go_fast=False,
+                    )
+                    portrait_path_regen = save_image_locally(avatar_url_regen, f'{output_dir}/mi_avatar_regen_{uuid.uuid4().hex[:8]}.png')
+                    print(f"[REGEN COVER MI] PASO 2 — Avatar guardado: {portrait_path_regen}")
+
+                # ── PASO 3: FLUX 2 Dev Cover — ref_note from prompt file (single source of truth) ──
+                mi_ref_note_regen = mi_build_ref_note_fn(age_display_regen, gender_word_regen, '', '', '')
+                photo_refs_regen = [portrait_path_regen, bolt_path_regen] if bolt_ok_regen else [portrait_path_regen]
+                print(f"[REGEN COVER MI] PASO 3 — FLUX 2 Dev cover | portrait={portrait_path_regen} | bolt={bolt_ok_regen}")
+                cover_url_regen = generate_with_flux2_dev(
+                    f"{mi_ref_note_regen}\n{mi_scene_regen}",
+                    aspect_ratio="3:4",
+                    photo_ref_paths=photo_refs_regen,
+                    image_prompt_strength=0.95,
+                    negative_prompt=mi_neg_regen
+                )
+            else:
+                # ── SISTEMA 2 (sin foto): portrait guardado + BOLT como @image2 ──
+                _s2_portrait_regen = story_data.get('character_preview', '').lstrip('/')
+                if _s2_portrait_regen and os.path.exists(_s2_portrait_regen) and bolt_ok_regen:
+                    mi_s2_ref_note_regen = mi_build_ref_note_fn(age_display_regen, gender_word_regen, '', '', '')
+                    photo_refs_regen = [_s2_portrait_regen, bolt_path_regen]
+                    print(f"[REGEN COVER MI S2] Portrait + BOLT | portrait={_s2_portrait_regen} | bolt={bolt_ok_regen}")
+                    cover_url_regen = generate_with_flux2_dev(
+                        f"{mi_s2_ref_note_regen}\n{mi_scene_regen}",
+                        aspect_ratio="3:4",
+                        photo_ref_paths=photo_refs_regen,
+                        image_prompt_strength=0.95,
+                        negative_prompt=mi_neg_regen
+                    )
+                else:
+                    # Fallback: texto + BOLT como @image1
+                    from services.fixed_stories import get_hair_description, get_eye_description, get_hair_strict
+                    from services.replicate_service import get_unified_skin_description
+                    from services.personalized_books.magic_inventor_prompts import get_hair_action as mi_get_hair_action
+                    hair_desc_regen = get_hair_description(traits)
+                    eye_desc_regen = get_eye_description(traits)
+                    skin_regen = get_unified_skin_description(traits.get('skin_tone', 'light'))
+                    hair_action_regen = mi_get_hair_action(traits)
+                    hair_strict_regen = get_hair_strict(traits)
+                    mi_nophoto_regen = (
+                        f"@image1 = small copper robot companion BOLT — copy @image1 appearance exactly.\n"
+                        f"Draw a single {gender_word_regen} ({age_display_regen}), {hair_desc_regen}, {eye_desc_regen}, {skin_regen} skin, "
+                        f"big joyful curious smile, {hair_action_regen}. OUTFIT: {outfit_desc_regen}.\n"
+                        f"ACTION: The {gender_word_regen} stands at the workshop entrance with mouth open in amazement, "
+                        f"holding a glowing wrench up proudly. @image1 stands beside the {gender_word_regen} waving. "
+                        f"SETTING: Magical inventor workshop WIDE VIEW, floating golden gears spinning, "
+                        f"crystal tubes with colorful glowing liquids, workbenches with blueprints and gadgets, "
+                        f"copper and golden tones, sparkles, centered composition for book cover. "
+                        f"ATMOSPHERE: Adventure invitation, warm golden friendship and creativity. "
+                        f"STRICT: Only ONE {gender_word_regen}, fully human child, no wings. {hair_strict_regen} "
+                        f"Pure illustration only. {MI_STYLE_BASE}"
+                    )
+                    photo_refs_regen = [bolt_path_regen] if bolt_ok_regen else None
+                    print(f"[REGEN COVER MI S2 FALLBACK] Sin portrait guardado | bolt={bolt_ok_regen}")
+                    cover_url_regen = generate_with_flux2_dev(
+                        mi_nophoto_regen,
+                        aspect_ratio="3:4",
+                        photo_ref_paths=photo_refs_regen,
+                        image_prompt_strength=0.85,
+                        negative_prompt=mi_neg_regen
+                    )
+
+            cover_raw_path_regen = save_image_locally(cover_url_regen, f'{output_dir}/cover_raw.png')
+            story_lang_regen = story_data.get('lang', story_data.get('story_lang', 'es'))
+            from services.personalized_books.generation import get_print_title
+            story_title_regen = get_print_title('magic_inventor', child_name_regen, story_lang_regen)
+            author_name_regen = story_data.get('author_name', '')
+            cover_image_path_regen = create_cover_from_character(
+                cover_raw_path_regen, output_dir,
+                title=story_title_regen,
+                author=author_name_regen if author_name_regen else ''
+            )
+            story_data['cover_image'] = f'/{cover_image_path_regen}'
+            story_data['cover_raw_path'] = cover_raw_path_regen
+            story_data['original_cover'] = f'/{cover_image_path_regen}'
+            story_data['cover_regenerations'] = cover_regen_count + 1
+            with open(preview_file, 'w', encoding='utf-8') as f:
+                json.dump(story_data, f, ensure_ascii=False, indent=2)
+            print(f"[REGEN COVER MI] Cover regenerated: {cover_image_path_regen}")
+
+            if os.path.exists(f'generated/composed_{preview_id}'):
+                import threading
+                from services.personalized_books.rebuild import rebuild_book
+                threading.Thread(target=rebuild_book, args=(preview_id,), kwargs={'mark_composed': False}, daemon=True).start()
 
             return jsonify({'success': True, 'cover_image': f'/{cover_image_path_regen}', 'regenerations_left': max(0, 2 - (cover_regen_count + 1))})
 
         else:
-            return jsonify({'success': False, 'error': 'Cover regeneration only available for furry_love, star_keeper, dragon_garden and centinela_aurora stories'}), 400
+            return jsonify({'success': False, 'error': 'Cover regeneration only available for furry_love, star_keeper, dragon_garden, centinela_aurora, magic_chef and magic_inventor stories'}), 400
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -3881,6 +4351,15 @@ def generate_fixed_story_api():
                     author=author_name if author_name else ''
                 )
                 print(f"[PERSONALIZED BOOK] Added title+author overlay to cover preview: {cover_image_path}")
+                if story_id == 'centinela_aurora_illustrated':
+                    cover_raw_path = character_image
+                    print(f"[CENTINELA AURORA PREVIEW] cover_raw_path saved: {cover_raw_path}")
+                elif story_id == 'magic_chef_illustrated':
+                    cover_raw_path = character_image
+                    print(f"[MAGIC CHEF PREVIEW] cover_raw_path saved: {cover_raw_path}")
+                elif story_id == 'dragon_garden_illustrated':
+                    cover_raw_path = character_image
+                    print(f"[DRAGON GARDEN PREVIEW] cover_raw_path saved: {cover_raw_path}")
             else:
                 cover_image_path = character_image if character_image else ''
             scene_paths = []
@@ -4035,7 +4514,7 @@ def generate_fixed_story_api():
             'scenes_pending': scenes_pending,
             'is_illustrated_book': is_illustrated_book_mode,
             'scenes_dir': story_config.get('scenes_dir', '') if is_illustrated_book_mode else '',
-            'character_preview': (kontext_portrait if (story_id in ('star_keeper_illustrated', 'dragon_garden_illustrated', 'centinela_aurora_illustrated') and kontext_portrait and os.path.exists(kontext_portrait)) else character_image) if (kontext_portrait or character_image) else '',
+            'character_preview': (kontext_portrait if (story_id in ('star_keeper_illustrated', 'dragon_garden_illustrated', 'centinela_aurora_illustrated', 'magic_chef_illustrated', 'magic_inventor_illustrated') and kontext_portrait and os.path.exists(kontext_portrait)) else character_image) if (kontext_portrait or character_image) else '',
             'closing_image': (f'/{closing_image_path}' if closing_image_path and not closing_image_path.startswith('/') else closing_image_path) if 'closing_image_path' in dir() and closing_image_path else '',
             'text_layout': story_data.get('text_layout', 'single'),
             'closing_message': closing_message
@@ -4050,6 +4529,10 @@ def generate_fixed_story_api():
                 preview_data['cover_raw_path'] = cover_raw_path
             if human_preview_path:
                 preview_data['human_preview_path'] = human_preview_path
+        if story_id in ('centinela_aurora_illustrated', 'magic_chef_illustrated'):
+            if 'cover_raw_path' in dir() and cover_raw_path and os.path.exists(cover_raw_path):
+                preview_data['cover_raw_path'] = cover_raw_path
+                print(f"[{story_id.upper()} PREVIEW] cover_raw_path stored in story_data: {cover_raw_path}")
         if is_furry_love:
             if pet_preview_path:
                 preview_data['pet_preview_path'] = pet_preview_path
@@ -5949,9 +6432,45 @@ def order_complete(preview_id):
     _shipping_confirmed = bool(_addr.get('name') and _addr.get('street1'))
     _needs_shipping = _story_needs_physical_shipping(story_data)
 
+    # Gallery source of truth: derived FRESH from the page_NN.png files on
+    # disk (same canonical listing rebuild_book() uses), never from
+    # story_data['images'] — that field is intentionally a TRIMMED
+    # (content-only, [2:-2]) array used for PDF/print composition and its
+    # length/order can legitimately differ from the full on-disk page set.
+    # Reusing it for the gallery caused row/label/button drift whenever a
+    # regeneration ran rebuild_book() and re-trimmed it (Página 1/2 buttons
+    # "disappearing", wrong page regenerated, wrong regen counter hit).
+    # See .agents/memory/order-complete-gallery-array-mismatch.md
+    gallery_pages = []
+    if is_illustrated_book:
+        composed_dir_gallery = f'generated/composed_{preview_id}'
+        try:
+            from services.personalized_books.rebuild import _enumerate_pages, _fmt
+            _orig_paths, _prev_paths = _enumerate_pages(composed_dir_gallery)
+        except Exception:
+            _orig_paths, _prev_paths = [], []
+        if _orig_paths:
+            import re as _gallery_re
+            _page_num_re = _gallery_re.compile(r'page_(\d{2})\.png$')
+            n_total = len(_prev_paths)
+            # Same convention rebuild.py uses to define "content" (regenerable
+            # scene) pages: everything except the first 2 and last 2 files.
+            content_start_pos = 2 if n_total > 4 else 0
+            content_end_pos = n_total - 2 if n_total > 4 else n_total
+            for _pos, _p in enumerate(_prev_paths):
+                _m = _page_num_re.search(_p)
+                _real_num = int(_m.group(1)) if _m else (_pos + 1)
+                gallery_pages.append({
+                    'pos': _pos,
+                    'num': _real_num,
+                    'src': _fmt(_p),
+                    'is_content': content_start_pos <= _pos < content_end_pos,
+                })
+
     return render_template('order_complete.html',
                           preview_id=preview_id,
                           story_data=story_data,
+                          gallery_pages=gallery_pages,
                           delivery_email=story_data.get('customer_email', ''),
                           email_sent=story_data.get('email_sent', False),
                           epub_url=epub_url,
@@ -7019,175 +7538,178 @@ def regenerate_quick_closing(preview_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+def _regenerate_page_task(preview_id, page_num, scene_config, is_closing_page,
+                           child_name, gender, lang, traits, book_id,
+                           ref_image_path, ref_image_path_2, current_count,
+                           preview_file, task_result=None):
+    """Background task: FLUX generation + text + save + counter. Runs in TaskQueue worker.
+    Ends immediately after saving page_NN.png and persisting the counter.
+    rebuild_book() is NOT called here — it runs only when the user approves
+    via approve_scenes() → _trigger_personalized_book_composition().
+    """
+    from services.illustrated_book_service import (
+        generate_scene_complete, generate_closing_page, add_text_to_image, load_book_config
+    )
+
+    is_furry = book_id in ('furry_love', 'furry_love_adventure', 'furry_love_teen', 'furry_love_adult')
+    page_label = "closing" if is_closing_page else f"scene {scene_config.get('id', '?') + 1}"
+    print(f"[REGENERATE] Regenerating page {page_num} ({page_label}) for {preview_id}...")
+    print(f"[REGENERATE] Regeneration count for this page: {current_count + 1}/2")
+
+    if is_closing_page:
+        base_image = generate_closing_page(
+            traits=traits, child_name=child_name, gender=gender, book_id=book_id,
+            reference_image_path=ref_image_path, reference_image_path_2=ref_image_path_2
+        )
+        final_image = base_image
+    else:
+        base_image = generate_scene_complete(
+            scene_config=scene_config, traits=traits, child_name=child_name,
+            gender=gender, language=lang, book_id=book_id,
+            reference_image_path=ref_image_path, reference_image_path_2=ref_image_path_2
+        )
+        text_key = f'text_{lang}'
+        pet_name_regen = traits.get('pet_name', '') if is_furry else ''
+        text = scene_config.get(text_key, scene_config.get('text_es', '')).replace('{name}', child_name).replace('{pet_name}', pet_name_regen)
+        text_position = scene_config.get('text_position', 'bottom')
+        final_image = add_text_to_image(base_image, text, position=text_position)
+
+    composed_dir = f'generated/composed_{preview_id}'
+    os.makedirs(composed_dir, exist_ok=True)
+    original_path = os.path.join(composed_dir, f'page_{page_num:02d}.png')
+    final_image.save(original_path, 'PNG')
+    print(f"[REGENERATE] Saved: {original_path} (no watermark, post-payment)")
+
+    with open(preview_file, 'r', encoding='utf-8') as f:
+        story_data = json.load(f)
+    regen_counts = story_data.get('page_regenerations') or {}
+    regen_counts[str(page_num)] = current_count + 1
+    story_data['page_regenerations'] = regen_counts
+    with open(preview_file, 'w', encoding='utf-8') as f:
+        json.dump(story_data, f, ensure_ascii=False, indent=2)
+
+    return {
+        'success': True,
+        'image_path': f'/{original_path}',
+        'regenerations_left': 2 - (current_count + 1)
+    }
+
+
 @app.route('/api/regenerate-page/<preview_id>/<int:page_num>', methods=['POST'])
 def regenerate_page(preview_id, page_num):
-    """Regenerate a single page (scene) for the illustrated book. Max 2 regenerations per page."""
-    from services.illustrated_book_service import (
-        generate_scene_complete, generate_closing_page, add_text_to_image, add_watermark, load_book_config
-    )
+    """Enqueue async page regeneration. Returns job_id immediately; client polls /api/regen-page-status/<job_id>."""
+    from services.illustrated_book_service import load_book_config
     from services.personalized_books.generation import get_personalized_book_id
-    
+
     preview_file = f'story_previews/{preview_id}.json'
     if not os.path.exists(preview_file):
         return jsonify({'success': False, 'error': 'Story not found'}), 404
-    
+
     with open(preview_file, 'r', encoding='utf-8') as f:
         story_data = json.load(f)
-    
-    # Pages 3-21 are scene pages (19 scenes). Page numbers: page 3 = index 2, page 21 = index 20
+
     if page_num < 3 or page_num > 21:
         return jsonify({'success': False, 'error': 'Solo se pueden regenerar las páginas 3 a 21'}), 400
-    
-    # Check regeneration limit (max 2 per page)
-    regen_counts = story_data.get('page_regenerations', {})
+
+    regen_counts = story_data.get('page_regenerations') or {}
     page_key = str(page_num)
     current_count = regen_counts.get(page_key, 0)
-    
+
     if current_count >= 2 and not is_testing_mode_active():
-        return jsonify({
-            'success': False,
-            'error': 'Has alcanzado el límite de 2 regeneraciones para esta página'
-        }), 400
-    
+        return jsonify({'success': False, 'error': 'Has alcanzado el límite de 2 regeneraciones para esta página'}), 400
+
     story_id = story_data.get('story_id', 'dragon_garden_illustrated')
     book_id = get_personalized_book_id(story_id)
     book_config = load_book_config(book_id)
-    
     if not book_config:
         return jsonify({'success': False, 'error': f'Book config not found for {book_id}'}), 400
-    
+
     scenes = book_config.get('scenes', [])
     is_closing_page = (page_num == 22)
-    
+    scene_config = {}
     if not is_closing_page:
-        scene_index = page_num - 3  # Page 3 = scene 0, Page 21 = scene 18
+        scene_index = page_num - 3
         if scene_index < 0 or scene_index >= len(scenes):
             return jsonify({'success': False, 'error': f'Invalid scene index: {scene_index}'}), 400
         scene_config = scenes[scene_index]
-    
+
     child_name = story_data.get('child_name', 'Child')
     gender = story_data.get('gender', 'neutral')
     lang = story_data.get('story_lang', story_data.get('lang', 'es'))
     traits = story_data.get('traits', {})
-    
-    page_label = "closing" if is_closing_page else f"scene {scene_index + 1}"
-    print(f"[REGENERATE] Regenerating page {page_num} ({page_label}) for {preview_id}...")
-    print(f"[REGENERATE] Regeneration count for this page: {current_count + 1}/2")
-    
-    try:
-        ref_image_path = None
-        ref_image_path_2 = None
-        is_furry = book_id in ('furry_love', 'furry_love_adventure', 'furry_love_teen', 'furry_love_adult')
-        
-        if is_furry:
-            human_preview = story_data.get('human_preview_path', '')
-            if human_preview:
-                human_ref = human_preview.lstrip('/')
-                if os.path.exists(human_ref):
-                    ref_image_path = human_ref
-                    print(f"[REGENERATE] Furry love human reference: {ref_image_path}")
-            pet_preview = story_data.get('pet_preview_path', '')
-            if pet_preview:
-                pet_ref = pet_preview.lstrip('/')
-                if os.path.exists(pet_ref):
-                    ref_image_path_2 = pet_ref
-                    print(f"[REGENERATE] Furry love pet reference: {ref_image_path_2}")
-        else:
-            character_preview = story_data.get('character_preview', '')
-            if character_preview:
-                ref_candidate = character_preview.lstrip('/')
-                if os.path.exists(ref_candidate):
-                    ref_image_path = ref_candidate
-                    print(f"[REGENERATE] Using FLUX 2 Dev reference for {book_id}: {ref_image_path}")
-            if book_id == 'star_keeper':
-                luna_static = 'static/assets/luna_reference.png'
-                if os.path.exists(luna_static):
-                    ref_image_path_2 = luna_static
-                    print(f"[REGENERATE] Star keeper LUNA reference: {ref_image_path_2}")
-            elif book_id == 'dragon_garden':
-                spark_static = 'static/assets/spark_reference.png'
-                if os.path.exists(spark_static):
-                    ref_image_path_2 = spark_static
-                    print(f"[REGENERATE] Dragon garden SPARK reference: {ref_image_path_2}")
-            elif book_id == 'centinela_aurora':
-                astro_static = 'static/assets/astro_reference.png'
-                if os.path.exists(astro_static):
-                    ref_image_path_2 = astro_static
-                    print(f"[REGENERATE] Centinela aurora ASTRO reference: {ref_image_path_2}")
-        
-        if not ref_image_path:
-            print(f"[REGENERATE] ERROR: No reference image found for {book_id}")
-            return jsonify({'success': False, 'error': 'No se encontró la imagen de referencia. Por favor contacta soporte.'}), 400
-        
-        if is_closing_page:
-            base_image = generate_closing_page(
-                traits=traits,
-                child_name=child_name,
-                gender=gender,
-                book_id=book_id,
-                reference_image_path=ref_image_path,
-                reference_image_path_2=ref_image_path_2
-            )
-            final_image = base_image
-        else:
-            base_image = generate_scene_complete(
-                scene_config=scene_config,
-                traits=traits,
-                child_name=child_name,
-                gender=gender,
-                language=lang,
-                book_id=book_id,
-                reference_image_path=ref_image_path,
-                reference_image_path_2=ref_image_path_2
-            )
-            
-            text_key = f'text_{lang}'
-            pet_name_regen = traits.get('pet_name', '') if is_furry else ''
-            text = scene_config.get(text_key, scene_config.get('text_es', '')).replace('{name}', child_name).replace('{pet_name}', pet_name_regen)
-            text_position = scene_config.get('text_position', 'bottom')
-            final_image = add_text_to_image(base_image, text, position=text_position)
-        
-        # Save to the SAME canonical location the whole rebuild pipeline reads
-        # from: generated/composed_<preview_id>/page_NN.png. Saving into
-        # output_dir would silently orphan this page from the reconstruction
-        # pipeline's page listing.
-        composed_dir = f'generated/composed_{preview_id}'
-        os.makedirs(composed_dir, exist_ok=True)
-        
-        # page_num from this route (3-21) is already the composed_dir page number.
-        original_path = os.path.join(composed_dir, f'page_{page_num:02d}.png')
-        final_image.save(original_path, 'PNG')
-        
-        print(f"[REGENERATE] Saved: {original_path} (no watermark, post-payment)")
-        
-        # Update regeneration count and persist BEFORE rebuilding, so the
-        # single reconstruction pipeline sees the up-to-date count too.
-        regen_counts[page_key] = current_count + 1
-        story_data['page_regenerations'] = regen_counts
-        with open(preview_file, 'w', encoding='utf-8') as f:
-            json.dump(story_data, f, ensure_ascii=False, indent=2)
-        
-        # Single reconstruction pipeline: rebuilds path arrays, visor,
-        # printable PDF and Cloudprinter PDFs from the page files on disk.
-        # mark_composed=False: interior-scene regeneration only, never a
-        # composition-completion event — must not touch the order's
-        # composition/approval state flags.
-        from services.personalized_books.rebuild import rebuild_book
-        rebuild_book(preview_id, mark_composed=False)
-        
+
+    is_furry = book_id in ('furry_love', 'furry_love_adventure', 'furry_love_teen', 'furry_love_adult')
+    ref_image_path = None
+    ref_image_path_2 = None
+
+    if is_furry:
+        human_preview = story_data.get('human_preview_path', '')
+        if human_preview:
+            hr = human_preview.lstrip('/')
+            if os.path.exists(hr):
+                ref_image_path = hr
+        pet_preview = story_data.get('pet_preview_path', '')
+        if pet_preview:
+            pr = pet_preview.lstrip('/')
+            if os.path.exists(pr):
+                ref_image_path_2 = pr
+    else:
+        character_preview = story_data.get('character_preview', '')
+        if character_preview:
+            rc = character_preview.lstrip('/')
+            if os.path.exists(rc):
+                ref_image_path = rc
+        companion_map = {
+            'star_keeper': 'static/assets/luna_reference.png',
+            'dragon_garden': 'static/assets/spark_reference.png',
+            'centinela_aurora': 'static/assets/astro_reference.png',
+        }
+        companion = companion_map.get(book_id)
+        if companion and os.path.exists(companion):
+            ref_image_path_2 = companion
+
+    if not ref_image_path:
+        return jsonify({'success': False, 'error': 'No se encontró la imagen de referencia. Por favor contacta soporte.'}), 400
+
+    # Prevent duplicate concurrent jobs for the same page
+    job_id = f"regen_page_{preview_id}_{page_num}"
+    existing = task_queue.get_status(job_id)
+    if existing and existing.get('status') in ('pending', 'processing'):
+        return jsonify({'success': True, 'job_id': job_id, 'status': 'pending'})
+
+    task_queue.enqueue(
+        job_id, _regenerate_page_task,
+        preview_id, page_num, scene_config, is_closing_page,
+        child_name, gender, lang, traits, book_id,
+        ref_image_path, ref_image_path_2, current_count, preview_file
+    )
+
+    return jsonify({'success': True, 'job_id': job_id, 'status': 'pending'})
+
+
+@app.route('/api/regen-page-status/<job_id>', methods=['GET'])
+def regen_page_status(job_id):
+    """Poll the status of a page regeneration job."""
+    status = task_queue.get_status(job_id)
+    if not status:
+        return jsonify({'status': 'not_found'})
+
+    task_status = status.get('status', 'unknown')
+
+    if task_status == 'completed':
+        result = status.get('result') or {}
         return jsonify({
-            'success': True, 
-            'message': f'Página {page_num} regenerada correctamente',
-            'image_path': f'/{original_path}',
-            'regenerations_left': 2 - (current_count + 1)
+            'status': 'completed',
+            'success': result.get('success', True),
+            'image_path': result.get('image_path', ''),
+            'regenerations_left': result.get('regenerations_left', 0)
         })
-        
-    except Exception as e:
-        print(f"[REGENERATE] Error: {e}")
-        import traceback
-        traceback.print_exc()
-        error_msg = 'El servicio de generación de imágenes está temporalmente no disponible. Por favor intenta de nuevo en unos minutos.' if 'FLUX' in str(e) or 'q_descale' in str(e) else str(e)
-        return jsonify({'success': False, 'error': error_msg}), 500
+    elif task_status == 'failed':
+        error = status.get('error', 'Error desconocido')
+        error_msg = 'El servicio de generación de imágenes está temporalmente no disponible. Por favor intenta de nuevo.' if 'FLUX' in error or 'timeout' in error.lower() else error
+        return jsonify({'status': 'failed', 'error': error_msg})
+    else:
+        return jsonify({'status': task_status})
 
 
 @app.route('/api/confirm-and-send/<preview_id>', methods=['POST'])
@@ -7413,6 +7935,21 @@ def confirm_and_send(preview_id):
             print(f"[SHADOW-DELIVERY] WARNING: shadow hook failed non-fatally in confirm_and_send: {_shadow_call_err_cs}")
         # --- FIN SHADOW MODE ---
 
+        # ── MODO PRUEBA: si is_test_payment=True, omitir envío de email real ──
+        if story_data.get('is_test_payment'):
+            print(f"[CONFIRM-SEND] TEST PAYMENT — skipping real email for {preview_id} (is_test_payment=True)")
+            story_data['email_sent'] = True
+            story_data['pdf_email_sent'] = True
+            story_data['pages_composed'] = True
+            with open(preview_file, 'w', encoding='utf-8') as f:
+                json.dump(story_data, f, ensure_ascii=False, indent=2)
+            return jsonify({
+                'success': True,
+                'test_mode': True,
+                'message': 'MODO PRUEBA: email omitido. El libro está finalizado en modo test.'
+            })
+        # ── FIN MODO PRUEBA ──
+
         from services.email_service import send_ebook_email
         if visor_url:
             email_result = send_ebook_email(
@@ -7536,7 +8073,13 @@ def request_story_change(preview_id):
     session['child_gender'] = story_data.get('gender', '')
     
     is_furry = 'furry_love' in story_data.get('story_id', '')
-    redirect_base = '/furry-love' if is_furry else '/story-selection'
+    is_illustrated = story_data.get('is_illustrated_book', False)
+    if is_furry:
+        redirect_base = '/furry-love'
+    elif is_illustrated:
+        redirect_base = '/universos-catalog'
+    else:
+        redirect_base = '/story-selection'
     return jsonify({
         'success': True,
         'redirect_url': f'{redirect_base}?change=1&preview_id={preview_id}'
@@ -7545,10 +8088,13 @@ def request_story_change(preview_id):
 @app.route('/generated/<path:filepath>')
 def serve_generated_image(filepath):
     """Serve generated images from any subdirectory"""
-    from flask import send_file
+    from flask import send_file, make_response
     image_path = f'generated/{filepath}'
     if os.path.exists(image_path):
-        return send_file(image_path, mimetype='image/png')
+        resp = make_response(send_file(image_path, mimetype='image/png'))
+        resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        resp.headers['Pragma'] = 'no-cache'
+        return resp
     return "Image not found", 404
 
 @app.route('/replicate-image/<filename>')
@@ -8156,6 +8702,34 @@ with app.app_context():
     except Exception as _me:
         print(f"[MIGRATION] Warning (non-blocking): {_me}")
     pass  # lulu_storage removed
+
+    # ── Limpieza de tokens de generación atascados (pending/generating → failed) ──
+    # Si el servidor se reinicia mientras hay una generación en curso, los JSON quedan
+    # en estado "pending"/"generating" para siempre. Los marcamos como "failed" aquí
+    # para que el poll del frontend los detecte y limpie el spinner inmediatamente.
+    try:
+        import glob as _glob, json as _json_startup, datetime as _dt_startup
+        _gen_dir = 'data/preview_gen'
+        if os.path.isdir(_gen_dir):
+            _stale = 0
+            for _tok_path in _glob.glob(os.path.join(_gen_dir, '*.json')):
+                try:
+                    with open(_tok_path) as _tf:
+                        _td = _json_startup.load(_tf)
+                    if _td.get('status') in ('pending', 'generating'):
+                        _td['status'] = 'failed'
+                        _td['error'] = 'Server restarted — generation interrupted'
+                        _td['updated_at'] = _dt_startup.datetime.utcnow().isoformat()
+                        with open(_tok_path, 'w') as _tf:
+                            _json_startup.dump(_td, _tf)
+                        _stale += 1
+                except Exception:
+                    pass
+            if _stale:
+                print(f"[STARTUP] Marked {_stale} stale gen token(s) as failed after restart")
+    except Exception as _ste:
+        print(f"[STARTUP] Gen token cleanup warning: {_ste}")
+
     # Verify CP casewrap page count against /products/info in background (non-blocking)
     def _bg_verify_cp_pb():
         try:
@@ -8444,6 +9018,8 @@ def admin_dashboard():
         try:
             pid = os.path.basename(pf).replace('.json', '')
             if pid.upper().startswith('TEST_'):
+                continue
+            if '_progress' in pid:
                 continue
             with open(pf, 'r') as f:
                 data = json.load(f)
@@ -8786,6 +9362,34 @@ def admin_regenerate_scene(preview_id, scene_num):
                 astro_regen_path = _ensure_astro_reference()
                 if astro_regen_path and os.path.exists(astro_regen_path):
                     ref_path_2 = astro_regen_path
+            elif book_id == 'dragon_garden':
+                character_preview = story_data.get('character_preview', '') or story_data.get('cover_image', '')
+                if character_preview:
+                    cp_ref = character_preview.lstrip('/')
+                    if os.path.exists(cp_ref):
+                        ref_path = cp_ref
+                spark_static = 'static/assets/spark_reference.png'
+                if os.path.exists(spark_static):
+                    ref_path_2 = spark_static
+            elif book_id == 'magic_chef':
+                character_preview = story_data.get('character_preview', '') or story_data.get('cover_image', '')
+                if character_preview:
+                    cp_ref = character_preview.lstrip('/')
+                    if os.path.exists(cp_ref):
+                        ref_path = cp_ref
+                sweetie_static = 'static/assets/sweetie_reference.png'
+                if os.path.exists(sweetie_static):
+                    ref_path_2 = sweetie_static
+            elif book_id == 'magic_inventor':
+                character_preview = story_data.get('character_preview', '') or story_data.get('cover_image', '')
+                if character_preview:
+                    cp_ref = character_preview.lstrip('/')
+                    if os.path.exists(cp_ref):
+                        ref_path = cp_ref
+                from services.personalized_books.preview import _ensure_bolt_reference
+                bolt_regen_path = _ensure_bolt_reference()
+                if bolt_regen_path and os.path.exists(bolt_regen_path):
+                    ref_path_2 = bolt_regen_path
             else:
                 reference_image = story_data.get('character_preview', '') or story_data.get('cover_image', '')
                 if reference_image:
@@ -8853,7 +9457,7 @@ def admin_regenerate_scene(preview_id, scene_num):
                         print(f"[ADMIN-REGEN] No saved text found, falling back to template for scene {scene_num}")
 
                     position = scene_config.get('text_position', 'split')
-                    final_img = add_text_to_image(img, raw_text, position, '#FFFFFF', '#000000', 38, 0.143)
+                    final_img = add_text_to_image(img, raw_text, position, '#FFFFFF', '#000000', 38, 0.103)
                     print(f"[ADMIN-REGEN] Text composed (position={position}): {raw_text[:40]!r}")
                 except Exception as _ce:
                     print(f"[ADMIN-REGEN] Text composition skipped: {_ce}")
@@ -8889,11 +9493,21 @@ def admin_regenerate_scene(preview_id, scene_num):
 
             # Single reconstruction pipeline: rebuilds path arrays, visor,
             # printable PDF and Cloudprinter PDFs from the page files on disk.
+            # Runs in a background thread so the HTTP response returns immediately
+            # with the new image URL — rebuild (incl. PDF generation) can take
+            # several minutes and would otherwise time out the connection.
             # mark_composed=False: admin scene regeneration only, never a
             # composition-completion event — must not touch composition/
             # approval state flags.
+            import threading
             from services.personalized_books.rebuild import rebuild_book
-            rebuild_book(preview_id, mark_composed=False)
+            def _rebuild_bg():
+                try:
+                    rebuild_book(preview_id, mark_composed=False)
+                    production_logger.info(f"[ADMIN-REGEN] Background rebuild done for {preview_id} scene {scene_num}")
+                except Exception as _rb_e:
+                    print(f"[ADMIN-REGEN] Background rebuild error for {preview_id}: {_rb_e}")
+            threading.Thread(target=_rebuild_bg, daemon=True).start()
 
             production_logger.info(f"[ADMIN-REGEN] Illustrated scene {scene_num} OK for {preview_id}: {save_path}")
             return jsonify({'success': True, 'image_url': url_path})
@@ -9040,6 +9654,44 @@ def admin_regenerate_page(preview_id, page_idx):
             luna_static = 'static/assets/luna_reference.png'
             if os.path.exists(luna_static):
                 ref_path_2 = luna_static
+        elif book_id == 'centinela_aurora':
+            character_preview = story_data.get('character_preview', '') or story_data.get('cover_image', '')
+            if character_preview:
+                cp_ref = character_preview.lstrip('/')
+                if os.path.exists(cp_ref):
+                    ref_path = cp_ref
+            from services.personalized_books.preview import _ensure_astro_reference
+            astro_regen_path = _ensure_astro_reference()
+            if astro_regen_path and os.path.exists(astro_regen_path):
+                ref_path_2 = astro_regen_path
+        elif book_id == 'dragon_garden':
+            character_preview = story_data.get('character_preview', '') or story_data.get('cover_image', '')
+            if character_preview:
+                cp_ref = character_preview.lstrip('/')
+                if os.path.exists(cp_ref):
+                    ref_path = cp_ref
+            spark_static = 'static/assets/spark_reference.png'
+            if os.path.exists(spark_static):
+                ref_path_2 = spark_static
+        elif book_id == 'magic_chef':
+            character_preview = story_data.get('character_preview', '') or story_data.get('cover_image', '')
+            if character_preview:
+                cp_ref = character_preview.lstrip('/')
+                if os.path.exists(cp_ref):
+                    ref_path = cp_ref
+            sweetie_static = 'static/assets/sweetie_reference.png'
+            if os.path.exists(sweetie_static):
+                ref_path_2 = sweetie_static
+        elif book_id == 'magic_inventor':
+            character_preview = story_data.get('character_preview', '') or story_data.get('cover_image', '')
+            if character_preview:
+                cp_ref = character_preview.lstrip('/')
+                if os.path.exists(cp_ref):
+                    ref_path = cp_ref
+            from services.personalized_books.preview import _ensure_bolt_reference
+            bolt_regen_path = _ensure_bolt_reference()
+            if bolt_regen_path and os.path.exists(bolt_regen_path):
+                ref_path_2 = bolt_regen_path
         else:
             reference_image = story_data.get('character_preview', '') or story_data.get('cover_image', '')
             if reference_image:
@@ -9087,7 +9739,7 @@ def admin_regenerate_page(preview_id, page_idx):
                 print(f"[ADMIN-REGEN-PAGE] No saved text found, falling back to template for page {page_idx}")
 
             position = scene_config.get('text_position', 'split')
-            final_img = add_text_to_image(img, raw_text, position, '#FFFFFF', '#000000', 38, 0.143)
+            final_img = add_text_to_image(img, raw_text, position, '#FFFFFF', '#000000', 38, 0.103)
             print(f"[ADMIN-REGEN-PAGE] Text composed (position={position}): {raw_text[:40]!r}")
         except Exception as comp_err:
             print(f"[ADMIN-REGEN-PAGE] Text composition skipped: {comp_err}")
@@ -9713,6 +10365,60 @@ def admin_testing_mode_status():
     return jsonify({'active': active, 'remaining_seconds': remaining})
 
 
+@app.route('/admin/simulate-payment/<preview_id>', methods=['GET', 'POST'])
+def admin_simulate_payment(preview_id):
+    """Simula un pago completado para pruebas del flujo completo sin PayPal.
+    Marca el libro como pagado, activa modo testing (8h), resetea contadores de
+    regeneración, lanza generación de escenas si están pendientes, y redirige
+    a order-complete.
+    """
+    if not check_admin_auth():
+        return redirect(url_for('admin_login_page'))
+
+    preview_file = f'story_previews/{preview_id}.json'
+    if not os.path.exists(preview_file):
+        return f"Story {preview_id} no encontrada", 404
+
+    with open(preview_file, 'r', encoding='utf-8') as f:
+        story_data = json.load(f)
+
+    # Marcar como pago completado (tipo personalized_pdf = digital + PDF imprimible)
+    story_data['pdf_paid'] = True
+    story_data['pdf_paid_at'] = datetime.now().isoformat()
+    story_data['product_type'] = 'personalized_pdf'
+    story_data['want_print'] = False
+    story_data['pdf_order'] = True
+    story_data['is_test_payment'] = True  # flag para omitir email real al finalizar
+
+    # Resetear contadores de regeneración para prueba limpia
+    story_data['cover_regenerations'] = 0
+    story_data['regeneration_used'] = False
+    story_data['scene_regenerations'] = {}
+    story_data['page_regenerations'] = {}
+    story_data['email_sent'] = False
+    story_data['pages_composed'] = False
+
+    with open(preview_file, 'w', encoding='utf-8') as f:
+        json.dump(story_data, f, ensure_ascii=False, indent=2)
+
+    # Activar testing mode por 8 horas (sin límites de regeneración)
+    import time as _sp_time
+    _sp_expires = _sp_time.time() + 8 * 3600
+    os.makedirs('data', exist_ok=True)
+    with open(_TESTING_MODE_FILE, 'w') as _sp_f:
+        json.dump({'expires_at': _sp_expires, 'hours': 8}, _sp_f)
+
+    # Lanzar generación de escenas si están pendientes
+    if story_data.get('scenes_pending') and not story_data.get('scenes_generating'):
+        _trigger_background_generation(preview_id)
+        print(f"[SIMULATE-PAYMENT] Launched background scene generation for {preview_id}")
+
+    production_logger.info(f"[ADMIN] Pago simulado para {preview_id} — testing mode 8h activo")
+    print(f"[SIMULATE-PAYMENT] Payment simulated for {preview_id}, testing mode enabled 8h")
+
+    return redirect(url_for('order_complete', preview_id=preview_id))
+
+
 @app.route('/admin/reset-regen-counts/<preview_id>', methods=['POST'])
 def admin_reset_regen_counts(preview_id):
     """Reset all regeneration counters so testing can proceed without limits."""
@@ -9757,6 +10463,109 @@ def admin_reset_compose(preview_id):
 
     production_logger.info(f"[ADMIN] Compose state reset for {preview_id} (was_composing={was_composing})")
     return jsonify({'success': True, 'message': f'Compose state reset. was_composing={was_composing}. Now refresh the order page to re-trigger.'})
+
+
+@app.route('/admin/recompose-text/<preview_id>', methods=['POST'])
+def admin_recompose_text(preview_id):
+    """Reapply text overlay to existing clean scene images using the current algorithm.
+    Does NOT regenerate AI images. Does NOT send emails or change order status."""
+    if not check_admin_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    import re as _re
+    if not _re.match(r'^[a-zA-Z0-9_\-]+$', preview_id):
+        return jsonify({'error': 'Invalid preview ID'}), 400
+
+    preview_file = f'story_previews/{preview_id}.json'
+    if not os.path.exists(preview_file):
+        return jsonify({'error': 'Preview not found'}), 404
+
+    with open(preview_file, 'r', encoding='utf-8') as f:
+        story_data = json.load(f)
+
+    if not story_data.get('is_illustrated_book', False):
+        return jsonify({'error': 'Solo para libros ilustrados'}), 400
+
+    story_id = story_data.get('story_id', '')
+    child_name = story_data.get('child_name', 'Child')
+    lang = story_data.get('lang', 'es')
+    traits = story_data.get('traits', {})
+    composed_dir = story_data.get('composed_pages_dir', f'generated/composed_{preview_id}')
+    pet_name = traits.get('pet_name', '')
+
+    from services.illustrated_book_service import BOOK_CONFIGS, add_text_to_image
+    from services.personalized_books.generation import get_personalized_book_id
+    from PIL import Image as _PIL_Image
+
+    book_id = get_personalized_book_id(story_id)
+    book_config = BOOK_CONFIGS.get(book_id, {})
+    scenes = book_config.get('scenes', [])
+
+    if not scenes:
+        return jsonify({'error': f'No se encontró config de escenas para {book_id}'}), 400
+
+    original_paths = story_data.get('original_scene_paths', story_data.get('original_images', []))
+
+    recomposed = 0
+    skipped = 0
+    errors = []
+
+    for scene_idx, scene_config in enumerate(scenes):
+        clean_path = os.path.join(composed_dir, f'clean_scene_{scene_idx}.png')
+        if not os.path.exists(clean_path):
+            skipped += 1
+            continue
+
+        text_key = f'text_{lang}'
+        text = scene_config.get(text_key, scene_config.get('text_es', ''))
+        text = text.replace('{name}', child_name)
+        if pet_name:
+            text = text.replace('{pet_name}', pet_name)
+
+        position = scene_config.get('text_position', 'split')
+
+        try:
+            img = _PIL_Image.open(clean_path).convert('RGBA')
+            final_img = add_text_to_image(img, text, position, '#FFFFFF', '#000000', 38, 0.103)
+
+            page_list_idx = scene_idx + 4
+            if page_list_idx < len(original_paths):
+                page_path = original_paths[page_list_idx].lstrip('/')
+            else:
+                page_path = os.path.join(composed_dir, f'page_{scene_idx + 5:02d}.png')
+
+            final_img.save(page_path, 'PNG')
+            recomposed += 1
+        except Exception as e:
+            errors.append(f'scene_{scene_idx}: {str(e)}')
+            production_logger.warning(f'[RECOMPOSE-TEXT] Error on scene {scene_idx}: {e}')
+
+    if recomposed == 0:
+        return jsonify({
+            'success': False,
+            'error': f'No se encontraron clean_scene files en {composed_dir}. '
+                     'Solo funciona si el libro fue generado con el flujo de dos etapas.',
+            'skipped': skipped
+        }), 400
+
+    def _rebuild_in_bg(pid, **kwargs):
+        try:
+            from services.personalized_books.rebuild import rebuild_book
+            rebuild_book(pid)
+            production_logger.info(f'[RECOMPOSE-TEXT] Background rebuild complete for {pid}')
+        except Exception as _rb_err:
+            production_logger.warning(f'[RECOMPOSE-TEXT] Background rebuild failed for {pid}: {_rb_err}')
+
+    task_queue.enqueue(f'recompose_rebuild_{preview_id}', _rebuild_in_bg, preview_id)
+
+    production_logger.info(f'[RECOMPOSE-TEXT] {preview_id}: recomposed={recomposed}, skipped={skipped}, rebuild=background')
+    return jsonify({
+        'success': True,
+        'recomposed': recomposed,
+        'skipped': skipped,
+        'rebuild': 'background',
+        'errors': errors
+    })
 
 
 @app.route('/admin/generate-cp-pdfs/<preview_id>', methods=['POST'])
@@ -10392,6 +11201,8 @@ def admin_cuentos():
         try:
             pid = os.path.basename(pf).replace('.json', '')
             if pid.upper().startswith('TEST_'):
+                continue
+            if '_progress' in pid:
                 continue
             with open(pf, 'r', encoding='utf-8') as f:
                 data = json.load(f)
@@ -12082,6 +12893,25 @@ def _generate_scenes_background(preview_id, **kwargs):
                 if os.path.exists(spark_static):
                     ref_path_2 = spark_static
                 production_logger.info(f"[BG-GEN] Dragon garden refs: character_preview={bool(ref_path)}, SPARK={bool(ref_path_2)}")
+            elif book_id == 'magic_chef':
+                reference_image = story_data.get('character_preview', '') or story_data.get('cover_image', '')
+                if reference_image and reference_image.startswith('/'):
+                    reference_image = reference_image[1:]
+                ref_path = reference_image if reference_image and os.path.exists(reference_image) else None
+                sweetie_static = 'static/assets/sweetie_reference.png'
+                if os.path.exists(sweetie_static):
+                    ref_path_2 = sweetie_static
+                production_logger.info(f"[BG-GEN] Magic chef refs: character_preview={bool(ref_path)}, SWEETIE={bool(ref_path_2)}")
+            elif book_id == 'magic_inventor':
+                reference_image = story_data.get('character_preview', '') or story_data.get('cover_image', '')
+                if reference_image and reference_image.startswith('/'):
+                    reference_image = reference_image[1:]
+                ref_path = reference_image if reference_image and os.path.exists(reference_image) else None
+                from services.personalized_books.preview import _ensure_bolt_reference
+                bolt_regen_path = _ensure_bolt_reference()
+                if bolt_regen_path and os.path.exists(bolt_regen_path):
+                    ref_path_2 = bolt_regen_path
+                production_logger.info(f"[BG-GEN] Magic inventor refs: character_preview={bool(ref_path)}, BOLT={bool(ref_path_2)}")
             elif book_id == 'centinela_aurora':
                 reference_image = story_data.get('character_preview', '') or story_data.get('cover_image', '')
                 if reference_image and reference_image.startswith('/'):
@@ -12151,14 +12981,16 @@ def _generate_scenes_background(preview_id, **kwargs):
             
             cover_ref = ref_path
             cover_ref_2 = ref_path_2
-            if book_id in ('furry_love', 'furry_love_adventure', 'furry_love_teen', 'furry_love_adult'):
+            _cover_raw_books = ('furry_love', 'furry_love_adventure', 'furry_love_teen', 'furry_love_adult', 'centinela_aurora', 'magic_chef', 'dragon_garden')
+            if book_id in _cover_raw_books:
+                _log_prefix = 'Furry love' if 'furry' in book_id else ('Magic Chef' if book_id == 'magic_chef' else ('Dragon Garden' if book_id == 'dragon_garden' else 'Centinela aurora'))
                 cover_raw_saved = story_data.get('cover_raw_path', '')
                 if cover_raw_saved:
                     raw_path = cover_raw_saved.lstrip('/')
                     if os.path.exists(raw_path):
                         cover_ref = raw_path
                         cover_ref_2 = None
-                        production_logger.info(f"[BG-GEN] Furry love: using RAW pre-generated cover for cover spread: {raw_path}")
+                        production_logger.info(f"[BG-GEN] {_log_prefix}: using RAW pre-generated cover for cover spread: {raw_path}")
                 if cover_ref == ref_path:
                     output_dir_check = story_data.get('output_dir', '')
                     if output_dir_check:
@@ -12166,7 +12998,7 @@ def _generate_scenes_background(preview_id, **kwargs):
                         if os.path.exists(raw_fallback):
                             cover_ref = raw_fallback
                             cover_ref_2 = None
-                            production_logger.info(f"[BG-GEN] Furry love: found cover_raw.png on disk: {raw_fallback}")
+                            production_logger.info(f"[BG-GEN] {_log_prefix}: found cover_raw.png on disk: {raw_fallback}")
             
             cover_spread = generate_cover_spread(traits, child_name, gender, lang, book_id, author_name, reference_image_path=cover_ref, reference_image_path_2=cover_ref_2)
             
@@ -12635,7 +13467,7 @@ def _retry_failed_scenes_background(preview_id):
                 "#FFFFFF",
                 "#000000",
                 38,
-                0.143
+                0.103
             )
             
             page_index = scene_idx + 3
@@ -13525,6 +14357,8 @@ def _dispatch_printable_pdf_email(preview_id, customer_email, lang='es'):
         waited += wait_interval
     else:
         print(f"[PDF-DISPATCH] Timed out waiting for composition for {preview_id}")
+        with _pdf_dispatch_lock:
+            _pdf_dispatch_locks.discard(preview_id)
         return
 
     try:
