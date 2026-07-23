@@ -84,8 +84,8 @@ from services.personalized_books.dragon_garden_prompts import (
     build_scene_prompt as dg_build_scene_prompt,
     get_outfit_desc as dg_get_outfit_desc,
     get_hair_action as dg_get_hair_action,
-    get_age_body_description,
     get_hair_texture_description,
+    build_ref_note as dg_build_ref_note,
 )
 
 from services.personalized_books.magic_chef_prompts import (
@@ -98,8 +98,8 @@ from services.personalized_books.magic_chef_prompts import (
     STYLE_BASE as MC_STYLE_BASE,
     build_scene_prompt as mc_build_scene_prompt,
     get_outfit_desc as mc_get_outfit_desc,
+    build_ref_note as mc_build_ref_note,
 )
-
 
 from services.personalized_books.magic_inventor_prompts import (
     MAGIC_INVENTOR_SCENES,
@@ -110,6 +110,7 @@ from services.personalized_books.magic_inventor_prompts import (
     STYLE_BASE as MI_STYLE_BASE,
     build_scene_prompt as mi_build_scene_prompt,
     get_outfit_desc as mi_get_outfit_desc,
+    build_ref_note as mi_build_ref_note,
 )
 
 from services.personalized_books.star_keeper_prompts import (
@@ -121,6 +122,7 @@ from services.personalized_books.star_keeper_prompts import (
     STYLE_BASE as SK_STYLE_BASE,
     build_scene_prompt as sk_build_scene_prompt,
     get_outfit_desc as sk_get_outfit_desc,
+    build_ref_note as sk_build_ref_note,
 )
 
 from services.personalized_books.furry_love_prompts import (
@@ -168,6 +170,7 @@ from services.personalized_books.centinela_aurora_prompts import (
     STYLE_BASE as CA_STYLE_BASE,
     build_scene_prompt as ca_build_scene_prompt,
     get_outfit_desc as ca_get_outfit_desc,
+    build_ref_note as ca_build_ref_note,
 )
 
 ALL_PERSONALIZED_BOOK_IDS = ['dragon_garden', 'magic_chef', 'magic_inventor', 'star_keeper', 'furry_love', 'furry_love_adventure', 'furry_love_teen', 'furry_love_adult', 'centinela_aurora']
@@ -526,9 +529,10 @@ def generate_scene_complete(
         _eye_label = _eye_color_map.get(_eye_color_raw, _eye_color_raw)
         _eye_note = f" The human has {_eye_label} eyes — preserve this exactly."
 
-    is_star_keeper = (book_id in ('star_keeper', 'dragon_garden', 'centinela_aurora'))
-    # Solo scenes in centinela_aurora (1, 19, CLOSING) have no @image2 in prompt
-    _ca_is_solo = (book_id == 'centinela_aurora' and '@image2' not in prompt)
+    _adventure_book_ids = ('dragon_garden', 'magic_chef', 'magic_inventor', 'star_keeper', 'centinela_aurora')
+    is_star_keeper = (book_id in _adventure_book_ids)
+    # Solo scenes (no companion) have no @image2 in prompt for all adventure books
+    _ca_is_solo = (book_id in _adventure_book_ids and '@image2' not in prompt)
     if (is_furry or (is_star_keeper and not _ca_is_solo)) and reference_image_path_2 and os.path.exists(reference_image_path_2):
         if is_furry:
             reference_note = (
@@ -538,65 +542,91 @@ def generate_scene_complete(
                 "Human has human face and human hands. Pet has fur, animal face, four paws. "
                 "Two distinct separate characters side by side."
             )
-        elif book_id == 'dragon_garden':
-            reference_note = (
-                f"The child in @image1 is {child_age_int} years old. "
-                "@image1=child character — copy face, hair, skin, and outfit exactly."
-                f"{_eye_note} "
-                "@image2=small emerald dragon SPARK — copy appearance exactly. "
-                "Two distinct characters: @image1 is fully human, @image2 is a small baby dragon."
-            )
-        elif book_id == 'centinela_aurora':
-            from services.fixed_stories import get_age_body_desc as _get_age_body
-            _ca_age_group, _ca_age_body_desc = _get_age_body(child_age_int)
-            _ca_gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
-            _ca_age_display = f"{child_age_int} year old"
-            _ca_eye_line = (
-                f"Eyes: {_eye_color_map.get(_eye_color_raw, _eye_color_raw)} — render this exact color. "
-                if _eye_color_raw else ""
-            )
-            # ── FLUX 2 Dev prompt (compacted Jul 2026, see .agents/memory/flux-cover-negation-bloat.md) ──
-            # Conserva TODA la información (identidad de @image1, edad/anatomía, cabello, ojos exactos,
-            # identidad de @image2/ASTRO, separación de personajes) eliminando redundancias textuales.
-            # NOTA: NO incluir STYLE_BASE aquí — el scene_template de cada escena ya lo inyecta vía {style}.
-            reference_note = (
-                f"@image1 = the approved {_ca_gender_word} of exactly {_ca_age_display} — definitive visual reference, keep visually consistent throughout. "
-                f"Maintain exact age-specific anatomical proportions: {_ca_age_body_desc}. "
-                f"Replicate the exact facial identity, original skin tone, hair color, texture, and hairstyle from @image1. "
-                f"{_ca_eye_line}"
-                "@image2 = the approved companion ASTRO — definitive visual reference, keep visually consistent. "
-                "Maintain its complete visual identity: body shape, proportions, colors, textures and distinctive features.\n"
-                f"CHARACTER SEPARATION: Render exactly TWO completely separate characters. @image1 remains a fully human {_ca_gender_word}. @image2 retains its own original non-human anatomy."
-            )
         else:
-            reference_note = (
-                f"The child in @image1 is {child_age_int} years old. "
-                "@image1=child character — copy face, hair, skin, and outfit exactly."
-                f"{_eye_note} "
-                "@image2=small star companion — copy appearance exactly. "
-                "Two distinct characters: @image1 is fully human, @image2 is a small glowing star."
-            )
+            # All adventure books: use centralized build_ref_note function
+            _adv_gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
+            _adv_eye_str = (_eye_color_map.get(_eye_color_raw, _eye_color_raw) + " eyes") if _eye_color_raw else "dark brown eyes"
+            from services.personalized_books.age_profiles_nophoto import get_age_profile_nophoto as _get_adv_nophoto
+            _adv_nophoto_profile, _ = _get_adv_nophoto(child_age_int)
+            _adv_age_display = _adv_nophoto_profile['display']
+            _adv_cover_ref = _adv_nophoto_profile['cover_ref']
+            print(f"[SCENE {book_id.upper()}] age={child_age_int} display={_adv_age_display} gender={_adv_gender_word}")
+            if book_id == 'dragon_garden':
+                reference_note = dg_build_ref_note(
+                    _adv_age_display, _adv_gender_word, _adv_cover_ref, _adv_eye_str, dg_get_outfit_desc(gender)
+                )
+            elif book_id == 'magic_chef':
+                reference_note = mc_build_ref_note(
+                    _adv_age_display, _adv_gender_word, _adv_cover_ref, _adv_eye_str, mc_get_outfit_desc(gender)
+                )
+            elif book_id == 'magic_inventor':
+                reference_note = mi_build_ref_note(
+                    _adv_age_display, _adv_gender_word, _adv_cover_ref, _adv_eye_str, mi_get_outfit_desc(gender)
+                )
+            elif book_id == 'star_keeper':
+                reference_note = sk_build_ref_note(
+                    _adv_age_display, _adv_gender_word, _adv_cover_ref, _adv_eye_str, sk_get_outfit_desc(gender)
+                )
+            else:
+                reference_note = ca_build_ref_note(
+                    _adv_age_display, _adv_gender_word, _adv_cover_ref, _adv_eye_str, ca_get_outfit_desc(gender)
+                )
         enhanced_prompt = f"{reference_note}\n{prompt}"
 
         from services.replicate_service import get_gender_negative_prompt
-        neg_prompt_furry = get_gender_negative_prompt(gender)
+        if book_id == 'centinela_aurora':
+            # Custom CA negative: sin supresión de cola (ASTRO tiene cola legítima).
+            # Sí suprime: multi-cola, rasgos animales en el niño, género incorrecto.
+            _ca_neg_base_s = (
+                "text, watermark, signature, logo, letters, words, ugly, deformed, blurry, low quality, "
+                "distorted face, wings on child, animal features on human, furry child, "
+                "animal ears, cat ears, bunny ears, fox ears, extra limbs, hybrid creature, "
+                "animal body parts on human, two tails, multiple tails, double tail, split tail, extra tail, floating star, detached star, star beside tail, star separate from tail"
+            )
+            neg_prompt_furry = (
+                (_ca_neg_base_s + ", masculine features, boy haircut") if gender == 'female'
+                else (_ca_neg_base_s + ", earrings, jewelry, bows, ribbons, makeup, lipstick, feminine accessories, girl features, ponytails, pigtails") if gender == 'male'
+                else _ca_neg_base_s
+            )
+        elif book_id == 'magic_chef':
+            # MC: suppress text/logos + duplicate human characters (cake companion must not become a child)
+            _mc_neg_base_s = (
+                "text, watermark, signature, logo, letters, words, ugly, deformed, blurry, low quality, "
+                "distorted face, wings on child, animal features on human, furry child, "
+                "animal ears, extra limbs, duplicate human character, two children, two human figures, "
+                "extra human figure, second chef, extra chef"
+            )
+            neg_prompt_furry = (
+                (_mc_neg_base_s + ", masculine features, boy haircut") if gender == 'female'
+                else (_mc_neg_base_s + ", earrings, jewelry, bows, ribbons, makeup, lipstick, feminine accessories, girl features, ponytails, pigtails") if gender == 'male'
+                else _mc_neg_base_s
+            )
+        else:
+            neg_prompt_furry = get_gender_negative_prompt(gender)
+
+        _scene_extra_neg = scene_config.get('negative_prompt', '')
+        if _scene_extra_neg:
+            neg_prompt_furry = f"{neg_prompt_furry}, {_scene_extra_neg}"
 
         for attempt in range(MAX_RETRIES + 1):
             try:
                 print(f"[SCENE {scene_id}] FLUX 2 Dev + 2 refs attempt {attempt + 1}/{MAX_RETRIES + 1} (strength={scene_strength})...")
-                with open(reference_image_path, "rb") as ref1, open(reference_image_path_2, "rb") as ref2:
-                    output = replicate.run(
-                        "black-forest-labs/flux-2-dev",
-                        input={
-                            "prompt": enhanced_prompt,
-                            "input_images": [ref1, ref2],
-                            "aspect_ratio": "3:4",
-                            "output_format": "png",
-                            "go_fast": False,
-                            "image_prompt_strength": scene_strength,
-                            "negative_prompt": neg_prompt_furry
-                        }
-                    )
+                import base64 as _b64
+                def _img_b64(p):
+                    with open(p, "rb") as _f:
+                        return "data:image/png;base64," + _b64.b64encode(_f.read()).decode()
+                output = replicate.run(
+                    "black-forest-labs/flux-2-dev",
+                    input={
+                        "prompt": enhanced_prompt,
+                        "input_images": [_img_b64(reference_image_path), _img_b64(reference_image_path_2)],
+                        "aspect_ratio": "3:4",
+                        "output_format": "png",
+                        "go_fast": False,
+                        "image_prompt_strength": scene_strength,
+                        "negative_prompt": neg_prompt_furry
+                    }
+                )
 
                 if isinstance(output, list) and len(output) > 0:
                     image_url = output[0]
@@ -620,20 +650,50 @@ def generate_scene_complete(
                     print(f"[SCENE {scene_id}] CRITICAL: All {MAX_RETRIES + 1} attempts failed for FLUX 2 Dev + 2 refs.")
                     raise RuntimeError(f"FLUX 2 Dev failed for scene {scene_id} after {MAX_RETRIES + 1} attempts: {e}")
 
-    if book_id == 'centinela_aurora' and _ca_is_solo:
-        from services.fixed_stories import get_age_body_desc as _get_age_body_solo
-        _ca_age_group_s, _ca_age_body_desc_s = _get_age_body_solo(child_age_int)
-        _ca_gw_s = "boy" if gender == "male" else "girl" if gender == "female" else "child"
-        _ca_age_display_s = f"{child_age_int} year old"
-        # ── FLUX 2 Dev prompt (compacted Jul 2026, see .agents/memory/flux-cover-negation-bloat.md) ──
-        # NOTA: NO incluir STYLE_BASE aquí — el scene_template ya lo inyecta vía {style}.
-        reference_note = (
-            f"@image1 = the approved {_ca_gw_s} of exactly {_ca_age_display_s} — definitive visual reference, keep visually consistent throughout. "
-            f"Maintain exact age-specific anatomical proportions: {_ca_age_body_desc_s}. "
-            f"Replicate the exact facial identity, original skin tone, hair color, texture, and hairstyle from @image1. "
-            + (f"Eyes: {_eye_color_map.get(_eye_color_raw, _eye_color_raw)} — render this exact color. " if _eye_color_raw else "") +
-            "CHARACTER: Render a single human character, @image1 only."
-        )
+    if _ca_is_solo:
+        # Solo scene (no companion) for any adventure book
+        _solo_gw = "boy" if gender == "male" else "girl" if gender == "female" else "child"
+        _solo_eye_str = (_eye_color_map.get(_eye_color_raw, _eye_color_raw) + " eyes") if _eye_color_raw else "dark brown eyes"
+        _solo_has_photo = bool(traits.get('human_photo_path', '')) if traits else False
+        if _solo_has_photo:
+            # SISTEMA 1: refuerzo de identidad desde portrait Kontext
+            from services.age_profiles import get_age_profile as _get_age_body_solo
+            _solo_profile, _solo_range_key = _get_age_body_solo(child_age_int)
+            _solo_age_display = _solo_profile['display']
+            print(f"[SCENE {book_id.upper()} SOLO S1] age={child_age_int} range={_solo_range_key} display={_solo_age_display}")
+            reference_note = (
+                f"REFERENCE\n\n"
+                f"@image1 is the approved main character.\n"
+                f"Use @image1 as the definitive visual reference.\n"
+                f"Keep @image1 visually consistent throughout the illustration.\n\n"
+                f"@image1 is a {_solo_age_display} {_solo_gw}.\n"
+                f"Maintain the body proportions, height and facial maturity of a {_solo_age_display} as shown in @image1.\n"
+                f"@image1 has {_solo_eye_str} — render this exact eye color.\n"
+                f"Preserve the skin tone, hair color, hair texture, and hairstyle from @image1 exactly.\n\n"
+                f"CHARACTER\n\n"
+                f"Render a single human character: @image1 only.\n"
+                f"The illustration contains only @image1.\n"
+                f"Maintain the complete visual identity of @image1 throughout the illustration."
+            )
+        else:
+            # SISTEMA 2: FLUX portrait — confiamos en @image1
+            from services.personalized_books.age_profiles_nophoto import get_age_profile_nophoto as _get_solo_nophoto
+            _solo_nophoto_profile, _ = _get_solo_nophoto(child_age_int)
+            _solo_age_display = _solo_nophoto_profile['display']
+            print(f"[SCENE {book_id.upper()} SOLO S2] age={child_age_int} display={_solo_age_display} gender={_solo_gw}")
+            reference_note = (
+                f"REFERENCE\n\n"
+                f"@image1 is the approved main character.\n"
+                f"Use @image1 as the definitive visual reference.\n"
+                f"Keep @image1 visually consistent throughout the illustration.\n\n"
+                f"@image1 is a {_solo_age_display} {_solo_gw}.\n"
+                f"Maintain the body proportions, height and facial maturity exactly as shown in @image1.\n"
+                f"@image1 has {_solo_eye_str} — render this exact eye color.\n\n"
+                f"CHARACTER\n\n"
+                f"Render a single human character: @image1 only.\n"
+                f"The illustration contains only @image1.\n"
+                f"Maintain the complete visual identity of @image1 throughout the illustration."
+            )
     else:
         gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
         reference_note = (
@@ -649,19 +709,22 @@ def generate_scene_complete(
     for attempt in range(MAX_RETRIES + 1):
         try:
             print(f"[SCENE {scene_id}] FLUX 2 Dev + 1 ref attempt {attempt + 1}/{MAX_RETRIES + 1} (strength={scene_strength})...")
-            with open(reference_image_path, "rb") as ref_file:
-                output = replicate.run(
-                    "black-forest-labs/flux-2-dev",
-                    input={
-                        "prompt": enhanced_prompt,
-                        "input_images": [ref_file],
-                        "aspect_ratio": "3:4",
-                        "output_format": "png",
-                        "go_fast": False,
-                        "negative_prompt": neg_prompt,
-                        "image_prompt_strength": scene_strength
-                    }
-                )
+            import base64 as _b64
+            def _img_b64_1(p):
+                with open(p, "rb") as _f:
+                    return "data:image/png;base64," + _b64.b64encode(_f.read()).decode()
+            output = replicate.run(
+                "black-forest-labs/flux-2-dev",
+                input={
+                    "prompt": enhanced_prompt,
+                    "input_images": [_img_b64_1(reference_image_path)],
+                    "aspect_ratio": "3:4",
+                    "output_format": "png",
+                    "go_fast": False,
+                    "negative_prompt": neg_prompt,
+                    "image_prompt_strength": scene_strength
+                }
+            )
 
             if isinstance(output, list) and len(output) > 0:
                 image_url = output[0]
@@ -696,11 +759,21 @@ def add_text_split(
     vert_margin_px: int = None
 ) -> Image.Image:
     """
-    Split text: top half at top, bottom half at bottom.
-    horiz_margin_px: left/right margin for word-wrap (symmetric).
-    vert_margin_px:  distance from top/bottom edge for text blocks.
-                     Defaults to horiz_margin_px if not provided.
+    MMB Editorial Composition Engine — certified spec.
+
+    Splits text at sentence boundaries (.!?…), evaluates all possible
+    split points, and chooses the one that produces the most balanced
+    layout while guaranteeing both blocks fit without overlapping.
+
+    Rules:
+    - Never cuts a sentence between top and bottom blocks.
+    - Single sentence → entire text placed in the bottom block.
+    - All geometry derived from existing margins; no new hardcoded values.
+    - Single _wrap() function used for both simulation and rendering.
+    - Debug logs emitted when FLASK_DEBUG=1 or TEXT_SPLIT_DEBUG=1.
     """
+    import re as _re
+
     result = image.copy()
     draw = ImageDraw.Draw(result)
     img_width, img_height = result.size
@@ -722,36 +795,129 @@ def add_text_split(
         font = ImageFont.load_default()
 
     text_area_width = img_width - (2 * horiz_margin_px)
-
-    words = text.split()
-    lines = []
-    current_line = ""
-    for word in words:
-        test_line = f"{current_line} {word}".strip()
-        bbox = draw.textbbox((0, 0), test_line, font=font)
-        if bbox[2] - bbox[0] <= text_area_width:
-            current_line = test_line
-        else:
-            if current_line:
-                lines.append(current_line)
-            current_line = word
-    if current_line:
-        lines.append(current_line)
-
-    if len(lines) <= 2:
-        top_lines = lines
-        bottom_lines = []
-    elif len(lines) == 3:
-        top_lines = lines[:1]
-        bottom_lines = lines[1:]
-    else:
-        mid = len(lines) // 2
-        top_lines = lines[:mid]
-        bottom_lines = lines[mid:]
-
     line_height = font_size + 8
     shadow_offset = max(2, font_size // 20)
 
+    debug = (
+        os.environ.get("FLASK_DEBUG", "0") == "1"
+        or os.environ.get("TEXT_SPLIT_DEBUG", "0") == "1"
+    )
+
+    # ── Single shared word-wrap function ─────────────────────────────────────
+    # Used for both simulation and final rendering — never duplicated.
+    def _wrap(t: str) -> list:
+        words = t.split()
+        lines = []
+        current = ""
+        for word in words:
+            candidate = f"{current} {word}".strip()
+            bbox = draw.textbbox((0, 0), candidate, font=font)
+            if bbox[2] - bbox[0] <= text_area_width:
+                current = candidate
+            else:
+                if current:
+                    lines.append(current)
+                current = word
+        if current:
+            lines.append(current)
+        return lines
+
+    # ── Sentence detection ────────────────────────────────────────────────────
+    # Fixed-width lookbehind: splits on whitespace that follows . ! ? or …
+    # No language-specific rules; closing quote stays with its sentence.
+    sentences = _re.split(r'(?<=[.!?…])\s+', text.strip())
+    sentences = [s.strip() for s in sentences if s.strip()]
+
+    # ── Single sentence → bottom block only ──────────────────────────────────
+    if len(sentences) <= 1:
+        top_lines = []
+        bottom_lines = _wrap(text.strip())
+        if debug:
+            print(
+                f"[TEXT_SPLIT] Sentences: 1 | Split: 0+1 | "
+                f"Top lines: 0 | Bot lines: {len(bottom_lines)} | ΔH: 0px"
+            )
+
+    else:
+        # ── Typography quality score ──────────────────────────────────────────
+        # Penalties are expressed in pixels (same unit as ΔH) so they are
+        # comparable. Values calibrated to be significant but not overwhelming.
+        ORPHAN_THRESHOLD  = text_area_width * 0.30   # last line < 30% width → orphan
+        SHORT_THRESHOLD   = text_area_width * 0.40   # first line of top < 40% → short
+        ORPHAN_PENALTY    = line_height               # ≈ 1 extra line of imbalance
+        SHORT_PENALTY     = line_height // 2          # half a line
+
+        def _px_width(line: str) -> int:
+            b = draw.textbbox((0, 0), line, font=font)
+            return b[2] - b[0]
+
+        def _score(t_lines: list, b_lines: list) -> tuple:
+            """Returns (composite_score, delta_h, penalties) for logging."""
+            delta_h = abs(len(t_lines) - len(b_lines)) * line_height
+            pen = 0
+            # Orphan: last line of either block is very short
+            if t_lines and _px_width(t_lines[-1]) < ORPHAN_THRESHOLD:
+                pen += ORPHAN_PENALTY
+            if b_lines and _px_width(b_lines[-1]) < ORPHAN_THRESHOLD:
+                pen += ORPHAN_PENALTY
+            # Short first line of top block looks visually unbalanced
+            if t_lines and _px_width(t_lines[0]) < SHORT_THRESHOLD:
+                pen += SHORT_PENALTY
+            return delta_h + pen, delta_h, pen
+
+        # ── Evaluate all N-1 split points ────────────────────────────────────
+        best_split_k  = None
+        best_score    = float("inf")
+        best_top_lines = []
+        best_bot_lines = []
+
+        for k in range(1, len(sentences)):
+            t_lines = _wrap(" ".join(sentences[:k]))
+            b_lines = _wrap(" ".join(sentences[k:]))
+
+            altura_top = len(t_lines) * line_height
+            altura_bot = len(b_lines) * line_height
+
+            # Both blocks must fit without overlapping.
+            # top  block: vert_margin_px  →  vert_margin_px + altura_top
+            # bot  block: img_height - vert_margin_px - altura_bot  →  img_height - vert_margin_px
+            top_end_y   = vert_margin_px + altura_top
+            bot_start_y = img_height - vert_margin_px - altura_bot
+
+            if top_end_y > bot_start_y:
+                continue  # blocks overlap → discard this split
+
+            score, _, _ = _score(t_lines, b_lines)
+            # Prefer lowest score; on tie prefer more content in bottom (larger k)
+            if score < best_score or (score == best_score and best_split_k is not None and k > best_split_k):
+                best_score   = score
+                best_split_k = k
+                best_top_lines = t_lines
+                best_bot_lines = b_lines
+
+        if best_split_k is None:
+            # No valid split found → fallback: all text at bottom (backward-compat)
+            top_lines = []
+            bottom_lines = _wrap(text.strip())
+            if debug:
+                print(
+                    f"[TEXT_SPLIT] Sentences: {len(sentences)} | "
+                    f"WARNING: no valid split — all text placed at bottom"
+                )
+        else:
+            top_lines = best_top_lines
+            bottom_lines = best_bot_lines
+            if debug:
+                final_score, delta_h, pen = _score(top_lines, bottom_lines)
+                n_rest = len(sentences) - best_split_k
+                print(
+                    f"[TEXT_SPLIT] Sentences: {len(sentences)} | "
+                    f"Split: {best_split_k}+{n_rest} | "
+                    f"Top lines: {len(top_lines)} | Bot lines: {len(bottom_lines)} | "
+                    f"ΔH: {delta_h}px | Penalties: {pen}px | Score: {final_score}px"
+                )
+
+    # ── Render top block ──────────────────────────────────────────────────────
     if top_lines:
         y = vert_margin_px
         for line in top_lines:
@@ -762,6 +928,7 @@ def add_text_split(
             draw.text((x, y), line, font=font, fill=text_color)
             y += line_height
 
+    # ── Render bottom block (dynamic Y from real height) ──────────────────────
     if bottom_lines:
         total_height = len(bottom_lines) * line_height
         y = img_height - vert_margin_px - total_height
@@ -783,7 +950,7 @@ def add_text_to_image(
     text_color: str = "#FFFFFF",
     shadow_color: str = "#000000",
     font_size: int = 38,
-    margin_percent: float = 0.143,
+    margin_percent: float = 0.103,
     vert_margin_percent: float = 0.0505
 ) -> Image.Image:
     """
@@ -791,7 +958,7 @@ def add_text_to_image(
     This adapts to any image dimensions.
 
     font_size=38 at 1024px → 22pt at A4 300dpi print.
-    margin_percent=0.143 → 3cm horizontal margin on each side.
+    margin_percent=0.103 → ~2.1cm horizontal margin on each side (+8% text width vs old 0.143).
     vert_margin_percent=0.0505 → 1.5cm vertical margin top/bottom.
 
     Args:
@@ -1180,21 +1347,23 @@ def generate_closing_page(
             f"@image1 has {_closing_eye_color_map.get(_closing_eye_color_raw, _closing_eye_color_raw)} eyes. Render this exact eye color.\n\n"
             if _closing_eye_color_raw else ""
         )
-        from services.fixed_stories import get_age_body_desc as _get_age_body_closing
         _closing_child_age = traits.get('child_age', '6') if traits else '6'
         _closing_age_int = int(_closing_child_age) if str(_closing_child_age).isdigit() else 6
-        _closing_age_group, _ = _get_age_body_closing(_closing_age_int)
         _closing_gw = "boy" if gender == "male" else "girl" if gender == "female" else "child"
         from services.personalized_books.centinela_aurora_prompts import STYLE_BASE as _CA_STYLE_CLOSING
+        from services.personalized_books.age_profiles_nophoto import get_age_profile_nophoto as _get_closing_nophoto
+        _closing_nophoto_profile, _ = _get_closing_nophoto(_closing_age_int)
+        _closing_age_display = _closing_nophoto_profile['display']
+        _closing_proportions_line = f"{_closing_nophoto_profile['cover_ref']}.\n"
         reference_note = (
             "REFERENCE\n\n"
             "@image1 is the approved main character.\n"
             "Use @image1 as the definitive visual reference.\n"
             "Keep @image1 visually consistent throughout the illustration.\n\n"
-            f"@image1 is a {_closing_gw}.\n"
-            f"Maintain the body proportions, height and facial maturity of {_closing_age_group} as shown in @image1.\n"
-            + _closing_eye_s +
-            "CHARACTER\n\n"
+            f"@image1 is a {_closing_age_display} {_closing_gw}.\n"
+            + _closing_proportions_line
+            + _closing_eye_s
+            + "CHARACTER\n\n"
             "Render a single human character: @image1.\n"
             "The illustration contains only @image1.\n\n"
             "STYLE\n\n"
@@ -1209,20 +1378,24 @@ def generate_closing_page(
     from services.replicate_service import get_gender_negative_prompt as _get_neg
     _neg_prompt = _get_neg(gender)
 
+    import base64 as _b64c
+    def _closing_b64(p):
+        with open(p, "rb") as _f:
+            return "data:image/png;base64," + _b64c.b64encode(_f.read()).decode()
+
     try:
-        with open(reference_image_path, "rb") as ref_file:
-            output = replicate.run(
-                "black-forest-labs/flux-2-dev",
-                input={
-                    "prompt": enhanced_prompt,
-                    "input_images": [ref_file],
-                    "aspect_ratio": "3:4",
-                    "output_format": "png",
-                    "go_fast": False,
-                    "negative_prompt": _neg_prompt,
-                    "image_prompt_strength": 0.75
-                }
-            )
+        output = replicate.run(
+            "black-forest-labs/flux-2-dev",
+            input={
+                "prompt": enhanced_prompt,
+                "input_images": [_closing_b64(reference_image_path)],
+                "aspect_ratio": "3:4",
+                "output_format": "png",
+                "go_fast": False,
+                "negative_prompt": _neg_prompt,
+                "image_prompt_strength": 0.9
+            }
+        )
         
         if isinstance(output, list) and len(output) > 0:
             image_url = output[0]
@@ -1245,19 +1418,18 @@ def generate_closing_page(
         try:
             import time
             time.sleep(3)
-            with open(reference_image_path, "rb") as ref_file:
-                output = replicate.run(
-                    "black-forest-labs/flux-2-dev",
-                    input={
-                        "prompt": enhanced_prompt,
-                        "input_images": [ref_file],
-                        "aspect_ratio": "3:4",
-                        "output_format": "png",
-                        "go_fast": False,
-                        "negative_prompt": _neg_prompt,
-                        "image_prompt_strength": 0.75
-                    }
-                )
+            output = replicate.run(
+                "black-forest-labs/flux-2-dev",
+                input={
+                    "prompt": enhanced_prompt,
+                    "input_images": [_closing_b64(reference_image_path)],
+                    "aspect_ratio": "3:4",
+                    "output_format": "png",
+                    "go_fast": False,
+                    "negative_prompt": _neg_prompt,
+                    "image_prompt_strength": 0.9
+                }
+            )
             if isinstance(output, list) and len(output) > 0:
                 image_url = output[0]
             elif isinstance(output, str):
@@ -1393,7 +1565,8 @@ def generate_cover_spread(
     
     front_prompt += "\nPure illustration only, open sky and empty space in the upper area."
     
-    is_star_keeper_cover = (book_id in ('star_keeper', 'dragon_garden', 'centinela_aurora'))
+    _adv_cover_book_ids = ('star_keeper', 'dragon_garden', 'magic_chef', 'magic_inventor', 'centinela_aurora')
+    is_star_keeper_cover = (book_id in _adv_cover_book_ids)
     # For furry_love books: if only ONE reference was passed (cover_raw.png, the
     # already-approved cover with human+pet merged), reuse it directly instead of
     # regenerating with FLUX. Only regenerate with FLUX when TWO separate refs
@@ -1401,7 +1574,7 @@ def generate_cover_spread(
     reuse_preview_as_cover = (
         reference_image_path and os.path.exists(reference_image_path)
         and not reference_image_path_2
-        and not is_star_keeper_cover
+        and (not is_star_keeper_cover or book_id == 'centinela_aurora')
     )
     
     if reuse_preview_as_cover:
@@ -1440,28 +1613,41 @@ def generate_cover_spread(
                 )
                 cover_prompt_final = f"{furry_cover_ref_note}\n{front_prompt}"
             elif is_star_keeper_cover and has_refs:
+                # All adventure books: use centralized build_ref_note
+                from services.personalized_books.age_profiles_nophoto import get_age_profile_nophoto as _adv_cover_nophoto_fn
+                _adv_cover_gw = "boy" if gender == "male" else "girl" if gender == "female" else "child"
+                _adv_cover_nophoto_profile, _adv_cover_range_key = _adv_cover_nophoto_fn(child_age_int)
+                _adv_cover_eye_raw = traits.get('eye_color', '') if traits else ''
+                _adv_cover_eye_map = {
+                    'blue': 'bright blue', 'green': 'green', 'brown': 'brown',
+                    'hazel': 'hazel', 'gray': 'gray', 'dark_brown': 'dark brown',
+                }
+                _adv_cover_eye_str = (_adv_cover_eye_map.get(_adv_cover_eye_raw, _adv_cover_eye_raw) + " eyes") if _adv_cover_eye_raw else "dark brown eyes"
+                print(f"[COVER {book_id.upper()}] age={child_age_int} range={_adv_cover_range_key} display={_adv_cover_nophoto_profile['display']}")
                 if book_id == 'dragon_garden':
-                    sk_cover_ref_note = (
-                        f"The child in @image1 is {child_age_int} years old. "
-                        "@image1=child character — copy face, hair, skin, and outfit exactly. "
-                        "@image2=small emerald dragon SPARK — copy appearance exactly. "
-                        "Two distinct characters: @image1 is fully human, @image2 is a small baby dragon."
+                    sk_cover_ref_note = dg_build_ref_note(
+                        _adv_cover_nophoto_profile['display'], _adv_cover_gw,
+                        _adv_cover_nophoto_profile['cover_ref'], _adv_cover_eye_str, dg_get_outfit_desc(gender)
                     )
-                elif book_id == 'centinela_aurora':
-                    sk_cover_ref_note = (
-                        f"The child in @image1 is {child_age_int} years old. "
-                        "@image1=child character — copy face, hair, skin, and outfit exactly. ONE child only. "
-                        "@image2=small electric-blue fox ASTRO — copy appearance exactly. "
-                        "CRITICAL: @image1 is the ONLY human. "
-                        "@image2 is a small four-legged animal fox, electric blue fur, NOT a person. "
-                        "Two separate characters: one human child, one tiny fox animal."
+                elif book_id == 'magic_chef':
+                    sk_cover_ref_note = mc_build_ref_note(
+                        _adv_cover_nophoto_profile['display'], _adv_cover_gw,
+                        _adv_cover_nophoto_profile['cover_ref'], _adv_cover_eye_str, mc_get_outfit_desc(gender)
+                    )
+                elif book_id == 'magic_inventor':
+                    sk_cover_ref_note = mi_build_ref_note(
+                        _adv_cover_nophoto_profile['display'], _adv_cover_gw,
+                        _adv_cover_nophoto_profile['cover_ref'], _adv_cover_eye_str, mi_get_outfit_desc(gender)
+                    )
+                elif book_id == 'star_keeper':
+                    sk_cover_ref_note = sk_build_ref_note(
+                        _adv_cover_nophoto_profile['display'], _adv_cover_gw,
+                        _adv_cover_nophoto_profile['cover_ref'], _adv_cover_eye_str, sk_get_outfit_desc(gender)
                     )
                 else:
-                    sk_cover_ref_note = (
-                        f"The child in @image1 is {child_age_int} years old. "
-                        "@image1=child character — copy face, hair, skin, and outfit exactly. "
-                        "@image2=small star companion — copy appearance exactly. "
-                        "Two distinct characters: @image1 is fully human, @image2 is a small glowing star."
+                    sk_cover_ref_note = ca_build_ref_note(
+                        _adv_cover_nophoto_profile['display'], _adv_cover_gw,
+                        _adv_cover_nophoto_profile['cover_ref'], _adv_cover_eye_str, ca_get_outfit_desc(gender)
                     )
                 cover_prompt_final = f"{sk_cover_ref_note}\n{front_prompt}"
             flux_input = {
@@ -1612,6 +1798,11 @@ def generate_cover_spread(
             title = f"{child_name} Guardián de Estrellas"
         else:
             title = f"{child_name} The Star Keeper"
+    elif book_id in ("centinela_aurora", "centinela_aurora_illustrated"):
+        if language == "es":
+            title = f"{child_name} y el Centinela de la Aurora"
+        else:
+            title = f"{child_name} and the Aurora Sentinel"
     elif book_id == "furry_love":
         pet_name = traits.get('pet_name', '')
         if language == "es":
@@ -1703,9 +1894,9 @@ def generate_cover_spread(
             main_title = f"The Star Keeper"
     elif book_id in ("centinela_aurora", "centinela_aurora_illustrated"):
         if language == "es":
-            main_title = "El Centinela de la Aurora"
+            main_title = f"{child_name} y el Centinela de la Aurora"
         else:
-            main_title = "The Aurora Sentinel"
+            main_title = f"{child_name} and the Aurora Sentinel"
     elif book_id == "furry_love":
         pet_name_cover = traits.get('pet_name', '')
         if language == "es":
@@ -2041,7 +2232,7 @@ def generate_full_book(
             "#FFFFFF",
             "#000000",
             38,
-            0.143
+            0.103
         )
 
         pages.append(final_page)
