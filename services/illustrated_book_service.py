@@ -1574,7 +1574,7 @@ def generate_cover_spread(
     reuse_preview_as_cover = (
         reference_image_path and os.path.exists(reference_image_path)
         and not reference_image_path_2
-        and (not is_star_keeper_cover or book_id == 'centinela_aurora')
+        and (not is_star_keeper_cover or book_id in ('centinela_aurora', 'magic_chef'))
     )
     
     if reuse_preview_as_cover:
@@ -2219,6 +2219,12 @@ def generate_full_book(
         else:
             text = scene_config.get(text_key, scene_config.get("text_es", ""))
         text = text.replace("{name}", child_name)
+        if gender == 'male':
+            text = text.replace('{heshe}', 'he').replace('{hisher}', 'his').replace('{herhim}', 'him')
+        elif gender == 'female':
+            text = text.replace('{heshe}', 'she').replace('{hisher}', 'her').replace('{herhim}', 'her')
+        else:
+            text = text.replace('{heshe}', 'they').replace('{hisher}', 'their').replace('{herhim}', 'them')
         pet_name = traits.get('pet_name', '')
         if pet_name:
             text = text.replace("{pet_name}", pet_name)
