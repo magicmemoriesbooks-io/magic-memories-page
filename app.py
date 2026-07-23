@@ -3563,6 +3563,8 @@ def regenerate_cover(preview_id):
                 STYLE_BASE_COVER as DG_STYLE_BASE_COVER,
                 get_outfit_desc as dg_get_outfit_desc,
                 build_ref_note as dg_build_ref_note_fn,
+                build_kontext_prompt as dg_build_kontext_prompt,
+                build_avatar_prompt as dg_build_avatar_prompt,
             )
             from services.personalized_books.preview import generate_with_flux2_dev, generate_with_flux_kontext
             from services.replicate_service import save_image_locally, create_cover_from_character, get_gender_negative_prompt
@@ -3584,6 +3586,13 @@ def regenerate_cover(preview_id):
             )
             dg_neg_regen = (_dg_neg_base_regen + ", masculine features, boy haircut") if gender_regen == 'female' else (_dg_neg_base_regen + ", earrings, jewelry, bows, ribbons, makeup, lipstick, feminine accessories, girl features, ponytails, pigtails") if gender_regen == 'male' else _dg_neg_base_regen
             dg_scene_regen = DG_FRONT_COVER.get('prompt', '').replace('{style}', DG_STYLE_BASE_COVER)
+            from services.age_profiles import get_age_profile as _dg_regen_age_fn
+            _dg_regen_profile, _dg_regen_range_key = _dg_regen_age_fn(child_age_regen)
+            _dg_regen_age_body_desc = _dg_regen_profile['kontext']
+            print(f"[REGEN COVER DG] age={child_age_regen} range={_dg_regen_range_key} display={_dg_regen_profile['display']}")
+            _dg_regen_eye_raw = traits.get('eye_color', '')
+            from services.fixed_stories import get_eye_description as _dg_regen_eye_fn
+            eye_desc_regen = _dg_regen_eye_fn(traits) if _dg_regen_eye_raw else ''
 
             if human_photo_path_regen and os.path.exists(human_photo_path_regen):
                 portrait_path_regen = None
@@ -3594,18 +3603,35 @@ def regenerate_cover(preview_id):
                         portrait_path_regen = saved_portrait_path
                         print(f"[REGEN COVER DG] Reusing saved Kontext portrait: {portrait_path_regen}")
                 if not portrait_path_regen:
-                    kontext_prompt_regen = (
-                        f"The child in @image1 is {child_age_regen} years old. "
-                        f"Convert @image1 into a Disney Pixar 3D animated children's book character. "
-                        f"Copy the face, hair colour, skin tone, and eye colour from @image1 exactly — identical likeness. "
-                        f"Replace all clothing with: {outfit_desc_regen}. "
-                        f"Full body visible from head to feet, standing pose, joyful adventurous smile. "
-                        f"Background: soft green magical garden atmosphere with golden sparkles, plain studio — "
-                        f"no dragon, no detailed scenery."
+                    kontext_prompt_regen = dg_build_kontext_prompt(
+                        age_display_regen, gender_word_regen,
+                        _dg_regen_age_body_desc, eye_desc_regen, outfit_desc_regen
                     )
-                    print(f"[REGEN COVER DG] Step 1 — Kontext portrait | photo={human_photo_path_regen} | age={child_age_regen}")
+                    print(f"[REGEN COVER DG] PASO 1 — Kontext | photo={human_photo_path_regen} | age={child_age_regen}")
                     portrait_url_regen = generate_with_flux_kontext(kontext_prompt_regen, human_photo_path_regen, aspect_ratio="3:4")
-                    portrait_path_regen = save_image_locally(portrait_url_regen, f'{output_dir}/dg_portrait_regen_{uuid.uuid4().hex[:8]}.png')
+                    _kontext_path_regen = save_image_locally(portrait_url_regen, f'{output_dir}/dg_kontext_regen_{uuid.uuid4().hex[:8]}.png')
+                    # ── PASO 2: FLUX Avatar — traduce Kontext al lenguaje visual FLUX nativo ──
+                    _av_neg_base = (
+                        "text, watermark, signature, logo, letters, words, ugly, deformed, blurry, low quality, "
+                        "distorted face, defined jawline, visible cheekbones, mature face, adult face, teenager, "
+                        "wings on child, animal features on human, furry child, animal ears, extra limbs"
+                    )
+                    _av_neg_gender = (
+                        "masculine features, boy haircut, male jawline" if gender_regen == "female"
+                        else "girl features, ponytails, pigtails, feminine accessories, earrings, jewelry, bows, ribbons, makeup, lipstick"
+                    )
+                    avatar_prompt_regen = dg_build_avatar_prompt(age_display_regen, gender_word_regen)
+                    print(f"[REGEN COVER DG] PASO 2 — FLUX avatar | kontext={_kontext_path_regen}")
+                    avatar_url_regen = generate_with_flux2_dev(
+                        avatar_prompt_regen,
+                        aspect_ratio="3:4",
+                        photo_ref_path=_kontext_path_regen,
+                        image_prompt_strength=1.0,
+                        negative_prompt=_av_neg_base + ", " + _av_neg_gender,
+                        force_go_fast=False,
+                    )
+                    portrait_path_regen = save_image_locally(avatar_url_regen, f'{output_dir}/dg_avatar_regen_{uuid.uuid4().hex[:8]}.png')
+                    print(f"[REGEN COVER DG] PASO 2 — Avatar guardado: {portrait_path_regen}")
 
                 # PASO 3: FLUX 2 Dev cover scene — ref_note from prompt file (single source of truth)
                 dg_ref_note_regen = dg_build_ref_note_fn(age_display_regen, gender_word_regen, '', '', '')
