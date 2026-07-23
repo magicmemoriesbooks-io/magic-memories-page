@@ -21,6 +21,8 @@
 
 STYLE_BASE = "Disney Pixar 3D style, soft luminous pastel colors with emerald and golden accents, warm lighting, WIDE SHOT full body from head to feet, characters occupy 40% of frame, environment visible, clean illustration only."
 
+STYLE_BASE_COVER = "Disney Pixar 3D style, soft luminous pastel colors with emerald and golden accents, warm lighting, WIDE SHOT full body from head to feet, characters occupy 65% of frame, environment visible, clean illustration only."
+
 SPARK_INLINE = "SPARK: an adorable baby dragon with small chubby round body covered in shimmering emerald green scales, large expressive golden eyes, tiny translucent iridescent wings, short stubby tail, small rounded snout with a sweet smile, two tiny curved horns on head, soft cream-colored belly"
 
 DRAGON_GARDEN_SCENES = [
@@ -111,7 +113,7 @@ DRAGON_GARDEN_SCENES = [
     {
         "id": 13,
         "text_es": "En el centro del jardín encontraron un árbol antiguo donde cada hoja brillaba con un deseo cumplido. {name} tocó una hoja y sintió calidez en el corazón.",
-        "text_en": "In the center of the garden they found an ancient tree where each leaf glowed with a fulfilled wish. {name} touched a leaf and felt warmth in their heart.",
+        "text_en": "In the center of the garden they found an ancient tree where each leaf glowed with a fulfilled wish. {name} touched a leaf and felt warmth in {hisher} heart.",
         "prompt": "ACTION: @image1 reaches up with eyes closed and a peaceful smile to touch a glowing golden leaf with gentle reverence, @image2 watches beside with wonder and golden light reflecting off scales. SETTING: Enormous wishing tree WIDE VIEW, thousands of glowing leaves in gold pink and blue, ethereal atmosphere, magical sparkles floating. ATMOSPHERE: Peaceful warmth, golden glow. {style}",
         "text_position": "split"
     },
@@ -153,7 +155,7 @@ DRAGON_GARDEN_SCENES = [
     {
         "id": 19,
         "text_es": "{name} volvió a casa bajo las estrellas, pero el Jardín del Dragón siempre vivirá en su corazón. Y colorín colorado, este cuento mágico ha terminado.",
-        "text_en": "{name} returned home under the stars, but the Dragon Garden will always live in their heart. And they lived happily ever after. The End.",
+        "text_en": "{name} returned home under the stars, but the Dragon Garden will always live in {hisher} heart. And {heshe} lived happily ever after. The End.",
         "prompt": "ACTION: @image1 walks home on a winding path through a meadow with a warm smile, looking back over one shoulder waving goodbye. SETTING: Winding path WIDE VIEW, beautiful starry night sky, cozy cottage with warm lights in windows, fireflies glowing, magical atmosphere. ATMOSPHERE: Peaceful goodbye, warm starlit night. STRICT: Only @image1 in this scene. {style}",
         "text_position": "split"
     }
@@ -243,3 +245,71 @@ def get_all_scene_prompts(child_name: str, gender: str, age: int, traits: dict) 
     for scene in DRAGON_GARDEN_SCENES:
         prompts.append(build_scene_prompt(scene, child_name, gender, age, traits))
     return prompts
+
+
+COMPANION = {
+    "name": "SPARK",
+    "reference_image": "static/assets/spark_reference.png",
+    "description": SPARK_INLINE,
+    "negative_prompt": (
+        "fox tail, bunny tail, cat tail, dragon tail on human, animal ears on human, "
+        "animal features on human, robot features, mechanical parts on human"
+    ),
+}
+
+
+def build_kontext_prompt(age_display: str, gender_word: str, age_body_desc: str,
+                         eye_desc: str, outfit_desc: str) -> str:
+    """PASO 1 — Kontext Pro (SISTEMA 1). Official portrait prompt from photo."""
+    return (
+        f"Convert the {age_display} {gender_word} in @image1 into a high-quality 3D animated children's book character. "
+        f"Body proportions: {age_body_desc}. Do not use toddler proportions. "
+        f"Preserve the exact face, skin tone, and hair — identical likeness. "
+        f"If the person in @image1 wears glasses, preserve the glasses exactly in the animated character. "
+        f"Eye color: {eye_desc} — render this exact eye color. "
+        f"OUTFIT: {outfit_desc}. "
+        f"BACKGROUND: soft magical garden atmosphere with golden sparkles, plain studio — no dragon, no scenery. "
+        f"POSE: standing, full body visible from head to feet, joyful adventurous smile, arms relaxed at sides."
+    )
+
+
+def build_avatar_prompt(age_display: str, gender_word: str) -> str:
+    """PASO 2 — FLUX 2 Dev avatar (SISTEMA 1). Minimal prompt at strength=1.0 — copies everything from @image1."""
+    return (
+        f"@image1 = {age_display} {gender_word} character — copy face, skin tone, hair, and outfit from @image1 exactly.\n"
+        f"@image1 standing upright, full body visible from head to feet, arms relaxed at sides, facing forward, big joyful smile.\n"
+        "BACKGROUND: plain deep midnight blue studio, no scenery, no props, no other characters."
+    )
+
+
+def build_ref_note(age_display: str, gender_word: str, cover_ref: str,
+                   eye_desc: str, outfit_desc: str) -> str:
+    """PASO 3 — REF_NOTE. Prompt Maestro for cover and all scenes. SISTEMA 1 and SISTEMA 2."""
+    return (
+        f"@image1 = {age_display} {gender_word} character — copy @image1 exactly.\n"
+        f"@image2 = SPARK, dragon companion — copy @image2 exactly.\n"
+        f"Two distinct characters: @image1 is a fully human {gender_word}, @image2 is the dragon companion."
+    )
+
+
+def build_nophoto_portrait_prompt(age_display: str, gender_word: str, nophoto_profile: dict,
+                                   skin_tone: str, eye_desc: str, hair_line: str,
+                                   haircut_block: str, outfit_desc: str, glasses_desc: str) -> str:
+    """SISTEMA 2 PASO 1 — FLUX portrait from text only (no photo). Single source of truth."""
+    return (
+        "Disney Pixar 3D style illustration, clean full-body character reference sheet.\n\n"
+        f"CHARACTER: A single {gender_word}.\n"
+        f"AGE: Exactly {age_display}, {nophoto_profile['display']}.\n"
+        f"PROPORTIONS: {nophoto_profile['proportions']}\n"
+        f"FACE: {nophoto_profile['face']}\n"
+        f"SKIN: {skin_tone}.\n"
+        f"EYES: {eye_desc} — render this exact eye color.\n"
+        f"HAIR: {hair_line}.\n"
+        f"{haircut_block}"
+        f"OUTFIT: {outfit_desc}{glasses_desc}.\n\n"
+        "POSE: standing upright, full body visible from head to feet, arms relaxed at sides, "
+        "facing forward, innocent open expression, big joyful smile showing baby teeth.\n"
+        "BACKGROUND: plain soft magical garden background with golden sparkles, no scenery, no dragon, no other characters.\n"
+        "STRICT: Only ONE single character. No text, no watermarks, no logos. Clean character reference.\n"
+        "Disney Pixar 3D style, soft luminous pastel colors with emerald and golden accents, warm lighting, clean illustration only."
+    )
