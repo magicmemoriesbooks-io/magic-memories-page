@@ -61,7 +61,7 @@ MAGIC_CHEF_SCENES = [
     {
         "id": 2,
         "text_es": "Cuando {name} se puso el gorro mágico, sintió un cosquilleo especial. \"¡Bienvenido al mundo de la cocina mágica!\", susurró una voz dulce desde el gorro.",
-        "text_en": "When {name} put on the magic hat, they felt a special tingle. \"Welcome to the world of magical cooking!\" whispered a sweet voice from the hat.",
+        "text_en": "When {name} put on the magic hat, {heshe} felt a special tingle. \"Welcome to the world of magical cooking!\" whispered a sweet voice from the hat.",
         "prompt": "ACTION: @image1 stands with eyes sparkling with excitement as the chef's hat glows and sparkles with golden light, the hat's animated eyes light up and its mouth moves as it whispers magically, ingredients float around @image1. SETTING: Magical kitchen transforming WIDE VIEW, floating ingredients, golden sparkles everywhere. ATMOSPHERE: Magic activation, warm golden shimmer. STRICT: Only @image1 in this scene. {style}",
         "text_position": "split"
     },
@@ -145,14 +145,14 @@ MAGIC_CHEF_SCENES = [
     {
         "id": 14,
         "text_es": "{name} cerró los ojos y pensó en lo que más amaba: su familia, sus amigos, los momentos felices. \"¡Ya sé qué haré!\", exclamó.",
-        "text_en": "{name} closed their eyes and thought about what they loved most: family, friends, happy moments. \"I know what I'll make!\" they exclaimed.",
+        "text_en": "{name} closed {hisher} eyes and thought about what {heshe} loved most: family, friends, happy moments. \"I know what I'll make!\" {heshe} exclaimed.",
         "prompt": "ACTION: @image1 stands in a thoughtful inspired pose with eyes closed and a glowing thought bubble floating in the air containing a cozy house and loving silhouettes, sparkles and hearts surround it. SETTING: Cooking station WIDE VIEW, warm gentle lighting. ATMOSPHERE: Inspiration and love, hearts floating. STRICT: Only @image1 in this scene. {style}",
         "text_position": "split"
     },
     {
         "id": 15,
         "text_es": "Con ingredientes mágicos y todo su amor, {name} creó el \"Pastel de los Recuerdos Felices\": capas de alegría, relleno de abrazos y glaseado de sonrisas.",
-        "text_en": "With magical ingredients and all their love, {name} created the \"Happy Memories Cake\": layers of joy, filling of hugs, and frosting of smiles.",
+        "text_en": "With magical ingredients and all {hisher} love, {name} created the \"Happy Memories Cake\": layers of joy, filling of hugs, and frosting of smiles.",
         "prompt": "ACTION: @image1 holds up proudly a beautiful whole round cake with multiple bright colorful layers, heart-shaped sparkles and golden light emanating from it. SETTING: Warm magical kitchen WIDE VIEW, wooden counters, hanging copper pots, floating spoons stirring, glowing brick oven. ATMOSPHERE: Love and creation, heart sparkles. STRICT: Only @image1 in this scene. {style}",
         "text_position": "split"
     },
@@ -180,7 +180,7 @@ MAGIC_CHEF_SCENES = [
     {
         "id": 19,
         "text_es": "{name} regresó a casa con su gorro mágico y una receta especial en el corazón. Y colorín colorado, este cuento delicioso ha terminado.",
-        "text_en": "{name} returned home with the magic hat and a special recipe in their heart. And they lived sweetly ever after. The End.",
+        "text_en": "{name} returned home with the magic hat and a special recipe in {hisher} heart. And {heshe} lived sweetly ever after. The End.",
         "prompt": "ACTION: @image1 walks along a winding country path toward home, looking back with a warm peaceful smile. SETTING: Beautiful sunset scene WIDE VIEW, peaceful meadow with wildflowers, cozy cottage with warm golden lights in the distance, sky in warm pastel pinks oranges and purples, golden sparkles and fireflies. ATMOSPHERE: Peaceful goodbye, warm sunset colors. STRICT: Only @image1 in this scene. {style}",
         "text_position": "split"
     }
