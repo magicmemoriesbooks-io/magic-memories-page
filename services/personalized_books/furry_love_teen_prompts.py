@@ -162,12 +162,6 @@ FURRY_LOVE_TEEN_SCENES = [
     }
 ]
 
-CLOSING_SCENE = {
-    "id": 20,
-    "prompt": "Disney Pixar 3D style illustration. STRICT: exactly ONE teenager at LEFT of frame, exactly ONE pet at RIGHT of frame, sitting together on a hilltop, no extra characters. HUMAN: @image1 = copy exactly @image1: {gender_word} teenager ({age_display}), teen face and proportions — match reference exactly{glasses_desc}, sitting on green grass at LEFT side of a hilltop, legs stretched out, leaning back on both hands, head tilted up toward the warm golden sky, peaceful genuine smile, casual modern clothes. PET: @image2 = {pet_name} ({pet_desc}): copy exactly the animal from @image2, same coat color, body size and figure — match reference exactly, sitting upright at RIGHT side of the same hilltop spot, leaning gently against the teenager's side, tail resting peacefully, looking up at the golden sky too, content calm expression. TOGETHER: teen and pet sit side by side on the hilltop, their silhouettes framed by warm golden sunset light, sharing a quiet timeless moment. SETTING: Grassy hilltop at golden hour WIDE VIEW, vast warm sunset sky with soft orange and pink clouds, wildflowers in the grass, a large tree with golden leaves behind them, birds in the distant sky, town far below. ATMOSPHERE: Golden hour warmth, deep peaceful friendship, beautiful ending, warm orange and gold tones, timeless bond. {style}",
-    "text_position": "none"
-}
-
 FRONT_COVER = {
     "prompt": "Disney Pixar 3D style illustration. STRICT: exactly ONE {gender_word} teenager and exactly ONE pet together at CENTER of frame, other characters absent, pure illustration only. HUMAN: @image1 = copy exactly @image1: {gender_word} teenager, full appearance matching @image1 exactly, sitting on the floor at CENTER-LEFT of frame, knees up, arm around the pet beside them, warm genuine smile, casual modern clothes, relaxed happy posture. PET: @image2 = {pet_name} ({pet_desc}): copy exactly the animal from @image2, same coat color, body size and figure — match reference exactly, sitting close beside the teenager at CENTER-RIGHT of frame, leaning against them naturally, happy relaxed expression, tail resting peacefully. TOGETHER: the teenager and pet sit as a pair at center frame, both looking toward the viewer with contentment and warmth. SETTING: Soft warm background WIDE VIEW, hints of a cozy home, warm golden backlighting creating a halo effect, simple clean composition. ATMOSPHERE: Warm connection, modern and genuine, golden backlight, deep friendship, centered book cover composition. {style}"
 }
@@ -273,7 +267,6 @@ def get_all_scene_prompts(human_desc: str, pet_name: str, pet_desc: str, age_dis
     prompts = []
     for scene in FURRY_LOVE_TEEN_SCENES:
         prompts.append(build_scene_prompt(scene, human_desc, pet_name, pet_desc, age_display, eye_desc, gender_word))
-    prompts.append(build_scene_prompt(CLOSING_SCENE, human_desc, pet_name, pet_desc, age_display, eye_desc, gender_word))
     return prompts
 
 

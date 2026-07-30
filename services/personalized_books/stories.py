@@ -13,7 +13,6 @@ PERSONALIZED_BOOKS = {
         "fulfillment": "cloudprinter",
         "print_pages": 30,
         "illustrations": 22,
-        "has_closing_scene": True,
         "use_fixed_scenes": False
     },
     "magic_chef_illustrated": {
@@ -26,7 +25,6 @@ PERSONALIZED_BOOKS = {
         "fulfillment": "cloudprinter",
         "print_pages": 30,
         "illustrations": 22,
-        "has_closing_scene": True,
         "use_fixed_scenes": False
     },
     "magic_inventor_illustrated": {
@@ -39,7 +37,6 @@ PERSONALIZED_BOOKS = {
         "fulfillment": "cloudprinter",
         "print_pages": 30,
         "illustrations": 22,
-        "has_closing_scene": True,
         "use_fixed_scenes": False
     },
     "star_keeper_illustrated": {
@@ -52,7 +49,6 @@ PERSONALIZED_BOOKS = {
         "fulfillment": "cloudprinter",
         "print_pages": 30,
         "illustrations": 22,
-        "has_closing_scene": True,
         "use_fixed_scenes": False
     },
     "furry_love_illustrated": {
@@ -65,7 +61,6 @@ PERSONALIZED_BOOKS = {
         "fulfillment": "cloudprinter",
         "print_pages": 30,
         "illustrations": 22,
-        "has_closing_scene": True,
         "use_fixed_scenes": False
     },
     "furry_love_adventure_illustrated": {
@@ -78,7 +73,6 @@ PERSONALIZED_BOOKS = {
         "fulfillment": "cloudprinter",
         "print_pages": 30,
         "illustrations": 22,
-        "has_closing_scene": True,
         "use_fixed_scenes": False
     },
     "furry_love_teen_illustrated": {
@@ -91,7 +85,6 @@ PERSONALIZED_BOOKS = {
         "fulfillment": "cloudprinter",
         "print_pages": 30,
         "illustrations": 22,
-        "has_closing_scene": True,
         "use_fixed_scenes": False
     },
     "centinela_aurora_illustrated": {
@@ -104,7 +97,6 @@ PERSONALIZED_BOOKS = {
         "fulfillment": "cloudprinter",
         "print_pages": 26,
         "illustrations": 19,
-        "has_closing_scene": True,
         "use_fixed_scenes": False
     },
     "furry_love_adult_illustrated": {
@@ -117,7 +109,6 @@ PERSONALIZED_BOOKS = {
         "fulfillment": "cloudprinter",
         "print_pages": 30,
         "illustrations": 22,
-        "has_closing_scene": True,
         "use_fixed_scenes": False
     }
 }

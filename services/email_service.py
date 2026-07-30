@@ -247,8 +247,6 @@ def attach_file(msg, file_path: str, filename: Optional[str] = None):
         
         if filename.endswith('.pdf'):
             part = MIMEApplication(file_data, _subtype='pdf')
-        elif filename.endswith('.epub'):
-            part = MIMEApplication(file_data, _subtype='epub+zip')
         else:
             part = MIMEBase('application', 'octet-stream')
             part.set_payload(file_data)
@@ -256,7 +254,7 @@ def attach_file(msg, file_path: str, filename: Optional[str] = None):
         
         part.add_header('Content-Disposition', 'attachment', filename=filename)
         msg.attach(part)
-        
+
         file_size_mb = len(file_data) / (1024 * 1024)
         print(f"[EMAIL] Attached: {filename} ({file_size_mb:.2f} MB)")
         return True
@@ -271,7 +269,6 @@ def send_story_email_with_attachments(
     story_data: dict,
     pdf_digital_path: Optional[str] = None,
     pdf_printable_path: Optional[str] = None,
-    epub_path: Optional[str] = None,
     instructions_path: Optional[str] = None,
     age_group: Optional[str] = None,
     preview_id: Optional[str] = None,
@@ -377,6 +374,7 @@ def send_story_email_with_attachments(
                         Para mejor resultado: papel satinado 120–170 g/m².
                     </p>
                 ''')}
+                {read_online_html}
             """
         else:
             extra_sections_html = f"""
@@ -388,8 +386,9 @@ def send_story_email_with_attachments(
                         Best results: coated paper 120–170 gsm.
                     </p>
                 ''')}
+                {read_online_html}
             """
-        extra_sections_text = ""
+        extra_sections_text = read_online_text
     elif is_personalized_book:
         tracking_link = ""
         tracking_link_text = ""
@@ -1772,7 +1771,7 @@ Upgrade link: https://magicmemoriesbooks.com/story-checkout/{preview_id}
 def send_ebook_email(to_email: str, story_data: dict, visor_url: str, is_gift: bool = False,
                      pdf_printable_path: str = None, instructions_path: str = None,
                      pdf_download_url: str = None, preview_id: str = '',
-                     is_print_order: bool = False):
+                     is_print_order: bool = False, cc: str = None):
     try:
         child_name = story_data.get('child_name', 'tu pequeno')
         story_name = story_data.get('story_name', 'tu cuento')
@@ -2005,6 +2004,8 @@ def send_ebook_email(to_email: str, story_data: dict, visor_url: str, is_gift: b
         msg['Subject'] = subject
         msg['From'] = f'{FROM_NAME} <{FROM_EMAIL}>'
         msg['To'] = to_email
+        if cc:
+            msg['Cc'] = cc
         
         safe_name = child_name.replace(' ', '_').replace("'", "")
         
@@ -2061,10 +2062,11 @@ Magic Memories Books
             print(f"[EMAIL] SMTP not configured. Would send eBook email to: {to_email}")
             return {'success': True, 'message': 'Email logged (SMTP not configured)'}
         
+        _envelope_recipients = [to_email] + ([cc] if cc else [])
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
             server.starttls()
             server.login(SMTP_USER, SMTP_PASSWORD)
-            server.sendmail(FROM_EMAIL, to_email, msg.as_string())
+            server.sendmail(FROM_EMAIL, _envelope_recipients, msg.as_string())
         
         attachments_info = ""
         if pdf_printable_path:
@@ -2974,9 +2976,11 @@ def send_print_order_confirmation_email(
     to_email: str,
     story_data: dict,
     preview_id: str = '',
+    visor_url: str = '',
 ) -> dict:
-    """Send a dedicated 'libro en imprenta' email when the customer bought Print+eBook.
-    This is separate from the eBook email so each product gets its own clear confirmation."""
+    """Send the 'libro en imprenta' confirmation email for all print orders.
+    When visor_url is provided (customer didn't buy standalone eBook), includes
+    the gift eBook button (6 months) directly in this email — no separate email."""
     try:
         child_name = story_data.get('child_name', 'tu pequeño')
         story_name = story_data.get('story_name', 'tu cuento')
@@ -3029,6 +3033,16 @@ def send_print_order_confirmation_email(
                 track_url
             )
 
+        visor_btn = ''
+        if visor_url:
+            _visor_label = "📖 Leer tu eBook de regalo (6 meses)" if lang == 'es' else "📖 Read your gift eBook (6 months)"
+            _visor_hint  = ("Acceso por 6 meses incluido con tu compra del libro impreso" if lang == 'es'
+                            else "6-month access included with your printed book purchase")
+            visor_btn = (
+                _cta_button(_visor_label, visor_url)
+                + f'<p style="color:#6b7280;font-size:12px;text-align:center;margin-top:-15px;">{_visor_hint}</p>'
+            )
+
         content = f"""
             <h2 style="color:#166534;text-align:center;margin-top:0;">{h1}</h2>
             <p style="font-size:16px;color:#374151;text-align:center;">{body_p1}</p>
@@ -3040,6 +3054,8 @@ def send_print_order_confirmation_email(
             </div>
 
             {tracking_btn}
+
+            {visor_btn}
 
             <p style="color:#6b7280;font-size:13px;text-align:center;">{contact_msg}</p>
             <p style="color:#7c3aed;font-weight:bold;text-align:center;font-size:16px;">{thanks_msg} 💜</p>

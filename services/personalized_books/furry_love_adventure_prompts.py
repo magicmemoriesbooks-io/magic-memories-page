@@ -168,12 +168,6 @@ FURRY_LOVE_ADVENTURE_SCENES = [
     }
 ]
 
-CLOSING_SCENE = {
-    "id": 20,
-    "prompt": "Disney Pixar 3D style illustration. HUMAN: @image1 = copy exactly @image1: {gender_word} ({age_display}), child face and proportions — match reference exactly{glasses_desc}, {eye_desc} eyes, sleeping deeply in a cozy bed under a star-patterned blanket, wearing {clean_pajama_desc}, peaceful smile, one arm hanging off the bed. PET: @image2 = {pet_name} ({pet_desc}): copy exactly the animal from @image2, same coat color, body size and figure — match reference exactly, sleeping on a pet bed right beside the child's bed, one paw stretched out touching the hanging hand of the child, protective even in sleep, peaceful expression. On the nightstand, a star medallion glows softly beside a framed photo of the child and pet together. ACTION: Child sleeps in bed with hand touching the pet's paw below, connected even in sleep, the star medallion from their adventure glowing on the nightstand. SETTING: Cozy bedroom at night WIDE VIEW, warm nightlight glow, stars visible through window, adventure drawings pinned to wall, star medallion on nightstand, peaceful darkness. ATMOSPHERE: Perfect peaceful ending, warm nightlight glow, eternal friendship, serene protection. STRICT: Only ONE child in bed, ONE pet on floor beside bed, nighttime bedroom scene. {style}",
-    "text_position": "none"
-}
-
 FRONT_COVER = {
     "prompt": "Disney Pixar 3D style illustration. HUMAN: @image1 = copy exactly @image1: {gender_word} ({age_display}), child face and proportions — match reference exactly{glasses_desc}, {eye_desc} eyes, wearing {adventure_outfit}, excited expression, one arm raised pointing forward, the other hand resting on the pet's back, standing on a park path. PET: @image2 = {pet_name} ({pet_desc}): copy exactly the animal from @image2, same coat color, body size and figure — match reference exactly, standing beside the child looking in the same direction, alert and excited, tail wagging, ready for adventure. ACTION: Child and pet stand together at the start of a park path, looking ahead toward an adventure, golden butterfly visible in the distance leaving a sparkle trail. SETTING: Beautiful park entrance WIDE VIEW, green trees forming an archway, winding path leading into a magical forest, golden light ahead, wildflowers, a golden butterfly glowing in the distance. ATMOSPHERE: Beginning of an adventure, warm morning light, excitement and wonder, magical invitation. STRICT: Only ONE child, ONE pet, standing together ready for adventure, centered composition for book cover. Pure illustration only. {style}"
 }
@@ -271,7 +265,6 @@ def get_all_scene_prompts(human_desc: str, pet_name: str, pet_desc: str, age_dis
     prompts = []
     for scene in FURRY_LOVE_ADVENTURE_SCENES:
         prompts.append(build_scene_prompt(scene, human_desc, pet_name, pet_desc, age_display, eye_desc))
-    prompts.append(build_scene_prompt(CLOSING_SCENE, human_desc, pet_name, pet_desc, age_display, eye_desc))
     return prompts
 
 

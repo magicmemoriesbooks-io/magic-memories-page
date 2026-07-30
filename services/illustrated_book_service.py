@@ -76,7 +76,6 @@ DRAGON_GARDEN_DIR = "static/assets/dragon_garden_scenes"
 
 from services.personalized_books.dragon_garden_prompts import (
     DRAGON_GARDEN_SCENES,
-    CLOSING_SCENE as DG_CLOSING_SCENE,
     FRONT_COVER as DG_FRONT_COVER,
     BACK_COVER as DG_BACK_COVER,
     SPARK_INLINE as SPARK_DESC,
@@ -90,7 +89,6 @@ from services.personalized_books.dragon_garden_prompts import (
 
 from services.personalized_books.magic_chef_prompts import (
     MAGIC_CHEF_SCENES,
-    CLOSING_SCENE as MC_CLOSING_SCENE,
     FRONT_COVER as MC_FRONT_COVER,
     BACK_COVER as MC_BACK_COVER,
     SWEETIE_HAT_INLINE,
@@ -103,7 +101,6 @@ from services.personalized_books.magic_chef_prompts import (
 
 from services.personalized_books.magic_inventor_prompts import (
     MAGIC_INVENTOR_SCENES,
-    CLOSING_SCENE as MI_CLOSING_SCENE,
     FRONT_COVER as MI_FRONT_COVER,
     BACK_COVER as MI_BACK_COVER,
     BOLT_INLINE as BOLT_DESC,
@@ -115,7 +112,6 @@ from services.personalized_books.magic_inventor_prompts import (
 
 from services.personalized_books.star_keeper_prompts import (
     STAR_KEEPER_SCENES,
-    CLOSING_SCENE as SK_CLOSING_SCENE,
     FRONT_COVER as SK_FRONT_COVER,
     BACK_COVER as SK_BACK_COVER,
     LUNA_INLINE as LUNA_DESC,
@@ -127,7 +123,6 @@ from services.personalized_books.star_keeper_prompts import (
 
 from services.personalized_books.furry_love_prompts import (
     FURRY_LOVE_SCENES,
-    CLOSING_SCENE as FL_CLOSING_SCENE,
     FRONT_COVER as FL_FRONT_COVER,
     BACK_COVER as FL_BACK_COVER,
     STYLE_BASE as FL_STYLE_BASE,
@@ -136,7 +131,6 @@ from services.personalized_books.furry_love_prompts import (
 
 from services.personalized_books.furry_love_adventure_prompts import (
     FURRY_LOVE_ADVENTURE_SCENES,
-    CLOSING_SCENE as FLA_CLOSING_SCENE,
     FRONT_COVER as FLA_FRONT_COVER,
     BACK_COVER as FLA_BACK_COVER,
     STYLE_BASE as FLA_STYLE_BASE,
@@ -145,7 +139,6 @@ from services.personalized_books.furry_love_adventure_prompts import (
 
 from services.personalized_books.furry_love_teen_prompts import (
     FURRY_LOVE_TEEN_SCENES,
-    CLOSING_SCENE as FLT_CLOSING_SCENE,
     FRONT_COVER as FLT_FRONT_COVER,
     BACK_COVER as FLT_BACK_COVER,
     STYLE_BASE as FLT_STYLE_BASE,
@@ -154,7 +147,6 @@ from services.personalized_books.furry_love_teen_prompts import (
 
 from services.personalized_books.furry_love_adult_prompts import (
     FURRY_LOVE_ADULT_SCENES,
-    CLOSING_SCENE as FLAD_CLOSING_SCENE,
     FRONT_COVER as FLAD_FRONT_COVER,
     BACK_COVER as FLAD_BACK_COVER,
     STYLE_BASE as FLAD_STYLE_BASE,
@@ -163,7 +155,6 @@ from services.personalized_books.furry_love_adult_prompts import (
 
 from services.personalized_books.centinela_aurora_prompts import (
     CENTINELA_AURORA_SCENES,
-    CLOSING_SCENE as CA_CLOSING_SCENE,
     FRONT_COVER as CA_FRONT_COVER,
     BACK_COVER as CA_BACK_COVER,
     ASTRO_INLINE as ASTRO_DESC,
@@ -290,7 +281,6 @@ BOOK_CONFIGS = {
         "title_es": "El Jardín del Dragón",
         "title_en": "The Dragon Garden",
         "scenes": DRAGON_GARDEN_SCENES,
-        "closing": DG_CLOSING_SCENE,
         "front_cover": DG_FRONT_COVER,
         "back_cover": DG_BACK_COVER,
         "style_base": STYLE_BASE,
@@ -303,7 +293,6 @@ BOOK_CONFIGS = {
         "title_es": "{name} El Chef Mágico",
         "title_en": "{name} The Magic Chef",
         "scenes": MAGIC_CHEF_SCENES,
-        "closing": MC_CLOSING_SCENE,
         "front_cover": MC_FRONT_COVER,
         "back_cover": MC_BACK_COVER,
         "style_base": MC_STYLE_BASE,
@@ -316,7 +305,6 @@ BOOK_CONFIGS = {
         "title_es": "{name} y el Taller de los Inventos Mágicos",
         "title_en": "{name} and the Magic Inventor Workshop",
         "scenes": MAGIC_INVENTOR_SCENES,
-        "closing": MI_CLOSING_SCENE,
         "front_cover": MI_FRONT_COVER,
         "back_cover": MI_BACK_COVER,
         "style_base": MI_STYLE_BASE,
@@ -329,7 +317,6 @@ BOOK_CONFIGS = {
         "title_es": "{name} y el Guardián de Estrellas",
         "title_en": "{name} The Star Keeper",
         "scenes": STAR_KEEPER_SCENES,
-        "closing": SK_CLOSING_SCENE,
         "front_cover": SK_FRONT_COVER,
         "back_cover": SK_BACK_COVER,
         "style_base": SK_STYLE_BASE,
@@ -342,7 +329,6 @@ BOOK_CONFIGS = {
         "title_es": "El día que {pet_name} conoció a {name}",
         "title_en": "The day {pet_name} met {name}",
         "scenes": FURRY_LOVE_SCENES,
-        "closing": FL_CLOSING_SCENE,
         "front_cover": FL_FRONT_COVER,
         "back_cover": FL_BACK_COVER,
         "style_base": FL_STYLE_BASE,
@@ -356,7 +342,6 @@ BOOK_CONFIGS = {
         "title_es": "Las aventuras de {pet_name} y {name}",
         "title_en": "The Adventures of {pet_name} and {name}",
         "scenes": FURRY_LOVE_ADVENTURE_SCENES,
-        "closing": FLA_CLOSING_SCENE,
         "front_cover": FLA_FRONT_COVER,
         "back_cover": FLA_BACK_COVER,
         "style_base": FLA_STYLE_BASE,
@@ -370,7 +355,6 @@ BOOK_CONFIGS = {
         "title_es": "{name} y su compañero fiel {pet_name}",
         "title_en": "{name} and Their Faithful Companion {pet_name}",
         "scenes": FURRY_LOVE_TEEN_SCENES,
-        "closing": FLT_CLOSING_SCENE,
         "front_cover": FLT_FRONT_COVER,
         "back_cover": FLT_BACK_COVER,
         "style_base": FLT_STYLE_BASE,
@@ -384,7 +368,6 @@ BOOK_CONFIGS = {
         "title_es": "La Gran Aventura de {name} y {pet_name}",
         "title_en": "The Great Adventure of {name} and {pet_name}",
         "scenes": FURRY_LOVE_ADULT_SCENES,
-        "closing": FLAD_CLOSING_SCENE,
         "front_cover": FLAD_FRONT_COVER,
         "back_cover": FLAD_BACK_COVER,
         "style_base": FLAD_STYLE_BASE,
@@ -398,7 +381,6 @@ BOOK_CONFIGS = {
         "title_es": "{name} y el Centinela de la Aurora",
         "title_en": "{name} and the Aurora Sentinel",
         "scenes": CENTINELA_AURORA_SCENES,
-        "closing": CA_CLOSING_SCENE,
         "front_cover": CA_FRONT_COVER,
         "back_cover": CA_BACK_COVER,
         "style_base": CA_STYLE_BASE,
@@ -514,9 +496,9 @@ def generate_scene_complete(
     target_size = (1024, 1365)
 
     # Scenes 14-19 (toddler/growth phase) use 0.8 so the prompt can show age progression
-    # while still keeping strong character fidelity. Earlier scenes use 0.9.
+    # while still keeping strong character fidelity. All other scenes use 0.95.
     is_toddler_scene = (book_id == 'furry_love' and scene_id >= 14)
-    scene_strength = 0.8 if is_toddler_scene else 0.9
+    scene_strength = 0.8 if is_toddler_scene else 0.95
 
     # Reinforce eye color explicitly in reference note (eye_desc from traits)
     _eye_color_raw = traits.get('eye_color', '') if traits else ''
@@ -662,18 +644,8 @@ def generate_scene_complete(
             _solo_age_display = _solo_profile['display']
             print(f"[SCENE {book_id.upper()} SOLO S1] age={child_age_int} range={_solo_range_key} display={_solo_age_display}")
             reference_note = (
-                f"REFERENCE\n\n"
-                f"@image1 is the approved main character.\n"
-                f"Use @image1 as the definitive visual reference.\n"
-                f"Keep @image1 visually consistent throughout the illustration.\n\n"
-                f"@image1 is a {_solo_age_display} {_solo_gw}.\n"
-                f"Maintain the body proportions, height and facial maturity of a {_solo_age_display} as shown in @image1.\n"
-                f"@image1 has {_solo_eye_str} — render this exact eye color.\n"
-                f"Preserve the skin tone, hair color, hair texture, and hairstyle from @image1 exactly.\n\n"
-                f"CHARACTER\n\n"
-                f"Render a single human character: @image1 only.\n"
-                f"The illustration contains only @image1.\n"
-                f"Maintain the complete visual identity of @image1 throughout the illustration."
+                "@image1 copy exactly.\n"
+                "Only @image1 in this scene — single human character, no companion."
             )
         else:
             # SISTEMA 2: FLUX portrait — confiamos en @image1
@@ -682,17 +654,8 @@ def generate_scene_complete(
             _solo_age_display = _solo_nophoto_profile['display']
             print(f"[SCENE {book_id.upper()} SOLO S2] age={child_age_int} display={_solo_age_display} gender={_solo_gw}")
             reference_note = (
-                f"REFERENCE\n\n"
-                f"@image1 is the approved main character.\n"
-                f"Use @image1 as the definitive visual reference.\n"
-                f"Keep @image1 visually consistent throughout the illustration.\n\n"
-                f"@image1 is a {_solo_age_display} {_solo_gw}.\n"
-                f"Maintain the body proportions, height and facial maturity exactly as shown in @image1.\n"
-                f"@image1 has {_solo_eye_str} — render this exact eye color.\n\n"
-                f"CHARACTER\n\n"
-                f"Render a single human character: @image1 only.\n"
-                f"The illustration contains only @image1.\n"
-                f"Maintain the complete visual identity of @image1 throughout the illustration."
+                "@image1 copy exactly.\n"
+                "Only @image1 in this scene — single human character, no companion."
             )
     else:
         gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
@@ -1177,275 +1140,6 @@ def generate_dedication_page(dedication_text: str, img_size: tuple = (768, 1024)
     return page
 
 
-def generate_closing_page(
-    traits: dict,
-    child_name: str,
-    gender: str,
-    img_size: tuple = (1024, 1365),
-    book_id: str = "dragon_garden",
-    reference_image_path: str = None,
-    reference_image_path_2: str = None
-) -> Image.Image:
-    """
-    Generate the closing illustration page using FLUX 2 Dev with reference for all books.
-    Each book uses its own build_scene_prompt from its prompts module.
-    For furry_love: uses TWO reference images (human + pet).
-    """
-    import replicate
-    
-    book_config = load_book_config(book_id)
-    closing_scene = book_config.get("closing", DG_CLOSING_SCENE)
-    child_age = traits.get('child_age', '5')
-    child_age_int = int(child_age) if str(child_age).isdigit() else 6
-    
-    is_furry = book_id in ('furry_love', 'furry_love_adventure', 'furry_love_teen', 'furry_love_adult')
-    if is_furry:
-        if book_id == 'furry_love_teen':
-            from services.personalized_books.furry_love_teen_prompts import build_scene_prompt as furry_build_prompt
-        elif book_id == 'furry_love_adult':
-            from services.personalized_books.furry_love_adult_prompts import build_scene_prompt as furry_build_prompt
-        elif book_id == 'furry_love_adventure':
-            from services.personalized_books.furry_love_adventure_prompts import build_scene_prompt as furry_build_prompt
-        else:
-            from services.personalized_books.furry_love_prompts import build_scene_prompt as furry_build_prompt
-        human_desc = traits.get('human_desc', '')
-        pet_name = traits.get('pet_name', 'Buddy')
-        pet_desc = traits.get('pet_desc', '')
-        eye_desc = get_eye_description(traits) if traits.get('eye_color') else ''
-        glasses_val = traits.get('glasses', 'none')
-        facial_hair_val = traits.get('facial_hair', 'none')
-        hair_desc = get_hair_description(traits) if book_id == 'furry_love_adventure' else ''
-        hair_color = traits.get('hair_color', '') if book_id == 'furry_love' else ''
-        _pd_lower = pet_desc.lower()
-        if 'medium-sized' in _pd_lower:
-            pet_size = 'medium'
-        elif _pd_lower.startswith('a large ') or ' large ' in _pd_lower[:20]:
-            pet_size = 'large'
-        elif _pd_lower.startswith('a small ') or ' small ' in _pd_lower[:20]:
-            pet_size = 'small'
-        else:
-            pet_size = traits.get('pet_size', 'medium')
-        pet_species = traits.get('pet_species', 'dog')
-        skin_tone_val = get_skin_tone(traits.get('skin_tone', ''))
-        if book_id == 'furry_love_teen':
-            gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "teenager"
-            teen_age = child_age_int if child_age_int > 0 else 14
-            if teen_age <= 12:
-                age_display = f"{teen_age} year old preteen, early adolescent proportions"
-            elif teen_age <= 15:
-                age_display = f"{teen_age} year old, adolescent proportions, tall slender frame"
-            else:
-                age_display = f"{teen_age} year old, tall adolescent physique, slim young adult build, defined jaw"
-        else:
-            gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "person"
-            age_display = f"{child_age_int} year old" if child_age_int > 0 else "child"
-        prompt = furry_build_prompt(closing_scene, human_desc, pet_name, pet_desc, age_display=age_display, eye_desc=eye_desc, gender_word=gender_word, glasses=glasses_val, facial_hair=facial_hair_val, hair_desc=hair_desc, hair_color=hair_color, pet_size=pet_size, pet_species=pet_species, skin_tone=skin_tone_val)
-    elif BOOK_CONFIGS.get(book_id, {}).get('build_scene_prompt'):
-        book_cfg = BOOK_CONFIGS.get(book_id)
-        prompt = book_cfg['build_scene_prompt'](closing_scene, child_name, gender, child_age_int, traits)
-    else:
-        hair_desc = get_hair_description(traits)
-        skin_tone = get_skin_tone(traits.get('skin_tone', 'light'))
-        gender_child = get_gender_child(gender)
-        closing_template = closing_scene.get("scene_template", closing_scene.get("prompt", ""))
-        prompt = closing_template.format(
-            gender_child=gender_child,
-            hair_desc=hair_desc,
-            skin_tone=skin_tone,
-            spark_desc=SPARK_DESC,
-            style=STYLE_BASE
-        )
-    
-    if not reference_image_path or not os.path.exists(reference_image_path):
-        raise ValueError(f"[CLOSING] reference_image_path is required for FLUX 2 Dev generation ({book_id})")
-    
-    print(f"[CLOSING] Generating closing for '{book_id}' with FLUX 2 Dev + reference...")
-    print(f"[CLOSING] Prompt: {prompt[:300]}...")
-    
-    if is_furry and reference_image_path_2 and os.path.exists(reference_image_path_2):
-        _closing_eye_color_raw = traits.get('eye_color', '') if traits else ''
-        _closing_eye_color_map = {
-            'blue': 'bright blue', 'green': 'green', 'brown': 'brown',
-            'hazel': 'hazel', 'gray': 'gray', 'dark_brown': 'dark brown',
-        }
-        _closing_eye_note = ''
-        if _closing_eye_color_raw:
-            _closing_eye_label = _closing_eye_color_map.get(_closing_eye_color_raw, _closing_eye_color_raw)
-            _closing_eye_note = f" The human has {_closing_eye_label} eyes — preserve this exactly."
-        reference_note = (
-            "@image1=HUMAN character, @image2=PET animal. "
-            "Copy the EXACT skin complexion, eye color, and hair appearance from @image1 — "
-            f"replicate the avatar faithfully.{_closing_eye_note} "
-            "Human has smooth skin, human face, human hands. Pet has fur, animal face, four paws. "
-            "Two distinct separate characters side by side."
-        )
-        enhanced_prompt = f"{reference_note}\n{prompt}"
-        try:
-            with open(reference_image_path, "rb") as ref1, open(reference_image_path_2, "rb") as ref2:
-                output = replicate.run(
-                    "black-forest-labs/flux-2-dev",
-                    input={
-                        "prompt": enhanced_prompt,
-                        "input_images": [ref1, ref2],
-                        "aspect_ratio": "3:4",
-                        "output_format": "png",
-                        "go_fast": False,
-                        "image_prompt_strength": 0.9
-                    }
-                )
-            if isinstance(output, list) and len(output) > 0:
-                image_url = output[0]
-            elif isinstance(output, str):
-                image_url = output
-            else:
-                image_url = str(output)
-            response = requests.get(image_url)
-            image = Image.open(BytesIO(response.content)).convert("RGB")
-            image = image.resize(img_size, Image.Resampling.LANCZOS)
-            print(f"[CLOSING] Generated successfully with FLUX 2 Dev + 2 refs! Size: {image.size}")
-            return image
-        except Exception as e:
-            print(f"[CLOSING] Error generating with 2 refs: {e}")
-            print(f"[CLOSING] Retrying...")
-            try:
-                import time
-                time.sleep(3)
-                with open(reference_image_path, "rb") as ref1, open(reference_image_path_2, "rb") as ref2:
-                    output = replicate.run(
-                        "black-forest-labs/flux-2-dev",
-                        input={
-                            "prompt": enhanced_prompt,
-                            "input_images": [ref1, ref2],
-                            "aspect_ratio": "3:4",
-                            "output_format": "png",
-                            "go_fast": False,
-                            "image_prompt_strength": 0.9
-                        }
-                    )
-                if isinstance(output, list) and len(output) > 0:
-                    image_url = output[0]
-                elif isinstance(output, str):
-                    image_url = output
-                else:
-                    image_url = str(output)
-                response = requests.get(image_url)
-                image = Image.open(BytesIO(response.content)).convert("RGB")
-                image = image.resize(img_size, Image.Resampling.LANCZOS)
-                print(f"[CLOSING] Retry FLUX 2 Dev + 2 refs succeeded!")
-                return image
-            except Exception as e2:
-                print(f"[CLOSING] Retry also failed: {e2}")
-            return Image.new("RGB", img_size, "#FFFEF5")
-    
-    if book_id == 'centinela_aurora':
-        _closing_eye_color_raw = traits.get('eye_color', '') if traits else ''
-        _closing_eye_color_map = {
-            'blue': 'bright blue', 'green': 'green', 'brown': 'brown',
-            'hazel': 'hazel', 'gray': 'gray', 'dark_brown': 'dark brown',
-        }
-        _closing_eye_s = (
-            f"@image1 has {_closing_eye_color_map.get(_closing_eye_color_raw, _closing_eye_color_raw)} eyes. Render this exact eye color.\n\n"
-            if _closing_eye_color_raw else ""
-        )
-        _closing_child_age = traits.get('child_age', '6') if traits else '6'
-        _closing_age_int = int(_closing_child_age) if str(_closing_child_age).isdigit() else 6
-        _closing_gw = "boy" if gender == "male" else "girl" if gender == "female" else "child"
-        from services.personalized_books.centinela_aurora_prompts import STYLE_BASE as _CA_STYLE_CLOSING
-        from services.personalized_books.age_profiles_nophoto import get_age_profile_nophoto as _get_closing_nophoto
-        _closing_nophoto_profile, _ = _get_closing_nophoto(_closing_age_int)
-        _closing_age_display = _closing_nophoto_profile['display']
-        _closing_proportions_line = f"{_closing_nophoto_profile['cover_ref']}.\n"
-        reference_note = (
-            "REFERENCE\n\n"
-            "@image1 is the approved main character.\n"
-            "Use @image1 as the definitive visual reference.\n"
-            "Keep @image1 visually consistent throughout the illustration.\n\n"
-            f"@image1 is a {_closing_age_display} {_closing_gw}.\n"
-            + _closing_proportions_line
-            + _closing_eye_s
-            + "CHARACTER\n\n"
-            "Render a single human character: @image1.\n"
-            "The illustration contains only @image1.\n\n"
-            "STYLE\n\n"
-            + _CA_STYLE_CLOSING + "\n"
-            "Soft warm lighting."
-        )
-    else:
-        gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
-        reference_note = f"@image1=the {gender_word} character. Preserve exactly: same face, same hair color, same hair length, same hair style, same skin tone as the reference."
-    enhanced_prompt = f"{reference_note}\n{prompt}"
-
-    from services.replicate_service import get_gender_negative_prompt as _get_neg
-    _neg_prompt = _get_neg(gender)
-
-    import base64 as _b64c
-    def _closing_b64(p):
-        with open(p, "rb") as _f:
-            return "data:image/png;base64," + _b64c.b64encode(_f.read()).decode()
-
-    try:
-        output = replicate.run(
-            "black-forest-labs/flux-2-dev",
-            input={
-                "prompt": enhanced_prompt,
-                "input_images": [_closing_b64(reference_image_path)],
-                "aspect_ratio": "3:4",
-                "output_format": "png",
-                "go_fast": False,
-                "negative_prompt": _neg_prompt,
-                "image_prompt_strength": 0.9
-            }
-        )
-        
-        if isinstance(output, list) and len(output) > 0:
-            image_url = output[0]
-        elif isinstance(output, str):
-            image_url = output
-        else:
-            image_url = str(output)
-        
-        response = requests.get(image_url)
-        image = Image.open(BytesIO(response.content)).convert("RGB")
-        
-        image = image.resize(img_size, Image.Resampling.LANCZOS)
-        
-        print(f"[CLOSING] Generated successfully with FLUX 2 Dev! Size: {image.size}")
-        return image
-        
-    except Exception as e:
-        print(f"[CLOSING] Error generating: {e}")
-        print(f"[CLOSING] Retrying with FLUX 2 Dev (attempt 2)...")
-        try:
-            import time
-            time.sleep(3)
-            output = replicate.run(
-                "black-forest-labs/flux-2-dev",
-                input={
-                    "prompt": enhanced_prompt,
-                    "input_images": [_closing_b64(reference_image_path)],
-                    "aspect_ratio": "3:4",
-                    "output_format": "png",
-                    "go_fast": False,
-                    "negative_prompt": _neg_prompt,
-                    "image_prompt_strength": 0.9
-                }
-            )
-            if isinstance(output, list) and len(output) > 0:
-                image_url = output[0]
-            elif isinstance(output, str):
-                image_url = output
-            else:
-                image_url = str(output)
-            response = requests.get(image_url)
-            image = Image.open(BytesIO(response.content)).convert("RGB")
-            image = image.resize(img_size, Image.Resampling.LANCZOS)
-            print(f"[CLOSING] Retry FLUX 2 Dev succeeded!")
-            return image
-        except Exception as e2:
-            print(f"[CLOSING] Retry also failed: {e2}")
-        return Image.new("RGB", img_size, "#FFFEF5")
-
-
 def generate_cover_spread(
     traits: dict,
     child_name: str,
@@ -1574,7 +1268,7 @@ def generate_cover_spread(
     reuse_preview_as_cover = (
         reference_image_path and os.path.exists(reference_image_path)
         and not reference_image_path_2
-        and (not is_star_keeper_cover or book_id in ('centinela_aurora', 'magic_chef'))
+        and (not is_star_keeper_cover or book_id in ('centinela_aurora', 'magic_chef', 'dragon_garden', 'magic_inventor', 'star_keeper'))
     )
     
     if reuse_preview_as_cover:
@@ -2086,7 +1780,6 @@ def generate_full_book(
         return []
     
     scenes = book_config.get("scenes", [])
-    closing_scene = book_config.get("closing", {})
     title_key = f"title_{language}"
     book_title_template = book_config.get(title_key, book_config.get("title_es", ""))
     pet_name = traits.get('pet_name', '') if traits else ''

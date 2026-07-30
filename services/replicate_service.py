@@ -10,16 +10,23 @@ import requests
 import time
 import hashlib
 
-# Configurar el token y timeout explícitamente al importar el módulo
+# Configurar el token y timeout explícitamente al importar el módulo.
+# NOTA: Replicate SDK v1.0.4 guarda timeout en self._timeout pero NO lo aplica al httpx
+# Client interno (bug del SDK). Se debe forzar directamente en _client.timeout post-init.
 _replicate_token = os.environ.get("REPLICATE_API_TOKEN", "")
 _replicate_timeout = httpx.Timeout(connect=30.0, read=300.0, write=120.0, pool=30.0)
 if _replicate_token:
-    replicate.default_client = replicate.Client(
-        api_token=_replicate_token,
-        timeout=_replicate_timeout,
-    )
+    replicate.default_client = replicate.Client(api_token=_replicate_token)
 else:
-    replicate.default_client = replicate.Client(timeout=_replicate_timeout)
+    replicate.default_client = replicate.Client()
+# Forzar timeout directamente en el httpx Client interno (único método efectivo en v1.0.4)
+replicate.default_client._client.timeout = _replicate_timeout
+# CRÍTICO: replicate.__init__.py hace `run = default_client.run` al importar el módulo,
+# lo que ancla replicate.run al cliente A original (sin timeout). Al reemplazar
+# default_client con nuestro cliente B, debemos también reasignar replicate.run
+# para que todo el código que usa `replicate.run(...)` use el cliente con timeout correcto.
+replicate.run = replicate.default_client.run
+replicate.async_run = replicate.default_client.async_run
 
 FLUX_DEV_MODEL = "black-forest-labs/flux-dev:6e4a938f85952bdabcc15aa329178c4d681c52bf25a0342403287dc26944661d"
 FLUX_2_DEV_MODEL = "black-forest-labs/flux-2-dev"
@@ -76,7 +83,7 @@ def get_unified_skin_description(skin_tone: str) -> str:
         'very_light': 'very fair pale skin with pink undertones, clearly light-skinned',
         'tan': 'warm golden tan skin, sun-kissed bronze complexion',
         'medium_light': 'light olive skin with warm undertones, lightly tanned European complexion',
-        'medium_dark': 'warm brown skin with caramel undertones, Latin or South Asian complexion'
+        'medium_dark': 'warm caramel-cocoa brown skin, classic Latino moreno complexion, sun-kissed medium-dark tone'
     }
     return skin_map.get(skin_tone, 'warm olive tan skin with golden undertones')
 

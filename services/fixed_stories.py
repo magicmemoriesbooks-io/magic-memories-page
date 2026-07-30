@@ -1072,7 +1072,7 @@ STORIES = {
         ]
     },
     "centinela_aurora_illustrated": {
-        "title_es": "{name} y el Centinela de la Aurora",
+        "title_es": "{name} y Centinela de la Aurora",
         "title_en": "{name} and the Aurora Sentinel",
         "age_range": "4-8",
         "book_type": "illustrated",
@@ -1084,7 +1084,7 @@ STORIES = {
         "content_pages": [
             {"text_es": "Una noche, mientras el mundo dormía, {name} descubrió algo asombroso bajo su cama: una brújula de oro que vibraba con un suave murmullo. Su flecha no señalaba el norte, sino que apuntaba con insistencia hacia la ventana.", "text_en": "One night, while the world slept, {name} discovered something amazing under the bed: a golden compass vibrating with a soft hum. Its arrow didn't point north—it pointed insistently toward the window."},
             {"text_es": "Al saltar al jardín, una luz azulada iluminó las flores. Era Astro, un pequeño zorro con cola de estrellas que necesitaba ayuda urgentemente. «Los sueños se están apagando, {name}», susurró con voz cristalina.", "text_en": "Jumping into the garden, a blue light lit up the flowers. It was Astro, a tiny fox with a star tail who urgently needed help. 'The dreams are fading, {name},' they whispered in a crystal-clear voice."},
-            {"text_es": "Astro tocó el viejo roble del jardín y la corteza se transformó en un portal de nubes irisadas. {name} sintió un cosquilleo de emoción en el estómago y, sin dudarlo, tomó la pata de su nuevo amigo y saltaron juntos.", "text_en": "Astro touched the old oak tree and the bark transformed into a portal of iridescent clouds. {name} felt a tingle of excitement and, without hesitation, took {hisher} new friend's paw and they jumped together."},
+            {"text_es": "Astro tocó el viejo roble del jardín y la corteza se transformó en un portal de nubes irisadas. {name} sintió un cosquilleo de emoción en el estómago y, sin dudarlo, tomó la pata de Astro y saltaron juntos al portal.", "text_en": "Astro touched the old oak tree and the bark transformed into a portal of iridescent clouds. {name} felt a tingle of excitement and, without hesitation, took Astro's paw and they jumped together into the portal."},
             {"text_es": "Aparecieron en el Valle de los Objetos Olvidados: un lugar inmenso donde los balones rebotaban al ritmo de una música invisible y los osos de peluche saludaban con cortesía. «Aquí descansan las cosas que los niños ya no usan», explicó Astro.", "text_en": "They arrived at the Valley of Forgotten Objects: a vast place where balls bounced to invisible music and teddy bears waved politely. 'This is where the things children no longer use come to rest,' explained Astro."},
             {"text_es": "De pronto, un río de tinta negra bloqueó su camino. {name} cerró los ojos y visualizó un puente firme con fuerza. Bajo sus pies surgió un puente de tiza blanca brillante, y cruzaron a toda prisa mientras la tinta intentaba atrapar sus sombras.", "text_en": "Suddenly, a river of black ink blocked their path. {name} closed {hisher} eyes and imagined a sturdy bridge with all {hisher} strength. A white glowing chalk bridge appeared beneath their feet, and they raced across while the ink tried to catch their shadows."},
             {"text_es": "Entraron en un bosque donde las hojas de los árboles eran páginas de libros antiguos. Al caminar, {name} escuchaba los susurros de miles de historias esperando ser vividas, y el aire olía a papel y a aventura.", "text_en": "They entered a forest where the tree leaves were pages from ancient books. Walking through, {name} heard the whispers of thousands of stories waiting to be lived, and the air smelled of paper and adventure."},
@@ -1097,7 +1097,7 @@ STORIES = {
             {"text_es": "{name} buscó en su mochila y encontró un dibujo que había hecho esa mañana. Se lo entregó al gigante con una sonrisa sincera. El coloso, al sentirse querido, dejó de llorar y fue haciéndose cada vez más pequeño, permitiendo el paso.", "text_en": "{name} searched {hisher} backpack and found a drawing from that morning. {heshe} offered it to the giant with a sincere smile. The giant, feeling loved, stopped crying and shrank smaller and smaller, letting them through."},
             {"text_es": "Dentro del faro, las escaleras eran teclas de piano gigante que flotaban en el aire. Para subir, {name} debía saltar sobre ellas siguiendo una melodía de valentía. Cada paso emitía una nota perfecta que hacía vibrar la torre entera de alegría.", "text_en": "Inside the lighthouse, the stairs were floating giant piano keys. To climb, {name} had to jump on them following a melody of courage. Each step produced a perfect note that made the whole tower vibrate with joy."},
             {"text_es": "Al llegar a la cima, encontraron el gran Reloj de la Aurora. Sus engranajes estaban atascados por una arena gris y pesada: el aburrimiento. El tiempo de los sueños se había detenido y el silencio en la sala era absoluto.", "text_en": "Reaching the top, they found the great Aurora Clock. Its gears were stuck with grey heavy sand: boredom. Dream-time had stopped and the silence in the room was absolute."},
-            {"text_es": "Astro usó su cola brillante para iluminar los rincones más oscuros mientras {name}, con mucha paciencia, limpiaba los engranajes usando el cristal de su brújula. Cada uno sabía que el descanso de todos los niños del mundo dependía de ellos.", "text_en": "Astro used their glowing tail to light the darkest corners while {name}, with great patience, cleaned the gears using the compass crystal. Both knew that the rest of all the world's children depended on them."},
+            {"text_es": "Astro usó su cola brillante para iluminar los rincones más oscuros mientras {name}, con mucha paciencia, limpiaba los engranajes usando el cristal de su brújula. Cada uno sabía que el descanso de todos los niños del mundo dependía de esa misión.", "text_en": "Astro used their glowing tail to light the darkest corners while {name}, with great patience, cleaned the gears using the compass crystal. Both knew that the rest of all the world's children depended on that mission."},
             {"text_es": "Con un último esfuerzo, los engranajes empezaron a girar. El Reloj de la Aurora emitió un destello multicolor que cruzó el espacio y devolvió el color y la magia a cada rincón del universo. ¡Lo habían logrado!", "text_en": "With one final push, the gears began to turn. The Aurora Clock released a multicolored flash that crossed space, returning color and magic to every corner of the universe. They had done it!"},
             {"text_es": "El portal apareció de nuevo en el jardín de casa. {name} abrazó a Astro con fuerza, sintiendo el calor de su pelaje mágico. «Gracias, guardián», susurró el zorro. «Siempre que mires las estrellas, recuerda que tú tienes el poder de crear mundos maravillosos».", "text_en": "The portal appeared again in the home garden. {name} hugged Astro tightly, feeling the warmth of their magical fur. 'Thank you, guardian,' whispered the fox. 'Whenever you look at the stars, remember you have the power to create wonderful worlds.'"},
             {"text_es": "{name} despertó en su habitación mientras los primeros rayos de sol entraban por la ventana. Parecía un sueño, pero al abrir la mano, encontró una pequeña pizca de polvo de estrellas azul que brillaba suavemente. Sonrió, sabiendo que Astro siempre estaría cerca.", "text_en": "{name} woke in {hisher} room as the first rays of sun came through the window. It seemed like a dream, but opening {hisher} hand, {heshe} found a tiny pinch of glowing blue stardust. {heshe} smiled, knowing Astro would always be close."}
@@ -1763,35 +1763,6 @@ STORIES = {
 }
 
 
-def get_age_body_description(age: int) -> str:
-    """Return rich physical/proportional description for a given age so FLUX renders age-accurate bodies."""
-    if not age or age <= 0:
-        age = 6
-    if age <= 1:
-        return "only about 75 cm tall, enormous round head relative to tiny body, very chubby cheeks and arms, short stubby legs, round belly, baby proportions"
-    elif age == 2:
-        return "barely 85 cm tall, very chubby cheeks, very short stubby legs, round toddler belly, large head relative to short body, toddler proportions"
-    elif age == 3:
-        return "about 95 cm tall, chubby round cheeks, short chubby legs, cute round belly, large head compared to body, unmistakably toddler proportions"
-    elif age == 4:
-        return "about 102 cm tall, still chubby cheeks, short legs, rounded face, preschool proportions with relatively large head for body size"
-    elif age == 5:
-        return "about 110 cm tall, softly chubby face, childlike compact proportions, short limbs relative to head, small and rounded build"
-    elif age == 6:
-        return "about 115 cm tall, slightly chubby face, elementary school proportions, moderate head-to-body ratio, energetic childlike build"
-    elif age == 7:
-        return "about 122 cm tall, face slimmer than a preschooler, longer legs, taller elementary school build, leaner childlike frame"
-    elif age == 8:
-        return "about 128 cm tall, slimmer face and noticeably longer limbs, tall elementary school build, confident upright posture"
-    elif age == 9:
-        return "about 135 cm tall, slim face, long legs, pre-teen proportions, noticeably taller and leaner than younger children"
-    elif age == 10:
-        return "about 140 cm tall, slim angular face, long limbs, mature child proportions, tall confident build"
-    elif age <= 12:
-        return "about 148 cm tall, slim angular face, long limbs, near-adolescent proportions, tall and lean build"
-    else:
-        return "about 155 cm tall, mature slim face, long limbs, adolescent proportions, tall confident stance"
-
 
 def get_baby_hair_description(hair_color: str, gender: str = "male") -> str:
     """
@@ -2104,6 +2075,8 @@ def get_eye_description(traits: dict) -> str:
     return eye_map.get(eye_color, eye_color) + " eyes"
 
 
+
+
 def get_hair_action(traits: dict) -> str:
     """Get static hair position description for consistent rendering across scenes."""
     length = traits.get('hair_length', 'medium')
@@ -2174,7 +2147,7 @@ def get_gender_child_es(gender: str) -> str:
         return 'niña'
     elif gender == 'male':
         return 'niño'
-    return 'niño'
+    return 'infante'
 
 
 def get_spanish_gender_endings(gender: str) -> dict:
@@ -2207,12 +2180,12 @@ def get_spanish_gender_endings(gender: str) -> dict:
         }
     else:
         return {
-            'o_a': 'o',
-            'el_la': 'el',
-            'proud': 'orgulloso',
-            'ready': 'listo',
+            'o_a': '',
+            'el_la': '',
+            'proud': 'con orgullo',
+            'ready': 'con calma',
             'happy': 'feliz',
-            'safe': 'seguro',
+            'safe': 'con seguridad',
             'brave': 'valiente',
             'hisher': 'their',
             'heshe': 'they',

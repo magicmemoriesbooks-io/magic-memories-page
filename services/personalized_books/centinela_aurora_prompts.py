@@ -19,12 +19,86 @@
 #   - WIDE SHOT, characters occupy ~40% of frame, environment visible
 #   - Scenes 1, 19 and CLOSING have no @image2
 
-STYLE_BASE = "Disney Pixar 3D style, midnight blue aurora tones, electric blue and golden accents, warm magical glow, WIDE SHOT full body from head to feet, characters occupy 40% of frame, environment visible, clean illustration only."
+STYLE_BASE = (
+    "Disney Pixar 3D style, midnight blue aurora tones, aurora and golden accents. "
+    "Characters: preserve original colors from @image1. "
+    "LIGHTING: Clean warm neutral cinematic studio lighting to prioritize preservation of original character colors (skin, hair). "
+    "Subtle color bounce and accents only from aurora and magical elements. No dense global haze. "
+    "WIDE SHOT full body from head to feet, characters occupy 40% of frame, environment visible, clean illustration only."
+)
+
+STYLE_BASE_COVER = (
+    "Disney Pixar 3D style, midnight blue aurora tones, aurora and golden accents. "
+    "Characters: preserve original colors from @image1 and @image2. "
+    "LIGHTING: Clean warm neutral cinematic studio lighting to prioritize preservation of original character colors (skin, hair, fur). "
+    "Subtle color bounce and accents only from aurora and magical elements. No dense global haze. "
+    "WIDE SHOT full body from head to feet, characters occupy 65% of frame, environment visible, clean illustration only."
+)
 
 ASTRO_INLINE = (
     "ASTRO: small magical fox, kitten-sized, vibrant electric blue fur, "
-    "white chest, amber-golden eyes, glowing star-tipped tail, star rope collar"
+    "white chest, amber-golden eyes, exactly ONE single star-tipped tail, star rope collar"
 )
+
+
+# ── Prompts Maestros Oficiales ────────────────────────────────────────────────
+# Tres prompts, tres pasos, sin duplicados ni versiones alternativas.
+
+def build_kontext_prompt(age_display: str, gender_word: str, age_body_desc: str,
+                         eye_desc: str, outfit_desc: str) -> str:
+    """PASO 1 — Prompt oficial Kontext Pro (SISTEMA 1 con foto).
+    Único prompt autorizado para generar el retrato base desde la fotografía."""
+    return (
+        f"Convert the {age_display} {gender_word} in @image1 into a high-quality 3D animated children's book character. "
+        f"Body proportions: {age_body_desc}. Do not use toddler proportions. "
+        f"Preserve the exact face, skin tone, and hair — identical likeness. "
+        f"If the person in @image1 wears glasses, preserve the glasses exactly in the animated character. "
+        f"Eye color: {eye_desc} — render this exact eye color. "
+        f"OUTFIT: {outfit_desc}. "
+        f"BACKGROUND: deep midnight blue with subtle aurora borealis colors, plain studio — no scenery. "
+        f"POSE: standing, full body visible from head to feet, brave adventurous expression, arms relaxed at the sides."
+    )
+
+
+def build_avatar_prompt(age_display: str, gender_word: str) -> str:
+    """PASO 2 — FLUX 2 Dev avatar (SISTEMA 1). Minimal prompt at strength=1.0 — copies everything from @image1."""
+    return (
+        "@image1 copy exactly.\n"
+        "Standing upright, full body from head to feet, arms relaxed at sides, facing forward.\n"
+        "BACKGROUND: plain deep midnight blue studio, no scenery, no props, no other characters."
+    )
+
+
+def build_ref_note(age_display: str, gender_word: str, cover_ref: str,
+                   eye_desc: str, outfit_desc: str) -> str:
+    """PASO 3 — REF_NOTE. Prompt Maestro for cover and all scenes. SISTEMA 1 and SISTEMA 2."""
+    return (
+        "@image1 copy exactly.\n"
+        "@image2 copy exactly.\n"
+        f"Copy face, skin tone, hair color and style, eye color and outfit from @image1 exactly.\n"
+        f"Two distinct characters: @image1 is a fully human {gender_word}, @image2 is the fox companion."
+    )
+
+
+def build_nophoto_portrait_prompt(age_display: str, gender_word: str, nophoto_profile: dict,
+                                   skin_tone: str, eye_desc: str, hair_line: str,
+                                   haircut_block: str, outfit_desc: str, glasses_desc: str) -> str:
+    """SISTEMA 2 PASO 1 — FLUX portrait from text only (no photo). Single source of truth."""
+    return (
+        "Disney Pixar 3D style illustration, clean full-body character reference sheet.\n\n"
+        f"CHARACTER: A single {gender_word}.\n"
+        f"AGE: Exactly {age_display}, {nophoto_profile['display']}.\n"
+        f"PROPORTIONS: {nophoto_profile['proportions']}\n"
+        f"FACE: {nophoto_profile['face']}\n"
+        f"SKIN: {skin_tone}.\n"
+        f"EYES: {eye_desc} — render this exact eye color.\n"
+        f"HAIR: {hair_line}.\n"
+        f"{haircut_block}"
+        f"OUTFIT: {outfit_desc}{glasses_desc}. "
+        "Standing upright, full body from head to feet, arms relaxed at sides, facing forward.\n"
+        "BACKGROUND: plain deep midnight blue studio, no scenery, no props, no other characters."
+    )
+
 
 CENTINELA_AURORA_SCENES = [
     # ── SCENE 1 — Brújula bajo la cama (solo child) ─────────────────────────
@@ -69,7 +143,7 @@ CENTINELA_AURORA_SCENES = [
             "across the garden path, meeting @image1's eyes for the very first time. "
             "SETTING: Garden at night WIDE VIEW, flowers glowing blue in @image2's magical light, "
             "moonlit garden path, magical fireflies floating. "
-            "ATMOSPHERE: Magical first encounter, soft electric blue glow, wonder and excitement. {style}"
+            "ATMOSPHERE: Magical first encounter, soft aurora glow, wonder and excitement. {style}"
         ),
         "text_position": "split",
     },
@@ -77,9 +151,9 @@ CENTINELA_AURORA_SCENES = [
     {
         "id": 3,
         "text_es": (
-            "Astro tocó el viejo roble del jardín y la corteza se transformó en un portal de nubes irisadas. "
+            "Astro tocó el viejo roble del jardín y la corteza se transformó en un portal de nubes rosadas. "
             "{name} sintió un cosquilleo de emoción en el estómago y, sin dudarlo, "
-            "tomó la pata de su nuevo amigo y saltaron juntos."
+            "tomó la pata de Astro y saltaron juntos al portal."
         ),
         "text_en": (
             "Astro touched the old oak tree and the bark transformed into a portal of iridescent clouds. "
@@ -134,13 +208,21 @@ CENTINELA_AURORA_SCENES = [
             "and they raced across while the ink tried to catch their shadows."
         ),
         "prompt": (
-            "ACTION: @image1 sprints across a glowing chalk-white bridge that materializes beneath each running step, "
-            "face set with determination, a river of thick swirling black ink churning far below. "
-            "@image2 races across the glowing chalk bridge, electric blue tail streaming behind, "
-            "paws barely touching the bright chalk surface. "
-            "SETTING: Dark void WIDE VIEW, glowing white chalk bridge appearing from imagination above a black ink river, "
-            "the bridge bright and firm, the ink dramatic below. "
-            "ATMOSPHERE: Thrilling escape, imagination conquers darkness, magical white vs. dramatic black contrast. {style}"
+            "ACTION (@image1): Running straight along the center of the glowing white chalk bridge toward the far end, "
+            "feet firmly on the bridge surface, body leaning slightly forward in a natural running pose, "
+            "looking ahead toward the destination, staying on the bridge deck. "
+            "ACTION (@image2): Running naturally on all four legs beside @image1, along the same bridge and in the same direction, "
+            "paws firmly on the bridge surface, body stretched in a realistic fox running gait, "
+            "looking forward, staying on the bridge deck. "
+            "SETTING: A magical glowing white chalk bridge spanning over a dark river of living black ink, "
+            "extending straight into the distance with strong perspective lines emphasizing its direction. "
+            "@image1 and @image2 running along the bridge toward the far end while the river of black ink chases behind them. "
+            "Nighttime, magical atmosphere, cinematic lighting, vibrant aurora in the sky, dynamic motion, sense of urgency and adventure. {style}"
+        ),
+        "negative_prompt": (
+            "@image2 standing upright, anthropomorphic fox, fox running on two legs, fox behaving like a human, "
+            "characters running toward the bridge railing, jumping over the railing, climbing the railing, "
+            "leaving the bridge, side running, bridge ending immediately, distorted anatomy, duplicated limbs"
         ),
         "text_position": "split",
     },
@@ -297,7 +379,10 @@ CENTINELA_AURORA_SCENES = [
         "prompt": (
             "ACTION: @image1 stands at the lighthouse entrance, looking up with compassionate eyes "
             "at the weeping stone giant whose tears stream down rocky cheeks forming glowing liquid rock puddles. "
-            "@image2 sits on four paws close to @image1's side, electric-blue fox, head tilted with curious amber eyes watching the giant. "
+            "@image1 is clearly taller and larger than @image2. "
+            "@image2 sits on four paws close to @image1's side, clearly smaller, "
+            "with the top of its head reaching no higher than @image1's waist, "
+            "electric-blue fox, head tilted with curious amber eyes watching the giant. "
             "SETTING: Lighthouse island entrance WIDE VIEW, large stone giant, lighthouse tower behind, "
             "liquid rock pools from tears, moonlit island. "
             "ATMOSPHERE: Empathy and compassion, sad but not threatening, emotional and heartfelt. {style}"
@@ -379,7 +464,7 @@ CENTINELA_AURORA_SCENES = [
         "text_es": (
             "Astro usó su cola brillante para iluminar los rincones más oscuros mientras {name}, "
             "con mucha paciencia, limpiaba los engranajes usando el cristal de su brújula. "
-            "Cada uno sabía que el descanso de todos los niños del mundo dependía de ellos."
+            "Cada uno sabía que el descanso de todos los niños del mundo dependía de esa misión."
         ),
         "text_en": (
             "Astro used their glowing tail to light the darkest corners while {name}, with great patience, "
@@ -470,30 +555,17 @@ CENTINELA_AURORA_SCENES = [
 ]
 
 
-CLOSING_SCENE = {
-    "id": 20,
-    "prompt": (
-        "ACTION: @image1 sleeps peacefully in a cozy bed with a gentle smile, one hand open on the pillow "
-        "with a faint electric blue stardust glow. "
-        "SETTING: Cozy bedroom at night WIDE VIEW, soft aurora colors through window, golden compass glowing "
-        "on nightstand, tiny blue fox plush toy beside it, magical and peaceful. "
-        "ATMOSPHERE: Deep peaceful magical sleep, soft aurora glow, warmth and safety. "
-        "STRICT: Only @image1 in this scene, no companion present. {style}"
-    ),
-    "text_position": "none",
-}
-
-
 FRONT_COVER = {
     "prompt": (
-        "ACTION: @image1 stands confidently holding the golden compass high with one arm, "
-        "face lit with adventurous excitement. "
-        "@image2 stands beside @image1, glowing electric-blue tail raised high, "
-        "electric blue light blazing brilliantly against the aurora sky. "
-        "SETTING: Night sky and aurora WIDE VIEW, magnificent aurora borealis colors filling the sky, "
-        "stars everywhere, magical stardust floating around them, centered composition for book cover. "
-        "ATMOSPHERE: Epic adventure invitation, magical aurora colors, excitement and wonder. "
-        "STRICT: Pure illustration only. {style}"
+        "Centered wide full body composite illustration.\n"
+        "The human child whose face, skin tone, and hair color and style are preserved exactly from @image1 stands upright center-left, "
+        "holding the golden compass raised in one hand, brave joyful smile. @image1 is fully human with zero animal features.\n"
+        "The fox companion from @image2 sits at @image1's feet on the right side, star-tipped tail curving upward, electric blue light glowing softly around it.\n"
+        "SETTING: Night sky and aurora WIDE VIEW, magnificent aurora borealis colors filling the sky, stars everywhere, magical stardust floating, centered composition for book cover.\n"
+        "ATMOSPHERE: Magical adventure invitation, aurora colors, wonder and warmth.\n"
+        "STRICT: Only ONE child (@image1), only ONE fox companion ASTRO (@image2). @image1 is fully human, zero animal features. Pure illustration only. Disney Pixar 3D style.\n"
+        "LIGHTING: Clean warm neutral cinematic studio lighting to prioritize preservation of original character colors (skin, hair, fur). "
+        "Subtle color bounce and accents only from aurora and magical elements. No dense global haze."
     )
 }
 
@@ -510,10 +582,10 @@ BACK_COVER = {
 
 
 def get_outfit_desc(gender: str) -> str:
-    if gender == "male":
-        return "dark navy explorer jacket, dark cargo pants, white sneakers, golden compass on cord"
-    else:
+    if gender == "female":
         return "dark navy explorer jacket, dark leggings, white sneakers, golden compass on cord"
+    else:
+        return "dark navy explorer jacket, dark cargo pants, white sneakers, golden compass on cord"
 
 
 def get_hair_action(traits: dict) -> str:
@@ -528,13 +600,15 @@ def get_hair_action(traits: dict) -> str:
     return "hair gently lifted by the breeze"
 
 
-def build_scene_prompt(scene: dict, child_name: str, gender: str, age: int, traits: dict, has_photo: bool = False) -> str:
+def build_scene_prompt(scene: dict, child_name: str, gender: str, age: int, traits: dict, has_photo: bool = False, is_cover: bool = False) -> str:
     """Build scene prompt using @image1/@image2 reference format.
     Prompts contain only action + setting — no character descriptions.
     Physical appearance comes entirely from reference images.
+    is_cover=True uses STYLE_BASE_COVER (characters 65% of frame).
     """
+    style = STYLE_BASE_COVER if is_cover else STYLE_BASE
     raw_prompt = scene.get('prompt', '')
-    prompt = raw_prompt.replace('{style}', STYLE_BASE)
+    prompt = raw_prompt.replace('{style}', style)
     prompt = prompt.replace('{name}', child_name)
     prompt = prompt.replace('{child_name}', child_name)
     return prompt
@@ -542,8 +616,8 @@ def build_scene_prompt(scene: dict, child_name: str, gender: str, age: int, trai
 
 def get_cover_prompts(child_name: str, gender: str, age: int, traits: dict) -> dict:
     return {
-        'front': build_scene_prompt(FRONT_COVER, child_name, gender, age, traits),
-        'back': build_scene_prompt(BACK_COVER, child_name, gender, age, traits)
+        'front': build_scene_prompt(FRONT_COVER, child_name, gender, age, traits, is_cover=True),
+        'back': build_scene_prompt(BACK_COVER, child_name, gender, age, traits, is_cover=True)
     }
 
 

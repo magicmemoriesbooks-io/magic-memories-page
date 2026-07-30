@@ -177,10 +177,11 @@ def _resolve_image(path):
 
 def _get_cover_for_visor(story_data, is_illustrated):
     if is_illustrated:
-        for key in ['front_cover_path', 'cover_preview', 'cover_raw_path']:
+        for key in ['front_cover_path', 'original_cover', 'cover_image', 'cover_preview', 'cover_raw_path']:
             resolved = _resolve_image(story_data.get(key, ''))
             if resolved:
                 return resolved
+        return None
     for key in ['original_cover', 'cover_image', 'cover_preview']:
         resolved = _resolve_image(story_data.get(key, ''))
         if resolved:
@@ -192,8 +193,11 @@ def _get_scene_images(story_data):
     composed = story_data.get('composed_pages') or []
     if composed:
         return composed
-    # Prefer clean/original paths (post-payment visor must never show watermarks)
-    originals = story_data.get('original_scene_paths') or story_data.get('original_images') or []
+    # Prefer original_images (scene pages only, page_05+) over original_scene_paths
+    # (which includes ALL composed pages: cover, blank, portadilla, dedication + scenes).
+    # Using original_scene_paths directly would pass page_03/page_04 into the text-index
+    # loop and shift every scene's caption by 2.
+    originals = story_data.get('original_images') or story_data.get('original_scene_paths') or []
     if originals:
         return originals
     # Fallback: filter out _preview paths from scene_paths/images
@@ -207,6 +211,23 @@ def _get_back_cover(story_data, is_illustrated):
     if back:
         return back
     if is_illustrated:
+        # Use book_id-specific fixed back cover (same mapping as illustrated_book_service.py)
+        story_id = story_data.get('story_id', '')
+        book_id = story_id.replace('_illustrated', '')
+        _FIXED_BACK_COVERS = {
+            'dragon_garden':       'static/images/fixed_pages/_backup/dragon_garden_back_cover.png',
+            'magic_chef':          'static/images/fixed_pages/magic_chef_back_cover.png',
+            'magic_inventor':      'static/images/fixed_pages/magic_inventor_back_cover.png',
+            'star_keeper':         'static/images/fixed_pages/_backup/star_keeper_back_cover.png',
+            'centinela_aurora':    'static/images/fixed_pages/_backup/centinela_aurora_back_cover.png',
+            'furry_love':          'static/images/fixed_pages/_backup/furry_love_baby_back_cover.png',
+            'furry_love_adventure':'static/images/fixed_pages/_backup/furry_love_adventure_back_cover.png',
+            'furry_love_teen':     'static/images/fixed_pages/_backup/furry_love_teen_back_cover.png',
+            'furry_love_adult':    'static/images/fixed_pages/_backup/furry_love_adult_back_cover.png',
+        }
+        specific = _FIXED_BACK_COVERS.get(book_id)
+        if specific and os.path.exists(specific):
+            return specific
         fallback = 'static/images/fixed_pages/back_cover.png'
     else:
         fallback = 'static/images/quick_story_back_cover.png'
@@ -369,9 +390,12 @@ def prepare_book_for_visor(story_data, preview_id, book_uuid=None, is_gift=False
             continue
         if '_preview' in str(img_path):
             continue
-        # For illustrated books, portadilla (page_01) and dedicatoria (page_02)
-        # are already generated as text pages above — skip them in the scene loop
-        # to prevent duplicates when original_scene_paths includes all 24 composed pages.
+        # For illustrated books, portadilla (page_01) and dedicatoria (page_02) are
+        # already written as text pages above — skip them here to prevent duplicates.
+        # NOTE: in original_images (sourced from generate_full_book, 21 pages) the
+        # layout is page_01=portadilla, page_02=dedicatoria, page_03=escena1,
+        # page_04=escena2 … page_21=escena19.  Only pages 01-02 must be skipped;
+        # skipping 03-04 would silently remove scenes 1 and 2 from every eBook.
         if is_illustrated:
             _bn = os.path.basename(img_path.lstrip('/'))
             if _bn in ('page_01.png', 'page_02.png'):

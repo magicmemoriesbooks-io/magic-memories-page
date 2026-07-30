@@ -20,7 +20,21 @@
 #   - NEVER say @image1 "flies" or "soars" (gives wings)
 #   - Scenes 1, 2, 19 and CLOSING have no @image2
 
-STYLE_BASE = "Disney Pixar 3D style, soft luminous deep blue and violet tones with golden and silver sparkles, warm moonlight and starlight glow, full body visible from head to feet, character placed prominently in foreground, spectacular environment fills the background, clean illustration only."
+STYLE_BASE = (
+    "Disney Pixar 3D style, soft luminous deep blue and violet tones with golden and silver sparkles. "
+    "Characters: preserve original colors from @image1. "
+    "LIGHTING: Clean warm neutral cinematic studio lighting to prioritize preservation of original character colors (skin, hair). "
+    "Subtle color bounce and accents only from starlight and magical elements. No dense global haze. "
+    "Full body visible from head to feet, character placed prominently in foreground, spectacular environment fills the background, clean illustration only."
+)
+
+STYLE_BASE_COVER = (
+    "Disney Pixar 3D style, soft luminous deep blue and violet tones with golden and silver sparkles. "
+    "Characters: preserve original colors from @image1 and @image2. "
+    "LIGHTING: Clean warm neutral cinematic studio lighting to prioritize preservation of original character colors (skin, hair). "
+    "Subtle color bounce and accents only from starlight and magical elements. No dense global haze. "
+    "Full body visible from head to feet, characters occupy 65% of frame, spectacular environment fills the background, clean illustration only."
+)
 
 LUNA_INLINE = "LUNA: a small cute five-pointed star shape the size of a child's hand, solid shimmering silver-white, two big expressive violet eyes on the star face, tiny translucent wings on the sides, soft silver glow"
 
@@ -155,19 +169,25 @@ STAR_KEEPER_SCENES = [
         "id": 19,
         "text_es": "{name} volvió a casa abrazando la luz de LUNA en su pecho. Desde esa noche, una estrella nueva brilla en el cielo con el nombre de un guardián muy especial. Y colorín colorado, este cuento estelar ha terminado.",
         "text_en": "{name} returned home holding LUNA's light close to their heart. From that night on, a new star shines in the sky bearing the name of a very special guardian. And they all lived happily ever after. The End.",
-        "prompt": "ACTION: @image1 walks along a winding path toward home, one hand pressed to chest holding a soft silver glow, looking back over one shoulder with a warm smile. SETTING: Winding path WIDE VIEW, old lighthouse visible on the cliff in the background, deep night sky full of stars, one special star shining extra bright above, fireflies accompanying. ATMOSPHERE: Peaceful magical homecoming, warm starlit night. STRICT: Only @image1 in this scene. {style}",
+        "prompt": "ACTION: @image1 walks away from camera along a winding path toward home, back fully facing viewer, one hand pressed to chest holding a soft silver glow, head facing forward toward the lighthouse. No face visible — character seen from behind. SETTING: Winding path WIDE VIEW, old lighthouse visible on the cliff in the background, deep night sky full of stars, one special star shining extra bright above, fireflies accompanying. ATMOSPHERE: Peaceful magical homecoming, warm starlit night. STRICT: Only @image1 in this scene. {style}",
         "text_position": "split"
     }
 ]
 
-CLOSING_SCENE = {
-    "id": 20,
-    "prompt": "ACTION: @image1 sleeps peacefully in a cozy bed, one hand resting near a glowing star-shaped nightlight on the bedside table. SETTING: Cozy bedroom at night WIDE VIEW, telescope toy on shelf, star and moon decorations hanging from ceiling, magnificent starry sky through a large window with one star shining brighter than all others, warm soft lighting. ATMOSPHERE: Dreamy peaceful slumber, silver-violet glow. STRICT: Only @image1 in this scene, no companion present. {style}",
-    "text_position": "none"
-}
 
 FRONT_COVER = {
-    "prompt": "ACTION: @image1 stands confidently at the lighthouse entrance with one hand reaching upward toward the stars, @image2 hovers beside @image1's shoulder. SETTING: Old stone lighthouse on a dramatic clifftop WIDE VIEW, magnificent starry sky with bright constellations and shooting stars, ocean waves crashing below, warm golden-blue light from the lighthouse door, centered composition for book cover. ATMOSPHERE: Adventure invitation, celestial magic. STRICT: Pure illustration only. {style}"
+    "prompt": (
+        "Centered wide full body composite illustration.\n"
+        "The human child whose face, skin tone, and hair color and style are preserved exactly from @image1 stands confidently at the lighthouse entrance, "
+        "one hand reaching upward toward the stars, determined adventurous expression.\n"
+        "The star companion from @image2 hovers beside @image1's shoulder, glowing softly.\n"
+        "SETTING: Old stone lighthouse on a dramatic clifftop WIDE VIEW, magnificent starry sky with bright constellations and shooting stars, "
+        "ocean waves crashing below, warm golden-blue light from the lighthouse door, centered composition for book cover.\n"
+        "ATMOSPHERE: Adventure invitation, celestial magic.\n"
+        "STRICT: Only ONE child (@image1), only ONE star companion LUNA (@image2). Pure illustration only. Disney Pixar 3D style.\n"
+        "LIGHTING: Clean warm neutral cinematic studio lighting to prioritize preservation of original character colors (skin, hair). "
+        "Subtle color bounce and accents only from starlight and magical elements. No dense global haze."
+    )
 }
 
 BACK_COVER = {
@@ -211,3 +231,69 @@ def get_all_scene_prompts(child_name: str, gender: str, age: int, traits: dict) 
     for scene in STAR_KEEPER_SCENES:
         prompts.append(build_scene_prompt(scene, child_name, gender, age, traits))
     return prompts
+
+
+COMPANION = {
+    "name": "LUNA",
+    "reference_image": "static/assets/luna_reference.png",
+    "description": LUNA_INLINE,
+    "negative_prompt": (
+        "fox tail, bunny tail, dragon tail, animal ears on human, animal features on human, "
+        "robot features, mechanical parts on human"
+    ),
+}
+
+
+def build_kontext_prompt(age_display: str, gender_word: str, age_body_desc: str,
+                         eye_desc: str, outfit_desc: str) -> str:
+    """PASO 1 — Kontext Pro (SISTEMA 1). Official portrait prompt from photo."""
+    return (
+        f"Convert the {age_display} {gender_word} in @image1 into a high-quality 3D animated children's book character. "
+        f"Body proportions: {age_body_desc}. Do not use toddler proportions. "
+        f"Preserve the exact face, skin tone, and hair — identical likeness. "
+        f"If the person in @image1 wears glasses, preserve the glasses exactly in the animated character. "
+        f"Eye color: {eye_desc} — render this exact eye color. "
+        f"OUTFIT: {outfit_desc}. "
+        f"BACKGROUND: deep midnight blue studio background, plain — no lighthouse, no scenery. "
+        f"POSE: standing, full body visible from head to feet, brave adventurous smile, arms relaxed at sides."
+    )
+
+
+def build_avatar_prompt(age_display: str, gender_word: str) -> str:
+    """PASO 2 — FLUX 2 Dev avatar (SISTEMA 1). Minimal prompt at strength=1.0 — copies everything from @image1."""
+    return (
+        "@image1 copy exactly.\n"
+        "Standing upright, full body from head to feet, arms relaxed at sides, facing forward.\n"
+        "BACKGROUND: plain deep midnight blue studio, no scenery, no props, no other characters."
+    )
+
+
+def build_ref_note(age_display: str, gender_word: str, cover_ref: str,
+                   eye_desc: str, outfit_desc: str) -> str:
+    """PASO 3 — REF_NOTE. Prompt Maestro for cover and all scenes. SISTEMA 1 and SISTEMA 2."""
+    return (
+        "@image1 copy exactly.\n"
+        "@image2 copy exactly.\n"
+        f"Copy face, skin tone, hair color and style, eye color and outfit from @image1 exactly.\n"
+        f"Two distinct characters: @image1 is a fully human {gender_word}, @image2 is the star companion."
+    )
+
+
+def build_nophoto_portrait_prompt(age_display: str, gender_word: str, nophoto_profile: dict,
+                                   skin_tone: str, eye_desc: str, hair_line: str,
+                                   haircut_block: str, outfit_desc: str, glasses_desc: str) -> str:
+    """SISTEMA 2 PASO 1 — FLUX portrait from text only (no photo). Single source of truth."""
+    return (
+        "Disney Pixar 3D style illustration, clean full-body character reference sheet.\n\n"
+        f"CHARACTER: A single {gender_word}.\n"
+        f"AGE: Exactly {age_display}, {nophoto_profile['display']}.\n"
+        f"PROPORTIONS: {nophoto_profile['proportions']}\n"
+        f"FACE: {nophoto_profile['face']}\n"
+        f"SKIN: {skin_tone}.\n"
+        f"EYES: {eye_desc} — render this exact eye color.\n"
+        f"HAIR: {hair_line}.\n"
+        f"{haircut_block}"
+        f"OUTFIT: {outfit_desc}{glasses_desc}. "
+        "Standing upright, full body from head to feet, arms relaxed at sides, facing forward.\n"
+        "BACKGROUND: plain deep midnight blue studio, no scenery, no props, no other characters."
+    )

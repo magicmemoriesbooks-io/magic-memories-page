@@ -485,8 +485,10 @@ def generate_cw_content_pdf(
       Page  2 : portadilla  (visor_pb page_2.jpg)
       Page  3 : dedicatoria (visor_pb page_3.jpg)
       Pages 4-22 : 19 scenes (visor_pb page_4.jpg … page_22.jpg)
-      Page 23 : credits
-      Page 24 : blank
+      Page 23 : coloring A  (visor_pb page_8.jpg  — scene 5, as outline)
+      Page 24 : coloring B  (visor_pb page_17.jpg — scene 14, as outline)
+      Page 25 : credits (dynamically generated)
+      Page 26 : blank
 
     All pages at 216×303mm (A4 + 3mm bleed) at 300 DPI.
 

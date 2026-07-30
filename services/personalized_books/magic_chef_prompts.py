@@ -22,9 +22,21 @@
 #   - SWEETIE_CAKE = @image2 fixed reference image (rainbow cake character)
 #   - Scenes without @image2 in prompt text: 1,2,3,4,5,9,14,15,16,19 and CLOSING
 
-STYLE_BASE = "Disney Pixar 3D style, soft luminous pastel colors with pink and golden accents, warm kitchen lighting, WIDE SHOT full body from head to feet, characters occupy 40% of frame, environment visible, clean illustration only."
+STYLE_BASE = (
+    "Disney Pixar 3D style, soft luminous pastel colors with pink and golden accents. "
+    "Characters: preserve original colors from @image1. "
+    "LIGHTING: Clean warm neutral cinematic studio lighting to prioritize preservation of original character colors (skin, hair). "
+    "Subtle color bounce and accents only from magical kitchen elements. No dense global haze. "
+    "WIDE SHOT full body from head to feet, characters occupy 40% of frame, environment visible, clean illustration only."
+)
 
-STYLE_BASE_COVER = "Disney Pixar 3D style, soft luminous pastel colors with pink and golden accents, warm kitchen lighting, WIDE SHOT full body from head to feet, characters occupy 65% of frame, environment visible, clean illustration only."
+STYLE_BASE_COVER = (
+    "Disney Pixar 3D style, soft luminous pastel colors with pink and golden accents. "
+    "Characters: preserve original colors from @image1 and @image2. "
+    "LIGHTING: Clean warm neutral cinematic studio lighting to prioritize preservation of original character colors (skin, hair). "
+    "Subtle color bounce and accents only from magical kitchen elements. No dense global haze. "
+    "WIDE SHOT full body from head to feet, characters occupy 65% of frame, environment visible, clean illustration only."
+)
 
 SWEETIE_HAT_DESC = (
     "a magical glowing white chef's hat with cute animated cartoon eyes and a friendly smiling mouth, "
@@ -181,19 +193,23 @@ MAGIC_CHEF_SCENES = [
         "id": 19,
         "text_es": "{name} regresó a casa con su gorro mágico y una receta especial en el corazón. Y colorín colorado, este cuento delicioso ha terminado.",
         "text_en": "{name} returned home with the magic hat and a special recipe in {hisher} heart. And {heshe} lived sweetly ever after. The End.",
-        "prompt": "ACTION: @image1 walks along a winding country path toward home, looking back with a warm peaceful smile. SETTING: Beautiful sunset scene WIDE VIEW, peaceful meadow with wildflowers, cozy cottage with warm golden lights in the distance, sky in warm pastel pinks oranges and purples, golden sparkles and fireflies. ATMOSPHERE: Peaceful goodbye, warm sunset colors. STRICT: Only @image1 in this scene. {style}",
+        "prompt": "ACTION: @image1 walks away from camera along a winding country path toward home, back fully facing viewer, head facing forward toward the cozy cottage. No face visible — character seen from behind. SETTING: Beautiful sunset scene WIDE VIEW, peaceful meadow with wildflowers, cozy cottage with warm golden lights in the distance, sky in warm pastel pinks oranges and purples, golden sparkles and fireflies. ATMOSPHERE: Peaceful goodbye, warm sunset colors. STRICT: Only @image1 in this scene. {style}",
         "text_position": "split"
     }
 ]
 
-CLOSING_SCENE = {
-    "id": 20,
-    "prompt": "ACTION: @image1 sleeps peacefully in a cozy bed with a gentle smile, a small stuffed plush cake toy snuggled beside, a gold winner's medal on the nightstand, magical sparkles floating gently around the bed. SETTING: Cozy bedroom at night WIDE VIEW, stars through window, soft moonlight, magical sparkles. ATMOSPHERE: Dreamy peaceful slumber, warm golden glow. STRICT: Only @image1 in this scene, plush toy is a soft fabric toy not a real cake. {style}",
-    "text_position": "none"
-}
-
 FRONT_COVER = {
-    "prompt": "ACTION: @image1 stands in center of magical kitchen with both hands on hips, smiling proudly and confidently. @image2 floats happily beside @image1, frosting swirling around. SETTING: Magical pink kitchen WIDE VIEW, sparkles hearts and golden stars, floating magical desserts everywhere, rainbow cakes, glowing star cookies, swirling colorful ice creams, centered composition for book cover. ATMOSPHERE: Sweet magical invitation, pink and golden warmth. STRICT: Only ONE child character (@image1), only ONE cake character (@image2). Pure illustration only. {style}"
+    "prompt": (
+        "Centered wide full body composite illustration.\n"
+        "The human child whose face, skin tone, and hair color and style are preserved exactly from @image1 stands center of magical kitchen, "
+        "both hands on hips, smiling proudly and confidently.\n"
+        "The rainbow cake companion from @image2 floats happily beside @image1, frosting swirling around it.\n"
+        "SETTING: Magical pink kitchen WIDE VIEW, sparkles hearts and golden stars, floating magical desserts everywhere, rainbow cakes, glowing star cookies, swirling colorful ice creams, centered composition for book cover.\n"
+        "ATMOSPHERE: Sweet magical invitation, pink and golden warmth.\n"
+        "STRICT: Only ONE child (@image1), only ONE cake character SWEETIE (@image2). Pure illustration only. Disney Pixar 3D style.\n"
+        "LIGHTING: Clean warm neutral cinematic studio lighting to prioritize preservation of original character colors (skin, hair). "
+        "Subtle color bounce and accents only from magical kitchen elements. No dense global haze."
+    )
 }
 
 BACK_COVER = {
@@ -243,7 +259,7 @@ def build_kontext_prompt(age_display: str, gender_word: str, age_body_desc: str,
         f"If the person in @image1 wears glasses, preserve the glasses exactly in the animated character. "
         f"Eye color: {eye_desc} — render this exact eye color. "
         f"OUTFIT: {outfit_desc}. "
-        f"BACKGROUND: soft pink magical kitchen atmosphere with golden sparkles, plain studio — no kitchen scene. "
+        f"BACKGROUND: deep midnight blue studio background, plain — no kitchen, no scenery. "
         f"POSE: standing, full body visible from head to feet, confident joyful smile, both hands on hips."
     )
 
@@ -251,8 +267,8 @@ def build_kontext_prompt(age_display: str, gender_word: str, age_body_desc: str,
 def build_avatar_prompt(age_display: str, gender_word: str) -> str:
     """PASO 2 — FLUX 2 Dev avatar (SISTEMA 1). Minimal prompt at strength=1.0 — copies everything from @image1."""
     return (
-        f"@image1 = {age_display} {gender_word} character — copy face, skin tone, hair, and outfit from @image1 exactly.\n"
-        f"@image1 standing upright, full body visible from head to feet, arms relaxed at sides, facing forward, big joyful smile.\n"
+        "@image1 copy exactly.\n"
+        "Standing upright, full body from head to feet, arms relaxed at sides, facing forward.\n"
         "BACKGROUND: plain deep midnight blue studio, no scenery, no props, no other characters."
     )
 
@@ -261,8 +277,9 @@ def build_ref_note(age_display: str, gender_word: str, cover_ref: str,
                    eye_desc: str, outfit_desc: str) -> str:
     """PASO 3 — REF_NOTE. Prompt Maestro for cover and all scenes. SISTEMA 1 and SISTEMA 2."""
     return (
-        f"@image1 = {age_display} {gender_word} character — copy @image1 exactly.\n"
-        f"@image2 = the rainbow cake companion — copy @image2 exactly.\n"
+        "@image1 copy exactly.\n"
+        "@image2 copy exactly.\n"
+        f"Copy face, skin tone, hair color and style, eye color and outfit from @image1 exactly.\n"
         f"Two distinct characters: @image1 is a fully human {gender_word}, @image2 is the cake companion."
     )
 
@@ -281,12 +298,9 @@ def build_nophoto_portrait_prompt(age_display: str, gender_word: str, nophoto_pr
         f"EYES: {eye_desc} — render this exact eye color.\n"
         f"HAIR: {hair_line}.\n"
         f"{haircut_block}"
-        f"OUTFIT: {outfit_desc}{glasses_desc}.\n\n"
-        "POSE: standing upright, full body visible from head to feet, arms relaxed at sides, "
-        "facing forward, innocent open expression, big joyful smile showing baby teeth.\n"
-        "BACKGROUND: plain soft pink magical kitchen background with golden sparkles, no scenery, no cake, no other characters.\n"
-        "STRICT: Only ONE single character. No text, no watermarks, no logos. Clean character reference.\n"
-        "Disney Pixar 3D style, soft luminous pastel colors with pink and golden accents, warm lighting, clean illustration only."
+        f"OUTFIT: {outfit_desc}{glasses_desc}. "
+        "Standing upright, full body from head to feet, arms relaxed at sides, facing forward.\n"
+        "BACKGROUND: plain deep midnight blue studio, no scenery, no props, no other characters."
     )
 
 
@@ -294,7 +308,6 @@ def get_all_scene_prompts(child_name: str, gender: str, age: int, traits: dict) 
     prompts = []
     for scene in MAGIC_CHEF_SCENES:
         prompts.append(build_scene_prompt(scene, child_name, gender, age, traits))
-    prompts.append(build_scene_prompt(CLOSING_SCENE, child_name, gender, age, traits))
     return prompts
 
 

@@ -170,12 +170,6 @@ FURRY_LOVE_SCENES = [
     }
 ]
 
-CLOSING_SCENE = {
-    "id": 20,
-    "prompt": "Disney Pixar 3D style illustration. CAST: @image1 = {gender_word} baby (fully human body, smooth skin{baby_bow}). @image2 = {pet_name} ({pet_desc}): animal body, four paws, fur coat. Match both references exactly. Two distinct separate beings — child in toddler bed above, pet on floor below. Exactly ONE 16-month-old toddler asleep in toddler bed + exactly ONE pet asleep on the floor beside it. SCENE: 16-month-old {gender_word} sleeps peacefully in a small toddler bed at CENTER, a star-patterned blanket tucked snugly around, one tiny arm dangling over the bed edge reaching down toward {pet_name}. {pet_name} sleeps on the floor right beside the bed, head resting close to the dangling hand, one paw touching the bed frame, protective even in sleep. SETTING: Cozy bedroom at night WIDE VIEW, warm nightlight casting a soft golden glow, stars visible through the window, soft pillows, peaceful shadows. ATMOSPHERE: Perfect peaceful ending, warm nightlight glow, eternal faithful love, a story without end. {style}",
-    "text_position": "none"
-}
-
 FRONT_COVER = {
     "prompt": "Disney Pixar 3D style illustration. CAST: @image1 = {gender_word} newborn (fully human body, smooth skin, tiny human face). @image2 = {pet_name} ({pet_desc}): animal body, four paws, fur coat. Match both references exactly. Two distinct separate beings. Exactly ONE newborn baby + exactly ONE pet. Pure illustration only. SCENE: Newborn {gender_word} lies in a bassinet at CENTER-RIGHT, wrapped snugly in a soft white blanket, tiny peaceful face visible above the blanket. {pet_name} stands at LEFT leaning gently forward, nose approaching the newborn's tiny face for the very first time, eyes soft and tender with wonder, tail slightly wagging. SETTING: Warm cozy nursery, soft golden light through sheer curtains, pastel walls, intimate atmosphere. ATMOSPHERE: Sacred first meeting, pure tenderness, warm golden glow, a love story beginning, book cover quality. {style}"
 }
@@ -323,7 +317,6 @@ def get_all_scene_prompts(human_desc: str, pet_name: str, pet_desc: str, eye_des
     prompts = []
     for scene in FURRY_LOVE_SCENES:
         prompts.append(build_scene_prompt(scene, human_desc, pet_name, pet_desc, eye_desc, hair_color=hair_color))
-    prompts.append(build_scene_prompt(CLOSING_SCENE, human_desc, pet_name, pet_desc, eye_desc, hair_color=hair_color))
     return prompts
 
 

@@ -200,8 +200,8 @@ def get_book_title(book_id: str, child_name: str, lang: str = 'es', pet_name: st
             'en': f"{child_name} and Their Faithful Companion"
         },
         'centinela_aurora': {
-            'es': f"El Centinela de la Aurora - {child_name}",
-            'en': f"The Aurora Sentinel - {child_name}"
+            'es': f"{child_name} y Centinela de la Aurora",
+            'en': f"{child_name} and the Aurora Sentinel"
         },
     }
     book_titles = titles.get(book_id, titles['dragon_garden'])

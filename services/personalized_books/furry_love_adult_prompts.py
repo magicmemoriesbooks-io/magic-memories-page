@@ -159,12 +159,6 @@ FURRY_LOVE_ADULT_SCENES = [
     }
 ]
 
-CLOSING_SCENE = {
-    "id": 20,
-    "prompt": "Disney Pixar 3D style illustration. CAST: @image1 = copy exactly @image1: {gender_word} ({age_display}), adult face and mature proportions — match reference exactly. @image2 = {pet_name} ({pet_desc}): copy exactly the animal from @image2, same coat color, body size and figure — match reference exactly. Two distinct separate beings. Exactly ONE adult + ONE pet at the overlook. SCENE: @image1 sits on a rock at a dramatic mountain overlook, seen from a three-quarter angle, face visible with a peaceful and grateful expression, backpack resting beside them, warm golden sunset light on their face. @image2 sits loyally beside @image1, leaning gently against the adult's leg, calm and happy expression, both gazing out together at the vast magnificent landscape below. ACTION: Human and pet share a perfect ending moment together at a dramatic mountain overlook at golden sunset. SETTING: Dramatic mountain overlook WIDE VIEW, golden hour sky with warm orange and purple gradients, vast valley and mountain ranges below, pine trees framing the sides, epic cinematic composition. ATMOSPHERE: Epic emotional finale, golden cinematic light, deep bond and absolute loyalty, adventure and love perfectly captured. STRICT: @image1 sits on the rock on two legs. @image2 sits beside them on four paws. Epic closing scene. {style}",
-    "text_position": "none"
-}
-
 FRONT_COVER = {
     "prompt": "3D illustration in the style of Disney Pixar. CAST: @image1 = exact copy of @image1: {gender_word} ({age_display}), adult face and mature proportions — match reference exactly. @image2 = exact copy of @image2 {pet_name} ({pet_desc}): same fur color, size and build — match reference exactly. Two distinct beings. Exactly ONE adult + ONE pet by the campfire. SCENE: @image1 sits by a glowing campfire, eyes wide open, a warm smile on their face, and their face slightly turned toward the camera so the viewer can clearly see their expression. A hand rests gently on @image2. @image2 sits on the ground right next to @image1, eyes wide open, gazing at their face with adoring and devoted eyes. The pet's gaze is fixed on the human, not the fire. Both characters' faces are clearly illuminated by the warm glow of the campfire. SETTING: Mountain camp WIDE VIEW, imposing snow-capped peaks in the background, pine trees framing the scene, warm purple twilight sky, a glowing campfire between the characters and the viewer, tent visible in the background. ATMOSPHERE: A warm and intimate connection, the golden light of the campfire illuminates both faces, a magical mountain evening, a deep friendship. REQUIREMENTS: @image1 has their eyes OPEN. @image2 has their eyes OPEN looking at @image1. Both faces are visible and warmly lit. Centered composition for the book cover. Pure illustration only. {style}"
 }
@@ -272,7 +266,6 @@ def get_all_scene_prompts(human_desc: str, pet_name: str, pet_desc: str, age_dis
     prompts = []
     for scene in FURRY_LOVE_ADULT_SCENES:
         prompts.append(build_scene_prompt(scene, human_desc, pet_name, pet_desc, age_display, eye_desc, gender_word))
-    prompts.append(build_scene_prompt(CLOSING_SCENE, human_desc, pet_name, pet_desc, age_display, eye_desc, gender_word))
     return prompts
 
 

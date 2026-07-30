@@ -19,9 +19,21 @@
 #   - WIDE SHOT, characters occupy ~40% of frame, environment visible
 #   - Scenes 1, 19 and CLOSING have no @image2
 
-STYLE_BASE = "Disney Pixar 3D style, soft luminous pastel colors with emerald and golden accents, warm lighting, WIDE SHOT full body from head to feet, characters occupy 40% of frame, environment visible, clean illustration only."
+STYLE_BASE = (
+    "Disney Pixar 3D style, soft luminous pastel colors with emerald and golden accents. "
+    "Characters: preserve original colors from @image1. "
+    "LIGHTING: Clean warm neutral cinematic studio lighting to prioritize preservation of original character colors (skin, hair). "
+    "Subtle color bounce and accents only from magical elements. No dense global haze. "
+    "WIDE SHOT full body from head to feet, characters occupy 40% of frame, environment visible, clean illustration only."
+)
 
-STYLE_BASE_COVER = "Disney Pixar 3D style, soft luminous pastel colors with emerald and golden accents, warm lighting, WIDE SHOT full body from head to feet, characters occupy 65% of frame, environment visible, clean illustration only."
+STYLE_BASE_COVER = (
+    "Disney Pixar 3D style, soft luminous pastel colors with emerald and golden accents. "
+    "Characters: preserve original colors from @image1 and @image2. "
+    "LIGHTING: Clean warm neutral cinematic studio lighting to prioritize preservation of original character colors (skin, hair, scales). "
+    "Subtle color bounce and accents only from magical elements. No dense global haze. "
+    "WIDE SHOT full body from head to feet, characters occupy 65% of frame, environment visible, clean illustration only."
+)
 
 SPARK_INLINE = "SPARK: an adorable baby dragon with small chubby round body covered in shimmering emerald green scales, large expressive golden eyes, tiny translucent iridescent wings, short stubby tail, small rounded snout with a sweet smile, two tiny curved horns on head, soft cream-colored belly"
 
@@ -156,19 +168,23 @@ DRAGON_GARDEN_SCENES = [
         "id": 19,
         "text_es": "{name} volvió a casa bajo las estrellas, pero el Jardín del Dragón siempre vivirá en su corazón. Y colorín colorado, este cuento mágico ha terminado.",
         "text_en": "{name} returned home under the stars, but the Dragon Garden will always live in {hisher} heart. And {heshe} lived happily ever after. The End.",
-        "prompt": "ACTION: @image1 walks home on a winding path through a meadow with a warm smile, looking back over one shoulder waving goodbye. SETTING: Winding path WIDE VIEW, beautiful starry night sky, cozy cottage with warm lights in windows, fireflies glowing, magical atmosphere. ATMOSPHERE: Peaceful goodbye, warm starlit night. STRICT: Only @image1 in this scene. {style}",
+        "prompt": "ACTION: @image1 walks away from camera along a winding path through a meadow toward home, back fully facing viewer, head facing forward toward the cozy cottage. No face visible — character seen from behind. SETTING: Winding path WIDE VIEW, beautiful starry night sky, cozy cottage with warm lights in windows, fireflies glowing, magical atmosphere. ATMOSPHERE: Peaceful goodbye, warm starlit night. STRICT: Only @image1 in this scene. {style}",
         "text_position": "split"
     }
 ]
 
-CLOSING_SCENE = {
-    "id": 20,
-    "prompt": "ACTION: @image1 sleeps peacefully in a cozy bed with a gentle smile, one hand hugging a small plush dragon toy, on the nightstand a glowing emerald dragon scale shimmers softly. SETTING: Cozy bedroom at night WIDE VIEW, stars through window, soft moonlight, magical sparkles floating gently. ATMOSPHERE: Dreamy peaceful slumber, warm emerald glow. STRICT: Only @image1 in this scene, no companion present. {style}",
-    "text_position": "none"
-}
-
 FRONT_COVER = {
-    "prompt": "ACTION: @image1 sits happily on @image2's back soaring through the sky, arms gently holding @image2, @image2's wings spread wide and flapping, golden sparkles trailing. SETTING: Beautiful sky WIDE VIEW, fluffy pink and white cotton clouds, magnificent rainbow arching, golden sunlight, sparkles trailing, centered composition for book cover. ATMOSPHERE: Adventure invitation, joyful flight, magical. STRICT: Pure illustration only. {style}"
+    "prompt": (
+        "Centered wide full body composite illustration.\n"
+        "The human child whose face, skin tone, and hair color and style are preserved exactly from @image1 sits happily on the dragon's back from @image2, "
+        "arms gently holding the dragon, joyful brave smile.\n"
+        "The dragon companion from @image2 soars with wings spread wide and flapping, golden sparkles trailing.\n"
+        "SETTING: Beautiful sky WIDE VIEW, fluffy pink and white cotton clouds, magnificent rainbow arching, golden sunlight, sparkles trailing, centered composition for book cover.\n"
+        "ATMOSPHERE: Adventure invitation, joyful flight, magical.\n"
+        "STRICT: Only ONE child (@image1), only ONE dragon companion SPARK (@image2). Pure illustration only. Disney Pixar 3D style.\n"
+        "LIGHTING: Clean warm neutral cinematic studio lighting to prioritize preservation of original character colors (skin, hair, scales). "
+        "Subtle color bounce and accents only from magical elements. No dense global haze."
+    )
 }
 
 BACK_COVER = {
@@ -194,20 +210,6 @@ def get_hair_action(traits: dict) -> str:
     else:
         return "hair gently moving in the wind"
 
-
-def get_age_body_description(age: int) -> str:
-    if age <= 1:
-        return "baby with very small round body, extremely chubby cheeks, short stubby limbs, cannot stand alone"
-    elif age == 2:
-        return "toddler with small round body, very chubby cheeks, short stubby legs, wobbly stance"
-    elif age <= 4:
-        return "young toddler with small body, round chubby face, short legs, small stature"
-    elif age <= 6:
-        return "young child with small body proportions, slightly chubby face, short limbs, small height"
-    elif age <= 8:
-        return "school-age child with taller body, longer limbs, less chubby face, confident posture"
-    else:
-        return "older child with tall body, long limbs, mature face proportions, confident stance"
 
 
 def get_hair_texture_description(hair_type: str) -> str:
@@ -268,16 +270,16 @@ def build_kontext_prompt(age_display: str, gender_word: str, age_body_desc: str,
         f"If the person in @image1 wears glasses, preserve the glasses exactly in the animated character. "
         f"Eye color: {eye_desc} — render this exact eye color. "
         f"OUTFIT: {outfit_desc}. "
-        f"BACKGROUND: soft magical garden atmosphere with golden sparkles, plain studio — no dragon, no scenery. "
-        f"POSE: standing, full body visible from head to feet, joyful adventurous smile, arms relaxed at sides."
+        f"BACKGROUND: deep midnight blue with subtle aurora borealis colors, plain studio — no scenery. "
+        f"POSE: standing, full body visible from head to feet, brave adventurous expression, arms relaxed at the sides."
     )
 
 
 def build_avatar_prompt(age_display: str, gender_word: str) -> str:
     """PASO 2 — FLUX 2 Dev avatar (SISTEMA 1). Minimal prompt at strength=1.0 — copies everything from @image1."""
     return (
-        f"@image1 = {age_display} {gender_word} character — copy face, skin tone, hair, and outfit from @image1 exactly.\n"
-        f"@image1 standing upright, full body visible from head to feet, arms relaxed at sides, facing forward, big joyful smile.\n"
+        "@image1 copy exactly.\n"
+        "Standing upright, full body from head to feet, arms relaxed at sides, facing forward.\n"
         "BACKGROUND: plain deep midnight blue studio, no scenery, no props, no other characters."
     )
 
@@ -286,8 +288,9 @@ def build_ref_note(age_display: str, gender_word: str, cover_ref: str,
                    eye_desc: str, outfit_desc: str) -> str:
     """PASO 3 — REF_NOTE. Prompt Maestro for cover and all scenes. SISTEMA 1 and SISTEMA 2."""
     return (
-        f"@image1 = {age_display} {gender_word} character — copy @image1 exactly.\n"
-        f"@image2 = SPARK, dragon companion — copy @image2 exactly.\n"
+        "@image1 copy exactly.\n"
+        "@image2 copy exactly.\n"
+        f"Copy face, skin tone, hair color and style, eye color and outfit from @image1 exactly.\n"
         f"Two distinct characters: @image1 is a fully human {gender_word}, @image2 is the dragon companion."
     )
 
@@ -306,10 +309,7 @@ def build_nophoto_portrait_prompt(age_display: str, gender_word: str, nophoto_pr
         f"EYES: {eye_desc} — render this exact eye color.\n"
         f"HAIR: {hair_line}.\n"
         f"{haircut_block}"
-        f"OUTFIT: {outfit_desc}{glasses_desc}.\n\n"
-        "POSE: standing upright, full body visible from head to feet, arms relaxed at sides, "
-        "facing forward, innocent open expression, big joyful smile showing baby teeth.\n"
-        "BACKGROUND: plain soft magical garden background with golden sparkles, no scenery, no dragon, no other characters.\n"
-        "STRICT: Only ONE single character. No text, no watermarks, no logos. Clean character reference.\n"
-        "Disney Pixar 3D style, soft luminous pastel colors with emerald and golden accents, warm lighting, clean illustration only."
+        f"OUTFIT: {outfit_desc}{glasses_desc}. "
+        "Standing upright, full body from head to feet, arms relaxed at sides, facing forward.\n"
+        "BACKGROUND: plain deep midnight blue studio, no scenery, no props, no other characters."
     )

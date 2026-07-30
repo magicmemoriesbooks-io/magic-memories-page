@@ -151,7 +151,7 @@ def _rebuild_cover_artifacts_if_needed(story_data: dict, preview_id: str, compos
     return True
 
 
-def rebuild_book(preview_id: str) -> dict:
+def rebuild_book(preview_id: str, mark_composed: bool = True) -> dict:
     """The single reconstruction entrypoint. Rebuilds, in order:
       1. All interior-page path arrays, from disk.
       2. Cover artifacts, only if the raw cover changed.
@@ -164,6 +164,17 @@ def rebuild_book(preview_id: str) -> dict:
     parameter it reads is data already on story_data (want_ebook, etc.),
     used exactly the way the paid flow already uses it to pick is_gift for
     the visor's expiry policy.
+
+    mark_composed: when True (default), sets the composition/approval state
+    flags (pages_composed, book_scenes_ready, scenes_pending,
+    scenes_generating) to signal "the book is composed and ready". This is
+    correct for the real post-payment composition flow.
+    When False, none of those four flags are touched at all — used by
+    pre-approval/pre-payment regeneration endpoints (regenerate-cover,
+    regenerate-page) so a customer regenerating a preview image can never
+    accidentally flip the order's composition/approval state. All visual
+    reconstruction (pages, cover, visor, PDFs) still runs unconditionally
+    either way.
     """
     preview_path = f'story_previews/{preview_id}.json'
     if not os.path.exists(preview_path):
@@ -180,8 +191,15 @@ def rebuild_book(preview_id: str) -> dict:
     if not original_paths:
         raise RuntimeError(f'No page_NN.png files found in {composed_dir} — cannot rebuild')
 
-    content_original = original_paths[2:-2] if len(original_paths) > 4 else original_paths
-    content_preview = preview_paths[2:-2] if len(preview_paths) > 4 else preview_paths
+    # Pages 01-02 = portadilla, dedicatoria — fixed text pages, never scene illustrations.
+    # generate_full_book() does NOT prepend cover/blank to the page_NN series; the
+    # cover is saved separately as front_cover.png.  Real layout on disk:
+    #   page_01 = portadilla, page_02 = dedicatoria,
+    #   page_03 = escena 1, page_04 = escena 2, … page_21 = escena 19,
+    #   page_22 = créditos, page_23 = blank (for_print=True)
+    # Skipping 4 pages was wrong — it silently dropped escenas 1 and 2.
+    content_original = original_paths[2:] if len(original_paths) > 2 else original_paths
+    content_preview = preview_paths[2:] if len(preview_paths) > 2 else preview_paths
 
     formatted_original = [_fmt(p) for p in content_original]
     formatted_preview = [_fmt(p) for p in content_preview]
@@ -201,10 +219,14 @@ def rebuild_book(preview_id: str) -> dict:
     cover_rebuilt = _rebuild_cover_artifacts_if_needed(story_data, preview_id, composed_dir)
     result['steps'].append(f'cover rebuilt: {cover_rebuilt}')
 
-    story_data['pages_composed'] = True
-    story_data['book_scenes_ready'] = True
-    story_data['scenes_pending'] = False
-    story_data['scenes_generating'] = False
+    if mark_composed:
+        story_data['pages_composed'] = True
+        story_data['book_scenes_ready'] = True
+        story_data['scenes_pending'] = False
+        story_data['scenes_generating'] = False
+        result['steps'].append('composition state flags set (mark_composed=True)')
+    else:
+        result['steps'].append('composition state flags SKIPPED (mark_composed=False)')
 
     # 3) eBook/visor — same function used by the paid flow, never duplicated.
     from services.vps_upload_service import prepare_and_upload
@@ -290,11 +312,20 @@ def rebuild_book(preview_id: str) -> dict:
     _REBUILD_OWNED_FIELDS = (
         'scene_paths', 'images', 'original_images', 'original_scene_paths',
         'all_pages_original', 'all_pages_preview', 'composed_pages_dir',
-        'pages_composed', 'book_scenes_ready', 'scenes_pending', 'scenes_generating',
         'visor_url', 'visor_uuid', 'visor_uploaded', 'pdf_printable_path',
         'front_cover_path', 'back_cover_path', 'cover_preview', 'back_cover_preview',
         'cover_spread_path', 'cp_needs_refresh',
     )
+    # Composition/approval state flags are only "owned" by this write when
+    # mark_composed=True. When False, they must be left completely alone —
+    # not even re-copied from the (possibly stale) story_data snapshot taken
+    # at the start of this call — so a regeneration can never move the
+    # order's composition/approval state, in either direction.
+    _COMPOSITION_STATE_FIELDS = (
+        'pages_composed', 'book_scenes_ready', 'scenes_pending', 'scenes_generating',
+    )
+    if mark_composed:
+        _REBUILD_OWNED_FIELDS = _REBUILD_OWNED_FIELDS + _COMPOSITION_STATE_FIELDS
     try:
         with open(preview_path, 'r', encoding='utf-8') as f:
             fresh_data = json.load(f)

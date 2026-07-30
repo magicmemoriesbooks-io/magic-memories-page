@@ -152,23 +152,18 @@ def generate_with_flux_pulid(prompt: str, face_image_path: str, width: int = 768
 
 def _run_replicate_with_retry(input_params, ref_file_paths=None):
     """Run replicate with automatic retry on transient errors.
+    For calls with image refs, delegates to _create_and_poll_prediction to avoid
+    HTTP read timeouts (each timeout would restart a new prediction on Replicate's side).
     ref_file_paths: list of file paths to reopen on each retry for fresh file handles."""
+    if ref_file_paths:
+        return _create_and_poll_prediction(input_params, ref_file_paths)
+    # Text-only calls: fast (<30s), use blocking run()
     last_error = None
     for attempt in range(1, MAX_RETRIES + 1):
-        opened_files = []
         try:
             params = dict(input_params)
-            if ref_file_paths:
-                fresh_refs = []
-                for p in ref_file_paths:
-                    f = open(p, "rb")
-                    opened_files.append(f)
-                    fresh_refs.append(f)
-                params["input_images"] = fresh_refs
-            
             param_keys = list(params.keys())
-            ref_count = len(params.get('input_images', []))
-            print(f"[PREVIEW] Calling replicate.run attempt {attempt}: params={param_keys}, refs={ref_count}, prompt_len={len(params.get('prompt',''))}")
+            print(f"[PREVIEW] Calling replicate.run attempt {attempt}: params={param_keys}, refs=0, prompt_len={len(params.get('prompt',''))}")
             output = _replicate_client.run(
                 "black-forest-labs/flux-2-dev",
                 input=params
@@ -188,16 +183,83 @@ def _run_replicate_with_retry(input_params, ref_file_paths=None):
                     time.sleep(wait)
                     continue
             raise
-        finally:
-            for f in opened_files:
-                try:
-                    f.close()
-                except:
-                    pass
     raise last_error
 
 
-def generate_with_flux2_dev(prompt: str, aspect_ratio: str = "3:4", photo_ref_path: str = None, photo_ref_paths: list = None, image_prompt_strength: float = 0.50, negative_prompt: str = None, force_go_fast: bool = False) -> str:
+def _file_to_base64_uri(path: str) -> str:
+    """Convert a local image file to a base64 data URI for inline Replicate input.
+    Avoids the separate /v1/files upload step that the SDK performs for file handles."""
+    import base64, mimetypes
+    mime = mimetypes.guess_type(path)[0] or "image/png"
+    with open(path, "rb") as f:
+        data = base64.b64encode(f.read()).decode("utf-8")
+    return f"data:{mime};base64,{data}"
+
+
+def _create_and_poll_prediction(input_params, ref_file_paths):
+    """Create a Replicate prediction and poll until completion.
+    Resilient to HTTP read timeouts — the prediction continues running on Replicate's
+    side even if the HTTP connection drops, so we just keep polling the same ID.
+    Images are sent as base64 data URIs (inline) to skip the separate /v1/files upload
+    step that the SDK performs when receiving open file handles — saves ~2-5s per call.
+    If the prediction itself fails (NSFW, CUDA OOM, etc.) we create a new one."""
+    import time as _time
+    last_error = None
+    for attempt in range(1, MAX_RETRIES + 1):
+        prediction = None
+        try:
+            params = dict(input_params)
+            t_enc = _time.time()
+            b64_refs = [_file_to_base64_uri(p) for p in ref_file_paths]
+            params["input_images"] = b64_refs
+            ref_count = len(b64_refs)
+            print(f"[PREVIEW] Creating prediction attempt {attempt}: refs={ref_count}, encoded in {_time.time()-t_enc:.1f}s, prompt_len={len(params.get('prompt',''))}")
+            prediction = _replicate_client.predictions.create(
+                model="black-forest-labs/flux-2-dev",
+                input=params
+            )
+            print(f"[PREVIEW] Prediction {prediction.id} created — polling...")
+        except Exception as e:
+            last_error = e
+            print(f"[PREVIEW] Create failed attempt {attempt}: {str(e)[:200]}")
+
+        if prediction is None:
+            if attempt < MAX_RETRIES:
+                time.sleep(RETRY_DELAY)
+                continue
+            raise last_error
+
+        # Poll until the prediction finishes (no HTTP timeout risk)
+        poll_count = 0
+        while prediction.status not in ('succeeded', 'failed', 'canceled'):
+            time.sleep(4)
+            try:
+                prediction.reload()
+            except Exception:
+                pass  # Transient poll error — keep polling same prediction
+            poll_count += 1
+            if poll_count % 8 == 0:
+                print(f"[PREVIEW] Polling {prediction.id}: {prediction.status} (~{poll_count * 4}s elapsed)")
+
+        if prediction.status == 'succeeded':
+            print(f"[PREVIEW] Prediction complete on attempt {attempt}!")
+            return prediction.output
+
+        err = str(prediction.error or 'unknown error')
+        print(f"[PREVIEW] Prediction failed attempt {attempt}: {err[:200]}")
+        last_error = Exception(f"Prediction failed: {err}")
+        is_retryable = any(e in err for e in RETRYABLE_ERRORS)
+        if is_retryable and attempt < MAX_RETRIES:
+            wait = RETRY_DELAY + (attempt - 1) * 3
+            print(f"[PREVIEW] Retrying in {wait}s...")
+            time.sleep(wait)
+            continue
+        raise last_error
+
+    raise last_error
+
+
+def generate_with_flux2_dev(prompt: str, aspect_ratio: str = "3:4", photo_ref_path: str = None, photo_ref_paths: list = None, image_prompt_strength: float = 0.50, negative_prompt: str = None, force_go_fast: bool = False, high_quality: bool = False) -> str:
     """Generate illustration using FLUX 2 Dev (better consistency for series).
     If photo_ref_path is provided, uses it as single input_images reference.
     If photo_ref_paths is provided, uses multiple input_images references (e.g. human + pet).
@@ -205,12 +267,13 @@ def generate_with_flux2_dev(prompt: str, aspect_ratio: str = "3:4", photo_ref_pa
     With 2 refs (human+pet): each ref ~25%, text 50% — better characteristic control.
     With 1 ref (single photo): ref 50%, text 50% — balanced face+trait fidelity.
     negative_prompt: passed as separate FLUX parameter to suppress unwanted features (tails, animal features).
-    force_go_fast: when True, keeps go_fast=True even with photo refs (for previews — faster, slightly lower quality)."""
+    force_go_fast: when True, keeps go_fast=True even with photo refs (for previews — faster, slightly lower quality).
+    high_quality: when True, sets go_fast=False even without photo refs (portrait SISTEMA 2 — full quality)."""
     input_params = {
         "prompt": prompt,
         "aspect_ratio": aspect_ratio,
         "output_format": "png",
-        "go_fast": True
+        "go_fast": False if high_quality else True
     }
     if negative_prompt:
         input_params["negative_prompt"] = negative_prompt
@@ -264,13 +327,42 @@ def _ensure_luna_reference() -> str:
     print("[STAR KEEPER] Generating LUNA reference image (first time only)...")
     try:
         luna_prompt = (
-            "Disney Pixar 3D style illustration. A single cute small five-pointed star shape, "
-            "solid shimmering silver-white body, two large expressive bright violet eyes on the star face, "
-            "tiny delicate translucent wings on the sides of the star, soft warm silver glow surrounding. "
-            "Floating in midair, centered in frame. Plain deep dark navy blue background. "
-            "Full character visible, clean studio lighting, pure illustration only, NO text, NO watermarks."
+            "Create the definitive reference design for LUNA, "
+            "the recurring companion character of an illustrated children's book series.\n\n"
+            "STYLE:\n"
+            "Disney Pixar 3D style illustration.\n\n"
+            "CHARACTER:\n"
+            "LUNA is a small cute five-pointed star shape with a solid shimmering silver-white body. "
+            "Two large expressive bright violet eyes on the star face. "
+            "Tiny delicate translucent wings on the sides of the star. "
+            "Soft warm silver glow surrounding the body.\n\n"
+            "The design must be immediately recognizable and remain visually consistent "
+            "across every illustration in the book series.\n\n"
+            "Preserve:\n"
+            "- overall body shape and proportions\n"
+            "- facial features\n"
+            "- eye shape and eye color\n"
+            "- colors and textures\n"
+            "- distinctive accessories or markings\n\n"
+            "POSE:\n"
+            "Floating gently in midair, full character completely visible.\n\n"
+            "COMPOSITION:\n"
+            "Single character only.\n"
+            "Centered in the frame.\n"
+            "Full character completely visible.\n"
+            "No part of the character may be cropped.\n"
+            "Occupy approximately 70% of the frame.\n\n"
+            "BACKGROUND:\n"
+            "Plain deep midnight blue studio, no scenery, no props, no other characters.\n\n"
+            "LIGHTING:\n"
+            "Clean warm neutral cinematic studio lighting to prioritize preservation of "
+            "original character colors.\n"
+            "Clean illustration only.\n"
+            "No scenery. No additional characters. No props or external objects.\n"
+            "Only elements that are intrinsic to the character design.\n"
+            "No text. No logos. No watermarks."
         )
-        image_url = generate_with_flux2_dev(luna_prompt, aspect_ratio="1:1")
+        image_url = generate_with_flux2_dev(luna_prompt, aspect_ratio="1:1", high_quality=True)
         from services.replicate_service import save_image_locally as _sil
         result_path = _sil(image_url, luna_path)
         if result_path and os.path.exists(luna_path):
@@ -296,7 +388,7 @@ def _ensure_astro_reference() -> str:
             "Create the definitive reference design for ASTRO, "
             "the recurring companion character of an illustrated children's book series.\n\n"
             "STYLE:\n"
-            "Disney Pixar-style 3D animated children's book illustration.\n\n"
+            "Disney Pixar 3D style illustration.\n\n"
             "CHARACTER:\n"
             "A small magical fox named ASTRO, kitten-sized, vibrant electric blue fur covering the entire body, "
             "white chest patch, large expressive amber-golden eyes, a glowing star-tipped tail that emits soft "
@@ -310,7 +402,7 @@ def _ensure_astro_reference() -> str:
             "- colors and textures\n"
             "- distinctive accessories or markings\n\n"
             "POSE:\n"
-            "Sitting naturally.\n\n"
+            "Sitting naturally, full character completely visible.\n\n"
             "COMPOSITION:\n"
             "Single character only.\n"
             "Centered in the frame.\n"
@@ -318,20 +410,16 @@ def _ensure_astro_reference() -> str:
             "No part of the character may be cropped.\n"
             "Occupy approximately 70% of the frame.\n\n"
             "BACKGROUND:\n"
-            "Deep midnight blue gradient with faint aurora colors.\n\n"
+            "Plain deep midnight blue studio, no scenery, no props, no other characters.\n\n"
             "LIGHTING:\n"
-            "Soft warm lighting.\n"
-            "Even illumination with minimal shadows.\n\n"
+            "Clean warm neutral cinematic studio lighting to prioritize preservation of "
+            "original character colors.\n"
             "Clean illustration only.\n"
-            "No scenery.\n"
-            "No additional characters.\n"
-            "No props or external objects.\n"
+            "No scenery. No additional characters. No props or external objects.\n"
             "Only elements that are intrinsic to the character design.\n"
-            "No text.\n"
-            "No logos.\n"
-            "No watermarks."
+            "No text. No logos. No watermarks."
         )
-        image_url = generate_with_flux2_dev(astro_prompt, aspect_ratio="1:1")
+        image_url = generate_with_flux2_dev(astro_prompt, aspect_ratio="1:1", high_quality=True)
         from services.replicate_service import save_image_locally as _sil
         os.makedirs('static/assets', exist_ok=True)
         result_path = _sil(image_url, astro_path)
@@ -354,15 +442,42 @@ def _ensure_spark_reference() -> str:
     print("[DRAGON GARDEN] Generating SPARK reference image (first time only)...")
     try:
         spark_prompt = (
-            "Disney Pixar 3D style illustration. A single adorable baby dragon named SPARK, "
-            "small chubby round body covered in shimmering emerald green scales, large expressive "
-            "golden eyes, tiny translucent iridescent wings on the sides, short stubby tail, "
-            "small rounded snout with a sweet gentle smile, two tiny curved horns on head, "
-            "soft cream-colored belly. Floating in midair, centered in frame, full body visible. "
-            "Plain soft green magical background with golden sparkles. "
-            "Full character visible, clean studio lighting, pure illustration only, NO text, NO watermarks."
+            "Create the definitive reference design for SPARK, "
+            "the recurring companion character of an illustrated children's book series.\n\n"
+            "STYLE:\n"
+            "Disney Pixar 3D style illustration.\n\n"
+            "CHARACTER:\n"
+            "SPARK is an adorable baby dragon with a small chubby round body covered in shimmering "
+            "emerald green scales, large expressive golden eyes, tiny translucent iridescent wings on "
+            "the sides, short stubby tail, small rounded snout with a sweet gentle smile, two tiny "
+            "curved horns on head, soft cream-colored belly.\n\n"
+            "The design must be immediately recognizable and remain visually consistent "
+            "across every illustration in the book series.\n\n"
+            "Preserve:\n"
+            "- overall body shape and proportions\n"
+            "- facial features\n"
+            "- eye shape and eye color\n"
+            "- colors and textures\n"
+            "- distinctive accessories or markings\n\n"
+            "POSE:\n"
+            "Floating gently in midair, full character completely visible, friendly expression.\n\n"
+            "COMPOSITION:\n"
+            "Single character only.\n"
+            "Centered in the frame.\n"
+            "Full character completely visible.\n"
+            "No part of the character may be cropped.\n"
+            "Occupy approximately 70% of the frame.\n\n"
+            "BACKGROUND:\n"
+            "Plain deep midnight blue studio, no scenery, no props, no other characters.\n\n"
+            "LIGHTING:\n"
+            "Clean warm neutral cinematic studio lighting to prioritize preservation of "
+            "original character colors.\n"
+            "Clean illustration only.\n"
+            "No scenery. No additional characters. No props or external objects.\n"
+            "Only elements that are intrinsic to the character design.\n"
+            "No text. No logos. No watermarks."
         )
-        image_url = generate_with_flux2_dev(spark_prompt, aspect_ratio="1:1")
+        image_url = generate_with_flux2_dev(spark_prompt, aspect_ratio="1:1", high_quality=True)
         from services.replicate_service import save_image_locally as _sil
         os.makedirs('static/assets', exist_ok=True)
         result_path = _sil(image_url, spark_path)
@@ -384,15 +499,46 @@ def _ensure_sweetie_reference() -> str:
     print("[MAGIC CHEF] Generating SWEETIE reference image (first time only)...")
     try:
         sweetie_prompt = (
-            "Disney Pixar 3D style illustration. A single adorable round rainbow layered cake character named SWEETIE, "
-            "whole round cake (not a slice), multiple colorful layers (pink, blue, yellow, green), "
-            "big expressive cartoon eyes on the front face of the cake, a friendly wide smiling mouth, "
-            "small adorable chubby arms and legs sticking out from the sides, bouncy cheerful pose. "
-            "Centered in frame, full character visible from top to bottom. "
-            "Plain soft pink magical background with golden sparkles and tiny floating stars. "
-            "Clean studio lighting, pure illustration only, NO text, NO watermarks."
+            "Create the definitive reference design for SWEETIE, "
+            "the recurring companion character of an illustrated children's book series.\n\n"
+            "STYLE:\n"
+            "Disney Pixar 3D style illustration.\n\n"
+            "CHARACTER:\n"
+            "SWEETIE is an adorable round whole rainbow layered cake character (not a slice). "
+            "Multiple colorful layers: pink, blue, yellow, and green. "
+            "Big expressive cartoon eyes on the front face of the cake. "
+            "A friendly wide smiling mouth. "
+            "Small adorable chubby arms and legs sticking out from the sides. "
+            "Colorful frosting swirls on top with a single cherry. "
+            "Bouncy cheerful round shape.\n\n"
+            "The design must be immediately recognizable and remain visually consistent "
+            "across every illustration in the book series.\n\n"
+            "Preserve:\n"
+            "- overall body shape and proportions\n"
+            "- facial features\n"
+            "- eye shape and eye color\n"
+            "- colors and textures\n"
+            "- distinctive accessories or markings\n\n"
+            "POSE:\n"
+            "Standing upright, full character completely visible from top to bottom. "
+            "Bouncy cheerful pose with both arms slightly raised in excitement.\n\n"
+            "COMPOSITION:\n"
+            "Single character only.\n"
+            "Centered in the frame.\n"
+            "Full character completely visible.\n"
+            "No part of the character may be cropped.\n"
+            "Occupy approximately 70% of the frame.\n\n"
+            "BACKGROUND:\n"
+            "Plain deep midnight blue studio, no scenery, no props, no other characters.\n\n"
+            "LIGHTING:\n"
+            "Clean warm neutral cinematic studio lighting to prioritize preservation of "
+            "original character colors.\n"
+            "Clean illustration only.\n"
+            "No scenery. No additional characters. No props or external objects.\n"
+            "Only elements that are intrinsic to the character design.\n"
+            "No text. No logos. No watermarks."
         )
-        image_url = generate_with_flux2_dev(sweetie_prompt, aspect_ratio="1:1")
+        image_url = generate_with_flux2_dev(sweetie_prompt, aspect_ratio="1:1", high_quality=True)
         from services.replicate_service import save_image_locally as _sil
         os.makedirs('static/assets', exist_ok=True)
         result_path = _sil(image_url, sweetie_path)
@@ -406,7 +552,7 @@ def _ensure_sweetie_reference() -> str:
 
 def _ensure_bolt_reference() -> str:
     """Generate BOLT robot companion reference image once and cache it as a static asset.
-    BOLT: small round copper-colored robot with spherical body, big glowing blue eyes, antenna.
+    Uses certified companion prompt template (Jul 2026): Disney Pixar 3D, plain midnight blue bg.
     """
     bolt_path = 'static/assets/bolt_reference.png'
     if os.path.exists(bolt_path):
@@ -414,16 +560,46 @@ def _ensure_bolt_reference() -> str:
     print("[MAGIC INVENTOR] Generating BOLT reference image (first time only)...")
     try:
         bolt_prompt = (
-            "Disney Pixar 3D style illustration. A single small round copper-colored robot named BOLT, "
-            "small chubby spherical body with copper patina finish, two large glowing bright blue LED eyes, "
-            "two short articulated metallic arms with rounded hands, two short stumpy metallic legs, "
-            "small antenna on top of head with a blinking blue light, rivets and small gear details visible on body, "
-            "friendly cheerful pose with one arm raised in a wave, sweet gentle expression. "
-            "Centered in frame, full character visible from top to bottom. "
-            "Plain warm golden workshop background with soft copper tones and floating gears. "
-            "Clean studio lighting, pure illustration only, NO text, NO watermarks."
+            "Create the definitive reference design for BOLT, "
+            "the recurring companion character of an illustrated children's book series.\n\n"
+            "STYLE:\n"
+            "Disney Pixar 3D style illustration.\n\n"
+            "CHARACTER:\n"
+            "BOLT is a small chubby round robot with a perfectly spherical copper-patina body. "
+            "Big round glowing bright blue LED eyes set in a flat face panel. "
+            "Two short articulated metallic arms with rounded hands. "
+            "Two short stumpy metallic legs with round feet. "
+            "Small antenna on top of head with a blinking blue light at the tip. "
+            "Rivets and small gear details visible on the body surface. "
+            "Warm copper-brown metallic finish with natural patina.\n\n"
+            "The design must be immediately recognizable and remain visually consistent "
+            "across every illustration in the book series.\n\n"
+            "Preserve:\n"
+            "- overall body shape and proportions\n"
+            "- facial features\n"
+            "- eye shape and eye color\n"
+            "- colors and textures\n"
+            "- distinctive accessories or markings\n\n"
+            "POSE:\n"
+            "Standing upright, full body completely visible from top to bottom. "
+            "Friendly cheerful pose with one arm raised in a gentle wave. "
+            "Sweet gentle expression with eyes lit up bright blue.\n\n"
+            "COMPOSITION:\n"
+            "Single character only.\n"
+            "Centered in the frame.\n"
+            "Full character completely visible.\n"
+            "No part of the character may be cropped.\n"
+            "Occupy approximately 70% of the frame.\n\n"
+            "BACKGROUND:\n"
+            "Plain deep midnight blue studio, no scenery, no props, no other characters.\n\n"
+            "LIGHTING:\n"
+            "Clean warm neutral cinematic studio lighting to prioritize preservation of original character colors.\n"
+            "Clean illustration only.\n"
+            "No scenery. No additional characters. No props or external objects.\n"
+            "Only elements that are intrinsic to the character design.\n"
+            "No text. No logos. No watermarks."
         )
-        image_url = generate_with_flux2_dev(bolt_prompt, aspect_ratio="1:1")
+        image_url = generate_with_flux2_dev(bolt_prompt, aspect_ratio="1:1", high_quality=True)
         from services.replicate_service import save_image_locally as _sil
         os.makedirs('static/assets', exist_ok=True)
         result_path = _sil(image_url, bolt_path)
@@ -445,7 +621,8 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
     Preview = Front Cover with centered composition for book cover
     """
     from services.replicate_service import save_image_locally, get_unified_skin_description, get_gender_negative_prompt
-    from services.fixed_stories import get_hair_description, get_eye_description, get_age_body_desc
+    from services.fixed_stories import get_hair_description, get_eye_description
+    from services.age_profiles import get_age_profile
     
     # Determine if a photo is provided and build glasses description
     has_photo = bool(child_photo_path and os.path.exists(child_photo_path))
@@ -456,11 +633,13 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
         from services.personalized_books.dragon_garden_prompts import (
             get_outfit_desc as dg_get_outfit_desc,
             STYLE_BASE as DG_STYLE_BASE,
+            STYLE_BASE_COVER as DG_STYLE_BASE_COVER,
             FRONT_COVER as DG_FRONT_COVER,
-            get_hair_action as dg_get_hair_action
+            build_kontext_prompt as dg_build_kontext_prompt,
+            build_avatar_prompt as dg_build_avatar_prompt,
+            build_ref_note as dg_build_ref_note,
+            build_nophoto_portrait_prompt as dg_build_nophoto_portrait,
         )
-        from services.fixed_stories import get_hair_strict
-        from services.replicate_service import get_gender_negative_prompt as _dg_neg_fn
 
         gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
         age_display = f"{child_age} year old" if child_age and child_age > 0 else "6 year old"
@@ -473,66 +652,153 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
         output_dir = 'generated/previews'
         os.makedirs(output_dir, exist_ok=True)
 
-        dg_scene = DG_FRONT_COVER.get('prompt', '').replace('{style}', DG_STYLE_BASE)
-        dg_neg = _dg_neg_fn(gender)
+        # Custom negative: no suprimir alas/escamas/cola de SPARK
+        _dg_neg_base = (
+            "text, watermark, signature, logo, letters, words, ugly, deformed, blurry, low quality, "
+            "distorted face, wings on child, animal features on human, furry child, animal ears, extra limbs, "
+            "dragon tail on human, scales on human"
+        )
+        dg_neg = (
+            (_dg_neg_base + ", masculine features, boy haircut") if gender == 'female'
+            else (_dg_neg_base + ", earrings, jewelry, bows, ribbons, makeup, lipstick, feminine accessories, girl features, ponytails, pigtails") if gender == 'male'
+            else _dg_neg_base
+        )
         eye_desc = get_eye_description(traits)
+        profile, range_key = get_age_profile(child_age)
+        print(f"[DRAGON GARDEN PREVIEW] age={child_age} range={range_key} display={profile['display']}")
 
         if human_photo_path and os.path.exists(human_photo_path):
-            kontext_prompt = (
-                f"Convert the {age_display} {gender_word} in @image1 into a high-quality 3D animated children's book character. "
-                f"Preserve the exact face, skin tone, and hair — identical likeness. "
-                f"Eye color: {eye_desc} — render this exact eye color. "
-                f"OUTFIT: {outfit_desc}. "
-                f"BACKGROUND: soft magical garden atmosphere with golden sparkles, plain studio — no dragon, no scenery. "
-                f"POSE: standing, full body visible from head to feet, joyful adventurous smile, arms relaxed at sides."
-            )
-            print(f"[DRAGON GARDEN PREVIEW] Step 1 — Kontext portrait | photo={human_photo_path} | age={child_age}")
-            portrait_url = generate_with_flux_kontext(kontext_prompt, human_photo_path, aspect_ratio="3:4")
-            portrait_path = save_image_locally(portrait_url, f'{output_dir}/dg_portrait_{uuid.uuid4().hex[:8]}.png')
-            print(f"[DRAGON GARDEN PREVIEW] Portrait saved: {portrait_path}")
+            # ── SISTEMA 1 — con foto ──────────────────────────────────────────
+            # REGEN: si ya existe un avatar aprobado, saltar PASO 1+2 completamente.
+            # El avatar FLUX es fijo para toda la sesión — regenerar = nueva portada con el mismo avatar.
+            _reuse = traits.get('reuse_portrait_path', '')
+            if _reuse and os.path.exists(_reuse):
+                avatar_path = _reuse
+                print(f"[DRAGON GARDEN PREVIEW] REGEN — avatar fijo reutilizado, PASO 1+2 omitidos: {avatar_path}")
+            else:
+                # PASO 1: Kontext portrait
+                kontext_prompt = dg_build_kontext_prompt(
+                    age_display, gender_word, profile['kontext'], eye_desc, outfit_desc
+                )
+                print(f"[DRAGON GARDEN PREVIEW] PASO 1 KONTEXT PROMPT: {kontext_prompt}")
+                print(f"[DRAGON GARDEN PREVIEW] PASO 1 — Kontext portrait | photo={human_photo_path}")
+                portrait_url = generate_with_flux_kontext(kontext_prompt, human_photo_path, aspect_ratio="3:4")
+                portrait_path = save_image_locally(portrait_url, f'{output_dir}/dg_kontext_{uuid.uuid4().hex[:8]}.png')
+                print(f"[DRAGON GARDEN PREVIEW] PASO 1 — Kontext guardado: {portrait_path}")
 
-            dg_ref_note = (
-                f"The child in @image1 is {age_display}. "
-                f"@image1={gender_word} character — copy face, eye color, hair, skin, and outfit exactly. "
-                "@image2=small emerald dragon companion SPARK — copy appearance exactly. "
-                f"Two distinct characters: @image1 is a fully human {gender_word}, @image2 is a small baby dragon."
+                # PASO 2: FLUX 2 Dev Avatar
+                avatar_prompt = dg_build_avatar_prompt(age_display, gender_word)
+                print(f"[DRAGON GARDEN PREVIEW] PASO 2 — FLUX avatar | kontext={portrait_path}")
+                avatar_url = generate_with_flux2_dev(
+                    avatar_prompt,
+                    aspect_ratio="3:4",
+                    photo_ref_path=portrait_path,
+                    image_prompt_strength=1.0,
+                    force_go_fast=False,
+                )
+                avatar_path = save_image_locally(avatar_url, f'{output_dir}/dg_avatar_{uuid.uuid4().hex[:8]}.png')
+                print(f"[DRAGON GARDEN PREVIEW] PASO 2 — Avatar guardado: {avatar_path}")
+
+            # PASO 3: FLUX 2 Dev Portada
+            from services.personalized_books.age_profiles_nophoto import get_age_profile_nophoto as _get_dg_nophoto
+            _s1_nophoto_profile, _ = _get_dg_nophoto(child_age)
+            dg_ref_note = dg_build_ref_note(
+                age_display, gender_word, _s1_nophoto_profile['cover_ref'], eye_desc, outfit_desc
             )
-            photo_refs = [portrait_path, spark_path] if spark_ok else [portrait_path]
-            print(f"[DRAGON GARDEN PREVIEW] Step 2 — FLUX 2 Dev cover scene | portrait={portrait_path} | spark={spark_ok}")
+            dg_cover_scene = DG_FRONT_COVER.get('prompt', '').replace('{style}', DG_STYLE_BASE_COVER)
+            dg_cover_prompt = f"{dg_ref_note}\n{dg_cover_scene}"
+            photo_refs = [avatar_path, spark_path] if spark_ok else [avatar_path]
+            dg_cover_neg = dg_neg + ", multiple dragons, two dragons, extra dragon"
+            print(f"[DRAGON GARDEN PREVIEW] PASO 3 — FLUX portada | avatar={avatar_path} | spark={spark_ok}")
             cov_url = generate_with_flux2_dev(
-                f"{dg_ref_note}\n{dg_scene}",
+                dg_cover_prompt,
                 aspect_ratio="3:4",
                 photo_ref_paths=photo_refs,
                 image_prompt_strength=0.95,
-                negative_prompt=dg_neg
+                negative_prompt=dg_cover_neg,
+                force_go_fast=False,
             )
         else:
-            hair_action = dg_get_hair_action(traits)
-            hair_desc = get_hair_description(traits)
-            hair_strict_text = get_hair_strict(traits)
-            eye_desc = get_eye_description(traits)
-            skin_tone = get_unified_skin_description(traits.get('skin_tone', 'light'))
-            dg_nophoto_prompt = (
-                f"@image1 = small emerald dragon companion SPARK — copy @image1 appearance exactly.\n"
-                f"Draw a single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, "
-                f"big joyful smile, {hair_action}. OUTFIT: {outfit_desc}.\n"
-                f"ACTION: The {gender_word} sits happily on @image1's back soaring through the sky, "
-                f"arms gently holding the dragon, @image1's wings spread wide and flapping. "
-                f"SETTING: Beautiful sky WIDE VIEW, fluffy pink and white cotton clouds, "
-                f"magnificent rainbow arching, golden sunlight, sparkles trailing. "
-                f"ATMOSPHERE: Adventure invitation, joyful flight, magical. "
-                f"STRICT: Only ONE {gender_word}, only ONE small dragon @image1, "
-                f"the {gender_word} is a fully human child: no tail, no wings, no scales. {hair_strict_text} "
-                f"Pure illustration only. {DG_STYLE_BASE}"
+            # ══════════════════════════════════════════════════════════════════
+            # SISTEMA 2 — SIN FOTO: dos llamadas FLUX independientes
+            # Llamada 1: portrait del niño (solo texto, sin refs)
+            # Llamada 2: portada (portrait @image1 + SPARK @image2)
+            # ══════════════════════════════════════════════════════════════════
+            from services.personalized_books.age_profiles_nophoto import (
+                get_age_profile_nophoto, NOPHOTO_NEGATIVE_BY_AGE, NOPHOTO_PORTRAIT_NEGATIVE_BASE
             )
-            photo_refs = [spark_path] if spark_ok else None
-            print(f"[DRAGON GARDEN PREVIEW] FLUX 2 Dev cover scene (no photo) | gender={gender_word} | age={age_display}")
+            from services.personalized_books.hairstyles import get_hairstyle, build_haircut_description
+
+            nophoto_profile, nophoto_range_key = get_age_profile_nophoto(child_age)
+            _nophoto_skin_map = {
+                'light': 'warm light skin', 'very_light': 'pale light skin',
+                'medium_light': 'light olive skin', 'medium': 'warm olive skin',
+                'tan': 'warm tan skin', 'medium_dark': 'warm brown skin', 'dark': 'deep brown skin',
+            }
+            skin_tone = _nophoto_skin_map.get(traits.get('skin_tone', 'light'), 'warm light skin')
+            hairstyle_data = get_hairstyle(traits.get('hairstyle', ''))
+            if nophoto_profile.get('hair_note'):
+                hair_line = nophoto_profile['hair_note']
+                haircut_block = ""
+            elif hairstyle_data:
+                hair_line = build_haircut_description(hairstyle_data, traits)
+                haircut_block = f"{hairstyle_data['block']}\n"
+            else:
+                hair_line = get_hair_description(traits, gender=gender)
+                haircut_block = ""
+            _glasses_s2 = ", wearing prescription glasses" if traits.get('glasses') == 'yes' else ""
+
+            dg_portrait_prompt = dg_build_nophoto_portrait(
+                age_display, gender_word, nophoto_profile, skin_tone, eye_desc, hair_line, haircut_block, outfit_desc, _glasses_s2
+            )
+            _neg_base = (
+                "text, watermark, signature, logo, letters, words, ugly, deformed, blurry, low quality, "
+                "distorted face, defined jawline, visible cheekbones, mature face, adult face, teenager, "
+                "wings on child, animal features on human, furry child, animal ears, extra limbs"
+            )
+            _neg_gender = (
+                "masculine features, boy haircut, flat chest strapped down, male jawline" if gender == "female"
+                else "girl features, ponytails, pigtails, feminine accessories, earrings, jewelry, bows, ribbons, makeup, lipstick"
+            )
+            _neg_age_specific = NOPHOTO_NEGATIVE_BY_AGE.get(nophoto_range_key, '')
+            dg_portrait_neg = (
+                _neg_base + ", " + _neg_gender
+                + ", " + NOPHOTO_PORTRAIT_NEGATIVE_BASE
+                + (", " + _neg_age_specific if _neg_age_specific else "")
+            )
+            _reuse_s2 = traits.get('reuse_portrait_path', '')
+            if _reuse_s2 and os.path.exists(_reuse_s2):
+                nophoto_portrait_path = _reuse_s2
+                print(f"[DRAGON GARDEN PREVIEW] REGEN S2 — portrait fijo reutilizado, Llamada 1 omitida: {nophoto_portrait_path}")
+            else:
+                print(f"[DRAGON GARDEN PREVIEW] SISTEMA 2 — Llamada 1: Portrait | age={child_age} range={nophoto_range_key}")
+                portrait_url_s2 = generate_with_flux2_dev(
+                    dg_portrait_prompt,
+                    aspect_ratio="3:4",
+                    photo_ref_paths=None,
+                    negative_prompt=dg_portrait_neg,
+                    high_quality=True
+                )
+                nophoto_portrait_path = save_image_locally(
+                    portrait_url_s2, f'{output_dir}/dg_portrait_{uuid.uuid4().hex[:8]}.png'
+                )
+                print(f"[DRAGON GARDEN PREVIEW] SISTEMA 2 — Portrait guardado: {nophoto_portrait_path}")
+
+            dg_nophoto_cover_ref = dg_build_ref_note(
+                nophoto_profile['display'], gender_word, nophoto_profile['cover_ref'], eye_desc, outfit_desc
+            )
+            dg_nophoto_cover_scene = DG_FRONT_COVER.get('prompt', '').replace('{style}', DG_STYLE_BASE_COVER)
+            dg_nophoto_cover_prompt = f"{dg_nophoto_cover_ref}\n{dg_nophoto_cover_scene}"
+            cover_refs_s2 = [nophoto_portrait_path, spark_path] if spark_ok else [nophoto_portrait_path]
+            dg_nophoto_cover_neg = dg_neg + ", multiple dragons, two dragons, extra dragon"
+            print(f"[DRAGON GARDEN PREVIEW] SISTEMA 2 — Llamada 2: Portada")
             cov_url = generate_with_flux2_dev(
-                dg_nophoto_prompt,
+                dg_nophoto_cover_prompt,
                 aspect_ratio="3:4",
-                photo_ref_paths=photo_refs,
-                image_prompt_strength=0.85,
-                negative_prompt=dg_neg
+                photo_ref_paths=cover_refs_s2,
+                image_prompt_strength=0.95,
+                negative_prompt=dg_nophoto_cover_neg,
+                force_go_fast=False,
             )
 
         cover_path = save_image_locally(cov_url, f'{output_dir}/dg_cover_{uuid.uuid4().hex[:8]}.png')
@@ -543,19 +809,24 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
             'story_id': story_id,
             'child_age': child_age
         }
-        if human_photo_path and os.path.exists(human_photo_path) and 'portrait_path' in dir():
-            result['kontext_portrait'] = f'/{portrait_path}'
+        if human_photo_path and os.path.exists(human_photo_path) and 'avatar_path' in dir():
+            result['kontext_portrait'] = f'/{avatar_path}'
+        elif 'nophoto_portrait_path' in dir() and nophoto_portrait_path and os.path.exists(nophoto_portrait_path):
+            result['kontext_portrait'] = f'/{nophoto_portrait_path}'
+            result['nophoto_portrait'] = f'/{nophoto_portrait_path}'
         return result
 
     elif story_id == 'magic_chef_illustrated':
         from services.personalized_books.magic_chef_prompts import (
             get_outfit_desc as chef_get_outfit_desc,
             STYLE_BASE as CHEF_STYLE_BASE,
-            SWEETIE_HAT_INLINE,
-            SWEETIE_CAKE_INLINE
+            STYLE_BASE_COVER as CHEF_STYLE_BASE_COVER,
+            FRONT_COVER as MC_FRONT_COVER,
+            build_kontext_prompt as mc_build_kontext_prompt,
+            build_avatar_prompt as mc_build_avatar_prompt,
+            build_ref_note as mc_build_ref_note,
+            build_nophoto_portrait_prompt as mc_build_nophoto_portrait,
         )
-        from services.fixed_stories import get_hair_strict
-        from services.replicate_service import get_gender_negative_prompt as _chef_neg_fn
 
         gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
         age_display = f"{child_age} year old" if child_age and child_age > 0 else "6 year old"
@@ -568,82 +839,148 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
         output_dir = 'generated/previews'
         os.makedirs(output_dir, exist_ok=True)
 
-        chef_neg = _chef_neg_fn(gender)
+        # Custom negative: SWEETIE es un personaje animado (no humano), no suprimir globalmente
+        _chef_neg_base = (
+            "text, watermark, signature, logo, letters, words, ugly, deformed, blurry, low quality, "
+            "distorted face, wings on child, animal features on human, furry child, animal ears, extra limbs"
+        )
+        chef_neg = (
+            (_chef_neg_base + ", masculine features, boy haircut") if gender == 'female'
+            else (_chef_neg_base + ", earrings, jewelry, bows, ribbons, makeup, lipstick, feminine accessories, girl features, ponytails, pigtails") if gender == 'male'
+            else _chef_neg_base
+        )
         eye_desc = get_eye_description(traits)
+        profile, range_key = get_age_profile(child_age)
+        print(f"[MAGIC CHEF PREVIEW] age={child_age} range={range_key} display={profile['display']}")
 
         if human_photo_path and os.path.exists(human_photo_path):
-            kontext_prompt = (
-                f"Convert the {age_display} {gender_word} in @image1 into a high-quality 3D animated children's book character. "
-                f"Preserve the exact face, skin tone, and hair — identical likeness. "
-                f"Eye color: {eye_desc} — render this exact eye color. "
-                f"OUTFIT: {outfit_desc}. "
-                f"BACKGROUND: soft pink magical kitchen atmosphere with golden sparkles, plain studio — no kitchen scene. "
-                f"POSE: standing, full body visible from head to feet, confident joyful smile, both hands on hips."
-            )
-            print(f"[MAGIC CHEF PREVIEW] Step 1 — Kontext portrait | photo={human_photo_path} | age={child_age}")
-            portrait_url = generate_with_flux_kontext(kontext_prompt, human_photo_path, aspect_ratio="3:4")
-            portrait_path = save_image_locally(portrait_url, f'{output_dir}/chef_portrait_{uuid.uuid4().hex[:8]}.png')
-            print(f"[MAGIC CHEF PREVIEW] Portrait saved: {portrait_path}")
+            # ── SISTEMA 1 — con foto ──────────────────────────────────────────
+            # REGEN: si ya existe un avatar aprobado, saltar PASO 1+2 completamente.
+            # El avatar FLUX es fijo para toda la sesión — regenerar = nueva portada con el mismo avatar.
+            _reuse = traits.get('reuse_portrait_path', '')
+            if _reuse and os.path.exists(_reuse):
+                avatar_path = _reuse
+                print(f"[MAGIC CHEF PREVIEW] REGEN — avatar fijo reutilizado, PASO 1+2 omitidos: {avatar_path}")
+            else:
+                # PASO 1: Kontext portrait
+                kontext_prompt = mc_build_kontext_prompt(
+                    age_display, gender_word, profile['kontext'], eye_desc, outfit_desc
+                )
+                print(f"[MAGIC CHEF PREVIEW] PASO 1 — Kontext portrait | photo={human_photo_path}")
+                portrait_url = generate_with_flux_kontext(kontext_prompt, human_photo_path, aspect_ratio="3:4")
+                portrait_path = save_image_locally(portrait_url, f'{output_dir}/chef_kontext_{uuid.uuid4().hex[:8]}.png')
+                print(f"[MAGIC CHEF PREVIEW] PASO 1 — Kontext guardado: {portrait_path}")
 
-            chef_ref_note = (
-                f"@image1 = {age_display} {gender_word} character — copy face, skin tone, hair, and outfit from @image1 exactly. "
-                f"@image2 = adorable round rainbow layered cake character SWEETIE — copy @image2 appearance exactly. "
-                f"Two distinct characters: @image1 is a fully human {gender_word}, @image2 is an animated cake."
+                # PASO 2: FLUX 2 Dev Avatar
+                avatar_prompt = mc_build_avatar_prompt(age_display, gender_word)
+                print(f"[MAGIC CHEF PREVIEW] PASO 2 — FLUX avatar | kontext={portrait_path}")
+                avatar_url = generate_with_flux2_dev(
+                    avatar_prompt,
+                    aspect_ratio="3:4",
+                    photo_ref_path=portrait_path,
+                    image_prompt_strength=1.0,
+                    force_go_fast=False,
+                )
+                avatar_path = save_image_locally(avatar_url, f'{output_dir}/chef_avatar_{uuid.uuid4().hex[:8]}.png')
+                print(f"[MAGIC CHEF PREVIEW] PASO 2 — Avatar guardado: {avatar_path}")
+
+            from services.personalized_books.age_profiles_nophoto import get_age_profile_nophoto as _get_mc_nophoto
+            _s1_nophoto_profile, _ = _get_mc_nophoto(child_age)
+            mc_ref_note = mc_build_ref_note(
+                age_display, gender_word, _s1_nophoto_profile['cover_ref'], eye_desc, outfit_desc
             )
-            chef_cover_scene = (
-                f"ACTION: @image1 stands in center of magical kitchen with both hands on hips, smiling proudly. "
-                f"@image2 (SWEETIE) floats happily beside @image1, frosting swirling around. "
-                f"SETTING: Magical pink kitchen WIDE VIEW, sparkles hearts and golden stars, floating magical desserts everywhere, rainbow cakes, glowing star cookies, swirling colorful ice creams, centered composition for book cover. "
-                f"ATMOSPHERE: Sweet magical invitation, pink and golden warmth. "
-                f"STRICT: Only ONE child character (@image1), only ONE cake character SWEETIE (@image2), @image1 is 100% human child: no animal features, no tail. "
-                f"Pure illustration only. {CHEF_STYLE_BASE}"
-            )
-            photo_refs = [portrait_path, sweetie_path] if sweetie_ok else [portrait_path]
-            print(f"[MAGIC CHEF PREVIEW] Step 2 — FLUX 2 Dev cover | portrait={portrait_path} | sweetie={sweetie_ok}")
+            mc_cover_scene = MC_FRONT_COVER.get('prompt', '').replace('{style}', CHEF_STYLE_BASE_COVER)
+            mc_cover_prompt = f"{mc_ref_note}\n{mc_cover_scene}"
+            photo_refs = [avatar_path, sweetie_path] if sweetie_ok else [avatar_path]
+            mc_cover_neg = chef_neg + ", multiple cakes, extra SWEETIE, duplicate cake"
+            print(f"[MAGIC CHEF PREVIEW] PASO 3 — FLUX portada | avatar={avatar_path} | sweetie={sweetie_ok}")
             cov_url = generate_with_flux2_dev(
-                f"{chef_ref_note}\n{chef_cover_scene}",
+                mc_cover_prompt,
                 aspect_ratio="3:4",
                 photo_ref_paths=photo_refs,
                 image_prompt_strength=0.95,
-                negative_prompt=chef_neg
+                negative_prompt=mc_cover_neg,
+                force_go_fast=False,
             )
         else:
-            hair_desc = get_hair_description(traits)
-            hair_strict_text = get_hair_strict(traits)
-            eye_desc = get_eye_description(traits)
-            skin_tone = get_unified_skin_description(traits.get('skin_tone', 'light'))
-            if sweetie_ok:
-                chef_nophoto_prompt = (
-                    f"@image1 = adorable round rainbow layered cake character SWEETIE — copy @image1 appearance exactly.\n"
-                    f"Draw a single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, "
-                    f"confident joyful smile, both hands on hips{glasses_desc}. OUTFIT: {SWEETIE_HAT_INLINE}, and an elegant white chef jacket with golden buttons.\n"
-                    f"COMPANION: @image1 (SWEETIE) floats happily beside the child, frosting swirling around. "
-                    f"ACTION: {gender_word} stands in center of magical kitchen with both hands on hips, smiling proudly. "
-                    f"SETTING: Magical pink kitchen WIDE VIEW, sparkles hearts and golden stars, floating magical desserts everywhere, rainbow cakes, glowing star cookies, swirling colorful ice creams, centered composition for book cover. "
-                    f"ATMOSPHERE: Sweet magical invitation, pink and golden warmth. "
-                    f"STRICT: Only ONE {gender_word}, only ONE cake character SWEETIE (@image1), the {gender_word} is a fully human child: no animal features, no tail. {hair_strict_text} "
-                    f"Pure illustration only. {CHEF_STYLE_BASE}"
-                )
-                photo_refs_nophoto = [sweetie_path]
+            # ══════════════════════════════════════════════════════════════════
+            # SISTEMA 2 — SIN FOTO
+            # ══════════════════════════════════════════════════════════════════
+            from services.personalized_books.age_profiles_nophoto import (
+                get_age_profile_nophoto, NOPHOTO_NEGATIVE_BY_AGE, NOPHOTO_PORTRAIT_NEGATIVE_BASE
+            )
+            from services.personalized_books.hairstyles import get_hairstyle, build_haircut_description
+
+            nophoto_profile, nophoto_range_key = get_age_profile_nophoto(child_age)
+            _nophoto_skin_map = {
+                'light': 'warm light skin', 'very_light': 'pale light skin',
+                'medium_light': 'light olive skin', 'medium': 'warm olive skin',
+                'tan': 'warm tan skin', 'medium_dark': 'warm brown skin', 'dark': 'deep brown skin',
+            }
+            skin_tone = _nophoto_skin_map.get(traits.get('skin_tone', 'light'), 'warm light skin')
+            hairstyle_data = get_hairstyle(traits.get('hairstyle', ''))
+            if nophoto_profile.get('hair_note'):
+                hair_line = nophoto_profile['hair_note']
+                haircut_block = ""
+            elif hairstyle_data:
+                hair_line = build_haircut_description(hairstyle_data, traits)
+                haircut_block = f"{hairstyle_data['block']}\n"
             else:
-                chef_nophoto_prompt = (
-                    f"Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin{glasses_desc}, confident joyful smile. "
-                    f"OUTFIT: {SWEETIE_HAT_INLINE}, and an elegant white chef jacket with golden buttons. "
-                    f"COMPANION: {SWEETIE_CAKE_INLINE}. "
-                    f"ACTION: {gender_word} stands in center of magical kitchen with both hands on hips, smiling proudly. SWEETIE floats happily beside the child, frosting swirling around. "
-                    f"SETTING: Magical pink kitchen WIDE VIEW, sparkles hearts and golden stars, floating magical desserts everywhere, rainbow cakes, glowing star cookies, swirling colorful ice creams, centered composition for book cover. "
-                    f"ATMOSPHERE: Sweet magical invitation, pink and golden warmth. "
-                    f"STRICT: Only ONE {gender_word}, only ONE cake character SWEETIE, the {gender_word} is a fully human child: no animal features, no tail. {hair_strict_text} "
-                    f"Pure illustration only. {CHEF_STYLE_BASE}"
+                hair_line = get_hair_description(traits, gender=gender)
+                haircut_block = ""
+            _glasses_s2 = ", wearing prescription glasses" if traits.get('glasses') == 'yes' else ""
+
+            mc_portrait_prompt = mc_build_nophoto_portrait(
+                age_display, gender_word, nophoto_profile, skin_tone, eye_desc, hair_line, haircut_block, outfit_desc, _glasses_s2
+            )
+            _neg_base = (
+                "text, watermark, signature, logo, letters, words, ugly, deformed, blurry, low quality, "
+                "distorted face, defined jawline, visible cheekbones, mature face, adult face, teenager, "
+                "wings on child, animal features on human, furry child, animal ears, extra limbs"
+            )
+            _neg_gender = (
+                "masculine features, boy haircut, flat chest strapped down, male jawline" if gender == "female"
+                else "girl features, ponytails, pigtails, feminine accessories, earrings, jewelry, bows, ribbons, makeup, lipstick"
+            )
+            _neg_age_specific = NOPHOTO_NEGATIVE_BY_AGE.get(nophoto_range_key, '')
+            mc_portrait_neg = (
+                _neg_base + ", " + _neg_gender
+                + ", " + NOPHOTO_PORTRAIT_NEGATIVE_BASE
+                + (", " + _neg_age_specific if _neg_age_specific else "")
+            )
+            _reuse_s2 = traits.get('reuse_portrait_path', '')
+            if _reuse_s2 and os.path.exists(_reuse_s2):
+                nophoto_portrait_path = _reuse_s2
+                print(f"[MAGIC CHEF PREVIEW] REGEN S2 — portrait fijo reutilizado, Llamada 1 omitida: {nophoto_portrait_path}")
+            else:
+                print(f"[MAGIC CHEF PREVIEW] SISTEMA 2 — Llamada 1: Portrait | age={child_age} range={nophoto_range_key}")
+                portrait_url_s2 = generate_with_flux2_dev(
+                    mc_portrait_prompt,
+                    aspect_ratio="3:4",
+                    photo_ref_paths=None,
+                    negative_prompt=mc_portrait_neg,
+                    high_quality=True
                 )
-                photo_refs_nophoto = None
-            print(f"[MAGIC CHEF PREVIEW] FLUX 2 Dev cover (no photo) | gender={gender_word} | age={age_display}")
+                nophoto_portrait_path = save_image_locally(
+                    portrait_url_s2, f'{output_dir}/chef_portrait_{uuid.uuid4().hex[:8]}.png'
+                )
+                print(f"[MAGIC CHEF PREVIEW] SISTEMA 2 — Portrait guardado: {nophoto_portrait_path}")
+
+            mc_nophoto_cover_ref = mc_build_ref_note(
+                nophoto_profile['display'], gender_word, nophoto_profile['cover_ref'], eye_desc, outfit_desc
+            )
+            mc_nophoto_cover_scene = MC_FRONT_COVER.get('prompt', '').replace('{style}', CHEF_STYLE_BASE_COVER)
+            mc_nophoto_cover_prompt = f"{mc_nophoto_cover_ref}\n{mc_nophoto_cover_scene}"
+            cover_refs_s2 = [nophoto_portrait_path, sweetie_path] if sweetie_ok else [nophoto_portrait_path]
+            mc_nophoto_cover_neg = chef_neg + ", multiple cakes, extra SWEETIE, duplicate cake"
+            print(f"[MAGIC CHEF PREVIEW] SISTEMA 2 — Llamada 2: Portada")
             cov_url = generate_with_flux2_dev(
-                chef_nophoto_prompt,
+                mc_nophoto_cover_prompt,
                 aspect_ratio="3:4",
-                photo_ref_paths=photo_refs_nophoto,
-                image_prompt_strength=0.85,
-                negative_prompt=chef_neg
+                photo_ref_paths=cover_refs_s2,
+                image_prompt_strength=0.95,
+                negative_prompt=mc_nophoto_cover_neg,
+                force_go_fast=False,
             )
 
         cover_path = save_image_locally(cov_url, f'{output_dir}/chef_cover_{uuid.uuid4().hex[:8]}.png')
@@ -654,18 +991,24 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
             'story_id': story_id,
             'child_age': child_age
         }
-        if human_photo_path and os.path.exists(human_photo_path) and 'portrait_path' in dir():
-            result['kontext_portrait'] = f'/{portrait_path}'
+        if human_photo_path and os.path.exists(human_photo_path) and 'avatar_path' in dir():
+            result['kontext_portrait'] = f'/{avatar_path}'
+        elif 'nophoto_portrait_path' in dir() and nophoto_portrait_path and os.path.exists(nophoto_portrait_path):
+            result['kontext_portrait'] = f'/{nophoto_portrait_path}'
+            result['nophoto_portrait'] = f'/{nophoto_portrait_path}'
         return result
 
     elif story_id == 'magic_inventor_illustrated':
         from services.personalized_books.magic_inventor_prompts import (
             get_outfit_desc as inventor_get_outfit_desc,
             STYLE_BASE as INVENTOR_STYLE_BASE,
-            BOLT_INLINE as INVENTOR_BOLT_INLINE
+            STYLE_BASE_COVER as INVENTOR_STYLE_BASE_COVER,
+            FRONT_COVER as MI_FRONT_COVER,
+            build_kontext_prompt as mi_build_kontext_prompt,
+            build_avatar_prompt as mi_build_avatar_prompt,
+            build_ref_note as mi_build_ref_note,
+            build_nophoto_portrait_prompt as mi_build_nophoto_portrait,
         )
-        from services.fixed_stories import get_hair_strict
-        from services.replicate_service import get_gender_negative_prompt as _inv_neg_fn
 
         gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
         age_display = f"{child_age} year old" if child_age and child_age > 0 else "6 year old"
@@ -678,82 +1021,148 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
         output_dir = 'generated/previews'
         os.makedirs(output_dir, exist_ok=True)
 
-        inv_neg = _inv_neg_fn(gender)
+        _inv_neg_base = (
+            "text, watermark, signature, logo, letters, words, ugly, deformed, blurry, low quality, "
+            "distorted face, wings on child, animal features on human, furry child, animal ears, extra limbs, "
+            "mechanical parts on human, robot features on human"
+        )
+        inv_neg = (
+            (_inv_neg_base + ", masculine features, boy haircut") if gender == 'female'
+            else (_inv_neg_base + ", earrings, jewelry, bows, ribbons, makeup, lipstick, feminine accessories, girl features, ponytails, pigtails") if gender == 'male'
+            else _inv_neg_base
+        )
         eye_desc = get_eye_description(traits)
+        profile, range_key = get_age_profile(child_age)
+        print(f"[MAGIC INVENTOR PREVIEW] age={child_age} range={range_key} display={profile['display']}")
 
         if human_photo_path and os.path.exists(human_photo_path):
-            kontext_prompt = (
-                f"Convert the {age_display} {gender_word} in @image1 into a high-quality 3D animated children's book character. "
-                f"Preserve the exact face, skin tone, and hair — identical likeness. "
-                f"Eye color: {eye_desc} — render this exact eye color. "
-                f"OUTFIT: {outfit_desc}. "
-                f"BACKGROUND: warm golden magical workshop atmosphere with copper tones and floating gears, plain studio — no full scene. "
-                f"POSE: standing, full body visible from head to feet, confident joyful smile, holding a glowing wrench upward."
-            )
-            print(f"[MAGIC INVENTOR PREVIEW] Step 1 — Kontext portrait | photo={human_photo_path} | age={child_age}")
-            portrait_url = generate_with_flux_kontext(kontext_prompt, human_photo_path, aspect_ratio="3:4")
-            portrait_path = save_image_locally(portrait_url, f'{output_dir}/inventor_portrait_{uuid.uuid4().hex[:8]}.png')
-            print(f"[MAGIC INVENTOR PREVIEW] Portrait saved: {portrait_path}")
+            # ── SISTEMA 1 — con foto ──────────────────────────────────────────
+            # REGEN: si ya existe un avatar aprobado, saltar PASO 1+2 completamente.
+            # El avatar FLUX es fijo para toda la sesión — regenerar = nueva portada con el mismo avatar.
+            _reuse = traits.get('reuse_portrait_path', '')
+            if _reuse and os.path.exists(_reuse):
+                avatar_path = _reuse
+                print(f"[MAGIC INVENTOR PREVIEW] REGEN — avatar fijo reutilizado, PASO 1+2 omitidos: {avatar_path}")
+            else:
+                # PASO 1: Kontext portrait
+                kontext_prompt = mi_build_kontext_prompt(
+                    age_display, gender_word, profile['kontext'], eye_desc, outfit_desc
+                )
+                print(f"[MAGIC INVENTOR PREVIEW] PASO 1 — Kontext portrait | photo={human_photo_path}")
+                portrait_url = generate_with_flux_kontext(kontext_prompt, human_photo_path, aspect_ratio="3:4")
+                portrait_path = save_image_locally(portrait_url, f'{output_dir}/inventor_kontext_{uuid.uuid4().hex[:8]}.png')
+                print(f"[MAGIC INVENTOR PREVIEW] PASO 1 — Kontext guardado: {portrait_path}")
 
-            inv_ref_note = (
-                f"@image1 = {age_display} {gender_word} character — copy face, skin tone, hair, and outfit from @image1 exactly. "
-                f"@image2 = small round copper robot BOLT — copy @image2 appearance exactly. "
-                f"Two distinct characters: @image1 is a fully human {gender_word}, @image2 is a small copper robot."
+                # PASO 2: FLUX 2 Dev Avatar
+                avatar_prompt = mi_build_avatar_prompt(age_display, gender_word)
+                print(f"[MAGIC INVENTOR PREVIEW] PASO 2 — FLUX avatar | kontext={portrait_path}")
+                avatar_url = generate_with_flux2_dev(
+                    avatar_prompt,
+                    aspect_ratio="3:4",
+                    photo_ref_path=portrait_path,
+                    image_prompt_strength=1.0,
+                    force_go_fast=False,
+                )
+                avatar_path = save_image_locally(avatar_url, f'{output_dir}/inventor_avatar_{uuid.uuid4().hex[:8]}.png')
+                print(f"[MAGIC INVENTOR PREVIEW] PASO 2 — Avatar guardado: {avatar_path}")
+
+            from services.personalized_books.age_profiles_nophoto import get_age_profile_nophoto as _get_mi_nophoto
+            _s1_nophoto_profile, _ = _get_mi_nophoto(child_age)
+            mi_ref_note = mi_build_ref_note(
+                age_display, gender_word, _s1_nophoto_profile['cover_ref'], eye_desc, outfit_desc
             )
-            inv_cover_scene = (
-                f"ACTION: @image1 stands in center of workshop facing viewer, holding a glowing wrench up with pride. "
-                f"@image2 (BOLT) stands beside @image1, waving with one arm, blue eyes bright and friendly. "
-                f"SETTING: Magical inventor workshop WIDE VIEW, floating golden gears, crystal tubes with colorful liquids, warm golden light, sparkles, centered composition for book cover. "
-                f"ATMOSPHERE: Adventure invitation, warm golden, friendship and creativity. "
-                f"STRICT: Only ONE child character (@image1), only ONE small robot BOLT (@image2), @image1 is 100% human child: no mechanical parts, no robot features on @image1. "
-                f"Pure illustration only. {INVENTOR_STYLE_BASE}"
-            )
-            photo_refs = [portrait_path, bolt_path] if bolt_ok else [portrait_path]
-            print(f"[MAGIC INVENTOR PREVIEW] Step 2 — FLUX 2 Dev cover | portrait={portrait_path} | bolt={bolt_ok}")
+            mi_cover_scene = MI_FRONT_COVER.get('prompt', '').replace('{style}', INVENTOR_STYLE_BASE_COVER)
+            mi_cover_prompt = f"{mi_ref_note}\n{mi_cover_scene}"
+            photo_refs = [avatar_path, bolt_path] if bolt_ok else [avatar_path]
+            mi_cover_neg = inv_neg + ", multiple robots, extra robots, two robots"
+            print(f"[MAGIC INVENTOR PREVIEW] PASO 3 — FLUX portada | avatar={avatar_path} | bolt={bolt_ok}")
             cov_url = generate_with_flux2_dev(
-                f"{inv_ref_note}\n{inv_cover_scene}",
+                mi_cover_prompt,
                 aspect_ratio="3:4",
                 photo_ref_paths=photo_refs,
                 image_prompt_strength=0.95,
-                negative_prompt=inv_neg
+                negative_prompt=mi_cover_neg,
+                force_go_fast=False,
             )
         else:
-            hair_desc = get_hair_description(traits)
-            hair_strict_text = get_hair_strict(traits)
-            eye_desc = get_eye_description(traits)
-            skin_desc = get_unified_skin_description(traits.get('skin_tone', 'light'))
-            if bolt_ok:
-                inv_nophoto_prompt = (
-                    f"@image1 = small round copper robot BOLT — copy @image1 appearance exactly.\n"
-                    f"Draw a single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_desc} skin, "
-                    f"confident joyful smile, holding a glowing wrench upward{glasses_desc}. OUTFIT: {outfit_desc}.\n"
-                    f"COMPANION: @image1 (BOLT) stands beside the {gender_word}, waving with one arm, blue eyes bright and friendly. "
-                    f"ACTION: {gender_word} stands in center of workshop facing viewer, holding glowing wrench up with pride. "
-                    f"SETTING: Magical inventor workshop WIDE VIEW, floating golden gears, crystal tubes with colorful liquids, warm golden light, sparkles, centered composition for book cover. "
-                    f"ATMOSPHERE: Adventure invitation, warm golden, friendship and creativity. "
-                    f"STRICT: Only ONE {gender_word}, only ONE small robot BOLT (@image1), the {gender_word} is a fully human child: no mechanical parts, no robot features on {gender_word}. {hair_strict_text} "
-                    f"Pure illustration only. {INVENTOR_STYLE_BASE}"
-                )
-                photo_refs_nophoto = [bolt_path]
+            # ══════════════════════════════════════════════════════════════════
+            # SISTEMA 2 — SIN FOTO
+            # ══════════════════════════════════════════════════════════════════
+            from services.personalized_books.age_profiles_nophoto import (
+                get_age_profile_nophoto, NOPHOTO_NEGATIVE_BY_AGE, NOPHOTO_PORTRAIT_NEGATIVE_BASE
+            )
+            from services.personalized_books.hairstyles import get_hairstyle, build_haircut_description
+
+            nophoto_profile, nophoto_range_key = get_age_profile_nophoto(child_age)
+            _nophoto_skin_map = {
+                'light': 'warm light skin', 'very_light': 'pale light skin',
+                'medium_light': 'light olive skin', 'medium': 'warm olive skin',
+                'tan': 'warm tan skin', 'medium_dark': 'warm brown skin', 'dark': 'deep brown skin',
+            }
+            skin_tone = _nophoto_skin_map.get(traits.get('skin_tone', 'light'), 'warm light skin')
+            hairstyle_data = get_hairstyle(traits.get('hairstyle', ''))
+            if nophoto_profile.get('hair_note'):
+                hair_line = nophoto_profile['hair_note']
+                haircut_block = ""
+            elif hairstyle_data:
+                hair_line = build_haircut_description(hairstyle_data, traits)
+                haircut_block = f"{hairstyle_data['block']}\n"
             else:
-                inv_nophoto_prompt = (
-                    f"Disney Pixar 3D style illustration. CHARACTER: A single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_desc} skin{glasses_desc}, confident joyful smile, holding a glowing wrench. "
-                    f"OUTFIT: {outfit_desc}. "
-                    f"COMPANION: {INVENTOR_BOLT_INLINE}. "
-                    f"ACTION: {gender_word} stands in center of workshop facing viewer, holding glowing wrench up with pride. BOLT stands beside the child, waving with one arm, blue eyes bright and friendly. "
-                    f"SETTING: Magical inventor workshop WIDE VIEW, floating golden gears, crystal tubes with colorful liquids, warm golden light, sparkles, centered composition for book cover. "
-                    f"ATMOSPHERE: Adventure invitation, warm golden, friendship and creativity. "
-                    f"STRICT: Only ONE {gender_word}, only ONE small robot BOLT, the {gender_word} is a fully human child: no mechanical parts, no robot features on {gender_word}. {hair_strict_text} "
-                    f"Pure illustration only. {INVENTOR_STYLE_BASE}"
+                hair_line = get_hair_description(traits, gender=gender)
+                haircut_block = ""
+            _glasses_s2 = ", wearing prescription glasses" if traits.get('glasses') == 'yes' else ""
+
+            mi_portrait_prompt = mi_build_nophoto_portrait(
+                age_display, gender_word, nophoto_profile, skin_tone, eye_desc, hair_line, haircut_block, outfit_desc, _glasses_s2
+            )
+            _neg_base = (
+                "text, watermark, signature, logo, letters, words, ugly, deformed, blurry, low quality, "
+                "distorted face, defined jawline, visible cheekbones, mature face, adult face, teenager, "
+                "wings on child, animal features on human, furry child, animal ears, extra limbs"
+            )
+            _neg_gender = (
+                "masculine features, boy haircut, flat chest strapped down, male jawline" if gender == "female"
+                else "girl features, ponytails, pigtails, feminine accessories, earrings, jewelry, bows, ribbons, makeup, lipstick"
+            )
+            _neg_age_specific = NOPHOTO_NEGATIVE_BY_AGE.get(nophoto_range_key, '')
+            mi_portrait_neg = (
+                _neg_base + ", " + _neg_gender
+                + ", " + NOPHOTO_PORTRAIT_NEGATIVE_BASE
+                + (", " + _neg_age_specific if _neg_age_specific else "")
+            )
+            _reuse_s2 = traits.get('reuse_portrait_path', '')
+            if _reuse_s2 and os.path.exists(_reuse_s2):
+                nophoto_portrait_path = _reuse_s2
+                print(f"[MAGIC INVENTOR PREVIEW] REGEN S2 — portrait fijo reutilizado, Llamada 1 omitida: {nophoto_portrait_path}")
+            else:
+                print(f"[MAGIC INVENTOR PREVIEW] SISTEMA 2 — Llamada 1: Portrait | age={child_age} range={nophoto_range_key}")
+                portrait_url_s2 = generate_with_flux2_dev(
+                    mi_portrait_prompt,
+                    aspect_ratio="3:4",
+                    photo_ref_paths=None,
+                    negative_prompt=mi_portrait_neg,
+                    high_quality=True
                 )
-                photo_refs_nophoto = None
-            print(f"[MAGIC INVENTOR PREVIEW] FLUX 2 Dev cover (no photo) | gender={gender_word} | age={age_display}")
+                nophoto_portrait_path = save_image_locally(
+                    portrait_url_s2, f'{output_dir}/inventor_portrait_{uuid.uuid4().hex[:8]}.png'
+                )
+                print(f"[MAGIC INVENTOR PREVIEW] SISTEMA 2 — Portrait guardado: {nophoto_portrait_path}")
+
+            mi_nophoto_cover_ref = mi_build_ref_note(
+                nophoto_profile['display'], gender_word, nophoto_profile['cover_ref'], eye_desc, outfit_desc
+            )
+            mi_nophoto_cover_scene = MI_FRONT_COVER.get('prompt', '').replace('{style}', INVENTOR_STYLE_BASE_COVER)
+            mi_nophoto_cover_prompt = f"{mi_nophoto_cover_ref}\n{mi_nophoto_cover_scene}"
+            cover_refs_s2 = [nophoto_portrait_path, bolt_path] if bolt_ok else [nophoto_portrait_path]
+            mi_nophoto_cover_neg = inv_neg + ", multiple robots, extra robots, two robots"
+            print(f"[MAGIC INVENTOR PREVIEW] SISTEMA 2 — Llamada 2: Portada")
             cov_url = generate_with_flux2_dev(
-                inv_nophoto_prompt,
+                mi_nophoto_cover_prompt,
                 aspect_ratio="3:4",
-                photo_ref_paths=photo_refs_nophoto,
-                image_prompt_strength=0.85,
-                negative_prompt=inv_neg
+                photo_ref_paths=cover_refs_s2,
+                image_prompt_strength=0.95,
+                negative_prompt=mi_nophoto_cover_neg,
+                force_go_fast=False,
             )
 
         cover_path = save_image_locally(cov_url, f'{output_dir}/inventor_cover_{uuid.uuid4().hex[:8]}.png')
@@ -764,23 +1173,28 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
             'story_id': story_id,
             'child_age': child_age
         }
-        if human_photo_path and os.path.exists(human_photo_path) and 'portrait_path' in dir():
-            result['kontext_portrait'] = f'/{portrait_path}'
+        if human_photo_path and os.path.exists(human_photo_path) and 'avatar_path' in dir():
+            result['kontext_portrait'] = f'/{avatar_path}'
+        elif 'nophoto_portrait_path' in dir() and nophoto_portrait_path and os.path.exists(nophoto_portrait_path):
+            result['kontext_portrait'] = f'/{nophoto_portrait_path}'
+            result['nophoto_portrait'] = f'/{nophoto_portrait_path}'
         return result
 
     elif story_id == 'star_keeper_illustrated':
         from services.personalized_books.star_keeper_prompts import (
             get_outfit_desc as keeper_get_outfit_desc,
             STYLE_BASE as KEEPER_STYLE_BASE,
+            STYLE_BASE_COVER as KEEPER_STYLE_BASE_COVER,
             FRONT_COVER as SK_FRONT_COVER,
-            get_hair_action
+            build_kontext_prompt as sk_build_kontext_prompt,
+            build_avatar_prompt as sk_build_avatar_prompt,
+            build_ref_note as sk_build_ref_note,
+            build_nophoto_portrait_prompt as sk_build_nophoto_portrait,
         )
-        from services.fixed_stories import get_hair_strict
-        from services.replicate_service import get_gender_negative_prompt as _sk_neg_fn
 
         gender_word = "boy" if gender == "male" else "girl" if gender == "female" else "child"
         age_display = f"{child_age} year old" if child_age and child_age > 0 else "6 year old"
-        human_photo_path = traits.get('human_photo_path', '')
+        human_photo_path = traits.get('human_photo_path', child_photo_path or '')
         outfit_desc = keeper_get_outfit_desc(gender)
 
         luna_path = _ensure_luna_reference()
@@ -789,71 +1203,153 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
         output_dir = 'generated/previews'
         os.makedirs(output_dir, exist_ok=True)
 
-        sk_scene = SK_FRONT_COVER.get('prompt', '').replace('{style}', KEEPER_STYLE_BASE)
-        sk_neg = _sk_neg_fn(gender)
+        # Custom negative: LUNA es estrella legítima, no suprimir "star glow"
+        _sk_neg_base = (
+            "text, watermark, signature, logo, letters, words, ugly, deformed, blurry, low quality, "
+            "distorted face, wings on child, animal features on human, furry child, animal ears, extra limbs"
+        )
+        sk_neg = (
+            (_sk_neg_base + ", masculine features, boy haircut") if gender == 'female'
+            else (_sk_neg_base + ", earrings, jewelry, bows, ribbons, makeup, lipstick, feminine accessories, girl features, ponytails, pigtails") if gender == 'male'
+            else _sk_neg_base
+        )
         eye_desc = get_eye_description(traits)
+        profile, range_key = get_age_profile(child_age)
+        print(f"[STAR KEEPER PREVIEW] age={child_age} range={range_key} display={profile['display']}")
 
         if human_photo_path and os.path.exists(human_photo_path):
-            # Step 1: Kontext — clean portrait (face preserved, Pixar style, plain bg)
-            kontext_prompt = (
-                f"Convert the {age_display} {gender_word} in @image1 into a high-quality 3D animated children's book character. "
-                f"Preserve the exact face, skin tone, and hair — identical likeness. "
-                f"Eye color: {eye_desc} — render this exact eye color. "
-                f"OUTFIT: {outfit_desc}. "
-                f"BACKGROUND: deep midnight blue with subtle silver star sparkles, plain studio — no lighthouse, no ocean, no scenery. "
-                f"POSE: standing, full body visible from head to feet, brave adventurous smile, arms relaxed at sides."
-            )
-            print(f"[STAR KEEPER PREVIEW] Step 1 — Kontext portrait | photo={human_photo_path} | age={child_age}")
-            portrait_url = generate_with_flux_kontext(kontext_prompt, human_photo_path, aspect_ratio="3:4")
-            portrait_path = save_image_locally(portrait_url, f'{output_dir}/sk_portrait_{uuid.uuid4().hex[:8]}.png')
-            print(f"[STAR KEEPER PREVIEW] Portrait saved: {portrait_path}")
+            # ── SISTEMA 1 — con foto ──────────────────────────────────────────
+            _reuse = traits.get('reuse_portrait_path', '')
+            if _reuse and os.path.exists(_reuse):
+                portrait_path = _reuse
+                print(f"[STAR KEEPER PREVIEW] Kontext SKIPPED — reutilizando portrait: {portrait_path}")
+            else:
+                kontext_prompt = sk_build_kontext_prompt(
+                    age_display, gender_word, profile['kontext'], eye_desc, outfit_desc
+                )
+                print(f"[STAR KEEPER PREVIEW] PASO 1 — Kontext portrait | photo={human_photo_path}")
+                portrait_url = generate_with_flux_kontext(kontext_prompt, human_photo_path, aspect_ratio="3:4")
+                portrait_path = save_image_locally(portrait_url, f'{output_dir}/sk_kontext_{uuid.uuid4().hex[:8]}.png')
+                print(f"[STAR KEEPER PREVIEW] PASO 1 — Kontext guardado: {portrait_path}")
 
-            # Step 2: FLUX 2 Dev — cover scene (lighthouse + stars) using portrait as @image1 + LUNA as @image2
-            sk_ref_note = (
-                f"The child in @image1 is {age_display}. "
-                f"@image1={gender_word} character — copy face, eye color, hair, skin, and outfit exactly. "
-                "@image2=small star companion LUNA — copy appearance exactly. "
-                f"Two distinct characters: @image1 is a fully human {gender_word}, @image2 is a small glowing star."
+            _avatar_neg_base = (
+                "text, watermark, signature, logo, letters, words, ugly, deformed, blurry, low quality, "
+                "distorted face, defined jawline, visible cheekbones, mature face, adult face, teenager, "
+                "wings on child, animal features on human, furry child, animal ears, extra limbs"
             )
-            photo_refs = [portrait_path, luna_path] if luna_ok else [portrait_path]
-            print(f"[STAR KEEPER PREVIEW] Step 2 — FLUX 2 Dev cover scene | portrait={portrait_path} | luna={luna_ok}")
+            _avatar_neg_gender = (
+                "masculine features, boy haircut, male jawline" if gender == "female"
+                else "girl features, ponytails, pigtails, feminine accessories, earrings, jewelry, bows, ribbons, makeup, lipstick"
+            )
+            avatar_prompt = sk_build_avatar_prompt(age_display, gender_word)
+            print(f"[STAR KEEPER PREVIEW] PASO 2 — FLUX avatar | kontext={portrait_path}")
+            avatar_url = generate_with_flux2_dev(
+                avatar_prompt,
+                aspect_ratio="3:4",
+                photo_ref_path=portrait_path,
+                image_prompt_strength=1.0,
+                force_go_fast=False,
+            )
+            avatar_path = save_image_locally(avatar_url, f'{output_dir}/sk_avatar_{uuid.uuid4().hex[:8]}.png')
+            print(f"[STAR KEEPER PREVIEW] PASO 2 — Avatar guardado: {avatar_path}")
+
+            from services.personalized_books.age_profiles_nophoto import get_age_profile_nophoto as _get_sk_nophoto
+            _s1_nophoto_profile, _ = _get_sk_nophoto(child_age)
+            sk_ref_note = sk_build_ref_note(
+                age_display, gender_word, _s1_nophoto_profile['cover_ref'], eye_desc, outfit_desc
+            )
+            sk_cover_scene = SK_FRONT_COVER.get('prompt', '').replace('{style}', KEEPER_STYLE_BASE_COVER)
+            sk_cover_prompt = f"{sk_ref_note}\n{sk_cover_scene}"
+            photo_refs = [avatar_path, luna_path] if luna_ok else [avatar_path]
+            sk_cover_neg = sk_neg + ", multiple stars, extra star companions, two LUNAs"
+            print(f"[STAR KEEPER PREVIEW] PASO 3 — FLUX portada | avatar={avatar_path} | luna={luna_ok}")
             cov_url = generate_with_flux2_dev(
-                f"{sk_ref_note}\n{sk_scene}",
+                sk_cover_prompt,
                 aspect_ratio="3:4",
                 photo_ref_paths=photo_refs,
                 image_prompt_strength=0.95,
-                negative_prompt=sk_neg
+                negative_prompt=sk_cover_neg,
+                force_go_fast=False,
             )
         else:
-            hair_action = get_hair_action(traits)
-            hair_desc = get_hair_description(traits)
-            hair_strict_text = get_hair_strict(traits)
-            eye_desc = get_eye_description(traits)
-            skin_tone = get_unified_skin_description(traits.get('skin_tone', 'light'))
-            # No-photo branch: only Luna is available as a reference image.
-            # sk_scene uses @image1=child / @image2=Luna — but here @image1 IS Luna.
-            # Build a standalone cover prompt: describe the child in text, use @image1 for Luna.
-            sk_nophoto_prompt = (
-                f"@image1 = small glowing star companion LUNA — copy @image1 appearance exactly.\n"
-                f"Draw a single {gender_word} ({age_display}), {hair_desc}, {eye_desc}, {skin_tone} skin, "
-                f"big joyful confident smile, {hair_action}. OUTFIT: {outfit_desc}.\n"
-                f"ACTION: The {gender_word} stands confidently at the lighthouse entrance with one hand "
-                f"reaching upward toward the stars, @image1 hovers beside the {gender_word}'s shoulder. "
-                f"SETTING: Old stone lighthouse on a dramatic clifftop WIDE VIEW, magnificent starry sky "
-                f"with bright constellations and shooting stars, ocean waves crashing below, warm golden-blue "
-                f"light from the lighthouse door, centered composition for book cover. "
-                f"ATMOSPHERE: Adventure invitation, celestial magic. "
-                f"STRICT: Only ONE {gender_word}, fully human child, no wings. {hair_strict_text} "
-                f"Pure illustration only. {KEEPER_STYLE_BASE}"
+            # ══════════════════════════════════════════════════════════════════
+            # SISTEMA 2 — SIN FOTO
+            # ══════════════════════════════════════════════════════════════════
+            from services.personalized_books.age_profiles_nophoto import (
+                get_age_profile_nophoto, NOPHOTO_NEGATIVE_BY_AGE, NOPHOTO_PORTRAIT_NEGATIVE_BASE
             )
-            photo_refs = [luna_path] if luna_ok else None
-            print(f"[STAR KEEPER PREVIEW] FLUX 2 Dev cover scene (no photo) | gender={gender_word} | age={age_display}")
+            from services.personalized_books.hairstyles import get_hairstyle, build_haircut_description
+
+            nophoto_profile, nophoto_range_key = get_age_profile_nophoto(child_age)
+            _nophoto_skin_map = {
+                'light': 'warm light skin', 'very_light': 'pale light skin',
+                'medium_light': 'light olive skin', 'medium': 'warm olive skin',
+                'tan': 'warm tan skin', 'medium_dark': 'warm brown skin', 'dark': 'deep brown skin',
+            }
+            skin_tone = _nophoto_skin_map.get(traits.get('skin_tone', 'light'), 'warm light skin')
+            hairstyle_data = get_hairstyle(traits.get('hairstyle', ''))
+            if nophoto_profile.get('hair_note'):
+                hair_line = nophoto_profile['hair_note']
+                haircut_block = ""
+            elif hairstyle_data:
+                hair_line = build_haircut_description(hairstyle_data, traits)
+                haircut_block = f"{hairstyle_data['block']}\n"
+            else:
+                hair_line = get_hair_description(traits, gender=gender)
+                haircut_block = ""
+            _glasses_s2 = ", wearing prescription glasses" if traits.get('glasses') == 'yes' else ""
+
+            sk_portrait_prompt = sk_build_nophoto_portrait(
+                age_display, gender_word, nophoto_profile, skin_tone, eye_desc, hair_line, haircut_block, outfit_desc, _glasses_s2
+            )
+            _neg_base = (
+                "text, watermark, signature, logo, letters, words, ugly, deformed, blurry, low quality, "
+                "distorted face, defined jawline, visible cheekbones, mature face, adult face, teenager, "
+                "wings on child, animal features on human, furry child, animal ears, extra limbs"
+            )
+            _neg_gender = (
+                "masculine features, boy haircut, flat chest strapped down, male jawline" if gender == "female"
+                else "girl features, ponytails, pigtails, feminine accessories, earrings, jewelry, bows, ribbons, makeup, lipstick"
+            )
+            _neg_age_specific = NOPHOTO_NEGATIVE_BY_AGE.get(nophoto_range_key, '')
+            sk_portrait_neg = (
+                _neg_base + ", " + _neg_gender
+                + ", " + NOPHOTO_PORTRAIT_NEGATIVE_BASE
+                + (", " + _neg_age_specific if _neg_age_specific else "")
+            )
+            _reuse_s2 = traits.get('reuse_portrait_path', '')
+            if _reuse_s2 and os.path.exists(_reuse_s2):
+                nophoto_portrait_path = _reuse_s2
+                print(f"[STAR KEEPER PREVIEW] REGEN S2 — portrait fijo reutilizado, Llamada 1 omitida: {nophoto_portrait_path}")
+            else:
+                print(f"[STAR KEEPER PREVIEW] SISTEMA 2 — Llamada 1: Portrait | age={child_age} range={nophoto_range_key}")
+                portrait_url_s2 = generate_with_flux2_dev(
+                    sk_portrait_prompt,
+                    aspect_ratio="3:4",
+                    photo_ref_paths=None,
+                    negative_prompt=sk_portrait_neg,
+                    high_quality=True
+                )
+                nophoto_portrait_path = save_image_locally(
+                    portrait_url_s2, f'{output_dir}/sk_portrait_{uuid.uuid4().hex[:8]}.png'
+                )
+                print(f"[STAR KEEPER PREVIEW] SISTEMA 2 — Portrait guardado: {nophoto_portrait_path}")
+
+            sk_nophoto_cover_ref = sk_build_ref_note(
+                nophoto_profile['display'], gender_word, nophoto_profile['cover_ref'], eye_desc, outfit_desc
+            )
+            sk_nophoto_cover_scene = SK_FRONT_COVER.get('prompt', '').replace('{style}', KEEPER_STYLE_BASE_COVER)
+            sk_nophoto_cover_prompt = f"{sk_nophoto_cover_ref}\n{sk_nophoto_cover_scene}"
+            cover_refs_s2 = [nophoto_portrait_path, luna_path] if luna_ok else [nophoto_portrait_path]
+            sk_nophoto_cover_neg = sk_neg + ", multiple stars, extra star companions, two LUNAs"
+            print(f"[STAR KEEPER PREVIEW] SISTEMA 2 — Llamada 2: Portada")
             cov_url = generate_with_flux2_dev(
-                sk_nophoto_prompt,
+                sk_nophoto_cover_prompt,
                 aspect_ratio="3:4",
-                photo_ref_paths=photo_refs,
-                image_prompt_strength=0.85,
-                negative_prompt=sk_neg
+                photo_ref_paths=cover_refs_s2,
+                image_prompt_strength=0.95,
+                negative_prompt=sk_nophoto_cover_neg,
+                force_go_fast=False,
             )
 
         cover_path = save_image_locally(cov_url, f'{output_dir}/sk_cover_{uuid.uuid4().hex[:8]}.png')
@@ -864,8 +1360,11 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
             'story_id': story_id,
             'child_age': child_age
         }
-        if human_photo_path and os.path.exists(human_photo_path) and 'portrait_path' in dir():
-            result['kontext_portrait'] = f'/{portrait_path}'
+        if human_photo_path and os.path.exists(human_photo_path) and 'avatar_path' in dir():
+            result['kontext_portrait'] = f'/{avatar_path}'
+        elif 'nophoto_portrait_path' in dir() and nophoto_portrait_path and os.path.exists(nophoto_portrait_path):
+            result['kontext_portrait'] = f'/{nophoto_portrait_path}'
+            result['nophoto_portrait'] = f'/{nophoto_portrait_path}'
         return result
 
 
@@ -873,8 +1372,13 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
         from services.personalized_books.centinela_aurora_prompts import (
             get_outfit_desc as aurora_get_outfit_desc,
             STYLE_BASE as AURORA_STYLE_BASE,
+            STYLE_BASE_COVER as AURORA_STYLE_BASE_COVER,
             FRONT_COVER as CA_FRONT_COVER,
-            get_hair_action as aurora_get_hair_action
+            get_hair_action as aurora_get_hair_action,
+            build_kontext_prompt as ca_build_kontext_prompt,
+            build_avatar_prompt as ca_build_avatar_prompt,
+            build_ref_note as ca_build_ref_note,
+            build_nophoto_portrait_prompt as ca_build_nophoto_portrait,
         )
         from services.replicate_service import get_gender_negative_prompt as _ca_neg_fn
 
@@ -889,86 +1393,173 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
         output_dir = 'generated/previews'
         os.makedirs(output_dir, exist_ok=True)
 
-        ca_neg = _ca_neg_fn(gender)
+        # Custom negative_prompt for Centinela: tail terms removed because ASTRO legitimately has a tail.
+        # Using get_gender_negative_prompt would suppress fox/fluffy tail globally and fight @image2 reference.
+        _ca_neg_base = "text, watermark, signature, logo, letters, words, ugly, deformed, blurry, low quality, distorted face, wings on child, animal features on human, furry child, animal ears, cat ears, bunny ears, fox ears, extra limbs, hybrid creature, animal body parts on human"
+        ca_neg = (_ca_neg_base + ", masculine features, boy haircut") if gender == 'female' else (_ca_neg_base + ", earrings, jewelry, bows, ribbons, makeup, lipstick, feminine accessories, girl features, ponytails, pigtails") if gender == 'male' else _ca_neg_base
         eye_desc = get_eye_description(traits)
-        age_group, age_body_desc = get_age_body_desc(child_age)
+        profile, range_key = get_age_profile(child_age)
+        print(f"[CENTINELA AURORA PREVIEW] age={child_age} range={range_key} display={profile['display']}")
 
         if human_photo_path and os.path.exists(human_photo_path):
-            # ── Step 1: Kontext Master Prompt v2.0 (approved) ───────────────
-            kontext_prompt = (
-                f"Convert the {age_display} {gender_word} in @image1 into a high-end modern 3D animated feature film character.\n\n"
-                f"CRITICAL ANATOMY:\n"
-                f"The character is exactly {age_display}.\n"
-                f"Enforce these strict age-specific traits: {age_body_desc}\n"
-                f"Ensure mature proportions, visible neck, and proportional head size. Do not use toddler proportions.\n\n"
-                f"IDENTITY ANCHOR:\n"
-                f"Preserve the exact face, skin tone, and hair — identical likeness.\n"
-                f"The character has {eye_desc} eyes. Render this exact eye color deliberately.\n\n"
-                f"OUTFIT:\n{outfit_desc}.\n\n"
-                f"BACKGROUND:\n"
-                f"Deep midnight blue with subtle aurora colors, plain studio — no scenery.\n\n"
-                f"POSE:\n"
-                f"Standing in a relaxed natural pose, brave adventurous expression, arms relaxed at the sides. "
-                f"Full body completely visible from head to feet. Character occupies approximately 80% of the vertical frame."
-            )
-            print(f"[CENTINELA AURORA PREVIEW] Step 1 — Kontext portrait (master v2.0) | photo={human_photo_path} | age={child_age} | age_group={age_group}")
-            portrait_url = generate_with_flux_kontext(kontext_prompt, human_photo_path, aspect_ratio="3:4")
-            portrait_path = save_image_locally(portrait_url, f'{output_dir}/ca_portrait_{uuid.uuid4().hex[:8]}.png')
-            print(f"[CENTINELA AURORA PREVIEW] Portrait saved: {portrait_path}")
+            # ── SISTEMA 1 — con foto ──────────────────────────────────────────
+            # REGEN: si ya existe un avatar aprobado, saltar PASO 1+2 completamente.
+            # El avatar FLUX es fijo para toda la sesión — regenerar = nueva portada con el mismo avatar.
+            _reuse = traits.get('reuse_portrait_path', '')
+            if _reuse and os.path.exists(_reuse):
+                avatar_path = _reuse
+                print(f"[CENTINELA AURORA PREVIEW] REGEN — avatar fijo reutilizado, PASO 1+2 omitidos: {avatar_path}")
+            else:
+                # PASO 1: Kontext portrait
+                kontext_prompt = ca_build_kontext_prompt(
+                    age_display, gender_word, profile['kontext'], eye_desc, outfit_desc
+                )
+                print(f"[CENTINELA AURORA PREVIEW] PASO 1 — Kontext portrait | photo={human_photo_path} | age={child_age}")
+                portrait_url = generate_with_flux_kontext(kontext_prompt, human_photo_path, aspect_ratio="3:4")
+                portrait_path = save_image_locally(portrait_url, f'{output_dir}/ca_kontext_{uuid.uuid4().hex[:8]}.png')
+                print(f"[CENTINELA AURORA PREVIEW] PASO 1 — Kontext guardado: {portrait_path}")
 
-            # ── Step 2: FLUX 2 Dev Cover Master Prompt v2.0 (approved, with companion) ──
-            # NOTE (Jul 2026): ca_ref_note fue compactado para corregir bug de Replicate
-            # 'q_descale must have shape (batch_size, num_heads_k)' reproducido de forma
-            # aislada: el prompt combinado (ca_ref_note + ca_cover_scene) superaba un
-            # umbral de tokens que disparaba el error del kernel de atención en FLUX 2 Dev
-            # con 2 imágenes de referencia. Se conserva TODA la información (identidad de
-            # @image1, edad/anatomía, cabello, ojos exactos, identidad de @image2/ASTRO,
-            # separación de personajes) solo eliminando redundancias textuales.
-            ca_ref_note = (
-                f"@image1 = the approved {gender_word} of exactly {age_display} — definitive visual reference, keep visually consistent throughout. "
-                f"Maintain exact age-specific anatomical proportions: {age_body_desc}. "
-                f"Replicate the exact facial identity, original skin tone, hair color, texture, and hairstyle from @image1. "
-                f"Eyes: {eye_desc} — render this exact color.\n"
-                "@image2 = the approved companion ASTRO — definitive visual reference, keep visually consistent. "
-                "Maintain its complete visual identity: body shape, proportions, colors, textures and distinctive features.\n"
-                f"CHARACTER SEPARATION: Render exactly TWO completely separate characters. @image1 remains a fully human {gender_word}. @image2 retains its own original non-human anatomy."
+                # PASO 2: FLUX 2 Dev Avatar
+                avatar_prompt = ca_build_avatar_prompt(age_display, gender_word)
+                print(f"[CENTINELA AURORA PREVIEW] PASO 2 — FLUX avatar | kontext={portrait_path}")
+                avatar_url = generate_with_flux2_dev(
+                    avatar_prompt,
+                    aspect_ratio="3:4",
+                    photo_ref_path=portrait_path,
+                    image_prompt_strength=1.0,
+                    force_go_fast=False,
+                )
+                avatar_path = save_image_locally(avatar_url, f'{output_dir}/ca_avatar_{uuid.uuid4().hex[:8]}.png')
+                print(f"[CENTINELA AURORA PREVIEW] PASO 2 — Avatar guardado: {avatar_path}")
+
+            # ── PASO 3: FLUX 2 Dev Portada — avatar + ASTRO → portada ────────────
+            from services.personalized_books.age_profiles_nophoto import get_age_profile_nophoto as _get_ca_nophoto
+            _s1_nophoto_profile, _ = _get_ca_nophoto(child_age)
+            ca_ref_note = ca_build_ref_note(
+                age_display, gender_word, _s1_nophoto_profile['cover_ref'], eye_desc, outfit_desc
             )
-            ca_cover_scene = CA_FRONT_COVER.get('prompt', '').replace('{style}', AURORA_STYLE_BASE)
+            ca_cover_scene = CA_FRONT_COVER.get('prompt', '').replace('{style}', AURORA_STYLE_BASE_COVER)
             ca_cover_prompt = f"{ca_ref_note}\n{ca_cover_scene}"
-            photo_refs = [portrait_path, astro_path] if astro_ok else [portrait_path]
-            print(f"[CENTINELA AURORA PREVIEW] Step 2 — FLUX 2 Dev cover (master v2.0) | portrait={portrait_path} | astro={astro_ok}")
+            photo_refs = [avatar_path, astro_path] if astro_ok else [avatar_path]
+            ca_cover_neg = ca_neg + ", two tails, multiple tails, double tail, split tail, extra tail, floating star, detached star, star beside tail, star separate from tail"
+            print(f"[CENTINELA AURORA PREVIEW] PASO 3 — FLUX portada | avatar={avatar_path} | astro={astro_ok}")
             cov_url = generate_with_flux2_dev(
                 ca_cover_prompt,
                 aspect_ratio="3:4",
                 photo_ref_paths=photo_refs,
-                image_prompt_strength=0.9,
-                negative_prompt=ca_neg
+                image_prompt_strength=0.95,
+                negative_prompt=ca_cover_neg,
+                force_go_fast=False,
             )
         else:
-            # ── FLUX 2 Dev Cover Master Prompt v2.0 (approved, no photo, solo child) ──
-            hair_action = aurora_get_hair_action(traits)
-            hair_desc = get_hair_description(traits)
-            eye_desc = get_eye_description(traits)
-            skin_tone = get_unified_skin_description(traits.get('skin_tone', 'light'))
-            ca_nophoto_ref_note = (
-                "REFERENCE\n\n"
-                f"@image1 is the approved companion ASTRO — copy @image1 appearance exactly.\n\n"
-                f"MAIN CHARACTER\n\n"
-                f"Draw a single {gender_word} of exactly {age_display}.\n"
-                f"Maintain these exact age-specific anatomical proportions: {age_body_desc}\n"
-                f"{hair_desc}, {eye_desc}, {skin_tone} skin, big joyful brave smile, {hair_action}.\n"
-                f"OUTFIT: {outfit_desc}."
+            # ══════════════════════════════════════════════════════════════════
+            # SISTEMA 2 — SIN FOTO: pipeline de dos llamadas FLUX independiente
+            # NO usa AGE_PROFILE (SISTEMA 1). NO usa Kontext.
+            # Llamada 1: portrait del niño (solo texto, sin refs)
+            # Llamada 2: portada (portrait + ASTRO)
+            # Las escenas también usarán portrait_path como @image1.
+            # ══════════════════════════════════════════════════════════════════
+            from services.personalized_books.age_profiles_nophoto import (
+                get_age_profile_nophoto, NOPHOTO_NEGATIVE_BY_AGE, NOPHOTO_PORTRAIT_NEGATIVE_BASE
             )
-            ca_cover_scene_nophoto = CA_FRONT_COVER.get('prompt', '').replace('{style}', AURORA_STYLE_BASE)
-            ca_nophoto_prompt = f"{ca_nophoto_ref_note}\n{ca_cover_scene_nophoto}"
-            photo_refs = [astro_path] if astro_ok else None
-            print(f"[CENTINELA AURORA PREVIEW] FLUX 2 Dev cover scene (master v2.0, no photo) | gender={gender_word} | age={age_display}")
+            from services.personalized_books.hairstyles import get_hairstyle, build_haircut_description
+
+            nophoto_profile, nophoto_range_key = get_age_profile_nophoto(child_age)
+            hair_action = aurora_get_hair_action(traits)
+            # SISTEMA 2: skin descriptor simple — sin "rosy", "pink" ni "undertones"
+            # para evitar que FLUX pinte nariz/cachetes rojos
+            _nophoto_skin_map = {
+                'light':        'warm light skin',
+                'very_light':   'pale light skin',
+                'medium_light': 'light olive skin',
+                'medium':       'warm olive skin',
+                'tan':          'warm tan skin',
+                'medium_dark':  'warm brown skin',
+                'dark':         'deep brown skin',
+            }
+            skin_tone = _nophoto_skin_map.get(traits.get('skin_tone', 'light'), 'warm light skin')
+            # Todos los cortes son unisex: si hay un corte seleccionado se aplica sin importar género.
+            # Si no hay corte (o es bebé), se usa descripción natural (color + largo + tipo).
+            hairstyle_data = get_hairstyle(traits.get('hairstyle', ''))
+
+            if nophoto_profile.get('hair_note'):
+                # Bebé (1-2 años): ignorar hairstyle seleccionado, usar descripción de pelo de bebé
+                hair_line = nophoto_profile['hair_note']
+                haircut_block = ""
+            elif hairstyle_data:
+                # Corte seleccionado: color + textura (si aplica) + forma del corte. El largo NO se usa.
+                hair_line = build_haircut_description(hairstyle_data, traits)
+                haircut_block = f"{hairstyle_data['block']}\n"
+            else:
+                # Sin corte → descripción natural completa: color + largo + tipo
+                hair_line = get_hair_description(traits, gender=gender)
+                haircut_block = ""
+
+            # ── Llamada 1: Portrait del niño ─────────────────────────────────
+            # Prompt estructura: CHARACTER → AGE → PROPORTIONS → FACE → SKIN
+            #                    → EYES → HAIR → HAIRCUT → OUTFIT → POSE
+            #                    → BACKGROUND → STRICT → STYLE
+            _glasses_s2 = ", wearing prescription glasses" if traits.get('glasses') == 'yes' else ""
+            ca_portrait_prompt = ca_build_nophoto_portrait(
+                age_display, gender_word, nophoto_profile, skin_tone, eye_desc, hair_line, haircut_block, outfit_desc, _glasses_s2
+            )
+            # Negative: gender-specific (NUNCA poner "girl features" para niñas)
+            # Niño: suprimir rasgos femeninos. Niña: suprimir rasgos masculinos.
+            _neg_base = (
+                "text, watermark, signature, logo, letters, words, ugly, deformed, blurry, low quality, "
+                "distorted face, defined jawline, visible cheekbones, mature face, adult face, teenager, "
+                "wings on child, animal features on human, furry child, animal ears, extra limbs"
+            )
+            if gender == "female":
+                _neg_gender = "masculine features, boy haircut, flat chest strapped down, male jawline"
+            else:
+                _neg_gender = (
+                    "girl features, ponytails, pigtails, feminine accessories, "
+                    "earrings, jewelry, bows, ribbons, makeup, lipstick"
+                )
+            _neg_age_specific = NOPHOTO_NEGATIVE_BY_AGE.get(nophoto_range_key, '')
+            ca_portrait_neg = (
+                _neg_base + ", " + _neg_gender
+                + ", " + NOPHOTO_PORTRAIT_NEGATIVE_BASE
+                + (", " + _neg_age_specific if _neg_age_specific else "")
+            )
+
+            _reuse_s2 = traits.get('reuse_portrait_path', '')
+            if _reuse_s2 and os.path.exists(_reuse_s2):
+                nophoto_portrait_path = _reuse_s2
+                print(f"[CENTINELA AURORA PREVIEW] REGEN S2 — portrait fijo reutilizado, Llamada 1 omitida: {nophoto_portrait_path}")
+            else:
+                print(f"[CENTINELA AURORA PREVIEW] SISTEMA 2 — Llamada 1: Portrait del niño | "
+                      f"age={child_age} range={nophoto_range_key} display={nophoto_profile['display']}")
+                portrait_url_s2 = generate_with_flux2_dev(
+                    ca_portrait_prompt,
+                    aspect_ratio="3:4",
+                    photo_ref_paths=None,
+                    negative_prompt=ca_portrait_neg,
+                    high_quality=True
+                )
+                nophoto_portrait_path = save_image_locally(
+                    portrait_url_s2, f'{output_dir}/ca_portrait_{uuid.uuid4().hex[:8]}.png'
+                )
+                print(f"[CENTINELA AURORA PREVIEW] SISTEMA 2 — Portrait guardado: {nophoto_portrait_path}")
+
+            # ── Llamada 2: Portada (portrait @image1 + ASTRO @image2) ─────────
+            ca_nophoto_cover_ref = ca_build_ref_note(
+                nophoto_profile['display'], gender_word, nophoto_profile['cover_ref'], eye_desc, outfit_desc
+            )
+            ca_nophoto_cover_scene = CA_FRONT_COVER.get('prompt', '').replace('{style}', AURORA_STYLE_BASE_COVER)
+            ca_nophoto_cover_prompt = f"{ca_nophoto_cover_ref}\n{ca_nophoto_cover_scene}"
+            cover_refs_s2 = [nophoto_portrait_path, astro_path] if astro_ok else [nophoto_portrait_path]
+
+            ca_nophoto_cover_neg = ca_neg + ", two tails, multiple tails, double tail, split tail, extra tail"
+            print(f"[CENTINELA AURORA PREVIEW] SISTEMA 2 — Llamada 2: Portada (portrait + ASTRO)")
             cov_url = generate_with_flux2_dev(
-                ca_nophoto_prompt,
+                ca_nophoto_cover_prompt,
                 aspect_ratio="3:4",
-                photo_ref_paths=photo_refs,
-                image_prompt_strength=0.85,
-                negative_prompt=ca_neg
+                photo_ref_paths=cover_refs_s2,
+                image_prompt_strength=0.95,
+                negative_prompt=ca_nophoto_cover_neg,
+                force_go_fast=False,
             )
 
         cover_path = save_image_locally(cov_url, f'{output_dir}/ca_cover_{uuid.uuid4().hex[:8]}.png')
@@ -979,8 +1570,14 @@ def generate_personalized_preview(story_id: str, child_name: str, gender: str,
             'story_id': story_id,
             'child_age': child_age
         }
-        if human_photo_path and os.path.exists(human_photo_path) and 'portrait_path' in dir():
-            result['kontext_portrait'] = f'/{portrait_path}'
+        # SISTEMA 1 (con foto): avatar FLUX (Paso 2) → fluye a character_preview → @image1 en escenas
+        if human_photo_path and os.path.exists(human_photo_path) and 'avatar_path' in dir():
+            result['kontext_portrait'] = f'/{avatar_path}'
+        # SISTEMA 2 (sin foto): portrait de FLUX → fluye a character_preview → @image1 en escenas
+        # Usa el mismo key 'kontext_portrait' para que el pipeline de app.py lo recoja sin cambios
+        elif 'nophoto_portrait_path' in dir() and nophoto_portrait_path and os.path.exists(nophoto_portrait_path):
+            result['kontext_portrait'] = f'/{nophoto_portrait_path}'
+            result['nophoto_portrait'] = f'/{nophoto_portrait_path}'  # key semántico para diagnóstico
         return result
 
     elif story_id in ('furry_love_illustrated', 'furry_love_adventure_illustrated', 'furry_love_teen_illustrated', 'furry_love_adult_illustrated'):
